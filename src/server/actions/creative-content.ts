@@ -900,24 +900,24 @@ function deriveImagePrompt(request: GenerateContentRequest): string {
         parts.push(request.imageStyle);
     }
 
-    // 2. Subject anchor based on business context
+    // 2. Subject anchor based on business context — photographic direction, not marketing copy
     if (request.productName && businessContext !== 'company') {
-        parts.push(`${request.productName} cannabis product`);
+        parts.push(`${request.productName} cannabis product, professional product photography, studio lighting with colored gel accents, dark moody background, sharp focus on product details`);
     } else if (businessContext === 'company') {
-        parts.push('modern AI operations workspace, executive mobile dashboard, polished founder-led SaaS brand');
+        parts.push('sleek tech workspace, glowing screens with dashboard UI, founder at standing desk, cool blue and warm amber lighting, modern loft office with exposed brick, cinematic shallow depth of field');
     } else if (businessContext === 'brand') {
-        parts.push('premium brand storytelling, editorial lifestyle scene');
+        parts.push('premium lifestyle editorial, model in natural setting, warm golden hour light filtering through windows, rich earth tones and deep greens, magazine-quality composition with breathing room');
     } else {
-        parts.push('licensed dispensary lifestyle, adult audience, community-focused retail environment');
+        parts.push('modern dispensary interior, clean wood and glass display cases, warm pendant lighting, curated product shelves, welcoming retail atmosphere, architectural photography style');
     }
 
     const goalVisualHints: Record<SocialContentGoal, string> = {
-        'thought-leadership': 'editorial composition, confident founder portrait, credible business setting',
-        education: 'clean explainer layout, approachable teaching moment, clear composition',
-        'behind-the-scenes': 'candid team moment, process detail, authentic working session',
-        community: 'warm community atmosphere, people-first storytelling, welcoming environment',
-        'customer-proof': 'case-study style composition, results-focused visual storytelling',
-        event: 'live event energy, RSVP-ready announcement framing, action-focused composition',
+        'thought-leadership': 'editorial magazine cover composition, dramatic side lighting on subject, shallow depth of field, muted teal and warm amber color grade, clean negative space for text overlay',
+        education: 'flat lay arrangement on marble surface, soft diffused overhead lighting, organized grid layout, pastel accent colors, macro detail shots, clean minimalist composition',
+        'behind-the-scenes': 'candid photojournalism style, natural window light, motion blur on hands working, warm film grain, documentary feel, shallow focus on craft details',
+        community: 'golden hour outdoor gathering, warm skin tones, bokeh background lights, eye-level intimate framing, natural smiles, earth tone color palette',
+        'customer-proof': 'split composition with product hero left and lifestyle context right, studio rim lighting, high contrast, confident color blocking, testimonial-ready framing',
+        event: 'concert poster aesthetic, bold geometric shapes, high contrast neon accents on dark background, dynamic diagonal composition, event photography with crowd energy and stage lighting',
     };
     parts.push(goalVisualHints[goal]);
 
@@ -1198,49 +1198,68 @@ function generateFallbackCaption(request: GenerateContentRequest): string {
 }
 
 /**
- * Generate platform-specific hashtags
+ * Generate platform-specific hashtags.
+ *
+ * Strategy: mix of 3 tiers per platform:
+ *   1. High-volume discovery tags (100K+ posts) — reach new audiences
+ *   2. Mid-volume niche tags (10K-100K) — engaged communities
+ *   3. Micro/branded tags (<10K) — own the conversation
+ *
+ * Content goal shapes which niche tags get included.
  */
 function generateHashtags(platform: SocialPlatform, request: GenerateContentRequest): string[] {
     const businessContext = resolveBusinessContext(request);
     const socialSafetyMode = resolveSocialSafetyMode(request);
+    const goal = resolveContentGoal(request, businessContext);
 
     if (businessContext === 'company') {
         const companyHashtags: Record<SocialPlatform, string[]> = {
-            instagram: ['#OperatorLife', '#MarketingOps', '#RevenueOps', '#AIWorkflow', '#BehindTheScenes'],
-            tiktok: ['#OperatorLife', '#AIWorkflow', '#MarketingOps', '#FounderMode'],
-            linkedin: ['#MarketingOps', '#RevenueOps', '#AIWorkflow', '#B2BMarketing', '#Leadership'],
-            twitter: ['#MarketingOps', '#RevenueOps', '#AIWorkflow'],
-            facebook: ['#SmallBusinessTools', '#MarketingOps', '#TeamWorkflows', '#AIWorkflow'],
-            youtube: ['#OperatorInsights', '#AIWorkflow', '#FounderMode', '#B2BMarketing', '#Leadership'],
+            instagram: ['#FounderLife', '#StartupGrind', '#SaaSFounder', '#BuildInPublic', '#OperatorMindset', '#AITools', '#RetailTech'],
+            tiktok: ['#FounderMode', '#BuildInPublic', '#StartupTok', '#TechFounder', '#AITools'],
+            linkedin: ['#FounderJourney', '#RetailTech', '#AIForBusiness', '#OperatorFirst', '#B2BSaaS', '#CannabisTech', '#StartupLife'],
+            twitter: ['#BuildInPublic', '#FounderMode', '#RetailTech', '#CannabisTech', '#AITools'],
+            facebook: ['#SmallBusinessTools', '#RetailTech', '#FounderStory', '#StartupCommunity'],
+            youtube: ['#FounderVlog', '#BuildInPublic', '#SaaSDemo', '#RetailTech', '#AIAutomation'],
         };
-
         return companyHashtags[platform].slice(0, 8);
     }
 
-    if (socialSafetyMode === 'social-safe') {
-        const safeHashtags: Record<SocialPlatform, string[]> = {
-            instagram: ['#Community', '#Education', '#BehindTheScenes', '#BrandStory', '#LocalBusiness'],
-            tiktok: ['#Education', '#BehindTheScenes', '#Community', '#BrandStory'],
-            linkedin: ['#CannabisIndustry', '#RetailOps', '#CommunityMarketing', '#Compliance', '#Operations'],
-            twitter: ['#Community', '#Education', '#RetailOps', '#BrandStory'],
-            facebook: ['#Community', '#LocalBusiness', '#Education', '#Events'],
-            youtube: ['#Education', '#BrandStory', '#Community', '#BehindTheScenes', '#LocalBusiness'],
-        };
-
-        return safeHashtags[platform].slice(0, 8);
-    }
-
-    const baseHashtags = ['#cannabis', '#dispensary', '#cannabiscommunity'];
-    const platformHashtags: Record<SocialPlatform, string[]> = {
-        instagram: ['#weedstagram', '#420', '#cannabisculture', '#stonernation'],
-        tiktok: ['#cannatok', '#420tok', '#weedtok'],
-        linkedin: ['#cannabisindustry', '#cannabisbusiness', '#greenrush'],
-        twitter: ['#MedicalCannabis', '#Legalization'],
-        facebook: ['#LocalDispensary', '#ShopLocal'],
-        youtube: ['#CannabisEducation', '#BrandStory', '#CannabisCommunity'],
+    // Goal-specific niche tags — these drive engaged audiences
+    const goalTags: Record<SocialContentGoal, string[]> = {
+        'thought-leadership': ['#CannabisLeadership', '#IndustryInsights', '#PlantMedicine'],
+        education: ['#CannabisEducation', '#TerpTalk', '#KnowYourStrain', '#Terpenes101'],
+        'behind-the-scenes': ['#BehindTheCounter', '#DispensaryLife', '#CraftCannabis', '#GrowDiaries'],
+        community: ['#LocalCannabis', '#CommunityFirst', '#ShopLocal', '#SupportLocal'],
+        'customer-proof': ['#CustomerLove', '#Reviews', '#RealResults', '#Testimonials'],
+        event: ['#CannabisEvents', '#PopUp', '#InStoreEvent', '#DispensaryEvents'],
     };
 
-    return [...baseHashtags, ...(platformHashtags[platform] || [])].slice(0, 10);
+    if (socialSafetyMode === 'social-safe') {
+        // Safe-mode: no direct cannabis purchase tags, focus on community and education
+        const safePlatformTags: Record<SocialPlatform, string[]> = {
+            instagram: ['#PlantBased', '#WellnessJourney', '#HolisticHealth', '#MindfulLiving', '#NaturalWellness'],
+            tiktok: ['#WellnessTok', '#LearnOnTikTok', '#PlantBased', '#HolisticHealth'],
+            linkedin: ['#CannabisIndustry', '#RegulatedMarkets', '#RetailInnovation', '#ComplianceFirst', '#LegalCannabis'],
+            twitter: ['#CannabisIndustry', '#PlantMedicine', '#WellnessJourney'],
+            facebook: ['#LocalWellness', '#CommunityFirst', '#PlantBased', '#NaturalHealth'],
+            youtube: ['#WellnessEducation', '#PlantMedicine', '#HolisticHealth', '#NaturalWellness'],
+        };
+        const niche = goalTags[goal]?.slice(0, 2) ?? [];
+        return [...safePlatformTags[platform].slice(0, 5), ...niche].slice(0, 8);
+    }
+
+    // Standard mode — full cannabis hashtag strategy
+    const platformTags: Record<SocialPlatform, string[]> = {
+        instagram: ['#CannabisCommunity', '#DispensaryLife', '#CannaCulture', '#Terps', '#DailyDabs', '#StonerFam'],
+        tiktok: ['#CannaTok', '#420Tok', '#WeedTok', '#StonerTok', '#DabTok'],
+        linkedin: ['#CannabisIndustry', '#CannabisBusiness', '#LegalCannabis', '#CannabisRetail', '#Cannabiz'],
+        twitter: ['#Cannabis', '#LegalCannabis', '#CannabisNews', '#420'],
+        facebook: ['#LocalDispensary', '#CannabisDeals', '#ShopLocal', '#CannabisCommunity'],
+        youtube: ['#CannabisReview', '#StrainReview', '#DispensaryTour', '#CannabisEducation', '#420'],
+    };
+
+    const niche = goalTags[goal]?.slice(0, 3) ?? [];
+    return [...platformTags[platform].slice(0, 5), ...niche].slice(0, 10);
 }
 
 function resolveBusinessContext(request: GenerateContentRequest): CreativeBusinessContext {

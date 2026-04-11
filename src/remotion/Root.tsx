@@ -10,17 +10,25 @@ import type { ComponentType } from 'react';
 import { BrandedSlideshow, type BrandedSlideshowProps } from './compositions/BrandedSlideshow';
 import { ToolShowcase, type ToolShowcaseProps } from './compositions/ToolShowcase';
 import { LongFormVideo, calculateLongFormMetadata, type LongFormVideoProps } from './compositions/LongFormVideo';
+import { VideoRemix, calculateVideoRemixMetadata, type VideoRemixProps } from './compositions/VideoRemix';
 
 // Remotion's Composition generic requires ComponentType<Record<string, unknown>>.
 // Cast once here so all three registrations stay clean.
 const BrandedSlideshowComp = BrandedSlideshow as unknown as ComponentType<Record<string, unknown>>;
 const ToolShowcaseComp = ToolShowcase as unknown as ComponentType<Record<string, unknown>>;
 const LongFormVideoComp = LongFormVideo as unknown as ComponentType<Record<string, unknown>>;
+const VideoRemixComp = VideoRemix as unknown as ComponentType<Record<string, unknown>>;
 const calculateLongFormCompositionMetadata: CalculateMetadataFunction<Record<string, unknown>> = (options) =>
     calculateLongFormMetadata({
         ...options,
         defaultProps: options.defaultProps as LongFormVideoProps,
         props: options.props as LongFormVideoProps,
+    });
+const calculateVideoRemixCompositionMetadata: CalculateMetadataFunction<Record<string, unknown>> = (options) =>
+    calculateVideoRemixMetadata({
+        ...options,
+        defaultProps: options.defaultProps as VideoRemixProps,
+        props: options.props as VideoRemixProps,
     });
 
 const DEFAULT_PROPS: BrandedSlideshowProps = {
@@ -169,6 +177,81 @@ export const RemotionRoot: React.FC = () => {
                 height={1080}
                 defaultProps={DEFAULT_LONGFORM_PROPS}
             />
+            {/* Video Remix - 16:9 (landscape) */}
+            <Composition
+                id="VideoRemix-16x9"
+                component={VideoRemixComp}
+                calculateMetadata={calculateVideoRemixCompositionMetadata}
+                durationInFrames={300}
+                fps={30}
+                width={1280}
+                height={720}
+                defaultProps={{
+                    videoSrc: 'https://storage.googleapis.com/bakedbot-global-assets/drive/creative/thrive-syracuse/thrive-dispensary-twitch.mp4',
+                    brandName: 'Thrive Syracuse',
+                    headline: 'YOUR LOCAL DISPENSARY',
+                    primaryColor: '#18181b',
+                    secondaryColor: '#27272a',
+                    accentColor: '#22c55e',
+                    ctaText: 'Visit Us',
+                    websiteUrl: 'thrivesyracuse.com',
+                    showHeadline: true,
+                    showLowerThird: true,
+                    showOutro: true,
+                    muted: false,
+                } satisfies VideoRemixProps}
+            />
+
+            {/* Video Remix - 9:16 (vertical / TikTok / Reels) */}
+            <Composition
+                id="VideoRemix-9x16"
+                component={VideoRemixComp}
+                calculateMetadata={calculateVideoRemixCompositionMetadata}
+                durationInFrames={300}
+                fps={30}
+                width={720}
+                height={1280}
+                defaultProps={{
+                    videoSrc: 'https://storage.googleapis.com/bakedbot-global-assets/drive/creative/thrive-syracuse/thrive-dispensary-twitch.mp4',
+                    brandName: 'Thrive Syracuse',
+                    headline: 'YOUR LOCAL DISPENSARY',
+                    primaryColor: '#18181b',
+                    secondaryColor: '#27272a',
+                    accentColor: '#22c55e',
+                    ctaText: 'Visit Us',
+                    websiteUrl: 'thrivesyracuse.com',
+                    showHeadline: true,
+                    showLowerThird: true,
+                    showOutro: true,
+                    muted: false,
+                } satisfies VideoRemixProps}
+            />
+
+            {/* Video Remix - 1:1 (Instagram feed) */}
+            <Composition
+                id="VideoRemix-1x1"
+                component={VideoRemixComp}
+                calculateMetadata={calculateVideoRemixCompositionMetadata}
+                durationInFrames={300}
+                fps={30}
+                width={1080}
+                height={1080}
+                defaultProps={{
+                    videoSrc: 'https://storage.googleapis.com/bakedbot-global-assets/drive/creative/thrive-syracuse/thrive-dispensary-twitch.mp4',
+                    brandName: 'Thrive Syracuse',
+                    headline: 'YOUR LOCAL DISPENSARY',
+                    primaryColor: '#18181b',
+                    secondaryColor: '#27272a',
+                    accentColor: '#22c55e',
+                    ctaText: 'Visit Us',
+                    websiteUrl: 'thrivesyracuse.com',
+                    showHeadline: true,
+                    showLowerThird: true,
+                    showOutro: true,
+                    muted: false,
+                } satisfies VideoRemixProps}
+            />
+
             {/* Tiny Smoke Test for Lambda Verification (1 second) */}
             <Composition
                 id="TinySmokeTest"

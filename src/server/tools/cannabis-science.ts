@@ -10,7 +10,7 @@ import { getSupabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 
 // --- Gemini embedding for query ---
-const EMBED_MODEL = 'text-embedding-004';
+const EMBED_MODEL = 'gemini-embedding-001';
 
 async function embedQuery(text: string): Promise<number[]> {
   const key = process.env.GEMINI_API_KEY;

@@ -129,28 +129,63 @@ async function heygenFetch(path, options = {}) {
 }
 
 /**
+ * Screenshot URL map — each step can have a background image.
+ * Place screenshots in scripts/heygen/screenshots/ or use public URLs.
+ * When a URL is provided, the avatar renders as a small circle overlay (Loom-style).
+ */
+const STEP_SCREENSHOTS_DIR = join(process.cwd(), 'scripts', 'heygen', 'screenshots');
+
+function getScreenshotUrl(stepId) {
+  // Check for local screenshot file first
+  const localPath = join(STEP_SCREENSHOTS_DIR, `${stepId}.png`);
+  if (existsSync(localPath)) {
+    // HeyGen needs a public URL — local files need to be uploaded first
+    // For now, return null and fall back to color background
+    console.log(`  ℹ️  Local screenshot found at ${localPath} — upload to S3 for background`);
+    return null;
+  }
+
+  // Check for public URL in env (e.g., HEYGEN_BG_brand_guide=https://...)
+  const envKey = `HEYGEN_BG_${stepId.replace(/-/g, '_')}`;
+  return process.env[envKey] || null;
+}
+
+/**
  * Submit a video generation request.
+ * Supports two layouts:
+ *   - "circle" (default): Small circular avatar in bottom-right, background image/color behind
+ *   - "fullscreen": Full-screen avatar with color background
  * Returns { video_id: string }
  */
-async function createVideo({ title, narration, avatarId, voiceId }) {
+async function createVideo({ title, narration, avatarId, voiceId, stepId, layout = 'circle' }) {
+  const screenshotUrl = stepId ? getScreenshotUrl(stepId) : null;
+  const useCircle = layout === 'circle';
+
+  const character = {
+    type: 'avatar',
+    avatar_id: avatarId,
+    avatar_style: useCircle ? 'circle' : 'normal',
+    ...(useCircle && {
+      scale: 0.25,
+      position: { x: 0.8, y: 0.8 },
+    }),
+  };
+
+  const background = screenshotUrl
+    ? { type: 'image', url: screenshotUrl }
+    : { type: 'color', value: '#1a1a2e' };
+
   const body = {
     video_inputs: [
       {
-        character: {
-          type: 'avatar',
-          avatar_id: avatarId,
-          avatar_style: 'normal',
-        },
+        character,
         voice: {
           type: 'text',
           input_text: narration,
           voice_id: voiceId,
           speed: 1.0,
         },
-        background: {
-          type: 'color',
-          value: '#1a1a2e', // Dark background matching BakedBot brand
-        },
+        background,
       },
     ],
     dimension: { width: 1920, height: 1080 },
@@ -288,15 +323,19 @@ Options:
   --dry-run        Show what would be generated without calling the API
   --no-poll        Submit jobs but don't wait for completion
   --include-bonus  Include the bonus full-journey video (11-*)
+  --fullscreen     Use full-screen avatar (default: circle bubble bottom-right)
 `);
       process.exit(0);
     }
     scripts = [readScript(scriptFile)];
   }
 
+  const layout = flag('fullscreen') ? 'fullscreen' : 'circle';
+
   console.log(`\n📹 Generating ${scripts.length} onboarding video(s)\n`);
   console.log(`  Avatar: ${avatarId}`);
   console.log(`  Voice:  ${voiceId}`);
+  console.log(`  Layout: ${layout} (${layout === 'circle' ? 'small bubble bottom-right' : 'full-screen avatar'})`);
   console.log(`  Mode:   ${dryRun ? 'DRY RUN' : 'LIVE'}\n`);
 
   const results = [];
@@ -321,6 +360,8 @@ Options:
         narration: script.narration,
         avatarId,
         voiceId,
+        stepId: script.stepId,
+        layout,
       });
 
       console.log(`  Submitted: video_id=${video_id}`);

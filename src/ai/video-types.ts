@@ -17,6 +17,13 @@ export const GenerateVideoInputSchema = z.object({
     productImageUrl: z.string().optional().describe('Absolute URL to the selected product image'),
     ctaText: z.string().optional().describe('Call-to-action text for branded slideshow outro'),
     websiteUrl: z.string().optional().describe('Website URL shown on the branded slideshow outro'),
+    // Video remix fields — source video + overlay toggles for Remotion VideoRemix composition
+    videoSrc: z.string().optional().describe('Source video URL for remix mode'),
+    showHeadline: z.boolean().optional().describe('Show headline overlay on remix video'),
+    showLowerThird: z.boolean().optional().describe('Show CTA lower-third bar on remix video'),
+    showOutro: z.boolean().optional().describe('Show brand outro card on remix video'),
+    muted: z.boolean().optional().describe('Mute source video audio in remix'),
+    durationOverride: z.number().optional().describe('Override total duration in frames for remix'),
     // Tracking context — passed through to media-tracking for cost attribution
     orgId: z.string().optional().describe('Tenant org ID for cost tracking'),
     userId: z.string().optional().describe('User ID for cost tracking'),

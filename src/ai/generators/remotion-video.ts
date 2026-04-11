@@ -7,9 +7,10 @@
  */
 
 import { logger } from '@/lib/logger';
-import { 
-    renderMediaOnLambda, 
-    getRenderProgress, 
+import {
+    renderMediaOnLambda,
+    getRenderProgress,
+    presignUrl,
 } from '@remotion/lambda/client';
 import type { GenerateVideoInput, GenerateVideoOutput } from '../video-types';
 import type { VideoStyle } from '@/types/creative-video';
@@ -31,6 +32,11 @@ const COMPOSITION_MAP: Record<string, Record<string, string>> = {
         '9:16': 'LongFormVideo-9x16',
         '1:1': 'LongFormVideo-1x1',
     },
+    remix: {
+        '16:9': 'VideoRemix-16x9',
+        '9:16': 'VideoRemix-9x16',
+        '1:1': 'VideoRemix-1x1',
+    },
 };
 
 export interface RemotionVideoInput extends GenerateVideoInput {
@@ -45,6 +51,16 @@ export interface RemotionVideoInput extends GenerateVideoInput {
     clipUrls?: string[];
     sceneTitles?: string[];
     compositionId?: string;
+    /** Source video URL for remix mode */
+    videoSrc?: string;
+    /** Remix overlay toggles */
+    showHeadline?: boolean;
+    showLowerThird?: boolean;
+    showOutro?: boolean;
+    /** Mute source video audio */
+    muted?: boolean;
+    /** Override total duration in frames */
+    durationOverride?: number;
 }
 
 export async function generateRemotionVideo(
@@ -57,33 +73,49 @@ export async function generateRemotionVideo(
     const TIMEOUT_SECONDS = 300; // Increased to 5 minutes for "Solo Mode" reliability 
     
     // Detect composition type
-    const type = input.clipUrls?.length
-        ? 'longform'
-        : (input.screenshotUrls?.length || input.kineticHeadline)
-            ? 'tool'
-            : 'slideshow';
-    
+    const type = input.videoSrc
+        ? 'remix'
+        : input.clipUrls?.length
+            ? 'longform'
+            : (input.screenshotUrls?.length || input.kineticHeadline)
+                ? 'tool'
+                : 'slideshow';
+
     const compositionId = input.compositionId || COMPOSITION_MAP[type][input.aspectRatio || '16:9'] || COMPOSITION_MAP[type]['16:9'];
 
-    // Build props
-    const props = {
+    // Build props based on composition type
+    const baseProps = {
         brandName: input.brandName || 'BakedBot AI',
         headline: (input.kineticHeadline || input.headline || input.prompt.substring(0, 40)).toUpperCase(),
-        tagline: input.tagline || input.prompt.substring(0, 80),
         primaryColor: input.primaryColor || '#18181b',
         secondaryColor: input.secondaryColor || '#27272a',
         accentColor: input.accentColor || '#22c55e',
         logoUrl: input.logoUrl,
-        clipUrls: input.clipUrls || [],
-        sceneTitles: input.sceneTitles || [],
         ctaText: input.ctaText || 'Shop Now',
         websiteUrl: input.websiteUrl,
-        productImageUrl: input.productImageUrl,
-        screenshotUrls: input.screenshotUrls || [],
-        backgroundImageUrl: input.backgroundImageUrl,
-        styleMode: input.styleMode || 'stop-motion',
-        kineticHeadline: input.kineticHeadline || 'INTRODUCING',
     };
+
+    const props = type === 'remix'
+        ? {
+            ...baseProps,
+            videoSrc: input.videoSrc!,
+            showHeadline: input.showHeadline ?? true,
+            showLowerThird: input.showLowerThird ?? true,
+            showOutro: input.showOutro ?? true,
+            muted: input.muted ?? false,
+            durationOverride: input.durationOverride,
+        }
+        : {
+            ...baseProps,
+            tagline: input.tagline || input.prompt.substring(0, 80),
+            clipUrls: input.clipUrls || [],
+            sceneTitles: input.sceneTitles || [],
+            productImageUrl: input.productImageUrl,
+            screenshotUrls: input.screenshotUrls || [],
+            backgroundImageUrl: input.backgroundImageUrl,
+            styleMode: input.styleMode || 'stop-motion',
+            kineticHeadline: input.kineticHeadline || 'INTRODUCING',
+        };
 
     try {
         // 1. Trigger render
@@ -94,7 +126,7 @@ export async function generateRemotionVideo(
             serveUrl: 'bakedbot-creative', // The site name deployed to S3/sites/
             codec: 'h264',
             inputProps: props as Record<string, unknown>,
-            privacy: 'private',
+            privacy: 'no-acl',
             // Limit to 1 concurrent Lambda invocation to avoid AWS ThrottlingException.
             // Renders take longer but reliably complete without 429s on this account.
             concurrencyPerLambda: 1,
@@ -140,8 +172,27 @@ export async function generateRemotionVideo(
             throw new Error('[Remotion] Render timed out after 300 seconds.');
         }
 
+        // Presign the S3 URL so clients can access it (no-acl bucket)
+        let accessibleUrl = finalUrl;
+        try {
+            // Extract bucket and key from the S3 URL
+            const s3Match = finalUrl.match(/s3\.[\w-]+\.amazonaws\.com\/([^/]+)\/(.+)/);
+            if (s3Match) {
+                accessibleUrl = await presignUrl({
+                    region,
+                    bucketName: s3Match[1],
+                    objectKey: s3Match[2],
+                    expiresInSeconds: 7 * 24 * 60 * 60, // 7 days
+                });
+            }
+        } catch (presignErr) {
+            logger.warn('[Remotion] Presign failed, using raw URL', {
+                error: presignErr instanceof Error ? presignErr.message : String(presignErr),
+            });
+        }
+
         return {
-            videoUrl: finalUrl,
+            videoUrl: accessibleUrl,
             thumbnailUrl: undefined,
             duration: 10,
             provider: 'remotion',

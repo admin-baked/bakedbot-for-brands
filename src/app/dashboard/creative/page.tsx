@@ -105,7 +105,7 @@ function formatMenuProductLabel(product: MenuProduct): string {
 
 // Valid creative style types
 type CreativeStyle = NonNullable<GenerateContentRequest['style']>;
-type CreativeImageMode = 'photo' | 'branded' | 'video' | 'slideshow' | 'deck' | 'longvideo';
+type CreativeImageMode = 'photo' | 'branded' | 'video' | 'slideshow' | 'deck' | 'longvideo' | 'remix';
 type CreativeTemplate = {
   label: string;
   description: string;
@@ -236,122 +236,130 @@ const SOCIAL_SAFE_HASHTAG_LIBRARY: Record<
 > = {
   company: {
     instagram: [
-      { tag: "operatorlife", category: "Operations" },
-      { tag: "marketingops", category: "Operations" },
-      { tag: "revenueops", category: "Operations" },
-      { tag: "aiworkflow", category: "Workflow" },
-      { tag: "foundermode", category: "Leadership" },
+      { tag: "BuildInPublic", category: "Discovery" },
+      { tag: "FounderLife", category: "Discovery" },
+      { tag: "StartupGrind", category: "Discovery" },
+      { tag: "SaaSFounder", category: "Niche" },
+      { tag: "RetailTech", category: "Niche" },
+      { tag: "OperatorMindset", category: "Micro" },
+      { tag: "AITools", category: "Niche" },
     ],
     tiktok: [
-      { tag: "operatorlife", category: "Operations" },
-      { tag: "aiworkflow", category: "Workflow" },
-      { tag: "foundermode", category: "Leadership" },
-      { tag: "marketingops", category: "Operations" },
+      { tag: "FounderMode", category: "Discovery" },
+      { tag: "BuildInPublic", category: "Discovery" },
+      { tag: "StartupTok", category: "Platform" },
+      { tag: "TechFounder", category: "Niche" },
+      { tag: "AITools", category: "Niche" },
     ],
     linkedin: [
-      { tag: "marketingops", category: "Operations" },
-      { tag: "revenueops", category: "Operations" },
-      { tag: "aiworkflow", category: "Workflow" },
-      { tag: "b2bmarketing", category: "Business" },
-      { tag: "leadership", category: "Leadership" },
-      { tag: "operators", category: "Operations" },
+      { tag: "FounderJourney", category: "Discovery" },
+      { tag: "RetailTech", category: "Industry" },
+      { tag: "AIForBusiness", category: "Niche" },
+      { tag: "B2BSaaS", category: "Industry" },
+      { tag: "CannabisTech", category: "Niche" },
+      { tag: "StartupLife", category: "Discovery" },
     ],
     twitter: [
-      { tag: "marketingops", category: "Operations" },
-      { tag: "revenueops", category: "Operations" },
-      { tag: "aiworkflow", category: "Workflow" },
-      { tag: "foundermode", category: "Leadership" },
+      { tag: "BuildInPublic", category: "Discovery" },
+      { tag: "FounderMode", category: "Discovery" },
+      { tag: "RetailTech", category: "Niche" },
+      { tag: "CannabisTech", category: "Niche" },
     ],
     facebook: [
-      { tag: "smallbusinesstools", category: "Business" },
-      { tag: "marketingops", category: "Operations" },
-      { tag: "teamworkflows", category: "Workflow" },
-      { tag: "aiworkflow", category: "Workflow" },
+      { tag: "SmallBusinessTools", category: "Discovery" },
+      { tag: "RetailTech", category: "Niche" },
+      { tag: "FounderStory", category: "Storytelling" },
+      { tag: "StartupCommunity", category: "Community" },
     ],
     youtube: [
-      { tag: "operatorinsights", category: "Leadership" },
-      { tag: "aiworkflow", category: "Workflow" },
-      { tag: "foundermode", category: "Leadership" },
-      { tag: "b2bmarketing", category: "Business" },
+      { tag: "FounderVlog", category: "Discovery" },
+      { tag: "BuildInPublic", category: "Discovery" },
+      { tag: "SaaSDemo", category: "Niche" },
+      { tag: "RetailTech", category: "Industry" },
     ],
   },
   dispensary: {
     instagram: [
-      { tag: "community", category: "Community" },
-      { tag: "education", category: "Education" },
-      { tag: "behindthescenes", category: "Culture" },
-      { tag: "brandstory", category: "Storytelling" },
-      { tag: "localbusiness", category: "Local" },
+      { tag: "PlantBased", category: "Discovery" },
+      { tag: "WellnessJourney", category: "Discovery" },
+      { tag: "NaturalWellness", category: "Discovery" },
+      { tag: "MindfulLiving", category: "Niche" },
+      { tag: "HolisticHealth", category: "Niche" },
+      { tag: "LocalWellness", category: "Local" },
+      { tag: "KnowYourBudtender", category: "Micro" },
     ],
     tiktok: [
-      { tag: "education", category: "Education" },
-      { tag: "behindthescenes", category: "Culture" },
-      { tag: "community", category: "Community" },
-      { tag: "brandstory", category: "Storytelling" },
+      { tag: "WellnessTok", category: "Platform" },
+      { tag: "LearnOnTikTok", category: "Discovery" },
+      { tag: "PlantBased", category: "Discovery" },
+      { tag: "HolisticHealth", category: "Niche" },
+      { tag: "NaturalRemedies", category: "Niche" },
     ],
     linkedin: [
-      { tag: "cannabisindustry", category: "Industry" },
-      { tag: "retailops", category: "Operations" },
-      { tag: "communitymarketing", category: "Marketing" },
-      { tag: "compliance", category: "Compliance" },
-      { tag: "operations", category: "Operations" },
+      { tag: "CannabisIndustry", category: "Industry" },
+      { tag: "RegulatedMarkets", category: "Industry" },
+      { tag: "RetailInnovation", category: "Niche" },
+      { tag: "ComplianceFirst", category: "Compliance" },
+      { tag: "LegalCannabis", category: "Industry" },
     ],
     twitter: [
-      { tag: "community", category: "Community" },
-      { tag: "education", category: "Education" },
-      { tag: "retailops", category: "Operations" },
-      { tag: "brandstory", category: "Storytelling" },
+      { tag: "CannabisIndustry", category: "Industry" },
+      { tag: "PlantMedicine", category: "Discovery" },
+      { tag: "WellnessJourney", category: "Discovery" },
+      { tag: "LocalBusiness", category: "Local" },
     ],
     facebook: [
-      { tag: "community", category: "Community" },
-      { tag: "localbusiness", category: "Local" },
-      { tag: "education", category: "Education" },
-      { tag: "events", category: "Events" },
+      { tag: "LocalWellness", category: "Local" },
+      { tag: "CommunityFirst", category: "Community" },
+      { tag: "PlantBased", category: "Discovery" },
+      { tag: "NaturalHealth", category: "Discovery" },
+      { tag: "ShopLocal", category: "Local" },
     ],
     youtube: [
-      { tag: "education", category: "Education" },
-      { tag: "community", category: "Community" },
-      { tag: "brandstory", category: "Storytelling" },
-      { tag: "localbusiness", category: "Local" },
+      { tag: "WellnessEducation", category: "Discovery" },
+      { tag: "PlantMedicine", category: "Niche" },
+      { tag: "HolisticHealth", category: "Discovery" },
+      { tag: "NaturalWellness", category: "Discovery" },
     ],
   },
   brand: {
     instagram: [
-      { tag: "brandstory", category: "Storytelling" },
-      { tag: "community", category: "Community" },
-      { tag: "behindthescenes", category: "Culture" },
-      { tag: "education", category: "Education" },
-      { tag: "lifestyle", category: "Lifestyle" },
+      { tag: "CraftCannabis", category: "Niche" },
+      { tag: "PlantBased", category: "Discovery" },
+      { tag: "MindfulLiving", category: "Discovery" },
+      { tag: "NaturalWellness", category: "Discovery" },
+      { tag: "BrandStory", category: "Storytelling" },
+      { tag: "ElevateYourDay", category: "Micro" },
     ],
     tiktok: [
-      { tag: "brandstory", category: "Storytelling" },
-      { tag: "behindthescenes", category: "Culture" },
-      { tag: "community", category: "Community" },
-      { tag: "lifestyle", category: "Lifestyle" },
+      { tag: "BrandTok", category: "Platform" },
+      { tag: "PlantBased", category: "Discovery" },
+      { tag: "LifestyleBrand", category: "Niche" },
+      { tag: "CraftCulture", category: "Niche" },
     ],
     linkedin: [
-      { tag: "brandmarketing", category: "Marketing" },
-      { tag: "communitymarketing", category: "Marketing" },
-      { tag: "storytelling", category: "Storytelling" },
-      { tag: "operations", category: "Operations" },
+      { tag: "BrandBuilding", category: "Discovery" },
+      { tag: "CannabisIndustry", category: "Industry" },
+      { tag: "BrandMarketing", category: "Marketing" },
+      { tag: "ConsumerBrands", category: "Industry" },
     ],
     twitter: [
-      { tag: "brandstory", category: "Storytelling" },
-      { tag: "community", category: "Community" },
-      { tag: "education", category: "Education" },
-      { tag: "lifestyle", category: "Lifestyle" },
+      { tag: "CraftCannabis", category: "Niche" },
+      { tag: "BrandStory", category: "Storytelling" },
+      { tag: "PlantBased", category: "Discovery" },
+      { tag: "LifestyleBrand", category: "Niche" },
     ],
     facebook: [
-      { tag: "brandstory", category: "Storytelling" },
-      { tag: "community", category: "Community" },
-      { tag: "events", category: "Events" },
-      { tag: "lifestyle", category: "Lifestyle" },
+      { tag: "CraftCannabis", category: "Niche" },
+      { tag: "CommunityFirst", category: "Community" },
+      { tag: "BrandStory", category: "Storytelling" },
+      { tag: "NaturalWellness", category: "Discovery" },
     ],
     youtube: [
-      { tag: "brandstory", category: "Storytelling" },
-      { tag: "behindthescenes", category: "Culture" },
-      { tag: "education", category: "Education" },
-      { tag: "lifestyle", category: "Lifestyle" },
+      { tag: "BrandStory", category: "Storytelling" },
+      { tag: "BehindTheBrand", category: "Culture" },
+      { tag: "CraftCulture", category: "Niche" },
+      { tag: "LifestyleBrand", category: "Discovery" },
     ],
   },
 };
@@ -711,59 +719,59 @@ export default function CreativeCommandCenter() {
   const legacyCampaignTemplates = [
     {
       label: "Product Launch",
-      prompt: "Exciting new product launch! Highlighting unique features and benefits.",
+      prompt: "New product drop — lead with what makes it different, build anticipation, treat it like a limited release.",
       tone: "hype" as const,
       textOverlay: { headline: "Now Available", cta: "Shop Now" },
-      imageStyle: "vibrant studio product shot, dark background, spotlight lighting",
+      imageStyle: "dramatic product photography, single product centered on dark glossy surface, colored gel rim lighting, smoke wisps, shallow depth of field, premium commercial quality",
     },
     {
       label: "Weekend Special",
-      prompt: "Weekend unwind promotion focusing on relaxation and quality time.",
+      prompt: "Weekend unwind — paint a sensory scene of relaxation, let the product be the quiet hero.",
       tone: "professional" as const,
       textOverlay: { headline: "Weekend Special", cta: "View Deals" },
-      imageStyle: "warm ambient lifestyle photography, golden hour light",
+      imageStyle: "cinematic lifestyle photography, golden hour light through sheer curtains, cozy interior with plants and soft textures, warm amber tones, shallow depth of field, editorial magazine quality",
     },
     {
       label: "Educational",
-      prompt: "Educational content about terpene profiles, effects, and proper usage.",
+      prompt: "Teach one thing well — terpene profiles, effects, or consumption methods. Use analogies to everyday life, not science jargon.",
       tone: "educational" as const,
       textOverlay: { headline: "Did You Know?", cta: "Learn More" },
-      imageStyle: "clean minimalist product photography, white background",
+      imageStyle: "scientific flat lay on white marble, botanical elements arranged artfully (citrus peels, herbs, pine needles), soft overhead diffused lighting, macro detail, editorial composition",
     },
     {
       label: "Event Promo",
-      prompt: "Upcoming event announcement with details and registration information.",
+      prompt: "Event announcement — lead with what makes it worth showing up, build anticipation without over-explaining.",
       tone: "hype" as const,
       textOverlay: { headline: "Join Us", cta: "RSVP Now" },
-      imageStyle: "energetic nightlife atmosphere, neon accents",
+      imageStyle: "concert poster aesthetic, bold geometric shapes, neon color accents on dark background, dynamic diagonal composition, stage lighting energy, modern festival vibes",
     },
     {
       label: "Flash Sale",
-      prompt: "Limited time discount offer with urgency-focused messaging and exclusive savings.",
+      prompt: "Time-sensitive offer — create urgency through scarcity and confidence, not desperation. Lead with the savings number.",
       tone: "hype" as const,
       textOverlay: { headline: "Today Only", cta: "Grab the Deal" },
-      imageStyle: "bold colors, dynamic energy, high contrast lighting",
+      imageStyle: "bold graphic design aesthetic, high contrast color blocking, large typography-friendly negative space, neon accent glow on dark background, modern retail energy",
     },
     {
       label: "New Arrival",
-      prompt: "Brand new product just dropped — first-to-know excitement and exclusivity.",
+      prompt: "Just dropped — treat it like a sneaker release. Exclusivity and specificity over generic excitement.",
       tone: "hype" as const,
       textOverlay: { headline: "Just Dropped", cta: "Be First" },
-      imageStyle: "sleek premium product shot, dark moody studio",
+      imageStyle: "product reveal photography, dramatic top-down unwrapping moment, dark luxurious background, accent lighting revealing product details, premium unboxing aesthetic",
     },
     {
       label: "Loyalty Reward",
-      prompt: "Thank loyal customers with exclusive recognition and special reward messaging.",
+      prompt: "VIP recognition — make members feel like insiders. Warm, personal, not corporate.",
       tone: "professional" as const,
       textOverlay: { headline: "For Our VIPs", cta: "Claim Reward" },
-      imageStyle: "luxury gold accent photography, elegant dark background",
+      imageStyle: "luxury still life, gold and deep emerald accents, velvet texture, warm amber side lighting, premium gift presentation, elegant dark background with subtle bokeh",
     },
     {
       label: "Wellness",
-      prompt: "Health and wellness focus, mindful cannabis consumption and self-care messaging.",
+      prompt: "Mindful consumption — wellness-focused, informative, calming. Position as self-care, not getting high.",
       tone: "educational" as const,
       textOverlay: { headline: "Feel Your Best", cta: "Explore" },
-      imageStyle: "serene nature photography, soft morning light, green tones",
+      imageStyle: "serene wellness photography, morning light through plants, sage green and cream palette, soft focus botanical elements, spa-like atmosphere, mindful composition",
     },
   ];
 
@@ -779,12 +787,12 @@ export default function CreativeCommandCenter() {
       socialSafetyMode: "social-safe",
       imageMode: "branded",
       textOverlay: { enabled: true, headline: "Operator POV", cta: "Learn More" },
-      imageStyle: "clean editorial portrait, polished SaaS brand composition, warm professional lighting",
+      imageStyle: "editorial portrait photography, confident founder at standing desk, warm window light mixed with cool monitor glow, modern loft office, Hasselblad medium format look, shallow depth of field",
     },
     {
       label: "Education Bite",
       description: "Fast myth-busting or explainer content",
-      prompt: "Teach one useful lesson in a clear, social-safe way that works for busy people scrolling quickly.",
+      prompt: "Teach one useful lesson using everyday analogies. Open with a relatable comparison, teach the concept, connect to products naturally at the end.",
       tone: "educational",
       businessContext: "dispensary",
       contentGoal: "education",
@@ -792,12 +800,12 @@ export default function CreativeCommandCenter() {
       socialSafetyMode: "social-safe",
       imageMode: "photo",
       textOverlay: { enabled: true, headline: "Quick takeaway", cta: "Save this" },
-      imageStyle: "clean explainer visual, minimal layout, natural lighting, approachable editorial scene",
+      imageStyle: "scientific flat lay on white marble, botanical elements arranged artfully, soft overhead diffused lighting, macro detail on textures, clean editorial composition",
     },
     {
       label: "Behind the Scenes",
       description: "Show the process and people",
-      prompt: "Create a behind-the-scenes post that highlights the people, process, and craft without direct selling language.",
+      prompt: "Behind-the-scenes moment that shows craft and care. Candid, not staged. Let the process speak for itself.",
       tone: "professional",
       businessContext: "brand",
       contentGoal: "behind-the-scenes",
@@ -805,12 +813,12 @@ export default function CreativeCommandCenter() {
       socialSafetyMode: "social-safe",
       imageMode: "slideshow",
       textOverlay: { enabled: true, headline: "Behind the scenes", cta: "See more" },
-      imageStyle: "candid team moment, documentary style, authentic process photography",
+      imageStyle: "candid photojournalism style, natural window light, motion blur on hands working, warm film grain, documentary feel, shallow focus on craft details",
     },
     {
       label: "Event Push",
       description: "Promote attendance, not product",
-      prompt: "Create an event-focused post that makes people want to attend, RSVP, or show up without using direct sales language.",
+      prompt: "Event announcement — lead with what makes it worth showing up. Tease what's happening without over-explaining. Build anticipation.",
       tone: "hype",
       businessContext: "dispensary",
       contentGoal: "event",
@@ -818,12 +826,12 @@ export default function CreativeCommandCenter() {
       socialSafetyMode: "social-safe",
       imageMode: "branded",
       textOverlay: { enabled: true, headline: "Join Us", cta: "RSVP Now" },
-      imageStyle: "energetic local event atmosphere, crowd energy, clear focus on invitation",
+      imageStyle: "concert poster aesthetic, bold geometric shapes, neon color accents on dark background, dynamic diagonal composition, stage lighting energy",
     },
     {
       label: "Customer Proof",
       description: "Turn a win into a proof-driven post",
-      prompt: "Turn one real win, result, or operator outcome into a proof-driven social post with a practical lesson.",
+      prompt: "One real win or operator outcome, told as a story. Start with the before, show the change, let the result speak for itself.",
       tone: "professional",
       businessContext: "company",
       contentGoal: "customer-proof",
@@ -831,12 +839,12 @@ export default function CreativeCommandCenter() {
       socialSafetyMode: "social-safe",
       imageMode: "branded",
       textOverlay: { enabled: true, headline: "What changed", cta: "See it live" },
-      imageStyle: "case-study layout, data-informed brand graphic, premium editorial contrast",
+      imageStyle: "split composition with data visualization left and lifestyle context right, studio rim lighting, high contrast, confident color blocking, premium editorial",
     },
     {
       label: "Community Moment",
       description: "People and place over promotion",
-      prompt: "Create a community-focused post that feels warm, local, and people-first without turning into a product ad.",
+      prompt: "Community-focused moment that feels warm and local. Center the people, not the product. Make it feel like you're already part of something.",
       tone: "professional",
       businessContext: "dispensary",
       contentGoal: "community",
@@ -844,7 +852,7 @@ export default function CreativeCommandCenter() {
       socialSafetyMode: "social-safe",
       imageMode: "photo",
       textOverlay: { enabled: true, headline: "Community first", cta: "Follow along" },
-      imageStyle: "warm community atmosphere, candid local storytelling, welcoming environment",
+      imageStyle: "golden hour outdoor gathering, warm skin tones, bokeh background lights, eye-level intimate framing, natural smiles, earth tone color palette",
     },
   ];
 
@@ -926,6 +934,14 @@ export default function CreativeCommandCenter() {
   const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
+  // Remix mode state
+  const [remixVideoUrl, setRemixVideoUrl] = useState<string | null>(null);
+  const [remixUploading, setRemixUploading] = useState(false);
+  const [remixShowHeadline, setRemixShowHeadline] = useState(true);
+  const [remixShowLowerThird, setRemixShowLowerThird] = useState(true);
+  const [remixShowOutro, setRemixShowOutro] = useState(true);
+  const [remixMuted, setRemixMuted] = useState(false);
+
   useEffect(() => {
     if (!isGeneratingVideo || imageMode !== 'longvideo') return;
     const id = setInterval(() => setFridayQuoteIdx(i => (i + 1) % FRIDAY_QUOTES.length), 4000);
@@ -939,6 +955,7 @@ export default function CreativeCommandCenter() {
     if (mode === 'slideshow') return 'Generate Slideshow';
     if (mode === 'deck') return 'Generate Deck';
     if (mode === 'longvideo') return 'Generate Long Video';
+    if (mode === 'remix') return 'Remix Video';
     if (selectedFormat === 'story') return long ? 'Generate Story' : 'Story';
     if (selectedFormat === 'reel') return long ? 'Generate Reel' : 'Reel';
     if (selectedFormat === 'carousel') return long ? 'Generate Carousel' : 'Carousel';
@@ -1281,7 +1298,7 @@ export default function CreativeCommandCenter() {
   // --- Handlers ---
 
   const handleGenerate = async () => {
-    if (!campaignPrompt.trim()) { toast.error("Please enter a campaign description"); return; }
+    if (imageMode !== 'remix' && !campaignPrompt.trim()) { toast.error("Please enter a campaign description"); return; }
     setGenerationError(null);
 
     // ── Deck mode: pptxgenjs + GLM — PowerPoint generation ──
@@ -1327,6 +1344,66 @@ export default function CreativeCommandCenter() {
         toast.error(msg);
       } finally {
         setIsGeneratingDeck(false);
+      }
+      return;
+    }
+
+    // ── Remix mode: upload video + brand overlays via Remotion ──
+    if (imageMode === 'remix') {
+      if (!remixVideoUrl) { toast.error('Upload or paste a source video first'); return; }
+
+      const aspectRatio = getMediaAspectRatio(selectedPlatform, selectedFormat);
+
+      setIsGeneratingVideo(true);
+      setLocalVideoUrl(null);
+      setDeckDownloadUrl(null);
+      setDeckResultSlideCount(null);
+
+      try {
+        const response = await fetch('/api/ai/video', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            input: {
+              prompt: campaignPrompt.trim() || 'Brand remix',
+              aspectRatio,
+              brandName: brandGuide?.brandName,
+              primaryColor: brandColors?.primary,
+              secondaryColor: brandColors?.secondary,
+              accentColor: brandColors?.accent,
+              logoUrl: brandGuide?.visualIdentity?.logo?.primary,
+              headline: textOverlay.headline.trim() || campaignPrompt.trim().substring(0, 40).toUpperCase(),
+              ctaText: textOverlay.cta || 'Learn More',
+              websiteUrl: brandGuide?.source?.sourceUrl,
+              videoSrc: remixVideoUrl,
+              showHeadline: remixShowHeadline,
+              showLowerThird: remixShowLowerThird,
+              showOutro: remixShowOutro,
+              muted: remixMuted,
+              orgId: (user as any)?.orgId ?? '',
+            },
+            forceProvider: 'remotion',
+          }),
+        });
+
+        if (!response.ok) {
+          let errorMessage = 'Remix generation failed';
+          try {
+            const errorBody = await response.json() as { error?: string };
+            if (errorBody.error) errorMessage = errorBody.error;
+          } catch { /* keep default */ }
+          throw new Error(errorMessage);
+        }
+
+        const result = await response.json() as { videoUrl: string; duration: number };
+        setLocalVideoUrl(result.videoUrl);
+        toast.success('Remix ready!');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Remix generation failed';
+        setGenerationError(msg);
+        toast.error(msg);
+      } finally {
+        setIsGeneratingVideo(false);
       }
       return;
     }
@@ -1783,7 +1860,7 @@ export default function CreativeCommandCenter() {
           <Button
             size="sm"
             onClick={isBatchMode ? handleBatchGenerate : handleGenerate}
-            disabled={isGenerating || isGeneratingVideo || isGeneratingDeck || !campaignPrompt.trim()}
+            disabled={isGenerating || isGeneratingVideo || isGeneratingDeck || (imageMode === 'remix' ? !remixVideoUrl : !campaignPrompt.trim())}
             className={cn(
               "h-8 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold gap-1.5",
               isMobile && "flex-1 justify-center"
@@ -2371,14 +2448,14 @@ export default function CreativeCommandCenter() {
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Media</label>
                         <div className="flex rounded-lg border border-border bg-muted/40 p-0.5 gap-0.5 flex-wrap">
-                          {(['photo', 'branded', 'video', 'slideshow', 'longvideo', 'deck'] as const).map(m => (
+                          {(['photo', 'branded', 'video', 'slideshow', 'longvideo', 'remix', 'deck'] as const).map(m => (
                             <button
                               key={m}
                               onClick={() => {
                                 if (imageMode === m) return;
                                 setImageMode(m);
                                 setGenerationError(null);
-                                if (m !== 'video' && m !== 'slideshow' && m !== 'longvideo') setLocalVideoUrl(null);
+                                if (m !== 'video' && m !== 'slideshow' && m !== 'longvideo' && m !== 'remix') setLocalVideoUrl(null);
                                 if (m !== 'deck') { setDeckDownloadUrl(null); setDeckResultSlideCount(null); }
                               }}
                               className={cn(
@@ -2388,7 +2465,7 @@ export default function CreativeCommandCenter() {
                                   : "text-muted-foreground hover:text-foreground",
                               )}
                             >
-                              {m === 'photo' ? '📷 Photo' : m === 'branded' ? '🎨 Branded' : m === 'video' ? '🎬 Video' : m === 'slideshow' ? '🎞️ Slides' : m === 'longvideo' ? '🎥 Long' : '📊 Deck'}
+                              {m === 'photo' ? '📷 Photo' : m === 'branded' ? '🎨 Branded' : m === 'video' ? '🎬 Video' : m === 'slideshow' ? '🎞️ Slides' : m === 'longvideo' ? '🎥 Long' : m === 'remix' ? '🔀 Remix' : '📊 Deck'}
                             </button>
                           ))}
                         </div>
@@ -2478,6 +2555,114 @@ export default function CreativeCommandCenter() {
                                 ? `Animated brand story · ${videoDuration}s${brandGuide?.brandName ? ` · ${brandGuide.brandName} styling` : ''}`
                                 : `Short video · ${videoDuration}s · prompt shaped by your brand guide`}
                             </p>
+                          </div>
+                        )}
+                        {imageMode === 'remix' && (
+                          <div className="space-y-3 px-1">
+                            <p className="text-[10px] text-muted-foreground leading-tight">
+                              Upload a video and overlay your brand — logo, headline, CTA, colors{brandGuide?.brandName ? ` · ${brandGuide.brandName} styling` : ''}
+                            </p>
+                            {/* Video upload area */}
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Source Video</label>
+                              {remixVideoUrl ? (
+                                <div className="relative rounded-lg border border-border bg-muted/30 p-2">
+                                  <video src={remixVideoUrl} controls className="w-full rounded max-h-32 object-contain" />
+                                  <button
+                                    onClick={() => setRemixVideoUrl(null)}
+                                    className="absolute top-1 right-1 rounded-full bg-background/80 p-1 hover:bg-destructive/20 transition-colors"
+                                  >
+                                    <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="relative">
+                                  <input
+                                    type="file"
+                                    accept="video/mp4,video/quicktime,video/webm"
+                                    className="hidden"
+                                    id="remix-video-upload"
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      if (file.size > 200 * 1024 * 1024) { toast.error('Video must be under 200MB'); return; }
+                                      setRemixUploading(true);
+                                      try {
+                                        const orgSlug = (user as any)?.orgId ?? 'unknown';
+                                        const fd = new FormData();
+                                        fd.append('file', file);
+                                        fd.append('orgSlug', orgSlug);
+                                        const res = await fetch('/api/creative/upload', { method: 'POST', body: fd });
+                                        const json = await res.json() as { success: boolean; data?: { url: string }; error?: string };
+                                        if (!json.success || !json.data?.url) throw new Error(json.error || 'Upload failed');
+                                        setRemixVideoUrl(json.data.url);
+                                        toast.success('Video uploaded!');
+                                      } catch (err) {
+                                        toast.error(err instanceof Error ? err.message : 'Upload failed');
+                                      } finally {
+                                        setRemixUploading(false);
+                                        e.target.value = '';
+                                      }
+                                    }}
+                                  />
+                                  <label
+                                    htmlFor="remix-video-upload"
+                                    className={cn(
+                                      "flex flex-col items-center gap-2 border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors",
+                                      remixUploading ? "border-primary/50 bg-primary/5" : "border-border hover:border-primary/40 hover:bg-muted/20",
+                                    )}
+                                  >
+                                    {remixUploading ? (
+                                      <>
+                                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                                        <span className="text-[10px] text-muted-foreground">Uploading...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Upload className="w-5 h-5 text-muted-foreground" />
+                                        <span className="text-[10px] text-muted-foreground">Drop video or click to upload</span>
+                                        <span className="text-[9px] text-muted-foreground/60">MP4, MOV, WebM · max 200MB</span>
+                                      </>
+                                    )}
+                                  </label>
+                                </div>
+                              )}
+                              {/* Or paste URL */}
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[9px] text-muted-foreground">or paste URL:</span>
+                                <input
+                                  type="url"
+                                  placeholder="https://..."
+                                  className="flex-1 h-6 text-[10px] px-2 rounded border border-border bg-background"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      const url = (e.target as HTMLInputElement).value.trim();
+                                      if (url) { setRemixVideoUrl(url); (e.target as HTMLInputElement).value = ''; }
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            {/* Overlay toggles */}
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Overlays</label>
+                              {([
+                                ['Headline', remixShowHeadline, setRemixShowHeadline] as const,
+                                ['CTA Bar', remixShowLowerThird, setRemixShowLowerThird] as const,
+                                ['Outro Card', remixShowOutro, setRemixShowOutro] as const,
+                                ['Mute Source', remixMuted, setRemixMuted] as const,
+                              ]).map(([label, value, setter]) => (
+                                <label key={label} className="flex items-center justify-between gap-2 px-1 py-0.5 cursor-pointer hover:bg-muted/30 rounded">
+                                  <span className="text-[10px]">{label}</span>
+                                  <input
+                                    type="checkbox"
+                                    checked={value}
+                                    onChange={(e) => (setter as (v: boolean) => void)(e.target.checked)}
+                                    className="rounded border-border"
+                                  />
+                                </label>
+                              ))}
+                            </div>
                           </div>
                         )}
                         {imageMode === 'deck' && (
@@ -2572,7 +2757,7 @@ export default function CreativeCommandCenter() {
                       {/* CTA */}
                       <Button
                         onClick={isBatchMode ? handleBatchGenerate : handleGenerate}
-                        disabled={isGenerating || isGeneratingVideo || isGeneratingDeck || !campaignPrompt.trim()}
+                        disabled={isGenerating || isGeneratingVideo || isGeneratingDeck || (imageMode === 'remix' ? !remixVideoUrl : !campaignPrompt.trim())}
                         className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
                       >
                         {(isGenerating || isGeneratingVideo || isGeneratingDeck) ? (
@@ -2727,7 +2912,7 @@ export default function CreativeCommandCenter() {
                         isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/40 hover:bg-muted/20",
                       )}
                     >
-                      <input type="file" accept="image/*" multiple className="hidden" id="image-upload-panel" onChange={e => handleImageUpload(e.target.files)} />
+                      <input type="file" accept="image/*,video/mp4,video/quicktime,video/webm" multiple className="hidden" id="image-upload-panel" onChange={e => handleImageUpload(e.target.files)} />
                       <label htmlFor="image-upload-panel" className="cursor-pointer flex flex-col items-center gap-3">
                         <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
                           <Plus className="w-6 h-6 text-muted-foreground" />
@@ -3122,16 +3307,20 @@ export default function CreativeCommandCenter() {
                       <p className="text-sm font-semibold">
                         {imageMode === 'longvideo'
                           ? 'Generating your long-form video...'
-                          : imageMode === 'slideshow'
-                            ? 'Your animated brand story is rendering...'
-                            : 'Your video is rendering...'}
+                          : imageMode === 'remix'
+                            ? 'Remixing your video with brand overlays...'
+                            : imageMode === 'slideshow'
+                              ? 'Your animated brand story is rendering...'
+                              : 'Your video is rendering...'}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1 italic">
                         {imageMode === 'longvideo'
                           ? `"${FRIDAY_QUOTES[fridayQuoteIdx]}"`
-                          : imageMode === 'slideshow'
-                            ? `${videoDuration}s branded motion piece · ~10-30s`
-                            : `${videoDuration}s motion clip · 1-3 min`}
+                          : imageMode === 'remix'
+                            ? 'Remotion Lambda render · ~30-60s'
+                            : imageMode === 'slideshow'
+                              ? `${videoDuration}s branded motion piece · ~10-30s`
+                              : `${videoDuration}s motion clip · 1-3 min`}
                       </p>
                     </>
                   ) : (
@@ -3162,14 +3351,14 @@ export default function CreativeCommandCenter() {
                 </a>
               </div>
 
-            ) : (imageMode === 'video' || imageMode === 'slideshow') && localVideoUrl ? (
+            ) : (imageMode === 'video' || imageMode === 'slideshow' || imageMode === 'remix') && localVideoUrl ? (
               /* Motion result */
               <>
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                 <video src={localVideoUrl} controls autoPlay muted loop className="w-full h-full object-cover" />
                 <div className="absolute top-3 left-3">
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/60 text-white backdrop-blur-sm tracking-wide">
-                    {selectedPlatform} · {imageMode === 'slideshow' ? 'slideshow' : 'video'}
+                    {selectedPlatform} · {imageMode === 'remix' ? 'remix' : imageMode === 'slideshow' ? 'slideshow' : 'video'}
                   </span>
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">

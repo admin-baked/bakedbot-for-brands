@@ -34,7 +34,7 @@ export const BLOCK_LABELS = {
     AGENT_LINUS: 'agent_linus_memory',       // Code Agent
 } as const;
 
-type BlockLabel = typeof BLOCK_LABELS[keyof typeof BLOCK_LABELS];
+export type BlockLabel = typeof BLOCK_LABELS[keyof typeof BLOCK_LABELS];
 
 // In-memory cache for block IDs (tenant -> label -> blockId)
 const blockCache: Map<string, Map<string, string>> = new Map();

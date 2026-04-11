@@ -61,12 +61,40 @@ interface FalResponse {
  * FLUX.1 is a photography/art model — it needs visual descriptors (style, lighting,
  * mood, subject) not marketing copy ("announcement", "featuring", "details").
  * We strip non-visual words and hashtags, then append quality/noText suffix.
+ *
+ * Quality suffix is genre-aware: product shots get studio lighting direction,
+ * lifestyle gets cinematic grading, events get dynamic energy descriptors.
  */
 function buildImagePrompt(userPrompt: string, tier: FalImageTier): string {
-    const noText = 'no text, no words, no letters, no watermarks, no captions, no overlays';
-    const quality = tier === 'free'
-        ? 'sharp focus, vibrant colors, high quality photography'
-        : 'ultra-detailed, 8k, award-winning commercial photography';
+    const noText = 'no text, no words, no letters, no watermarks, no captions, no overlays, no logos, no UI elements';
+
+    // Genre-detect from prompt keywords for targeted quality suffix
+    const prompt = userPrompt.toLowerCase();
+    let quality: string;
+
+    if (tier === 'free') {
+        // Schnell tier — concise but effective quality descriptors
+        if (/product|strain|flower|edible|vape|concentrate|packaging/.test(prompt)) {
+            quality = 'professional product photography, studio lighting, dark gradient background, sharp focus, commercial quality';
+        } else if (/event|concert|gathering|party|launch|celebration/.test(prompt)) {
+            quality = 'event photography, dynamic lighting, crowd energy, vibrant atmosphere, photojournalistic style';
+        } else if (/founder|ceo|team|office|workspace|dashboard/.test(prompt)) {
+            quality = 'corporate editorial photography, soft window light, shallow depth of field, modern office, professional';
+        } else {
+            quality = 'lifestyle photography, natural light, warm color grade, shallow depth of field, editorial quality';
+        }
+    } else {
+        // Pro tier — full cinematic direction
+        if (/product|strain|flower|edible|vape|concentrate|packaging/.test(prompt)) {
+            quality = 'award-winning commercial product photography, dramatic three-point studio lighting with colored gel rim lights, dark moody gradient background, macro detail visible, reflection on glossy surface, 8k resolution';
+        } else if (/event|concert|gathering|party|launch|celebration/.test(prompt)) {
+            quality = 'high-end event photography, dramatic stage lighting, lens flare, motion energy, cinematic color grading, 8k, photojournalistic composition';
+        } else if (/founder|ceo|team|office|workspace|dashboard/.test(prompt)) {
+            quality = 'premium editorial portrait photography, Hasselblad medium format, natural window light mixed with warm practicals, cinematic shallow depth of field, architectural detail, 8k';
+        } else {
+            quality = 'cinematic lifestyle photography, Arri Alexa film look, golden hour natural light, rich warm color grade, shallow depth of field, editorial magazine quality, 8k resolution';
+        }
+    }
 
     // Strip hashtags, marketing-speak, and the "Photo style:" label prefix
     // (content is already extracted by deriveImagePrompt in creative-content.ts)
