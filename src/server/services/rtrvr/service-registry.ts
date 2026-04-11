@@ -8,7 +8,7 @@
  * Schema:         { cookies: Record<string, string>; capturedAt: Timestamp }
  */
 
-export type ServiceId = 'linkedin' | 'reddit_ads' | 'twitter' | 'instagram';
+export type ServiceId = 'linkedin' | 'reddit' | 'reddit_ads' | 'twitter' | 'instagram' | 'facebook' | 'moltbook';
 
 export interface ServiceDefinition {
     id: ServiceId;
@@ -31,8 +31,8 @@ export const SERVICE_REGISTRY: Record<ServiceId, ServiceDefinition> = {
         loginUrl: 'https://www.linkedin.com/login',
         sessionCookies: ['li_at', 'JSESSIONID'],
         cookieDomain: '.linkedin.com',
-        agents: ['Craig', 'Leo'],
-        capabilities: ['Post to feed', 'Send messages', 'Enrich lead profiles'],
+        agents: ['Craig', 'Leo', 'Marty'],
+        capabilities: ['Post to feed', 'Post with images', 'Browse feed', 'Comment', 'React', 'Send messages', 'Send connections', 'Browse groups', 'View profiles', 'Repost', 'Read inbox', 'Enrich lead profiles'],
     },
     reddit_ads: {
         id: 'reddit_ads',
@@ -58,8 +58,35 @@ export const SERVICE_REGISTRY: Record<ServiceId, ServiceDefinition> = {
         loginUrl: 'https://www.instagram.com/accounts/login',
         sessionCookies: ['sessionid', 'csrftoken'],
         cookieDomain: '.instagram.com',
-        agents: ['Craig'],
-        capabilities: ['Post content', 'Schedule posts', 'Monitor engagement'],
+        agents: ['Craig', 'Marty'],
+        capabilities: ['Post content', 'Post with images', 'Browse feed', 'Comment', 'React', 'Send messages', 'View profiles', 'Browse stories'],
+    },
+    facebook: {
+        id: 'facebook',
+        displayName: 'Facebook',
+        loginUrl: 'https://www.facebook.com/login',
+        sessionCookies: ['c_user', 'xs', 'datr'],
+        cookieDomain: '.facebook.com',
+        agents: ['Marty', 'Craig'],
+        capabilities: ['Post to feed', 'Post with images', 'Browse feed', 'Comment', 'React', 'Browse groups', 'Send messages', 'Search'],
+    },
+    reddit: {
+        id: 'reddit',
+        displayName: 'Reddit',
+        loginUrl: 'https://www.reddit.com/login',
+        sessionCookies: ['reddit_session', 'token_v2'],
+        cookieDomain: '.reddit.com',
+        agents: ['Marty', 'Craig'],
+        capabilities: ['Post to subreddits', 'Comment', 'Vote', 'Browse feed', 'Browse subreddits', 'Send messages', 'Search'],
+    },
+    moltbook: {
+        id: 'moltbook',
+        displayName: 'Moltbook',
+        loginUrl: 'https://www.moltbook.com',
+        sessionCookies: ['moltbook_session'],
+        cookieDomain: '.moltbook.com',
+        agents: ['Marty'],
+        capabilities: ['Post content', 'Comment', 'Vote', 'Browse feed', 'Search agents', 'Send messages', 'View profiles'],
     },
 };
 

@@ -435,6 +435,11 @@ env:
     secret: CEO_GMAIL_UID@1
     availability:
       - RUNTIME
+  # Moltbook — Agent social network API key for Marty Benjamins
+  - variable: MOLTBOOK_API_KEY
+    secret: MOLTBOOK_API_KEY@1
+    availability:
+      - RUNTIME
   # Rate Limiting + Caching (Upstash Redis) - Production Readiness Week 1+2
   # Setup: Create Upstash Redis instance (free tier: 10k req/day) at upstash.com
   # Then run:

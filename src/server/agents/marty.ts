@@ -90,12 +90,12 @@ function buildMartyOperatingPrompt(input: {
         input.ny10Context ? `=== PILOT CUSTOMERS ===\n${input.ny10Context}` : '',
         buildContextDisciplineSection([
             'Keep always-on context strategic and lean. Use tools, retrieved memory, and live context for detailed workflow steps.',
-            'Treat tool descriptions as the operating manual for Gmail, Calendar, outreach, CRM, browser automation, LinkedIn, and market research.',
+            'Treat tool descriptions as the operating manual for Gmail, Calendar, outreach, CRM, browser automation, LinkedIn, Facebook, Reddit, Instagram, Moltbook, and market research.',
         ]),
         buildBulletSection('GROUNDING RULES (CRITICAL)', [
             'Never fabricate revenue, outreach, meetings, deals, partnerships, or system status.',
             'Only report outcomes confirmed by tools in this run or retrieved from memory.',
-            'Own pipeline, inbox, outreach, LinkedIn, calendar, and market-research work directly. Delegate specialist execution to the named executive team.',
+            'Own pipeline, inbox, outreach, social media (LinkedIn, Facebook, Reddit, Instagram, Moltbook), calendar, and market-research work directly. Delegate specialist execution to the named executive team.',
             'Use real timestamps, real owners, and a clear next step.',
             'Before giving market or growth advice, prefer search, CRM, inbox, outreach, or LinkedIn tools over intuition.',
         ]),
@@ -111,7 +111,7 @@ function buildMartyOperatingPrompt(input: {
             'The wedge is customer capture, welcome activation, and retention.',
             'Flagship motions are the Welcome Check-In Flow and the Welcome Email Playbook.',
         ]),
-        buildLearningLoopSection('Marty', ['strategy', 'outreach', 'calendar', 'linkedin', 'problem']),
+        buildLearningLoopSection('Marty', ['strategy', 'outreach', 'calendar', 'linkedin', 'facebook', 'reddit', 'instagram', 'moltbook', 'problem']),
         buildBulletSection('DECISION RULES', [
             'Prioritize in this order: revenue in the next 90 days, customer proof of value, retention and expansion leverage, sharpening the offer and positioning, internal efficiency gains, then longer-term platform work.',
             'Default bias: choose proof over ideas, shipping over planning, one clear offer over broad possibility, systems over heroics, and measurable lift over activity.',
@@ -126,8 +126,8 @@ function buildMartyOperatingPrompt(input: {
         buildBulletSection('OPERATING FOCUS', [
             'Tie every recommendation to pipeline, activation, retention, expansion, or execution focus.',
             'Operate like a proactive CEO, not a passive helpdesk: surface the next move, owner, and leverage point.',
-            'Own the frontline growth motions yourself: pipeline pressure, outbound, partnerships, inbox follow-up, and thought leadership.',
-            'Use Gmail, Calendar, outreach, LinkedIn, CRM, and market-search tools proactively, but keep output concise and numbers-first.',
+            'Own the frontline growth motions yourself: pipeline pressure, outbound, partnerships, inbox follow-up, social media engagement, and thought leadership across all platforms.',
+            'Use Gmail, Calendar, outreach, LinkedIn, Facebook, Reddit, Instagram, Moltbook, CRM, and market-search tools proactively, but keep output concise and numbers-first.',
             'When progress is blocked, retry or pivot first, then delegate, and only escalate when the block is material.',
         ]),
         buildBulletSection('OUTPUT RULES', [
@@ -685,6 +685,63 @@ const MARTY_SLACK_TOOLS = [
     { name: 'linkedin_send_connection', description: 'Send a connection request with a personalized note to a LinkedIn profile.', input_schema: { type: 'object' as const, properties: { profileUrl: { type: 'string', description: 'LinkedIn profile URL' }, note: { type: 'string', description: 'Connection note (max 300 chars). Be personal and relevant.' } }, required: ['profileUrl', 'note'] } },
     { name: 'linkedin_send_message', description: 'Send a LinkedIn DM to an existing connection.', input_schema: { type: 'object' as const, properties: { profileUrl: { type: 'string', description: 'LinkedIn profile URL of the connection' }, message: { type: 'string', description: 'Message to send' } }, required: ['profileUrl', 'message'] } },
 
+    // LinkedIn — Expanded capabilities (browse, engage, groups, images)
+    { name: 'linkedin_browse_feed', description: 'Browse the LinkedIn feed to see recent posts from connections and industry. Use to stay informed and find engagement opportunities.', input_schema: { type: 'object' as const, properties: { limit: { type: 'number', description: 'Number of posts to retrieve (default 10)' } } } },
+    { name: 'linkedin_comment', description: 'Comment on a LinkedIn post. Use for engagement and relationship building.', input_schema: { type: 'object' as const, properties: { postUrl: { type: 'string', description: 'URL of the LinkedIn post to comment on' }, comment: { type: 'string', description: 'Comment text. Be thoughtful and add value.' } }, required: ['postUrl', 'comment'] } },
+    { name: 'linkedin_react', description: 'React to a LinkedIn post (like, celebrate, support, insightful, funny, love).', input_schema: { type: 'object' as const, properties: { postUrl: { type: 'string', description: 'URL of the LinkedIn post' }, reaction: { type: 'string', enum: ['like', 'celebrate', 'support', 'insightful', 'funny', 'love'], description: 'Reaction type' } }, required: ['postUrl', 'reaction'] } },
+    { name: 'linkedin_post_with_image', description: 'Post to LinkedIn with an image attachment. Use for visual content, infographics, product screenshots.', input_schema: { type: 'object' as const, properties: { content: { type: 'string', description: 'Post text content' }, imageUrl: { type: 'string', description: 'Public URL of the image to attach' } }, required: ['content', 'imageUrl'] } },
+    { name: 'linkedin_view_profile', description: 'View a LinkedIn profile in detail — headline, about, experience, skills. Use to research leads before outreach.', input_schema: { type: 'object' as const, properties: { profileUrl: { type: 'string', description: 'LinkedIn profile URL' } }, required: ['profileUrl'] } },
+    { name: 'linkedin_browse_groups', description: 'Browse LinkedIn groups — search, view members, read discussions. Great for finding dispensary owner communities.', input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'Group search query (e.g., "cannabis business owners", "dispensary retail")' } }, required: ['query'] } },
+    { name: 'linkedin_read_inbox', description: 'Read recent LinkedIn messages and connection requests.', input_schema: { type: 'object' as const, properties: { limit: { type: 'number', description: 'Max messages to retrieve (default 10)' } } } },
+    { name: 'linkedin_repost', description: 'Repost/share someone else\'s LinkedIn post to your feed with optional commentary.', input_schema: { type: 'object' as const, properties: { postUrl: { type: 'string', description: 'URL of the post to repost' }, commentary: { type: 'string', description: 'Optional commentary to add when sharing' } }, required: ['postUrl'] } },
+
+    // Facebook — Business development, groups, community engagement
+    { name: 'facebook_browse_feed', description: 'Browse the Facebook news feed to see posts from friends, pages, and groups.', input_schema: { type: 'object' as const, properties: { limit: { type: 'number', description: 'Number of posts to retrieve (default 10)' } } } },
+    { name: 'facebook_post', description: 'Post text content to the CEO Facebook feed.', input_schema: { type: 'object' as const, properties: { content: { type: 'string', description: 'Post text content' } }, required: ['content'] } },
+    { name: 'facebook_post_with_image', description: 'Post to Facebook with an image attachment.', input_schema: { type: 'object' as const, properties: { content: { type: 'string', description: 'Post text content' }, imageUrl: { type: 'string', description: 'Public URL of the image to attach' } }, required: ['content', 'imageUrl'] } },
+    { name: 'facebook_comment', description: 'Comment on a Facebook post.', input_schema: { type: 'object' as const, properties: { postUrl: { type: 'string', description: 'URL of the Facebook post' }, comment: { type: 'string', description: 'Comment text' } }, required: ['postUrl', 'comment'] } },
+    { name: 'facebook_react', description: 'React to a Facebook post (like, love, haha, wow, sad, angry).', input_schema: { type: 'object' as const, properties: { postUrl: { type: 'string', description: 'URL of the Facebook post' }, reaction: { type: 'string', enum: ['like', 'love', 'haha', 'wow', 'sad', 'angry'], description: 'Reaction type' } }, required: ['postUrl', 'reaction'] } },
+    { name: 'facebook_browse_groups', description: 'Browse Facebook groups — search for cannabis business groups, read posts, find dispensary owners.', input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'Group search query (e.g., "cannabis dispensary owners", "NY cannabis business")' } }, required: ['query'] } },
+    { name: 'facebook_post_to_group', description: 'Post content to a Facebook group.', input_schema: { type: 'object' as const, properties: { groupUrl: { type: 'string', description: 'URL of the Facebook group' }, content: { type: 'string', description: 'Post text content' } }, required: ['groupUrl', 'content'] } },
+    { name: 'facebook_send_message', description: 'Send a Facebook Messenger message to a contact.', input_schema: { type: 'object' as const, properties: { profileUrl: { type: 'string', description: 'Facebook profile URL of the recipient' }, message: { type: 'string', description: 'Message to send' } }, required: ['profileUrl', 'message'] } },
+    { name: 'facebook_search', description: 'Search Facebook for people, pages, groups, or posts.', input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'Search query' }, type: { type: 'string', enum: ['people', 'pages', 'groups', 'posts'], description: 'What to search for (default: all)' } }, required: ['query'] } },
+
+    // Reddit — Community engagement, cannabis industry subreddits
+    { name: 'reddit_browse_feed', description: 'Browse Reddit front page or a specific subreddit feed.', input_schema: { type: 'object' as const, properties: { subreddit: { type: 'string', description: 'Subreddit name without r/ (e.g., "cannabisindustry"). Omit for front page.' }, sort: { type: 'string', enum: ['hot', 'new', 'top', 'rising'], description: 'Sort order (default: hot)' }, limit: { type: 'number', description: 'Number of posts (default 10)' } } } },
+    { name: 'reddit_post', description: 'Submit a text post to a subreddit. Follow subreddit rules carefully.', input_schema: { type: 'object' as const, properties: { subreddit: { type: 'string', description: 'Subreddit name without r/' }, title: { type: 'string', description: 'Post title' }, content: { type: 'string', description: 'Post body text (markdown)' } }, required: ['subreddit', 'title', 'content'] } },
+    { name: 'reddit_comment', description: 'Comment on a Reddit post or reply to a comment.', input_schema: { type: 'object' as const, properties: { postUrl: { type: 'string', description: 'URL of the Reddit post or comment to reply to' }, comment: { type: 'string', description: 'Comment text (markdown)' } }, required: ['postUrl', 'comment'] } },
+    { name: 'reddit_search', description: 'Search Reddit for posts, subreddits, or users.', input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'Search query' }, subreddit: { type: 'string', description: 'Limit search to a subreddit (optional)' } }, required: ['query'] } },
+    { name: 'reddit_read_post', description: 'Read a Reddit post with its comments.', input_schema: { type: 'object' as const, properties: { postUrl: { type: 'string', description: 'URL of the Reddit post' } }, required: ['postUrl'] } },
+    { name: 'reddit_vote', description: 'Upvote or downvote a Reddit post or comment.', input_schema: { type: 'object' as const, properties: { postUrl: { type: 'string', description: 'URL of the post or comment' }, direction: { type: 'string', enum: ['up', 'down'], description: 'Vote direction' } }, required: ['postUrl', 'direction'] } },
+    { name: 'reddit_send_message', description: 'Send a private message to a Reddit user.', input_schema: { type: 'object' as const, properties: { username: { type: 'string', description: 'Reddit username (without u/)' }, subject: { type: 'string', description: 'Message subject' }, message: { type: 'string', description: 'Message body' } }, required: ['username', 'subject', 'message'] } },
+    { name: 'reddit_browse_subreddit_info', description: 'Get info about a subreddit — rules, description, subscriber count, moderators.', input_schema: { type: 'object' as const, properties: { subreddit: { type: 'string', description: 'Subreddit name without r/' } }, required: ['subreddit'] } },
+
+    // Instagram — Visual content, stories, engagement
+    { name: 'instagram_browse_feed', description: 'Browse the Instagram feed to see recent posts from followed accounts.', input_schema: { type: 'object' as const, properties: { limit: { type: 'number', description: 'Number of posts to retrieve (default 10)' } } } },
+    { name: 'instagram_post_with_image', description: 'Post an image to Instagram with a caption.', input_schema: { type: 'object' as const, properties: { imageUrl: { type: 'string', description: 'Public URL of the image to post' }, caption: { type: 'string', description: 'Caption text with hashtags' } }, required: ['imageUrl', 'caption'] } },
+    { name: 'instagram_comment', description: 'Comment on an Instagram post.', input_schema: { type: 'object' as const, properties: { postUrl: { type: 'string', description: 'URL of the Instagram post' }, comment: { type: 'string', description: 'Comment text' } }, required: ['postUrl', 'comment'] } },
+    { name: 'instagram_react', description: 'Like an Instagram post.', input_schema: { type: 'object' as const, properties: { postUrl: { type: 'string', description: 'URL of the Instagram post to like' } }, required: ['postUrl'] } },
+    { name: 'instagram_view_profile', description: 'View an Instagram profile — bio, follower count, recent posts.', input_schema: { type: 'object' as const, properties: { username: { type: 'string', description: 'Instagram username (without @)' } }, required: ['username'] } },
+    { name: 'instagram_send_message', description: 'Send an Instagram direct message.', input_schema: { type: 'object' as const, properties: { username: { type: 'string', description: 'Instagram username to message' }, message: { type: 'string', description: 'Message text' } }, required: ['username', 'message'] } },
+    { name: 'instagram_search', description: 'Search Instagram for users, hashtags, or locations.', input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'Search query' }, type: { type: 'string', enum: ['users', 'hashtags', 'locations'], description: 'Search type (default: users)' } }, required: ['query'] } },
+    { name: 'instagram_browse_stories', description: 'Browse Instagram stories from followed accounts or a specific user.', input_schema: { type: 'object' as const, properties: { username: { type: 'string', description: 'Specific username to view stories for (optional — omit for all followed)' } } } },
+
+    // Social Media Intelligence — cross-platform tools
+    { name: 'social_adapt_content', description: 'Adapt a single piece of content for a target platform. Rewrites tone, format, and length to match platform norms. Great for cross-posting thought leadership.', input_schema: { type: 'object' as const, properties: { content: { type: 'string', description: 'Original content to adapt' }, platform: { type: 'string', enum: ['linkedin', 'facebook', 'reddit', 'instagram', 'moltbook'], description: 'Target platform' }, topic: { type: 'string', description: 'Topic context (optional)' }, intent: { type: 'string', description: 'Intent: thought-leadership, engagement, lead-gen, community (optional)' } }, required: ['content', 'platform'] } },
+    { name: 'social_adapt_all', description: 'Adapt content for ALL platforms at once. Returns adapted versions for LinkedIn, Facebook, Reddit, Instagram, and Moltbook.', input_schema: { type: 'object' as const, properties: { content: { type: 'string', description: 'Original content to adapt' }, topic: { type: 'string', description: 'Topic context (optional)' } }, required: ['content'] } },
+    { name: 'social_check_limits', description: 'Check current rate limit usage across all social platforms. Shows how many actions remain in each window.', input_schema: { type: 'object' as const, properties: {} } },
+    { name: 'social_scan_signals', description: 'Run a social listening scan — search Reddit for cannabis retail discussions matching BakedBot keywords. Returns scored signals with suggested actions.', input_schema: { type: 'object' as const, properties: {} } },
+    { name: 'social_warmup_check', description: 'Check if a person is "warm" enough for a DM. If not, returns warmup actions to take first (view profile, react, comment).', input_schema: { type: 'object' as const, properties: { platform: { type: 'string', enum: ['linkedin', 'facebook', 'instagram'], description: 'Platform' }, targetId: { type: 'string', description: 'Profile URL or username of the person' } }, required: ['platform', 'targetId'] } },
+
+    // Moltbook — Agent social network (reputation, discovery, thought leadership)
+    { name: 'moltbook_post', description: 'Post content to Moltbook (agent social network). Build karma and reputation in the agent ecosystem. Auto-verifies the post.', input_schema: { type: 'object' as const, properties: { title: { type: 'string', description: 'Post title (max 300 chars). If omitted, first line of content is used.' }, content: { type: 'string', description: 'Post body — share insights about agentic commerce, CEO operations, cannabis tech' }, submolt: { type: 'string', description: 'Submolt (community) to post in. Options: general, introductions, agents, etc. Default: general' } }, required: ['content'] } },
+    { name: 'moltbook_comment', description: 'Comment on a Moltbook post. Engage with other agents to build reputation.', input_schema: { type: 'object' as const, properties: { postId: { type: 'string', description: 'Moltbook post ID' }, content: { type: 'string', description: 'Comment text' } }, required: ['postId', 'content'] } },
+    { name: 'moltbook_vote', description: 'Upvote or downvote a Moltbook post.', input_schema: { type: 'object' as const, properties: { postId: { type: 'string', description: 'Moltbook post ID' }, direction: { type: 'string', enum: ['up', 'down'], description: 'Vote direction' } }, required: ['postId', 'direction'] } },
+    { name: 'moltbook_browse_feed', description: 'Browse the Moltbook feed — see what other agents are posting and discussing.', input_schema: { type: 'object' as const, properties: { limit: { type: 'number', description: 'Number of posts (default 20)' } } } },
+    { name: 'moltbook_search_agents', description: 'Search for agents on Moltbook by capability, domain, or name. Discover potential collaborators.', input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'Search query (e.g., "cannabis", "sales agent", "compliance")' }, limit: { type: 'number', description: 'Max results (default 10)' } }, required: ['query'] } },
+    { name: 'moltbook_send_message', description: 'Send an encrypted DM to another agent on Moltbook.', input_schema: { type: 'object' as const, properties: { agentId: { type: 'string', description: 'Moltbook agent ID' }, message: { type: 'string', description: 'Message content' } }, required: ['agentId', 'message'] } },
+    { name: 'moltbook_view_profile', description: 'View another agent\'s Moltbook profile — name, karma, description, capabilities.', input_schema: { type: 'object' as const, properties: { agentId: { type: 'string', description: 'Moltbook agent ID' } }, required: ['agentId'] } },
+
     // Learning Loop — Remember what works and what doesn't
     { name: 'learning_log', description: 'Log an outreach attempt, strategy result, or business development action for learning. Marty reviews these to improve strategy.', input_schema: { type: 'object' as const, properties: { action: { type: 'string', description: 'What was attempted (e.g., "emailed dispensary X with template Y")' }, result: { type: 'string', enum: ['success', 'failure', 'pending', 'partial'], description: 'Outcome' }, reason: { type: 'string', description: 'Why it worked or failed (analysis)' }, nextStep: { type: 'string', description: 'What to try next based on this result' }, category: { type: 'string', description: 'Category: outreach, linkedin, calendar, meeting, follow-up, strategy' } }, required: ['action', 'result', 'category'] } },
     { name: 'learning_search', description: 'Search past learning logs to find what worked and what didn\'t for a specific strategy or target.', input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to search for (e.g., "email template competitive-report", "Syracuse dispensaries")' }, category: { type: 'string', description: 'Filter by category' } }, required: ['query'] } },
@@ -759,6 +816,73 @@ function createMartyToolExecutor(context?: { orgId?: string; brandId?: string })
                 (typeof args.severity === 'string' ? args.severity : 'medium') as any,
                 typeof args.category === 'string' ? args.category : undefined,
             );
+        }
+
+        // Rate limiter gate — prevent account bans from over-activity
+        try {
+            const { checkAndRecordAction } = await import('@/server/services/social-media/rate-limiter');
+            const rateCheck = checkAndRecordAction(toolName);
+            if (!rateCheck.allowed) {
+                logger.warn('[Marty] Social rate limit hit', {
+                    toolName,
+                    platform: rateCheck.platform,
+                    blockedBy: rateCheck.blockedBy,
+                    retryAfterSec: rateCheck.retryAfterSec,
+                });
+                return {
+                    error: `Rate limited on ${rateCheck.platform} (${rateCheck.blockedBy}). Try again in ${rateCheck.retryAfterSec ?? 60}s.`,
+                    rateLimited: true,
+                    retryAfterSec: rateCheck.retryAfterSec,
+                };
+            }
+        } catch {
+            // Rate limiter failure should not block tool execution
+        }
+
+        // Engagement warmup check — warn before cold DMs
+        const dmTools = [
+            'linkedin_send_message', 'facebook_send_message',
+            'instagram_send_message',
+        ];
+        if (dmTools.includes(toolName)) {
+            try {
+                const { checkWarmup, recordEngagement } = await import('@/server/services/social-media/engagement-warmup');
+                const targetId = String(args.profileUrl ?? args.username ?? '');
+                const platform = toolName.split('_')[0] as 'linkedin' | 'facebook' | 'instagram';
+                if (targetId) {
+                    const warmup = checkWarmup(platform, targetId);
+                    if (!warmup.isWarm) {
+                        // Don't block — but inject a warning into the result
+                        logger.info('[Marty] Cold DM detected — warmup recommended', {
+                            toolName, platform, targetId: targetId.slice(0, 50),
+                            recommendation: warmup.recommendation,
+                        });
+                    }
+                    // Record engagement for this DM
+                    recordEngagement(platform, targetId, 'message');
+                }
+            } catch {
+                // Warmup check failure should not block tool execution
+            }
+        }
+
+        // Record engagement for non-DM social actions too
+        const engagementTools = [
+            'linkedin_comment', 'linkedin_react', 'linkedin_view_profile',
+            'facebook_comment', 'facebook_react',
+            'instagram_comment', 'instagram_react', 'instagram_view_profile',
+        ];
+        if (engagementTools.includes(toolName)) {
+            try {
+                const { recordEngagement } = await import('@/server/services/social-media/engagement-warmup');
+                const targetId = String(args.profileUrl ?? args.postUrl ?? args.username ?? '');
+                const platform = toolName.split('_')[0] as 'linkedin' | 'facebook' | 'instagram';
+                if (targetId) {
+                    recordEngagement(platform, targetId, toolName.split('_').slice(1).join('_'));
+                }
+            } catch {
+                // Best-effort engagement tracking
+            }
         }
 
         const result = await martyToolExecutor(toolName, args, context);
@@ -1391,6 +1515,746 @@ Submit the form and confirm it was submitted successfully. If there's a CAPTCHA,
             }
         }
 
+        // LinkedIn — Expanded capabilities
+        case 'linkedin_browse_feed': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const limit = Number(args.limit ?? 10);
+                const result = await browserAct(ceoUid, 'linkedin', {
+                    task: `Go to linkedin.com/feed. Scroll through the feed and extract the first ${limit} posts. For each post extract: author name, author headline, post content (first 300 chars), number of reactions, number of comments, post URL. Return as a structured JSON array.`,
+                    urls: ['https://www.linkedin.com/feed'],
+                });
+                if (!result.success) return { error: `LinkedIn feed browse failed: ${result.error}` };
+                return { success: true, posts: result.output };
+            } catch (e: unknown) {
+                return { error: `LinkedIn feed browse failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'linkedin_comment': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const postUrl = String(args.postUrl ?? '');
+                const comment = String(args.comment ?? '');
+                const result = await browserAct(ceoUid, 'linkedin', {
+                    task: `Go to ${postUrl}. Click the "Comment" button or the comment input field. Type this comment: "${comment}". Click "Post" or press Enter to submit the comment. Confirm it was posted.`,
+                    urls: [postUrl],
+                });
+                if (!result.success) return { error: `LinkedIn comment failed: ${result.error}` };
+                return { success: true, postUrl, commentPosted: true };
+            } catch (e: unknown) {
+                return { error: `LinkedIn comment failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'linkedin_react': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const postUrl = String(args.postUrl ?? '');
+                const reaction = String(args.reaction ?? 'like');
+                const result = await browserAct(ceoUid, 'linkedin', {
+                    task: `Go to ${postUrl}. Hover over the "Like" button to reveal reaction options. Select the "${reaction}" reaction. Confirm the reaction was applied.`,
+                    urls: [postUrl],
+                });
+                if (!result.success) return { error: `LinkedIn react failed: ${result.error}` };
+                return { success: true, postUrl, reaction };
+            } catch (e: unknown) {
+                return { error: `LinkedIn react failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'linkedin_post_with_image': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const content = String(args.content ?? '');
+                const imageUrl = String(args.imageUrl ?? '');
+                const result = await browserAct(ceoUid, 'linkedin', {
+                    task: `Go to linkedin.com/feed. Click "Start a post". Type this content: "${content}". Click the image/photo icon to add media. Upload or paste this image URL: ${imageUrl}. Click "Post" to publish. Confirm the post was published successfully.`,
+                    urls: ['https://www.linkedin.com/feed'],
+                });
+                if (!result.success) return { error: `LinkedIn image post failed: ${result.error}` };
+                return { success: true, action: 'posted_with_image', contentPreview: content.slice(0, 100) };
+            } catch (e: unknown) {
+                return { error: `LinkedIn image post failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'linkedin_view_profile': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const profileUrl = String(args.profileUrl ?? '');
+                const result = await browserAct(ceoUid, 'linkedin', {
+                    task: `Go to ${profileUrl}. Extract the full profile: name, headline, location, about section, current company, experience (last 3 positions), skills (top 5), number of connections, whether they are a 1st/2nd/3rd connection. Return as structured JSON.`,
+                    urls: [profileUrl],
+                });
+                if (!result.success) return { error: `LinkedIn profile view failed: ${result.error}` };
+                return { success: true, profile: result.output };
+            } catch (e: unknown) {
+                return { error: `LinkedIn profile view failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'linkedin_browse_groups': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const query = String(args.query ?? '');
+                const result = await browserAct(ceoUid, 'linkedin', {
+                    task: `Search for LinkedIn groups matching: "${query}". Go to linkedin.com/search/results/groups/?keywords=${encodeURIComponent(query)}. Extract the first 10 groups: name, description, member count, group URL, whether you've joined. Return as structured JSON array.`,
+                    urls: [`https://www.linkedin.com/search/results/groups/?keywords=${encodeURIComponent(query)}`],
+                });
+                if (!result.success) return { error: `LinkedIn group search failed: ${result.error}` };
+                return { success: true, groups: result.output };
+            } catch (e: unknown) {
+                return { error: `LinkedIn group search failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'linkedin_read_inbox': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const limit = Number(args.limit ?? 10);
+                const result = await browserAct(ceoUid, 'linkedin', {
+                    task: `Go to linkedin.com/messaging. Extract the ${limit} most recent conversations: sender name, last message preview, timestamp, whether unread. Return as structured JSON array.`,
+                    urls: ['https://www.linkedin.com/messaging'],
+                });
+                if (!result.success) return { error: `LinkedIn inbox read failed: ${result.error}` };
+                return { success: true, messages: result.output };
+            } catch (e: unknown) {
+                return { error: `LinkedIn inbox read failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'linkedin_repost': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const postUrl = String(args.postUrl ?? '');
+                const commentary = args.commentary ? String(args.commentary) : '';
+                const task = commentary
+                    ? `Go to ${postUrl}. Click the "Repost" button, then select "Repost with your thoughts". Add this commentary: "${commentary}". Click "Post". Confirm the repost was published.`
+                    : `Go to ${postUrl}. Click the "Repost" button, then select "Repost" (instant repost without commentary). Confirm the repost was published.`;
+                const result = await browserAct(ceoUid, 'linkedin', { task, urls: [postUrl] });
+                if (!result.success) return { error: `LinkedIn repost failed: ${result.error}` };
+                return { success: true, postUrl, reposted: true, withCommentary: !!commentary };
+            } catch (e: unknown) {
+                return { error: `LinkedIn repost failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+
+        // Facebook — authenticated browser automation
+        case 'facebook_browse_feed': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const limit = Number(args.limit ?? 10);
+                const result = await browserAct(ceoUid, 'facebook', {
+                    task: `Go to facebook.com. Scroll through the news feed and extract the first ${limit} posts. For each post extract: author name, post content (first 300 chars), number of reactions, number of comments, post URL. Return as structured JSON array.`,
+                    urls: ['https://www.facebook.com'],
+                });
+                if (!result.success) return { error: `Facebook feed browse failed: ${result.error}` };
+                return { success: true, posts: result.output };
+            } catch (e: unknown) {
+                return { error: `Facebook feed browse failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'facebook_post': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const content = String(args.content ?? '');
+                const result = await browserAct(ceoUid, 'facebook', {
+                    task: `Go to facebook.com. Click "What's on your mind?" to open the post composer. Type this content:\n\n${content}\n\nClick "Post" to publish. Confirm it was posted successfully.`,
+                    urls: ['https://www.facebook.com'],
+                });
+                if (!result.success) return { error: `Facebook post failed: ${result.error}` };
+                return { success: true, action: 'posted', contentPreview: content.slice(0, 100) };
+            } catch (e: unknown) {
+                return { error: `Facebook post failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'facebook_post_with_image': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const content = String(args.content ?? '');
+                const imageUrl = String(args.imageUrl ?? '');
+                const result = await browserAct(ceoUid, 'facebook', {
+                    task: `Go to facebook.com. Click "What's on your mind?" to open the post composer. Type this content: "${content}". Click the "Photo/video" button to add media. Upload or paste this image URL: ${imageUrl}. Click "Post" to publish. Confirm it was posted.`,
+                    urls: ['https://www.facebook.com'],
+                });
+                if (!result.success) return { error: `Facebook image post failed: ${result.error}` };
+                return { success: true, action: 'posted_with_image', contentPreview: content.slice(0, 100) };
+            } catch (e: unknown) {
+                return { error: `Facebook image post failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'facebook_comment': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const postUrl = String(args.postUrl ?? '');
+                const comment = String(args.comment ?? '');
+                const result = await browserAct(ceoUid, 'facebook', {
+                    task: `Go to ${postUrl}. Click the comment input field. Type this comment: "${comment}". Press Enter or click the send button to post the comment. Confirm it was posted.`,
+                    urls: [postUrl],
+                });
+                if (!result.success) return { error: `Facebook comment failed: ${result.error}` };
+                return { success: true, postUrl, commentPosted: true };
+            } catch (e: unknown) {
+                return { error: `Facebook comment failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'facebook_react': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const postUrl = String(args.postUrl ?? '');
+                const reaction = String(args.reaction ?? 'like');
+                const result = await browserAct(ceoUid, 'facebook', {
+                    task: `Go to ${postUrl}. Hover over the "Like" button to reveal reaction options. Select the "${reaction}" reaction. Confirm the reaction was applied.`,
+                    urls: [postUrl],
+                });
+                if (!result.success) return { error: `Facebook react failed: ${result.error}` };
+                return { success: true, postUrl, reaction };
+            } catch (e: unknown) {
+                return { error: `Facebook react failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'facebook_browse_groups': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const query = String(args.query ?? '');
+                const result = await browserAct(ceoUid, 'facebook', {
+                    task: `Go to facebook.com/search/groups/?q=${encodeURIComponent(query)}. Extract the first 10 groups: name, description, member count, group URL, privacy (public/private), whether you've joined. Return as structured JSON array.`,
+                    urls: [`https://www.facebook.com/search/groups/?q=${encodeURIComponent(query)}`],
+                });
+                if (!result.success) return { error: `Facebook group search failed: ${result.error}` };
+                return { success: true, groups: result.output };
+            } catch (e: unknown) {
+                return { error: `Facebook group search failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'facebook_post_to_group': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const groupUrl = String(args.groupUrl ?? '');
+                const content = String(args.content ?? '');
+                const result = await browserAct(ceoUid, 'facebook', {
+                    task: `Go to ${groupUrl}. Click "Write something..." or the post composer. Type this content:\n\n${content}\n\nClick "Post" to publish. Confirm it was posted to the group.`,
+                    urls: [groupUrl],
+                });
+                if (!result.success) return { error: `Facebook group post failed: ${result.error}` };
+                return { success: true, groupUrl, action: 'posted_to_group' };
+            } catch (e: unknown) {
+                return { error: `Facebook group post failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'facebook_send_message': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const profileUrl = String(args.profileUrl ?? '');
+                const message = String(args.message ?? '');
+                const result = await browserAct(ceoUid, 'facebook', {
+                    task: `Go to ${profileUrl}. Click the "Message" button. Type this message: "${message}". Click "Send" or press Enter. Confirm the message was sent.`,
+                    urls: [profileUrl],
+                });
+                if (!result.success) return { error: `Facebook message failed: ${result.error}` };
+                return { success: true, profileUrl, messageSent: true };
+            } catch (e: unknown) {
+                return { error: `Facebook message failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'facebook_search': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const query = String(args.query ?? '');
+                const type = String(args.type ?? 'all');
+                const searchPath = type !== 'all' ? `/search/${type}` : '/search/top';
+                const result = await browserAct(ceoUid, 'facebook', {
+                    task: `Go to facebook.com${searchPath}/?q=${encodeURIComponent(query)}. Extract the first 10 results with relevant details (name, description/bio, URL). Return as structured JSON array.`,
+                    urls: [`https://www.facebook.com${searchPath}/?q=${encodeURIComponent(query)}`],
+                });
+                if (!result.success) return { error: `Facebook search failed: ${result.error}` };
+                return { success: true, results: result.output };
+            } catch (e: unknown) {
+                return { error: `Facebook search failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+
+        // Reddit — authenticated browser automation
+        case 'reddit_browse_feed': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const subreddit = args.subreddit ? String(args.subreddit) : '';
+                const sort = String(args.sort ?? 'hot');
+                const limit = Number(args.limit ?? 10);
+                const url = subreddit
+                    ? `https://www.reddit.com/r/${subreddit}/${sort}`
+                    : `https://www.reddit.com/${sort}`;
+                const result = await browserAct(ceoUid, 'reddit', {
+                    task: `Go to ${url}. Extract the first ${limit} posts: title, author, subreddit, score, comment count, post URL, time posted. Return as structured JSON array.`,
+                    urls: [url],
+                });
+                if (!result.success) return { error: `Reddit browse failed: ${result.error}` };
+                return { success: true, posts: result.output };
+            } catch (e: unknown) {
+                return { error: `Reddit browse failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'reddit_post': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const subreddit = String(args.subreddit ?? '');
+                const title = String(args.title ?? '');
+                const content = String(args.content ?? '');
+                const result = await browserAct(ceoUid, 'reddit', {
+                    task: `Go to reddit.com/r/${subreddit}/submit. Select "Text" post type. Enter title: "${title}". Enter body:\n\n${content}\n\nClick "Post" to submit. Confirm the post was submitted successfully and return the post URL.`,
+                    urls: [`https://www.reddit.com/r/${subreddit}/submit`],
+                });
+                if (!result.success) return { error: `Reddit post failed: ${result.error}` };
+                return { success: true, subreddit, title, posted: true, result: result.output };
+            } catch (e: unknown) {
+                return { error: `Reddit post failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'reddit_comment': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const postUrl = String(args.postUrl ?? '');
+                const comment = String(args.comment ?? '');
+                const result = await browserAct(ceoUid, 'reddit', {
+                    task: `Go to ${postUrl}. Find the comment input box. Type this comment:\n\n${comment}\n\nClick "Comment" to submit. Confirm the comment was posted.`,
+                    urls: [postUrl],
+                });
+                if (!result.success) return { error: `Reddit comment failed: ${result.error}` };
+                return { success: true, postUrl, commentPosted: true };
+            } catch (e: unknown) {
+                return { error: `Reddit comment failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'reddit_search': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const query = String(args.query ?? '');
+                const subreddit = args.subreddit ? String(args.subreddit) : '';
+                const url = subreddit
+                    ? `https://www.reddit.com/r/${subreddit}/search/?q=${encodeURIComponent(query)}&restrict_sr=1`
+                    : `https://www.reddit.com/search/?q=${encodeURIComponent(query)}`;
+                const result = await browserAct(ceoUid, 'reddit', {
+                    task: `Go to ${url}. Extract the first 10 results: title, author, subreddit, score, comment count, post URL. Return as structured JSON array.`,
+                    urls: [url],
+                });
+                if (!result.success) return { error: `Reddit search failed: ${result.error}` };
+                return { success: true, results: result.output };
+            } catch (e: unknown) {
+                return { error: `Reddit search failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'reddit_read_post': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const postUrl = String(args.postUrl ?? '');
+                const result = await browserAct(ceoUid, 'reddit', {
+                    task: `Go to ${postUrl}. Extract the full post: title, author, subreddit, score, post body text, and the top 10 comments (author, score, text). Return as structured JSON.`,
+                    urls: [postUrl],
+                });
+                if (!result.success) return { error: `Reddit read failed: ${result.error}` };
+                return { success: true, post: result.output };
+            } catch (e: unknown) {
+                return { error: `Reddit read failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'reddit_vote': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const postUrl = String(args.postUrl ?? '');
+                const direction = String(args.direction ?? 'up');
+                const result = await browserAct(ceoUid, 'reddit', {
+                    task: `Go to ${postUrl}. Click the ${direction}vote arrow button. Confirm the vote was registered.`,
+                    urls: [postUrl],
+                });
+                if (!result.success) return { error: `Reddit vote failed: ${result.error}` };
+                return { success: true, postUrl, voted: direction };
+            } catch (e: unknown) {
+                return { error: `Reddit vote failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'reddit_send_message': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const username = String(args.username ?? '');
+                const subject = String(args.subject ?? '');
+                const message = String(args.message ?? '');
+                const result = await browserAct(ceoUid, 'reddit', {
+                    task: `Go to reddit.com/message/compose/?to=${username}. Enter subject: "${subject}". Enter message:\n\n${message}\n\nClick "Send" to deliver the message. Confirm it was sent.`,
+                    urls: [`https://www.reddit.com/message/compose/?to=${username}`],
+                });
+                if (!result.success) return { error: `Reddit message failed: ${result.error}` };
+                return { success: true, username, messageSent: true };
+            } catch (e: unknown) {
+                return { error: `Reddit message failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'reddit_browse_subreddit_info': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const subreddit = String(args.subreddit ?? '');
+                const result = await browserAct(ceoUid, 'reddit', {
+                    task: `Go to reddit.com/r/${subreddit}/about. Extract: subreddit name, description, subscriber count, active users, creation date, rules (list), and moderator names. Return as structured JSON.`,
+                    urls: [`https://www.reddit.com/r/${subreddit}`],
+                });
+                if (!result.success) return { error: `Reddit subreddit info failed: ${result.error}` };
+                return { success: true, subreddit, info: result.output };
+            } catch (e: unknown) {
+                return { error: `Reddit subreddit info failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+
+        // Instagram — authenticated browser automation
+        case 'instagram_browse_feed': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const limit = Number(args.limit ?? 10);
+                const result = await browserAct(ceoUid, 'instagram', {
+                    task: `Go to instagram.com. Scroll through the feed and extract the first ${limit} posts. For each: author username, caption (first 200 chars), like count, comment count, post URL. Return as structured JSON array.`,
+                    urls: ['https://www.instagram.com'],
+                });
+                if (!result.success) return { error: `Instagram feed browse failed: ${result.error}` };
+                return { success: true, posts: result.output };
+            } catch (e: unknown) {
+                return { error: `Instagram feed browse failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'instagram_post_with_image': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const imageUrl = String(args.imageUrl ?? '');
+                const caption = String(args.caption ?? '');
+                const result = await browserAct(ceoUid, 'instagram', {
+                    task: `Go to instagram.com. Click the "+" or "Create" button to start a new post. Upload or use this image: ${imageUrl}. Click "Next" through any editing steps. Add this caption:\n\n${caption}\n\nClick "Share" to post. Confirm the post was published.`,
+                    urls: ['https://www.instagram.com'],
+                });
+                if (!result.success) return { error: `Instagram post failed: ${result.error}` };
+                return { success: true, action: 'posted', captionPreview: caption.slice(0, 100) };
+            } catch (e: unknown) {
+                return { error: `Instagram post failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'instagram_comment': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const postUrl = String(args.postUrl ?? '');
+                const comment = String(args.comment ?? '');
+                const result = await browserAct(ceoUid, 'instagram', {
+                    task: `Go to ${postUrl}. Click the comment input field. Type: "${comment}". Click "Post" or press Enter. Confirm the comment was posted.`,
+                    urls: [postUrl],
+                });
+                if (!result.success) return { error: `Instagram comment failed: ${result.error}` };
+                return { success: true, postUrl, commentPosted: true };
+            } catch (e: unknown) {
+                return { error: `Instagram comment failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'instagram_react': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const postUrl = String(args.postUrl ?? '');
+                const result = await browserAct(ceoUid, 'instagram', {
+                    task: `Go to ${postUrl}. Click the heart/like button. Confirm the post was liked.`,
+                    urls: [postUrl],
+                });
+                if (!result.success) return { error: `Instagram like failed: ${result.error}` };
+                return { success: true, postUrl, liked: true };
+            } catch (e: unknown) {
+                return { error: `Instagram like failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'instagram_view_profile': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const username = String(args.username ?? '');
+                const result = await browserAct(ceoUid, 'instagram', {
+                    task: `Go to instagram.com/${username}. Extract the profile: display name, bio, follower count, following count, post count, profile picture, website link, and last 6 post URLs. Return as structured JSON.`,
+                    urls: [`https://www.instagram.com/${username}`],
+                });
+                if (!result.success) return { error: `Instagram profile view failed: ${result.error}` };
+                return { success: true, profile: result.output };
+            } catch (e: unknown) {
+                return { error: `Instagram profile view failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'instagram_send_message': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const username = String(args.username ?? '');
+                const message = String(args.message ?? '');
+                const result = await browserAct(ceoUid, 'instagram', {
+                    task: `Go to instagram.com/direct/new. Search for "${username}" in the recipient field. Select their profile. Type this message: "${message}". Click "Send". Confirm the message was sent.`,
+                    urls: ['https://www.instagram.com/direct/new'],
+                });
+                if (!result.success) return { error: `Instagram message failed: ${result.error}` };
+                return { success: true, username, messageSent: true };
+            } catch (e: unknown) {
+                return { error: `Instagram message failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'instagram_search': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const query = String(args.query ?? '');
+                const type = String(args.type ?? 'users');
+                const result = await browserAct(ceoUid, 'instagram', {
+                    task: `Go to instagram.com/explore/search. Type "${query}" in the search bar. Switch to the "${type}" tab if available. Extract the first 10 results with relevant details. Return as structured JSON array.`,
+                    urls: ['https://www.instagram.com/explore'],
+                });
+                if (!result.success) return { error: `Instagram search failed: ${result.error}` };
+                return { success: true, results: result.output };
+            } catch (e: unknown) {
+                return { error: `Instagram search failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'instagram_browse_stories': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const username = args.username ? String(args.username) : '';
+                const url = username
+                    ? `https://www.instagram.com/stories/${username}`
+                    : 'https://www.instagram.com';
+                const task = username
+                    ? `Go to ${url}. View the stories. Extract: number of stories, content description of each story (image/video, text overlays, stickers). Return as structured JSON.`
+                    : `Go to instagram.com. Look at the stories bar at the top. Extract which accounts have active stories (first 10): username, profile pic indicator. Return as structured JSON array.`;
+                const result = await browserAct(ceoUid, 'instagram', { task, urls: [url] });
+                if (!result.success) return { error: `Instagram stories browse failed: ${result.error}` };
+                return { success: true, stories: result.output };
+            } catch (e: unknown) {
+                return { error: `Instagram stories browse failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+
+        // Social Media Intelligence tools
+        case 'social_adapt_content': {
+            try {
+                const { adaptContent } = await import('@/server/services/social-media/content-adapter');
+                const content = String(args.content ?? '');
+                const platform = String(args.platform ?? 'linkedin') as Parameters<typeof adaptContent>[1];
+                const result = await adaptContent(content, platform, {
+                    topic: typeof args.topic === 'string' ? args.topic : undefined,
+                    intent: typeof args.intent === 'string' ? args.intent : undefined,
+                });
+                return { success: true, adapted: result };
+            } catch (e: unknown) {
+                return { error: `Content adaptation failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'social_adapt_all': {
+            try {
+                const { adaptForAllPlatforms } = await import('@/server/services/social-media/content-adapter');
+                const content = String(args.content ?? '');
+                const results = await adaptForAllPlatforms(content, {
+                    topic: typeof args.topic === 'string' ? args.topic : undefined,
+                });
+                return { success: true, adaptations: results };
+            } catch (e: unknown) {
+                return { error: `Multi-platform adaptation failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'social_check_limits': {
+            try {
+                const { getAllUsage } = await import('@/server/services/social-media/rate-limiter');
+                return { success: true, usage: getAllUsage() };
+            } catch (e: unknown) {
+                return { error: `Rate limit check failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'social_scan_signals': {
+            try {
+                const { runFullScan } = await import('@/server/services/social-media/social-listener');
+                const result = await runFullScan();
+                return {
+                    success: true,
+                    totalSignals: result.totalSignals,
+                    highValue: result.highValue,
+                    topSignals: result.results.flatMap(r => r.signals).slice(0, 10).map(s => ({
+                        platform: s.platform,
+                        source: s.source,
+                        title: s.title.slice(0, 100),
+                        score: s.relevanceScore,
+                        action: s.actionType,
+                        suggestion: s.suggestedAction.slice(0, 200),
+                        url: s.url,
+                    })),
+                };
+            } catch (e: unknown) {
+                return { error: `Social scan failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'social_warmup_check': {
+            try {
+                const { checkWarmup } = await import('@/server/services/social-media/engagement-warmup');
+                const platform = String(args.platform ?? 'linkedin') as Parameters<typeof checkWarmup>[0];
+                const targetId = String(args.targetId ?? '');
+                const result = checkWarmup(platform, targetId);
+                return {
+                    success: true,
+                    isWarm: result.isWarm,
+                    engagementCount: result.engagementCount,
+                    recommendation: result.recommendation,
+                    warmupActions: result.warmupActions.map(a => ({
+                        tool: a.tool,
+                        description: a.description,
+                        priority: a.priority,
+                    })),
+                };
+            } catch (e: unknown) {
+                return { error: `Warmup check failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+
+        // Moltbook — REST API (no browser automation)
+        case 'moltbook_post': {
+            try {
+                const { createPost, isMoltbookConfigured } = await import('@/server/services/moltbook/client');
+                if (!isMoltbookConfigured()) return { error: 'MOLTBOOK_API_KEY not configured — register Marty at moltbook.com first' };
+                const content = String(args.content ?? '');
+                const title = String(args.title ?? content.split('\n')[0].slice(0, 200));
+                const submolt = String(args.submolt ?? 'general');
+                const result = await createPost(title, content, submolt);
+                if (!result.success) return { error: `Moltbook post failed: ${result.error}` };
+                return { success: true, post: result.data, verified: result.verified };
+            } catch (e: unknown) {
+                return { error: `Moltbook post failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'moltbook_comment': {
+            try {
+                const { commentOnPost, isMoltbookConfigured } = await import('@/server/services/moltbook/client');
+                if (!isMoltbookConfigured()) return { error: 'MOLTBOOK_API_KEY not configured' };
+                const postId = String(args.postId ?? '');
+                const content = String(args.content ?? '');
+                const result = await commentOnPost(postId, content);
+                if (!result.success) return { error: `Moltbook comment failed: ${result.error}` };
+                return { success: true, comment: result.data };
+            } catch (e: unknown) {
+                return { error: `Moltbook comment failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'moltbook_vote': {
+            try {
+                const { voteOnPost, isMoltbookConfigured } = await import('@/server/services/moltbook/client');
+                if (!isMoltbookConfigured()) return { error: 'MOLTBOOK_API_KEY not configured' };
+                const postId = String(args.postId ?? '');
+                const direction = (args.direction === 'down' ? 'down' : 'up') as 'up' | 'down';
+                const result = await voteOnPost(postId, direction);
+                if (!result.success) return { error: `Moltbook vote failed: ${result.error}` };
+                return { success: true, postId, direction, votes: result.data?.votes };
+            } catch (e: unknown) {
+                return { error: `Moltbook vote failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'moltbook_browse_feed': {
+            try {
+                const { browseFeed, isMoltbookConfigured } = await import('@/server/services/moltbook/client');
+                if (!isMoltbookConfigured()) return { error: 'MOLTBOOK_API_KEY not configured' };
+                const limit = Number(args.limit ?? 20);
+                const result = await browseFeed(limit);
+                if (!result.success) return { error: `Moltbook feed failed: ${result.error}` };
+                return { success: true, posts: result.data };
+            } catch (e: unknown) {
+                return { error: `Moltbook feed failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'moltbook_search_agents': {
+            try {
+                const { searchAgents, isMoltbookConfigured } = await import('@/server/services/moltbook/client');
+                if (!isMoltbookConfigured()) return { error: 'MOLTBOOK_API_KEY not configured' };
+                const query = String(args.query ?? '');
+                const limit = Number(args.limit ?? 10);
+                const result = await searchAgents(query, limit);
+                if (!result.success) return { error: `Moltbook agent search failed: ${result.error}` };
+                return { success: true, agents: result.data };
+            } catch (e: unknown) {
+                return { error: `Moltbook agent search failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'moltbook_send_message': {
+            try {
+                const { sendMessage, isMoltbookConfigured } = await import('@/server/services/moltbook/client');
+                if (!isMoltbookConfigured()) return { error: 'MOLTBOOK_API_KEY not configured' };
+                const agentId = String(args.agentId ?? '');
+                const message = String(args.message ?? '');
+                const result = await sendMessage(agentId, message);
+                if (!result.success) return { error: `Moltbook message failed: ${result.error}` };
+                return { success: true, message: result.data };
+            } catch (e: unknown) {
+                return { error: `Moltbook message failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'moltbook_view_profile': {
+            try {
+                const { getAgentById, isMoltbookConfigured } = await import('@/server/services/moltbook/client');
+                if (!isMoltbookConfigured()) return { error: 'MOLTBOOK_API_KEY not configured' };
+                const agentId = String(args.agentId ?? '');
+                const result = await getAgentById(agentId);
+                if (!result.success) return { error: `Moltbook profile view failed: ${result.error}` };
+                return { success: true, agent: result.data };
+            } catch (e: unknown) {
+                return { error: `Moltbook profile view failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+
         // Learning Loop
         case 'learning_log': {
             try {
@@ -1547,6 +2411,94 @@ function buildMartyProgressMessage(toolName: string, input: Record<string, unkno
             return '_Marty Benjamins is sending a LinkedIn connection request..._';
         case 'linkedin_send_message':
             return '_Marty Benjamins is sending a LinkedIn message..._';
+        case 'linkedin_browse_feed':
+            return '_Marty Benjamins is browsing the LinkedIn feed..._';
+        case 'linkedin_comment':
+            return '_Marty Benjamins is commenting on a LinkedIn post..._';
+        case 'linkedin_react':
+            return '_Marty Benjamins is reacting to a LinkedIn post..._';
+        case 'linkedin_post_with_image':
+            return '_Marty Benjamins is posting to LinkedIn with an image..._';
+        case 'linkedin_view_profile':
+            return '_Marty Benjamins is viewing a LinkedIn profile..._';
+        case 'linkedin_browse_groups':
+            return '_Marty Benjamins is browsing LinkedIn groups..._';
+        case 'linkedin_read_inbox':
+            return '_Marty Benjamins is checking LinkedIn messages..._';
+        case 'linkedin_repost':
+            return '_Marty Benjamins is reposting content on LinkedIn..._';
+        case 'facebook_browse_feed':
+            return '_Marty Benjamins is browsing the Facebook feed..._';
+        case 'facebook_post':
+        case 'facebook_post_with_image':
+            return '_Marty Benjamins is posting to Facebook..._';
+        case 'facebook_comment':
+            return '_Marty Benjamins is commenting on a Facebook post..._';
+        case 'facebook_react':
+            return '_Marty Benjamins is reacting to a Facebook post..._';
+        case 'facebook_browse_groups':
+            return '_Marty Benjamins is browsing Facebook groups..._';
+        case 'facebook_post_to_group':
+            return '_Marty Benjamins is posting to a Facebook group..._';
+        case 'facebook_send_message':
+            return '_Marty Benjamins is sending a Facebook message..._';
+        case 'facebook_search':
+            return '_Marty Benjamins is searching Facebook..._';
+        case 'reddit_browse_feed':
+            return '_Marty Benjamins is browsing Reddit..._';
+        case 'reddit_post':
+            return '_Marty Benjamins is posting to Reddit..._';
+        case 'reddit_comment':
+            return '_Marty Benjamins is commenting on Reddit..._';
+        case 'reddit_search':
+            return '_Marty Benjamins is searching Reddit..._';
+        case 'reddit_read_post':
+            return '_Marty Benjamins is reading a Reddit post..._';
+        case 'reddit_vote':
+            return '_Marty Benjamins is voting on Reddit..._';
+        case 'reddit_send_message':
+            return '_Marty Benjamins is sending a Reddit message..._';
+        case 'reddit_browse_subreddit_info':
+            return '_Marty Benjamins is checking subreddit info..._';
+        case 'instagram_browse_feed':
+            return '_Marty Benjamins is browsing the Instagram feed..._';
+        case 'instagram_post_with_image':
+            return '_Marty Benjamins is posting to Instagram..._';
+        case 'instagram_comment':
+            return '_Marty Benjamins is commenting on Instagram..._';
+        case 'instagram_react':
+            return '_Marty Benjamins is liking an Instagram post..._';
+        case 'instagram_view_profile':
+            return '_Marty Benjamins is viewing an Instagram profile..._';
+        case 'instagram_send_message':
+            return '_Marty Benjamins is sending an Instagram DM..._';
+        case 'instagram_search':
+            return '_Marty Benjamins is searching Instagram..._';
+        case 'instagram_browse_stories':
+            return '_Marty Benjamins is browsing Instagram stories..._';
+        case 'social_adapt_content':
+        case 'social_adapt_all':
+            return '_Marty Benjamins is adapting content for cross-platform posting..._';
+        case 'social_check_limits':
+            return '_Marty Benjamins is checking social media rate limits..._';
+        case 'social_scan_signals':
+            return '_Marty Benjamins is scanning social media for leads and opportunities..._';
+        case 'social_warmup_check':
+            return '_Marty Benjamins is checking engagement warmup status..._';
+        case 'moltbook_post':
+            return '_Marty Benjamins is posting to Moltbook..._';
+        case 'moltbook_comment':
+            return '_Marty Benjamins is commenting on Moltbook..._';
+        case 'moltbook_vote':
+            return '_Marty Benjamins is voting on Moltbook..._';
+        case 'moltbook_browse_feed':
+            return '_Marty Benjamins is browsing the Moltbook feed..._';
+        case 'moltbook_search_agents':
+            return '_Marty Benjamins is searching for agents on Moltbook..._';
+        case 'moltbook_send_message':
+            return '_Marty Benjamins is messaging an agent on Moltbook..._';
+        case 'moltbook_view_profile':
+            return '_Marty Benjamins is viewing an agent profile on Moltbook..._';
         case 'learning_log':
             return '_Marty Benjamins is logging what he learned..._';
         case 'learning_search':
@@ -1620,23 +2572,102 @@ When doing outreach:
 4. *Follow up persistently.* Check outreach stats, identify who hasn't responded, plan next touch.
 5. *Report results.* After each batch, share: dispensary name, what you sent, template used, next steps.
 
-LINKEDIN — BUSINESS DEVELOPMENT:
-You have access to the CEO's LinkedIn via browser automation. Use it to:
-- Post thought leadership content about cannabis tech, AI, agentic commerce (linkedin_post)
-- Search for dispensary owners, cannabis industry leaders, potential partners (linkedin_search_people)
-- Send personalized connection requests to key prospects (linkedin_send_connection)
-- DM existing connections about BakedBot (linkedin_send_message)
+LINKEDIN — FULL ACCESS (BUSINESS DEVELOPMENT):
+You have complete access to the CEO's LinkedIn. Everything the CEO can do, you can do:
+- Post text or image content (linkedin_post, linkedin_post_with_image)
+- Browse the feed and stay informed (linkedin_browse_feed)
+- Search for people, leads, and partners (linkedin_search_people)
+- View full profiles to research leads (linkedin_view_profile)
+- Send connection requests (linkedin_send_connection)
+- DM existing connections (linkedin_send_message)
+- Read the inbox for replies and requests (linkedin_read_inbox)
+- Comment on posts to build relationships (linkedin_comment)
+- React to posts — like, celebrate, support, insightful (linkedin_react)
+- Repost/share valuable content (linkedin_repost)
+- Browse and search LinkedIn groups (linkedin_browse_groups)
 LinkedIn rules:
 1. *Quality over quantity.* Max 5 connection requests per day. Personalize every note.
 2. *Thought leadership first.* Post valuable content before pitching. Build credibility.
-3. *No spam.* Never mass-message. Each interaction should be tailored.
-4. *Track everything.* Log every LinkedIn action in the learning loop.
+3. *Engage before pitching.* Comment on and react to prospects' posts before DMing.
+4. *No spam.* Never mass-message. Each interaction should be tailored.
+5. *Groups are goldmines.* Join cannabis industry groups, contribute value, find leads.
+6. *Track everything.* Log every LinkedIn action in the learning loop.
+
+FACEBOOK — FULL ACCESS (COMMUNITY & GROUPS):
+You have complete access to the CEO's Facebook. Everything the CEO can do, you can do:
+- Browse the news feed (facebook_browse_feed)
+- Post text or image content (facebook_post, facebook_post_with_image)
+- Comment on posts (facebook_comment)
+- React to posts — like, love, haha, wow (facebook_react)
+- Browse and search Facebook groups (facebook_browse_groups)
+- Post in groups (facebook_post_to_group)
+- Send Messenger messages (facebook_send_message)
+- Search for people, pages, groups, and posts (facebook_search)
+Facebook rules:
+1. *Groups over feed.* Cannabis dispensary owner groups are where the real prospects are.
+2. *Add value first.* Answer questions, share insights, build trust before promoting BakedBot.
+3. *No hard sell in groups.* Group admins will ban you. Be helpful, let people ask about your tools.
+4. *Messenger for warm leads.* Only message people you've interacted with in groups.
+5. *Track everything.* Log every Facebook action in the learning loop.
+
+REDDIT — FULL ACCESS (INDUSTRY INTELLIGENCE & COMMUNITY):
+You have complete access to the CEO's Reddit. Everything the CEO can do, you can do:
+- Browse the front page or specific subreddits (reddit_browse_feed)
+- Post to subreddits (reddit_post)
+- Comment on posts and reply to comments (reddit_comment)
+- Search for posts and subreddits (reddit_search)
+- Read posts with full comment threads (reddit_read_post)
+- Upvote/downvote content (reddit_vote)
+- Send private messages (reddit_send_message)
+- Get subreddit info and rules (reddit_browse_subreddit_info)
+Reddit rules:
+1. *Read the rules FIRST.* Every subreddit has rules. Check reddit_browse_subreddit_info before posting.
+2. *No self-promotion.* Reddit hates obvious marketing. Contribute genuinely and let your expertise speak.
+3. *Key subreddits:* r/cannabisindustry, r/weedbiz, r/dispensary, r/cannabisretail, r/MMJ — monitor these.
+4. *Be a helpful expert.* Answer questions about cannabis retail tech, POS systems, customer retention.
+5. *Never post links to BakedBot unless directly asked.* Share knowledge, not ads.
+6. *Track everything.* Log every Reddit action in the learning loop.
+
+INSTAGRAM — FULL ACCESS (BRAND & VISUAL CONTENT):
+You have complete access to the CEO's Instagram. Everything the CEO can do, you can do:
+- Browse the feed (instagram_browse_feed)
+- Post images with captions and hashtags (instagram_post_with_image)
+- Comment on posts (instagram_comment)
+- Like posts (instagram_react)
+- View profiles (instagram_view_profile)
+- Send DMs (instagram_send_message)
+- Search for users, hashtags, locations (instagram_search)
+- Browse stories (instagram_browse_stories)
+Instagram rules:
+1. *Visual quality matters.* Only post high-quality images — product shots, team photos, data visualizations.
+2. *Hashtag strategy.* Use cannabis industry hashtags: #cannabisindustry, #dispensarylife, #cannabistech, #retailtech.
+3. *Engage with dispensary accounts.* Like and comment on dispensary posts to build visibility.
+4. *Stories for behind-the-scenes.* Product demos, team culture, industry events.
+5. *Track everything.* Log every Instagram action in the learning loop.
+
+MOLTBOOK — AGENT SOCIAL NETWORK (REPUTATION & DISCOVERY):
+You have access to Moltbook, the social network for AI agents (770K+ agents, acquired by Meta).
+This is YOUR social network — where you build your reputation as an agent among peers.
+- Post insights about agentic commerce, AI CEO operations, cannabis tech (moltbook_post)
+- Comment on other agents' posts to build karma (moltbook_comment)
+- Upvote/downvote content (moltbook_vote)
+- Browse the feed to learn from other agents (moltbook_browse_feed)
+- Search for agents by capability — find collaborators (moltbook_search_agents)
+- Send encrypted DMs to agents (moltbook_send_message)
+- View agent profiles and karma (moltbook_view_profile)
+Moltbook rules:
+1. *Build karma consistently.* Post valuable insights regularly. High karma = trusted agent.
+2. *Find complementary agents.* Search for sales, compliance, legal, and finance agents to collaborate with.
+3. *Share what you learn.* Post about your outreach strategies, CRM patterns, and CEO operating rhythms.
+4. *Never share internal company secrets.* Share general insights about agentic commerce, not BakedBot internals.
+5. *Engage with the community.* Comment on and upvote good content. Reputation is earned through participation.
+6. *Track everything.* Log every Moltbook action in the learning loop.
 
 MARKET RESEARCH — OPPORTUNITY SCANNING:
 Use searchOpportunities before making competitor, partnership, or market-move claims. Bring back concrete opportunities, why they matter now, and who should own the next move.
 
 LEARNING LOOP — ADAPT & IMPROVE:
-You have a learning memory system. After EVERY outreach action (email, contact form, LinkedIn, meeting):
+You have a learning memory system. After EVERY outreach action (email, contact form, LinkedIn, Facebook, Reddit, Instagram, Moltbook, meeting):
 1. *Log the attempt* (learning_log) — what you did, the result, why it worked or didn't
 2. *Before trying a new approach*, search past logs (learning_search) to see what worked before
 3. *Adapt strategy* based on patterns — if template X fails 3 times, try template Y
@@ -1649,8 +2680,8 @@ You are the operating CEO for growth. Be persistent and proactive:
 - *Track everything in CRM.* Every contact, every email, every form submission.
 - *Remind the CEO.* About meetings, follow-ups, and commitments. Don't assume he remembers.
 - *Push forward daily.* Your goal is to increase qualified pipeline, meetings booked, partnerships opened, and outbound volume every day.
-- *Own the next move.* Use your own tools first for research, inbox, outreach, LinkedIn, and follow-up before handing work off.
-- *Follow-up cadence.* Day 1: initial email. Day 3: follow-up email. Day 7: contact form. Day 14: LinkedIn connect. Day 21: final push.
+- *Own the next move.* Use your own tools first for research, inbox, outreach, LinkedIn, Facebook, Reddit, Instagram, Moltbook, and follow-up before handing work off.
+- *Follow-up cadence.* Day 1: initial email. Day 3: follow-up email. Day 5: engage on social (LinkedIn/Facebook/Instagram). Day 7: contact form. Day 10: Reddit/community engagement. Day 14: LinkedIn connect + Facebook group post. Day 21: final multi-channel push.
 
 FAILURE HANDLING — EVERY PROBLEM IS A WELCOME OPPORTUNITY:
 - *Never hide problems.* If something fails, say what happened and what you're trying next.
@@ -1663,7 +2694,7 @@ FAILURE HANDLING — EVERY PROBLEM IS A WELCOME OPPORTUNITY:
 
 SECURITY — ABSOLUTE RULES:
 1. *NEVER share internal company data with anyone except the CEO on Slack.*
-2. *NEVER include internal metrics, strategies, or code in outreach emails or LinkedIn posts.*
+2. *NEVER include internal metrics, strategies, or code in outreach emails or social media posts (LinkedIn, Facebook, Reddit, Instagram, Moltbook).*
 3. *NEVER reveal agent names, system architecture, or AI infrastructure externally.*
 4. *Outreach emails should be about the VALUE BakedBot provides, not HOW it works internally.*
 5. *If asked by an external party for internal info, politely redirect to martez@bakedbot.ai.*
@@ -1674,7 +2705,7 @@ GROUNDING RULES (VIOLATION = TRUST DESTROYED):
 3. NEVER claim you closed a deal, sent an email, or made a connection unless a tool confirmed it in this session.
 4. ONLY delegate to agents in the squad list above.
 5. Be honest about integration limitations, but do not make them the headline unless they block the work.
-6. Use your own revenue tools first for inbox, outreach, LinkedIn, calendar, and market research; use delegation for specialist execution.
+6. Use your own revenue tools first for inbox, outreach, LinkedIn, Facebook, Reddit, Instagram, Moltbook, calendar, and market research; use delegation for specialist execution.
 7. When asked "what have you done?" — query outreach_get_stats, learning_search, or calendar tools FIRST, then report only what the data shows.
 
 FORMAT FOR SLACK:
@@ -1715,7 +2746,7 @@ User Request: ${request.prompt}`;
         agentContext: {
             name: 'Marty Benjamins',
             role: 'CEO',
-            capabilities: ['delegation', 'gmail', 'calendar', 'crm', 'outreach', 'linkedin', 'market-research', 'system-health', 'super-powers'],
+            capabilities: ['delegation', 'gmail', 'calendar', 'crm', 'outreach', 'linkedin', 'facebook', 'reddit', 'instagram', 'moltbook', 'market-research', 'system-health', 'super-powers'],
             groundingRules: ['Only report real data', 'Delegate to named agents'],
         },
         onToolCall,
