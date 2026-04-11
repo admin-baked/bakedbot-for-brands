@@ -330,6 +330,16 @@ export interface StagingProduct {
     imageUrl?: string;
     imageUrls?: string[];
 
+    // Lab / COA data (from POS batch details or COA QR scraping)
+    terpenes?: Array<{ name: string; percentage: number }>;
+    strainType?: 'indica' | 'sativa' | 'hybrid';
+    strain?: string;
+    effects?: string[];
+    metrcTag?: string;
+    batchId?: string;
+    thcMg?: number;
+    cbdMg?: number;
+
     // Other fields (source-specific)
     rawData?: Record<string, unknown>;
 

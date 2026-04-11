@@ -89,7 +89,15 @@ export async function syncPOSProducts(locationId: string, orgId: string) {
             price: p.price,
             thc: p.thcPercent,
             cbd: p.cbdPercent,
+            thcMg: p.thcMg,
+            cbdMg: p.cbdMg,
             imageUrl: p.imageUrl,
+            strain: p.strain,
+            strainType: p.strainType,
+            terpenes: p.terpenes,
+            effects: p.effects,
+            metrcTag: p.metrcTag,
+            batchId: p.batchId,
             rawData: p.rawData
         }));
 

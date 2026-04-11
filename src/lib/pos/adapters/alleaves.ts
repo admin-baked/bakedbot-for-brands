@@ -127,6 +127,10 @@ export interface ALLeavesBatchDetail {
     area?: string;
     area_name?: string;
     id_location?: number;
+    // Lab / COA data (may be present in batch response)
+    terpenes?: Array<{ name: string; percentage: number }>;
+    strain_type?: 'indica' | 'sativa' | 'hybrid';
+    effects?: string[];
 }
 
 /**
@@ -608,6 +612,11 @@ export class ALLeavesClient implements POSClient {
             const thcMg = item.thc_mg ?? batchDetail?.thc_mg ?? undefined;
             const cbdMg = item.cbd_mg ?? batchDetail?.cbd_mg ?? undefined;
 
+            // Resolve terpenes, strain type, effects from batch details
+            const terpenes = batchDetail?.terpenes?.filter(t => t.name && t.percentage > 0) || undefined;
+            const strainType = batchDetail?.strain_type || undefined;
+            const effects = batchDetail?.effects?.length ? batchDetail.effects : undefined;
+
             // Batch-level expiration/package date fallback from batch detail
             if (!expirationDate && batchDetail?.date_expire) {
                 const parsed = new Date(batchDetail.date_expire);
@@ -648,6 +657,10 @@ export class ALLeavesClient implements POSClient {
                 metrcTag: metrcTag || undefined,
                 batchStatus: batchStatus || undefined,
                 areaName: areaName || undefined,
+                // Lab / COA data from batch details
+                terpenes: terpenes?.length ? terpenes : undefined,
+                strainType,
+                effects,
                 rawData: item as unknown as Record<string, unknown>,
             };
         });

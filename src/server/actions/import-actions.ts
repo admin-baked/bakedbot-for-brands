@@ -382,9 +382,12 @@ async function runImportPipeline(
             brandName: product.brandName,
             category: product.category,
             strainType: product.strainType,
+            strainName: product.strainName,
             description: product.shortDescription || product.description,
             thcPercent: product.potency?.thc?.unit === 'percent' ? product.potency.thc.value : undefined,
             cbdPercent: product.potency?.cbd?.unit === 'percent' ? product.potency.cbd.value : undefined,
+            terpenes: product.terpenes,
+            effects: product.effects,
             // Write imageUrl if we have a real one (incoming or from global DB).
             // Leave undefined so merge:true preserves any previously-scraped value.
             imageUrl: resolvedImageUrl ?? undefined,
@@ -495,8 +498,11 @@ function createCatalogProductFromStaging(
         brandName: staging.brandName,
         category: (staging.category as CatalogProduct['category']) || 'other',
         subcategory: staging.subcategory,
-        strainType: undefined,
+        strainType: staging.strainType as CatalogProduct['strainType'] || undefined,
+        strainName: staging.strain || undefined,
+        terpenes: staging.terpenes?.map(t => ({ name: t.name, percentage: t.percentage })),
         potency: buildPotency(staging),
+        effects: staging.effects,
         description: undefined,
         images: staging.imageUrl ? [{ url: staging.imageUrl, isPrimary: true }] :
             staging.imageUrls?.map((url, i) => ({ url, isPrimary: i === 0 })),

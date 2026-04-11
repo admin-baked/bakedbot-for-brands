@@ -35,6 +35,11 @@ export interface POSProduct {
     batchStatus?: string;  // Batch status ("open", "closed", etc.)
     areaName?: string;     // Storage area name (e.g. "Sales Floor", "Back Room")
 
+    // Lab / COA data (from POS batch details or COA QR scraping)
+    terpenes?: Array<{ name: string; percentage: number }>;  // Terpene profile from batch detail
+    strainType?: 'indica' | 'sativa' | 'hybrid';            // Strain classification
+    effects?: string[];                                       // Reported effects
+
     // Sale/Discount fields (populated by fetchMenuWithDiscounts)
     isOnSale?: boolean;           // True if product has active discount
     originalPrice?: number;       // Original price before discount

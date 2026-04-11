@@ -45,6 +45,14 @@ export interface RawProductData {
     weightUnit?: string;
     sku?: string;
     upc?: string;
+    // Lab / COA data (from POS batch details)
+    terpenes?: Array<{ name: string; percentage: number }>;
+    strainType?: 'indica' | 'sativa' | 'hybrid';
+    strain?: string;
+    metrcTag?: string;
+    batchId?: string;
+    thcMg?: number | string;
+    cbdMg?: number | string;
     rawData?: Record<string, unknown>;
 }
 
@@ -126,6 +134,14 @@ export function parseProducts(
                 priceUnit: raw.priceUnit,
                 imageUrl: raw.imageUrl,
                 imageUrls: raw.imageUrls,
+                terpenes: raw.terpenes,
+                strainType: raw.strainType,
+                strain: raw.strain,
+                effects: raw.effects,
+                metrcTag: raw.metrcTag,
+                batchId: raw.batchId,
+                thcMg: parseNumber(raw.thcMg),
+                cbdMg: parseNumber(raw.cbdMg),
                 rawData: raw.rawData,
                 parseDiagnostics: {
                     warnings: [],
