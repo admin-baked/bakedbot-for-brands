@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ Production live; Groq free tier swap (~28 sites), daily agent response audit cron | **Last update:** 2026-04-11 (Groq swap $0.15→$0.01/day, daily-response-audit cron, dashboard chat archiving)
+**Current Status:** ðŸŸ¢ Production live; QA suite + security scan nightly crons, deploy unblock (SUPABASE secret fix) | **Last update:** 2026-04-11 (QA pipeline phases 2+3, AI test generator, Cloud Run QA container, deploy unblock)
 
 ---
 
