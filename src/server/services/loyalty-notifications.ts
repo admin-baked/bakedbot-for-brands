@@ -5,6 +5,8 @@
  * Uses SLACK_WEBHOOK_LOYALTY → SLACK_WEBHOOK_URL fallback → silent skip.
  */
 
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { BatchSyncResult } from './loyalty-sync';
 
@@ -12,6 +14,7 @@ const SLACK_WEBHOOK_LOYALTY =
   process.env.SLACK_WEBHOOK_LOYALTY || process.env.SLACK_WEBHOOK_URL;
 
 const DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+const SUMMARY_NOTIFICATION_DOC = 'batch_sync_summary';
 
 // ==========================================
 // Types
@@ -49,6 +52,38 @@ async function postToSlack(blocks: unknown[], text: string): Promise<void> {
 
 function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
+}
+
+async function shouldSendBatchSummary(orgId: string): Promise<boolean> {
+  try {
+    const db = getAdminFirestore();
+    const ref = db.collection('tenants').doc(orgId).collection('loyalty_notifications').doc(SUMMARY_NOTIFICATION_DOC);
+    const snap = await ref.get();
+    if (!snap.exists) return true;
+    const data = snap.data() as { lastSlackNotificationAt?: Timestamp } | undefined;
+    if (!data?.lastSlackNotificationAt) return true;
+    const lastNotified = (data.lastSlackNotificationAt as Timestamp).toDate().getTime();
+    return Date.now() - lastNotified > DEDUP_WINDOW_MS;
+  } catch (error) {
+    logger.warn('[LoyaltyNotifications] Failed to check batch summary dedup state', {
+      orgId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return true;
+  }
+}
+
+async function recordBatchSummary(orgId: string): Promise<void> {
+  try {
+    const db = getAdminFirestore();
+    const ref = db.collection('tenants').doc(orgId).collection('loyalty_notifications').doc(SUMMARY_NOTIFICATION_DOC);
+    await ref.set({ lastSlackNotificationAt: FieldValue.serverTimestamp() }, { merge: true });
+  } catch (error) {
+    logger.warn('[LoyaltyNotifications] Failed to record batch summary dedup state', {
+      orgId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 // ==========================================
@@ -160,6 +195,12 @@ export async function notifyBatchSyncSummary(
     return;
   }
 
+  const shouldSend = await shouldSendBatchSummary(orgId);
+  if (!shouldSend) {
+    logger.info('[LoyaltyNotifications] Skipping deduped batch sync summary', { orgId });
+    return;
+  }
+
   const successRate =
     result.totalProcessed > 0
       ? ((result.successful / result.totalProcessed) * 100).toFixed(1)
@@ -238,6 +279,7 @@ export async function notifyBatchSyncSummary(
       ],
       `${statusEmoji} Loyalty sync for ${orgId}: ${result.successful}/${result.totalProcessed} reconciled, ${result.discrepancies.length} flagged, ${result.failed} failed`
     );
+    await recordBatchSummary(orgId);
 
     logger.info('[LoyaltyNotifications] Batch summary sent', {
       orgId,
