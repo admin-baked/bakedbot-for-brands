@@ -12,6 +12,11 @@
  *   node scripts/generate-e2e-tests.mjs --dry-run                 # Preview without writing files
  *   node scripts/generate-e2e-tests.mjs --model=groq              # Force Groq (default)
  *   node scripts/generate-e2e-tests.mjs --model=opencode          # Use Opencode Zen (Cloud Run)
+ *   node scripts/generate-e2e-tests.mjs --model=opus              # Use Claude Opus (best quality, ~$0.09/spec)
+ *   node scripts/generate-e2e-tests.mjs --dashboard               # Generate dashboard tests (requires auth)
+ *   node scripts/generate-e2e-tests.mjs --dashboard --org=super   # Super Admin dashboard only
+ *   node scripts/generate-e2e-tests.mjs --dashboard --org=dispensary  # Thrive Syracuse only
+ *   node scripts/generate-e2e-tests.mjs --dashboard --org=brand   # Ecstatic Edibles only
  *
  * Output: tests/e2e/generated/<route-slug>.spec.ts
  */
@@ -31,6 +36,8 @@ const ROUTE = args.find(a => a.startsWith('--route='))?.split('=')[1];
 const BATCH = parseInt(args.find(a => a.startsWith('--batch='))?.split('=')[1] || '5');
 const DRY_RUN = args.includes('--dry-run');
 const MODEL = args.find(a => a.startsWith('--model='))?.split('=')[1] || 'groq';
+const DASHBOARD = args.includes('--dashboard');
+const ORG_TYPE = args.find(a => a.startsWith('--org='))?.split('=')[1]; // super, dispensary, brand
 
 // ── Load env ────────────────────────────────────────────────────────────────
 
@@ -100,6 +107,71 @@ function findUntestedRoutes() {
 
         if (!isTested) {
             routes.push({ path: routePath || '/', file: file, slug });
+        }
+    }
+
+    return routes;
+}
+
+// ── Dashboard route → org type mapping ─────────────────────────────────────
+
+const DASHBOARD_ORG_MAP = {
+    // Super Admin routes
+    super: [
+        '/dashboard/ceo', '/dashboard/ceo/agents', '/dashboard/ceo/agents/knowledge',
+        '/dashboard/ceo/approvals', '/dashboard/ceo/playbooks', '/dashboard/ceo/projects',
+        '/dashboard/ceo/treasury', '/dashboard/ceo/users',
+        '/dashboard/admin/payment-config', '/dashboard/admin/pos-config',
+        '/dashboard/admin/playbook-templates', '/dashboard/admin/templates',
+        '/dashboard/vibe-admin', '/dashboard/audit', '/dashboard/linus-approvals',
+    ],
+    // Dispensary routes (Thrive Syracuse)
+    dispensary: [
+        '/dashboard', '/dashboard/products', '/dashboard/menu', '/dashboard/analytics',
+        '/dashboard/customers', '/dashboard/customers/segments', '/dashboard/orders',
+        '/dashboard/inventory', '/dashboard/loyalty', '/dashboard/campaigns',
+        '/dashboard/playbooks', '/dashboard/alerts', '/dashboard/integrations',
+        '/dashboard/settings', '/dashboard/settings/profile', '/dashboard/settings/billing',
+        '/dashboard/dispensary', '/dashboard/dispensary/checkin', '/dashboard/dispensary/orders',
+        '/dashboard/menu-sync', '/dashboard/qr-codes', '/dashboard/delivery',
+    ],
+    // Brand routes (Ecstatic Edibles)
+    brand: [
+        '/dashboard', '/dashboard/brand-page', '/dashboard/brand-pages',
+        '/dashboard/creative', '/dashboard/creative-library', '/dashboard/campaigns',
+        '/dashboard/content', '/dashboard/content/brand-page', '/dashboard/marketing',
+        '/dashboard/marketing/campaigns/new', '/dashboard/marketing/lifecycle',
+        '/dashboard/analytics', '/dashboard/customers', '/dashboard/leads',
+        '/dashboard/settings', '/dashboard/settings/profile', '/dashboard/settings/brand-guide',
+        '/dashboard/domains', '/dashboard/distribution', '/dashboard/competitive-intel',
+    ],
+};
+
+function findDashboardRoutes(orgType) {
+    const appDir = join(PROJECT_ROOT, 'src', 'app');
+    const e2eDir = join(PROJECT_ROOT, 'tests', 'e2e');
+
+    const orgTypes = orgType ? [orgType] : Object.keys(DASHBOARD_ORG_MAP);
+    const routes = [];
+
+    for (const org of orgTypes) {
+        const orgRoutes = DASHBOARD_ORG_MAP[org] || [];
+        for (const routePath of orgRoutes) {
+            const routeDir = join(appDir, routePath.replace(/^\//, ''));
+            const pageFile = existsSync(join(routeDir, 'page.tsx'))
+                ? join(routeDir, 'page.tsx')
+                : existsSync(join(routeDir, 'page.ts'))
+                    ? join(routeDir, 'page.ts')
+                    : null;
+
+            if (!pageFile) continue;
+
+            const slug = routePath.replace(/\//g, '-').replace(/^-/, '');
+            const specPath = join(e2eDir, 'dashboard', org, `${slug}.spec.ts`);
+
+            if (!existsSync(specPath)) {
+                routes.push({ path: routePath, file: pageFile, slug, org });
+            }
         }
     }
 
@@ -248,6 +320,114 @@ async function generateViaGemini(routePath, pageSource, slug) {
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
+// ── AI: Generate spec via Claude Opus (highest quality) ────────────────
+
+async function generateViaOpus(routePath, pageSource, slug, orgContext) {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
+
+    const prompt = orgContext
+        ? buildDashboardPrompt(routePath, pageSource, slug, orgContext)
+        : buildPrompt(routePath, pageSource, slug);
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model: 'claude-opus-4-6',
+            max_tokens: 4096,
+            messages: [
+                {
+                    role: 'user',
+                    content: `You are an expert Playwright test writer for Next.js applications. Output ONLY the TypeScript test file content, no markdown fences, no explanation.\n\n${prompt}`,
+                },
+            ],
+        }),
+    });
+
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Opus API error ${res.status}: ${errText.slice(0, 300)}`);
+    }
+
+    const data = await res.json();
+    return data.content?.[0]?.text || '';
+}
+
+// ── Dashboard-specific prompt ──────────────────────────────────────────────
+
+const ORG_CONTEXT = {
+    super: {
+        role: 'super_user',
+        orgId: 'org_bakedbot',
+        description: 'Super Admin with CEO dashboard access. Can see all orgs, manage agents, approve actions, view treasury.',
+        importPath: "import { test, expect } from '../../auth/fixtures';",
+        pageFixture: 'superPage',
+    },
+    dispensary: {
+        role: 'dispensary_admin',
+        orgId: 'org_thrive_syracuse',
+        description: 'Dispensary admin for Thrive Syracuse. Manages products, menu, POS sync, customer check-ins, loyalty, orders.',
+        importPath: "import { test, expect } from '../../auth/fixtures';",
+        pageFixture: 'dispensaryPage',
+    },
+    brand: {
+        role: 'brand_admin',
+        orgId: 'org_ecstatic_edibles',
+        description: 'Brand admin for Ecstatic Edibles. Manages brand page, creative, campaigns, distribution, competitive intel.',
+        importPath: "import { test, expect } from '../../auth/fixtures';",
+        pageFixture: 'brandPage',
+    },
+};
+
+function buildDashboardPrompt(routePath, pageSource, slug, orgContext) {
+    return `Generate a Playwright E2E test for an AUTHENTICATED dashboard page at route "${routePath}".
+
+## Auth Context:
+- Role: ${orgContext.role}
+- Org: ${orgContext.orgId}
+- Description: ${orgContext.description}
+- The test uses pre-authenticated browser contexts via custom fixtures.
+
+## Import pattern (MUST use this exact import):
+\`\`\`typescript
+${orgContext.importPath}
+\`\`\`
+
+## Page fixture:
+Use \`${orgContext.pageFixture}\` instead of the default \`page\` fixture:
+\`\`\`typescript
+test('example', async ({ ${orgContext.pageFixture} }) => {
+    await ${orgContext.pageFixture}.goto('${routePath}');
+    // ...assertions
+});
+\`\`\`
+
+## Page source code (${routePath}):
+\`\`\`tsx
+${pageSource}
+\`\`\`
+
+## Requirements:
+1. Import test and expect from '../../auth/fixtures' (NOT from '@playwright/test')
+2. Use \`${orgContext.pageFixture}\` fixture — it's already authenticated
+3. Use test.describe with a descriptive group name including the org context
+4. Test that the page loads (no redirect to login, no error state)
+5. Test key visible elements (headings, tabs, buttons, data tables)
+6. Test any interactive elements (tab switching, filters, navigation)
+7. Use page.getByRole(), page.getByText(), page.getByTestId() — never raw CSS selectors
+8. Set reasonable timeouts (30s for page load, 10s for elements)
+9. Handle loading states — dashboard pages often have spinners before data loads
+10. If page shows "No data" or empty state, that's VALID — test for it
+11. Keep it focused — 3-5 test cases max
+12. Output ONLY the TypeScript code, no markdown, no explanation
+13. The page may redirect to /dashboard or /signin if auth fails — test that it does NOT redirect`;
+}
+
 // ── AI: Tier chain (Groq free → Gemini Flash → fail) ───────────────────
 
 async function generateWithFallback(routePath, pageSource, slug) {
@@ -281,11 +461,18 @@ async function generateWithFallback(routePath, pageSource, slug) {
 
 async function main() {
     console.log('\n=== BakedBot AI E2E Test Generator ===\n');
-    console.log(`Model: ${MODEL} | Batch: ${BATCH} | Dry run: ${DRY_RUN}\n`);
+    console.log(`Model: ${MODEL} | Batch: ${BATCH} | Dashboard: ${DASHBOARD} | Dry run: ${DRY_RUN}\n`);
 
     // Find routes to test
     let targets;
-    if (ROUTE) {
+    if (DASHBOARD) {
+        // Dashboard mode: generate auth-aware tests
+        targets = findDashboardRoutes(ORG_TYPE).slice(0, BATCH);
+        if (targets.length === 0) {
+            console.log(`No untested dashboard routes found${ORG_TYPE ? ` for ${ORG_TYPE}` : ''}!`);
+            return;
+        }
+    } else if (ROUTE) {
         // Normalize: Git Bash on Windows may expand /pricing to C:/Program Files/Git/pricing
         const cleanRoute = ROUTE.replace(/^[A-Z]:.*\/Git\//i, '/').replace(/\\/g, '/');
         const appDir = join(PROJECT_ROOT, 'src', 'app');
@@ -306,27 +493,52 @@ async function main() {
 
     console.log(`Found ${targets.length} routes to generate tests for:\n`);
     for (const t of targets) {
-        console.log(`  ${t.path} → tests/e2e/generated/${t.slug}.spec.ts`);
+        const outSubdir = DASHBOARD ? `dashboard/${t.org}` : 'generated';
+        console.log(`  ${t.path} → tests/e2e/${outSubdir}/${t.slug}.spec.ts`);
     }
     console.log('');
 
-    // Ensure output directory
-    const outDir = join(PROJECT_ROOT, 'tests', 'e2e', 'generated');
-    if (!DRY_RUN && !existsSync(outDir)) {
-        mkdirSync(outDir, { recursive: true });
+    // Choose generator based on model
+    let generate;
+    if (MODEL === 'opus') {
+        generate = (path, src, slug, org) => generateViaOpus(path, src, slug, org ? ORG_CONTEXT[org] : null);
+    } else if (MODEL === 'opencode') {
+        generate = (path, src, slug) => generateViaOpencode(path, src, slug);
+    } else if (MODEL === 'gemini') {
+        generate = (path, src, slug) => generateViaGemini(path, src, slug);
+    } else {
+        // Default: smart tier — Opus for dashboard (complex), Groq for public (simple)
+        generate = (path, src, slug, org) => {
+            if (org) {
+                // Dashboard tests use Opus if available, else Gemini
+                if (process.env.ANTHROPIC_API_KEY) {
+                    return generateViaOpus(path, src, slug, ORG_CONTEXT[org]);
+                }
+                console.log('    (No ANTHROPIC_API_KEY — falling back to Gemini for dashboard test)');
+                return generateViaGemini(path, src, slug);
+            }
+            return generateWithFallback(path, src, slug);
+        };
     }
 
-    // Generate tests
-    const generate = MODEL === 'opencode' ? generateViaOpencode : MODEL === 'gemini' ? generateViaGemini : generateWithFallback;
     let generated = 0;
     let failed = 0;
+    let totalCost = 0;
 
     for (const target of targets) {
-        console.log(`Generating: ${target.path}...`);
+        const org = target.org;
+        const outSubdir = org ? `dashboard/${org}` : 'generated';
+        const outDir = join(PROJECT_ROOT, 'tests', 'e2e', outSubdir);
+
+        if (!DRY_RUN && !existsSync(outDir)) {
+            mkdirSync(outDir, { recursive: true });
+        }
+
+        console.log(`Generating: ${target.path}${org ? ` [${org}]` : ''}...`);
         const pageSource = readPageSource(target.file);
 
         try {
-            const raw = await generate(target.path, pageSource, target.slug);
+            const raw = await generate(target.path, pageSource, target.slug, org);
             const code = cleanOutput(raw);
 
             if (!code.includes('import') || !code.includes('test')) {
@@ -343,6 +555,10 @@ async function main() {
                 writeFileSync(outPath, code);
                 console.log(`  DONE → ${relative(PROJECT_ROOT, outPath)} (${code.split('\n').length} lines)`);
             }
+
+            // Estimate cost
+            const isOpus = MODEL === 'opus' || (org && process.env.ANTHROPIC_API_KEY);
+            if (isOpus) totalCost += 0.09;
             generated++;
         } catch (err) {
             console.error(`  FAIL — ${err.message}`);
@@ -350,14 +566,22 @@ async function main() {
         }
     }
 
-    console.log(`\n=== Results: ${generated} generated, ${failed} failed ===\n`);
+    console.log(`\n=== Results: ${generated} generated, ${failed} failed ===`);
+    if (totalCost > 0) console.log(`Estimated Opus cost: $${totalCost.toFixed(2)}`);
+    console.log('');
 
     if (!DRY_RUN && generated > 0) {
-        console.log('Next steps:');
-        console.log('  1. Review generated specs: tests/e2e/generated/');
-        console.log('  2. Run them: npx playwright test tests/e2e/generated/');
-        console.log('  3. Fix any flaky selectors');
-        console.log('  4. Move stable specs to tests/e2e/ and commit');
+        if (DASHBOARD) {
+            console.log('Next steps:');
+            console.log('  1. Generate auth tokens: node scripts/generate-test-tokens.mjs');
+            console.log('  2. Run with auth: E2E_AUTH=1 npx playwright test --config=tests/e2e/playwright.prod.config.ts --project=super');
+            console.log('  3. Or run all: E2E_AUTH=1 npx playwright test --config=tests/e2e/playwright.prod.config.ts');
+        } else {
+            console.log('Next steps:');
+            console.log('  1. Review generated specs: tests/e2e/generated/');
+            console.log('  2. Run them: npx playwright test --config=tests/e2e/playwright.prod.config.ts --project=public');
+            console.log('  3. Fix any flaky selectors');
+        }
     }
 }
 

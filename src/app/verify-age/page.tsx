@@ -19,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 interface PageProps {
     searchParams: Promise<{
+        from?: string;
         return_to?: string;
     }>;
 }
@@ -43,8 +44,8 @@ async function verifyAgeAction(formData: FormData) {
 
 export default async function VerifyAgePage({ searchParams }: PageProps) {
     const params = await searchParams;
-    const returnTo = params.return_to || '/';
-    const isUnderage = params.return_to === undefined && 'underage' in params;
+    const returnTo = params.from || params.return_to || '/';
+    const isUnderage = 'underage' in params;
 
     // Underage screen
     if (isUnderage) {
