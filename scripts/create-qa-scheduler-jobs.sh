@@ -113,8 +113,46 @@ gcloud scheduler jobs pause "$JOB_NAME" \
 
 echo "  -> Done (paused)"
 
+# ============================================================================
+# Job 3: Nightly Security Scan — 3 AM CST daily (Red Agent — RARV patrol)
+# ============================================================================
+
+JOB_NAME="nightly-security-scan"
+SCHEDULE="0 3 * * *"
+ENDPOINT="/api/cron/security-scan"
+DESCRIPTION="Nightly security scan — OWASP checks, auth probes, header audit, injection tests. Red agent RARV patrol."
+
+echo "Creating: $JOB_NAME ($SCHEDULE)"
+
+gcloud scheduler jobs create http "$JOB_NAME" \
+  --location="$LOCATION" \
+  --schedule="$SCHEDULE" \
+  --uri="${BASE_URL}${ENDPOINT}" \
+  --http-method=POST \
+  --headers="Authorization=Bearer ${CRON_SECRET},Content-Type=application/json" \
+  --message-body='{"scanType":"full"}' \
+  --time-zone="America/Chicago" \
+  --description="$DESCRIPTION" \
+  --attempt-deadline=120s \
+  --max-retry-attempts=1 \
+  --project="$PROJECT_ID" \
+  2>/dev/null || gcloud scheduler jobs update http "$JOB_NAME" \
+    --location="$LOCATION" \
+    --schedule="$SCHEDULE" \
+    --uri="${BASE_URL}${ENDPOINT}" \
+    --http-method=POST \
+    --headers="Authorization=Bearer ${CRON_SECRET},Content-Type=application/json" \
+    --message-body='{"scanType":"full"}' \
+    --time-zone="America/Chicago" \
+    --description="$DESCRIPTION" \
+    --attempt-deadline=120s \
+    --max-retry-attempts=1 \
+    --project="$PROJECT_ID"
+
+echo "  -> Done"
+
 echo ""
-echo "=== QA Scheduler Jobs Created ==="
+echo "=== QA & Security Scheduler Jobs Created ==="
 echo ""
 echo "Nightly QA:     2 AM CST daily (active)"
 echo "Post-Deploy QA: Manual trigger (paused)"
