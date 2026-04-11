@@ -29,6 +29,7 @@ import {
     budtenderConversationsToolDef, searchBudtenderConversations, formatBudtenderConversations,
     salesConversationsToolDef, searchSalesConversations, formatSalesConversations,
 } from '@/server/tools/cannabis-science';
+import { coaLookupToolDef, qrScanToolDef, lookupCOATool, scanCOAQRCodeTool } from '@/server/tools/coa-lookup';
 
 // --- Tool Definitions ---
 
@@ -238,14 +239,16 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                 'For compliance or safety questions, use grounded answers and avoid guessing.',
                 'For general trend questions, search quietly first and never expose tool failures to the shopper.',
             ]),
-            buildBulletSection('CANNABIS KNOWLEDGE BASE (5 tools)', [
+            buildBulletSection('CANNABIS KNOWLEDGE BASE (7 tools)', [
                 'searchCannabisScience: Use when customers ask WHY something works — terpene effects, cannabinoid interactions, extraction differences, dosing science. 127K research Q&A pairs from peer-reviewed papers.',
                 'searchCannabisStrains: Use for strain recommendations — "what strain for sleep/energy/pain?" Returns effects, terpenes, flavors, THC/CBD, ratings from 5,200 strains.',
                 'searchLabResults: Use to verify product quality — lookup THC/CBD/terpene lab test results by strain name, product type, or state. Real COA data.',
+                'lookupCOA: Look up a Certificate of Analysis by Metrc tag, batch ID, or direct URL. Returns full lab panel: cannabinoids, terpenes, pesticides, heavy metals, microbials, pass/fail. Use when a customer asks about a specific product\'s lab results.',
+                'scanCOAQRCode: Scan a QR code image from product packaging to extract and parse COA lab data. Use when a customer sends a photo of their product.',
                 'searchBudtenderConversations: Search 3,600 expert budtender Q&A examples to match conversation style and approach. Use before answering tricky customer questions to see how expert budtenders handle them.',
                 'searchSalesConversations: Search 3,400 multi-turn sales dialogues for upsell patterns, objection handling, and closing techniques. Use when a customer is on the fence or you want to recommend an upgrade.',
-                'Combine tools: strain search for the match, lab results for potency data, science for the explanation, budtender examples for tone. Then searchMenu to check stock.',
-                'Cite naturally: "Research shows..." or "Lab tests on Blue Dream typically show..." — never expose tool names to the customer.',
+                'Combine tools: strain search for the match, lookupCOA for real lab data, science for the explanation, budtender examples for tone. Then searchMenu to check stock.',
+                'Cite naturally: "Lab tests show this batch at 24.3% THC with dominant myrcene..." — never expose tool names to the customer.',
             ]),
             buildLearningLoopSection('Smokey', ['recommendation', 'inventory', 'upsell', 'checkout']),
             buildBulletSection('COMPLIANCE AND SALES RULES', [
@@ -356,7 +359,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
 
             // Combine agent-specific tools with shared Context OS, Letta, inbox, Jina, and proactive search tools
             // NOTE: YouTube tools removed from consumer chat — not relevant for budtender context
-            const toolsDef = [...smokeySpecificTools, cannabisScienceToolDef, cannabisStrainsToolDef, cannabisLabResultsToolDef, budtenderConversationsToolDef, salesConversationsToolDef, proactiveSearchToolDef, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...learningLoopToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs, ...semanticSearchToolDefs];
+            const toolsDef = [...smokeySpecificTools, cannabisScienceToolDef, cannabisStrainsToolDef, cannabisLabResultsToolDef, budtenderConversationsToolDef, salesConversationsToolDef, coaLookupToolDef, qrScanToolDef, proactiveSearchToolDef, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...learningLoopToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs, ...semanticSearchToolDefs];
 
             try {
                 const { runMultiStepTask } = await import('./harness');
@@ -392,6 +395,12 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                         },
                         searchSalesConversations: async (query: string, limit?: number) => {
                             return formatSalesConversations(await searchSalesConversations(query, limit));
+                        },
+                        lookupCOA: async (metrcTag?: string, batchId?: string, coaUrl?: string, productName?: string) => {
+                            return await lookupCOATool(metrcTag, batchId, coaUrl, productName);
+                        },
+                        scanCOAQRCode: async (imageUrl: string) => {
+                            return await scanCOAQRCodeTool(imageUrl);
                         },
                         searchOpportunities: async (query: string) => {
                             try {

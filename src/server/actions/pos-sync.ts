@@ -7,6 +7,8 @@ import { createImport } from './import-actions';
 import { logger } from '@/lib/logger';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { createHash } from 'crypto';
+import { lookupCOA, coaToFirestoreLabResult } from '@/server/services/coa/coa-parser';
+import type { POSProduct } from '@/lib/pos/types';
 
 /**
  * Syncs products from a configured POS system for a specific location.
@@ -150,9 +152,22 @@ export async function syncPOSProducts(locationId: string, orgId: string) {
             logger.info('[POS_SYNC] COGS write complete', { totalCostWritten, orgId });
         }
 
+        // 7. Auto-lookup COA data for products with Metrc tags (best-effort, non-blocking)
+        const productsWithMetrc = posProducts.filter(p => p.metrcTag || p.batchId);
+        if (productsWithMetrc.length > 0) {
+            // Run COA lookups in background — don't block the sync response
+            autoLookupCOAs(orgId, productsWithMetrc, firestore).catch(err => {
+                logger.warn('[POS_SYNC] COA auto-lookup failed (non-fatal)', {
+                    orgId,
+                    error: err instanceof Error ? err.message : String(err),
+                });
+            });
+        }
+
         logger.info('[POS_SYNC] Sync completed successfully', {
             locationId,
-            count: result.stats?.totalRecords
+            count: result.stats?.totalRecords,
+            coaCandidates: productsWithMetrc.length,
         });
 
         return result.stats?.totalRecords || 0;
@@ -620,4 +635,85 @@ export async function getCachedMetadata(orgId: string): Promise<{
             lastUpdated: null,
         };
     }
+}
+
+// ============================================================================
+// COA Auto-Lookup (runs in background during POS sync)
+// ============================================================================
+
+/**
+ * Auto-lookup COA data for products with Metrc tags or batch IDs.
+ * Writes results to Firestore labResults subcollection.
+ * Non-blocking — failures are logged but don't affect sync.
+ * Skips products that already have cached COA data.
+ */
+async function autoLookupCOAs(
+  orgId: string,
+  products: POSProduct[],
+  firestore: FirebaseFirestore.Firestore
+): Promise<void> {
+  let looked = 0;
+  let found = 0;
+  let cached = 0;
+
+  // Process up to 20 products per sync to avoid timeout
+  const batch = products.slice(0, 20);
+
+  for (const p of batch) {
+    const productDocId = `prod_${createHash('sha256').update(`${orgId}:${p.externalId}`).digest('hex').slice(0, 20)}`;
+
+    // Check if we already have COA data cached
+    const labRef = firestore
+      .collection('tenants').doc(orgId)
+      .collection('publicViews').doc('products')
+      .collection('items').doc(productDocId)
+      .collection('labResults');
+
+    const existing = await labRef.limit(1).get();
+    if (!existing.empty) {
+      cached++;
+      continue;
+    }
+
+    // Try COA lookup
+    looked++;
+    const coa = await lookupCOA({
+      metrcTag: p.metrcTag,
+      batchId: p.batchId,
+      productName: p.name,
+    });
+
+    if (coa) {
+      found++;
+      const labData = coaToFirestoreLabResult(coa, productDocId);
+      await labRef.doc('latest').set(labData, { merge: true });
+
+      // Also write terpenes/potency to the product doc for Smokey's quick access
+      const productRef = firestore
+        .collection('tenants').doc(orgId)
+        .collection('publicViews').doc('products')
+        .collection('items').doc(productDocId);
+
+      const enrichment: Record<string, unknown> = {};
+      if (coa.terpenes?.length) enrichment.terpenes = coa.terpenes;
+      if (coa.totalThc != null) enrichment.thcPercent = coa.totalThc;
+      if (coa.totalCbd != null) enrichment.cbdPercent = coa.totalCbd;
+      if (coa.overallStatus) enrichment.labStatus = coa.overallStatus;
+      if (coa.sourceUrl) enrichment.coaUrl = coa.sourceUrl;
+
+      if (Object.keys(enrichment).length > 0) {
+        await productRef.set(enrichment, { merge: true });
+      }
+
+      logger.info('[POS_SYNC] COA data found and cached', {
+        orgId, product: p.name, source: coa.source,
+        thc: coa.totalThc, terpenes: coa.terpenes?.length || 0,
+      });
+    }
+  }
+
+  logger.info('[POS_SYNC] COA auto-lookup complete', {
+    orgId, total: batch.length, looked, found, cached,
+    remaining: products.length - batch.length,
+  });
 }

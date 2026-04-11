@@ -5,6 +5,7 @@ import { callGroqOrClaude } from '@/ai/glm';
 import { getResponsesByDateRange } from '@/server/services/slack-response-archive';
 import type { SlackResponseRecord } from '@/server/services/slack-response-archive';
 import { postLinusIncidentSlack } from '@/server/services/incident-notifications';
+import { callClaude } from '@/ai/claude';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -30,10 +31,33 @@ interface GradedResponse {
     userMessage: string;
     agentResponse: string;
     grade: 'good' | 'acceptable' | 'poor' | 'fail';
+    score: number;          // 0-100 numeric score for trend tracking
     issue?: string;
     suggestedFix?: string;
     channel: string;
     timestamp: string;
+}
+
+function gradeToScore(grade: string): number {
+    switch (grade) {
+        case 'good': return 90;
+        case 'acceptable': return 60;
+        case 'poor': return 30;
+        case 'fail': return 10;
+        default: return 50;
+    }
+}
+
+interface CoachingPatch {
+    agent: string;
+    patterns: string[];       // Failure patterns observed
+    instructions: string[];   // Concrete behavioral changes
+    exampleFixes: Array<{     // Before/after response examples
+        userMessage: string;
+        badResponse: string;
+        improvedResponse: string;
+    }>;
+    priority: 'critical' | 'important' | 'minor';
 }
 
 interface AuditReport {
@@ -44,6 +68,7 @@ interface AuditReport {
     agentBreakdown: Record<string, { total: number; good: number; poor: number; fail: number }>;
     issues: GradedResponse[];
     summary: string;
+    coachingPatches?: CoachingPatch[];
 }
 
 // ---------------------------------------------------------------------------
@@ -110,6 +135,7 @@ Tools: ${r.toolCalls?.join(', ') || 'none'}`
                             userMessage: batch[idx].userMessage.slice(0, 200),
                             agentResponse: batch[idx].agentResponse.slice(0, 300),
                             grade: g.grade || 'acceptable',
+                            score: typeof g.score === 'number' ? g.score : gradeToScore(g.grade || 'acceptable'),
                             issue: g.issue,
                             suggestedFix: g.suggestedFix,
                             channel: batch[idx].channel,
@@ -130,6 +156,7 @@ Tools: ${r.toolCalls?.join(', ') || 'none'}`
                     userMessage: r.userMessage.slice(0, 200),
                     agentResponse: r.agentResponse.slice(0, 300),
                     grade: 'acceptable',
+                    score: 50,
                     issue: 'Grading failed — skipped',
                     channel: r.channel,
                     timestamp: r.date,
@@ -170,6 +197,111 @@ Be specific about which agents need attention and what the common failure patter
         maxTokens: 500,
         temperature: 0.3,
         caller: 'daily-response-audit-summary',
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Opus Coaching — uses high-intelligence model to generate behavioral patches
+// ---------------------------------------------------------------------------
+
+async function generateCoachingPatches(
+    report: Omit<AuditReport, 'summary' | 'coachingPatches'>
+): Promise<CoachingPatch[]> {
+    // Only coach agents with poor/fail grades — no wasted Opus calls
+    const agentsNeedingCoaching = Object.entries(report.agentBreakdown)
+        .filter(([, stats]) => stats.poor > 0 || stats.fail > 0)
+        .map(([agent]) => agent);
+
+    if (agentsNeedingCoaching.length === 0) return [];
+
+    const patches: CoachingPatch[] = [];
+
+    for (const agent of agentsNeedingCoaching) {
+        const agentIssues = report.issues.filter(
+            (i) => i.agent === agent && (i.grade === 'poor' || i.grade === 'fail')
+        );
+        if (agentIssues.length === 0) continue;
+
+        const stats = report.agentBreakdown[agent];
+        const failRate = ((stats.poor + stats.fail) / stats.total * 100).toFixed(0);
+
+        const issueDetails = agentIssues.map((i, idx) =>
+            `[${idx + 1}] Grade: ${i.grade.toUpperCase()}
+User asked: "${i.userMessage}"
+Agent said: "${i.agentResponse}"
+Issue: ${i.issue}
+Suggested fix: ${i.suggestedFix || 'none'}`
+        ).join('\n\n');
+
+        try {
+            const raw = await callClaude({
+                model: 'claude-opus-4-20250514',
+                systemPrompt: `You are a senior AI systems coach. Your job is to analyze an AI agent's failures and produce a precise "coaching patch" — behavioral instructions that will be injected into the agent's system prompt to fix the observed failure patterns.
+
+Rules:
+- Be concrete and actionable. "Be more helpful" is useless. "When the user asks about inbox/calendar and Gmail auth fails, acknowledge the failure in one sentence then offer 3 alternative actions you CAN take" is useful.
+- Each instruction should be a single, testable rule the agent can follow.
+- Include before/after response examples so the agent can pattern-match.
+- Prioritize: "critical" = hallucinating data or leaking internal info, "important" = failing to answer questions, "minor" = tone/style issues.
+- Output valid JSON only.`,
+                userMessage: `Agent "${agent}" scored ${failRate}% poor/fail (${stats.poor} poor, ${stats.fail} fail out of ${stats.total} total).
+
+Here are the specific failures:
+
+${issueDetails}
+
+Generate a coaching patch as JSON:
+{
+  "agent": "${agent}",
+  "patterns": ["pattern 1", "pattern 2"],
+  "instructions": ["concrete instruction 1", "concrete instruction 2"],
+  "exampleFixes": [{ "userMessage": "...", "badResponse": "...", "improvedResponse": "..." }],
+  "priority": "critical"|"important"|"minor"
+}`,
+                maxTokens: 1500,
+                temperature: 0.3,
+            });
+
+            const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+            const patch = JSON.parse(cleaned) as CoachingPatch;
+            patches.push(patch);
+        } catch (err) {
+            logger.warn('[ResponseAudit] Opus coaching failed for agent', {
+                agent,
+                error: err instanceof Error ? err.message : String(err),
+            });
+        }
+    }
+
+    return patches;
+}
+
+async function saveCoachingPatches(patches: CoachingPatch[], auditDate: string): Promise<void> {
+    if (patches.length === 0) return;
+    const db = getAdminFirestore();
+
+    // Save each patch to agent_coaching collection — agents read their latest patch on startup
+    const writes = patches.map((patch) =>
+        db.collection('agent_coaching').doc(`${patch.agent}_latest`).set({
+            ...patch,
+            auditDate,
+            updatedAt: new Date(),
+        }, { merge: false })
+    );
+
+    // Also append to history for trend tracking
+    const historyWrites = patches.map((patch) =>
+        db.collection('agent_coaching_history').add({
+            ...patch,
+            auditDate,
+            createdAt: new Date(),
+        })
+    );
+
+    await Promise.all([...writes, ...historyWrites]);
+    logger.info('[ResponseAudit] Coaching patches saved', {
+        agents: patches.map((p) => p.agent),
+        priorities: patches.map((p) => `${p.agent}:${p.priority}`),
     });
 }
 
@@ -242,12 +374,32 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     try {
         logger.info('[ResponseAudit] Starting daily response audit');
 
-        // Get yesterday's responses (full 24h window)
+        // Date range: default = yesterday midnight→today midnight.
+        // Override with ?date=YYYY-MM-DD to audit a specific day,
+        // or ?hours=N for a rolling N-hour window (useful for ad-hoc stress tests).
         const now = new Date();
-        const endDate = new Date(now);
-        endDate.setHours(0, 0, 0, 0); // Midnight today
-        const startDate = new Date(endDate);
-        startDate.setDate(startDate.getDate() - 1); // Midnight yesterday
+        let startDate: Date;
+        let endDate: Date;
+
+        const dateParam = req.nextUrl.searchParams.get('date');
+        const hoursParam = req.nextUrl.searchParams.get('hours');
+
+        if (dateParam) {
+            // Audit a specific calendar day
+            startDate = new Date(dateParam + 'T00:00:00Z');
+            endDate = new Date(dateParam + 'T23:59:59.999Z');
+        } else if (hoursParam) {
+            // Rolling window: last N hours from now
+            const hours = Math.min(parseInt(hoursParam, 10) || 24, 168); // cap at 7 days
+            endDate = new Date(now);
+            startDate = new Date(now.getTime() - hours * 60 * 60 * 1000);
+        } else {
+            // Default: yesterday midnight → today midnight
+            endDate = new Date(now);
+            endDate.setHours(0, 0, 0, 0);
+            startDate = new Date(endDate);
+            startDate.setDate(startDate.getDate() - 1);
+        }
 
         const responses = await getResponsesByDateRange(startDate, endDate);
 
@@ -291,18 +443,27 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             issues,
         };
 
-        // Generate executive summary
+        // Generate executive summary (Groq — free)
         const summary = await generateSummary(partialReport);
-        const report: AuditReport = { ...partialReport, summary };
 
-        // Save and notify in parallel
+        // Generate coaching patches (Opus — targeted, only for agents with failures)
+        // This is the key intelligence leverage: cheap models grade, expensive model coaches.
+        const coachingPatches = (issues.length > 0)
+            ? await generateCoachingPatches(partialReport)
+            : [];
+
+        const report: AuditReport = { ...partialReport, summary, coachingPatches };
+
+        // Save report, coaching patches, and notify in parallel
         const [reportId] = await Promise.all([
             saveAuditReport(report),
             postAuditToSlack(report),
+            saveCoachingPatches(coachingPatches, partialReport.auditDate),
         ]);
 
         logger.info('[ResponseAudit] Audit complete', {
             reportId,
+            coachingPatches: coachingPatches.length,
             totalResponses: responses.length,
             graded: graded.length,
             grades,
@@ -316,6 +477,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             graded: graded.length,
             grades,
             issueCount: issues.length,
+            coachingPatchCount: coachingPatches.length,
+            coachingAgents: coachingPatches.map((p) => `${p.agent}:${p.priority}`),
             summary,
         });
 
