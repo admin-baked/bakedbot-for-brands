@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { callGroqOrClaude } from '@/ai/glm';
 import { getResponsesByDateRange } from '@/server/services/slack-response-archive';
 import type { SlackResponseRecord } from '@/server/services/slack-response-archive';
+import { postLinusIncidentSlack } from '@/server/services/incident-notifications';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -177,49 +178,41 @@ Be specific about which agents need attention and what the common failure patter
 // ---------------------------------------------------------------------------
 
 async function postAuditToSlack(report: AuditReport): Promise<void> {
-    const webhookUrl = process.env.SLACK_WEBHOOK_URL;
-    if (!webhookUrl) {
-        logger.warn('[ResponseAudit] SLACK_WEBHOOK_URL not set — skipping Slack post');
-        return;
-    }
-
     const issueBlocks = report.issues
         .filter((i) => i.grade === 'poor' || i.grade === 'fail')
-        .slice(0, 5) // Top 5 issues
+        .slice(0, 5)
         .map((i) => `> *[${i.grade.toUpperCase()}]* \`${i.agent}\`: _"${i.userMessage.slice(0, 60)}..."_\n>  ${i.issue}${i.suggestedFix ? `\n>  Fix: ${i.suggestedFix}` : ''}`)
         .join('\n\n');
 
-    const scoreEmoji = report.grades.fail > 0 ? ':red_circle:' : report.grades.poor > 2 ? ':large_yellow_circle:' : ':large_green_circle:';
+    const scoreEmoji = report.grades.fail > 0 ? '🔴' : report.grades.poor > 2 ? '⚠️' : '✅';
 
-    const payload = {
-        text: `${scoreEmoji} Daily Agent Audit — ${report.auditDate}`,
-        blocks: [
-            {
-                type: 'header',
-                text: { type: 'plain_text', text: `${scoreEmoji === ':large_green_circle:' ? '✅' : scoreEmoji === ':large_yellow_circle:' ? '⚠️' : '🔴'} Daily Agent Audit — ${report.auditDate}` },
+    const blocks = [
+        {
+            type: 'header',
+            text: { type: 'plain_text', text: `${scoreEmoji} Daily Agent Audit — ${report.auditDate}` },
+        },
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `*${report.totalResponses} responses graded*\n✅ ${report.grades.good} good | 🟡 ${report.grades.acceptable} acceptable | 🟠 ${report.grades.poor} poor | 🔴 ${report.grades.fail} fail`,
             },
-            {
-                type: 'section',
-                text: {
-                    type: 'mrkdwn',
-                    text: `*${report.totalResponses} responses graded*\n✅ ${report.grades.good} good | 🟡 ${report.grades.acceptable} acceptable | 🟠 ${report.grades.poor} poor | 🔴 ${report.grades.fail} fail`,
-                },
-            },
-            {
-                type: 'section',
-                text: { type: 'mrkdwn', text: report.summary },
-            },
-            ...(issueBlocks ? [{
-                type: 'section',
-                text: { type: 'mrkdwn', text: `*Top Issues:*\n${issueBlocks}` },
-            }] : []),
-        ],
-    };
+        },
+        {
+            type: 'section',
+            text: { type: 'mrkdwn', text: report.summary },
+        },
+        ...(issueBlocks ? [{
+            type: 'section',
+            text: { type: 'mrkdwn', text: `*Top Issues:*\n${issueBlocks}` },
+        }] : []),
+    ];
 
-    await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+    await postLinusIncidentSlack({
+        source: 'agent-dream-review',
+        channelName: 'ceo',
+        fallbackText: `${scoreEmoji} Daily Agent Audit — ${report.auditDate}: ${report.grades.good} good, ${report.grades.poor} poor, ${report.grades.fail} fail`,
+        blocks,
     });
 }
 
