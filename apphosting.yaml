@@ -181,10 +181,12 @@ env:
     value: "https://eimobfpqbqyuhqxfuleo.supabase.co"
     availability:
       - RUNTIME
-  - variable: SUPABASE_SERVICE_ROLE_KEY
-    secret: SUPABASE_SERVICE_ROLE_KEY@1
-    availability:
-      - RUNTIME
+  # SUPABASE_SERVICE_ROLE_KEY — disabled until secret is provisioned in GCP Secret Manager.
+  # Re-enable after: gcloud secrets create SUPABASE_SERVICE_ROLE_KEY --project studio-567050101-bc6e8
+  # - variable: SUPABASE_SERVICE_ROLE_KEY
+  #   secret: SUPABASE_SERVICE_ROLE_KEY@1
+  #   availability:
+  #     - RUNTIME
   - variable: SERPER_API_KEY
     secret: SERPER_API_KEY@3
     availability:
