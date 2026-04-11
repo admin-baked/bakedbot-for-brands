@@ -16,6 +16,10 @@ import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/servic
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 import { buildBulletSection, buildContextDisciplineSection, buildLearningLoopSection, joinPromptSections } from './prompt-kit';
 import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
+import {
+    cannabisLicensesToolDef, searchCannabisLicenses, formatLicenseResults,
+    cannabisPriceIndexToolDef, getCannabisMarketPricing, formatPriceIndex,
+} from '@/server/tools/cannabis-science';
 
 // --- Tool Definitions ---
 
@@ -235,7 +239,7 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
             ];
 
             // Combine agent-specific tools with shared Context OS, Letta, YouTube, and proactive search tools
-            const toolsDef = [...ezalSpecificTools, proactiveSearchToolDef, ...youtubeToolDefs, ...redditToolDefs, ...learningLoopToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...semanticSearchToolDefs];
+            const toolsDef = [...ezalSpecificTools, cannabisLicensesToolDef, cannabisPriceIndexToolDef, proactiveSearchToolDef, ...youtubeToolDefs, ...redditToolDefs, ...learningLoopToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...semanticSearchToolDefs];
 
             // Resolve orgId for Drive auto-save
             const brandId = (brandMemory.brand_profile as { id?: string })?.id || 'unknown';
@@ -290,6 +294,12 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                     } catch (e: any) {
                         return { error: e.message };
                     }
+                },
+                searchCannabisLicenses: async (state?: string, city?: string, licenseType?: string, businessName?: string, limit?: number) => {
+                    return formatLicenseResults(await searchCannabisLicenses(state, city, licenseType, businessName, limit));
+                },
+                getCannabisMarketPricing: async (subcategory?: string, weeks?: number) => {
+                    return formatPriceIndex(await getCannabisMarketPricing(subcategory, weeks));
                 },
             };
 

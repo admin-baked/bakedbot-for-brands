@@ -22,7 +22,11 @@ import { getOrgProfileWithFallback, buildSmokeyContextBlock } from '@/server/ser
 import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
 import { buildBulletSection, buildContextDisciplineSection, buildLearningLoopSection, joinPromptSections } from './prompt-kit';
 import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
-import { cannabisScienceToolDef, searchCannabisScience, formatScienceResults } from '@/server/tools/cannabis-science';
+import {
+    cannabisScienceToolDef, searchCannabisScience, formatScienceResults,
+    cannabisStrainsToolDef, searchCannabisStrains, formatStrainResults,
+    cannabisLabResultsToolDef, searchLabResults, formatLabResults,
+} from '@/server/tools/cannabis-science';
 
 // --- Tool Definitions ---
 
@@ -232,11 +236,12 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                 'For compliance or safety questions, use grounded answers and avoid guessing.',
                 'For general trend questions, search quietly first and never expose tool failures to the shopper.',
             ]),
-            buildBulletSection('CANNABIS SCIENCE KNOWLEDGE BASE', [
-                'Use searchCannabisScience when customers ask WHY something works: terpene effects, cannabinoid interactions, extraction differences, dosing science.',
-                'Cite the science naturally: "Research shows myrcene contributes to sedation..." — never say "my database says".',
-                'Combine science answers with inventory: search the science, then searchMenu for matching products.',
-                'Categories: terpenes, effects, cannabinoids, extraction, pharmacology, cultivation, consumption, safety.',
+            buildBulletSection('CANNABIS KNOWLEDGE BASE (3 tools)', [
+                'searchCannabisScience: Use when customers ask WHY something works — terpene effects, cannabinoid interactions, extraction differences, dosing science. 127K research Q&A pairs from peer-reviewed papers.',
+                'searchCannabisStrains: Use for strain recommendations — "what strain for sleep/energy/pain?" Returns effects, terpenes, flavors, THC/CBD, ratings from 5,200 strains.',
+                'searchLabResults: Use to verify product quality — lookup THC/CBD/terpene lab test results by strain name, product type, or state. Real COA data.',
+                'Combine all three: strain search for the match, lab results for potency data, science for the explanation. Then searchMenu to check if it is in stock.',
+                'Cite naturally: "Research shows..." or "Lab tests on Blue Dream typically show..." — never expose tool names to the customer.',
             ]),
             buildLearningLoopSection('Smokey', ['recommendation', 'inventory', 'upsell', 'checkout']),
             buildBulletSection('COMPLIANCE AND SALES RULES', [
@@ -347,7 +352,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
 
             // Combine agent-specific tools with shared Context OS, Letta, inbox, Jina, and proactive search tools
             // NOTE: YouTube tools removed from consumer chat — not relevant for budtender context
-            const toolsDef = [...smokeySpecificTools, cannabisScienceToolDef, proactiveSearchToolDef, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...learningLoopToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs, ...semanticSearchToolDefs];
+            const toolsDef = [...smokeySpecificTools, cannabisScienceToolDef, cannabisStrainsToolDef, cannabisLabResultsToolDef, proactiveSearchToolDef, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...learningLoopToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs, ...semanticSearchToolDefs];
 
             try {
                 const { runMultiStepTask } = await import('./harness');
@@ -369,6 +374,14 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                         searchCannabisScience: async (query: string, category?: string, limit?: number) => {
                             const results = await searchCannabisScience(query, category, limit);
                             return formatScienceResults(results);
+                        },
+                        searchCannabisStrains: async (query: string, limit?: number) => {
+                            const results = await searchCannabisStrains(query, limit);
+                            return formatStrainResults(results);
+                        },
+                        searchLabResults: async (strainName?: string, productType?: string, state?: string, minThc?: number, limit?: number) => {
+                            const results = await searchLabResults(strainName, productType, state, minThc, limit);
+                            return formatLabResults(results);
                         },
                         searchOpportunities: async (query: string) => {
                             try {
