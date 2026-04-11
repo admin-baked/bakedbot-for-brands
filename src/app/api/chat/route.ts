@@ -9,6 +9,7 @@ import { chatRequestSchema, type ChatRequest } from '../schemas';
 import { hasGroundTruth } from '@/server/grounding';
 import { validateInput, getRiskLevel } from '@/server/security';
 import { getChatbotUpsells } from '@/server/services/upsell-engine';
+import { archiveSlackResponse } from '@/server/services/slack-response-archive';
 
 // Force dynamic rendering - prevents build-time evaluation of Genkit imports
 export const dynamic = 'force-dynamic';
@@ -104,6 +105,27 @@ export const POST = withProtection(
                     content: safeMessage,
                 });
             }
+
+            // 3.5️⃣ Archive for daily audit (fire-and-forget)
+            const now = new Date();
+            archiveSlackResponse({
+                timestamp: now,
+                slackUserId: userId || 'anonymous',
+                channel: 'dashboard-chat',
+                channelName: 'Dashboard Chat',
+                threadTs: currentSessionId || '',
+                userMessage: sanitizedQuery,
+                agent: 'smokey',
+                agentName: 'Smokey',
+                agentResponse: safeMessage,
+                responseLength: safeMessage.length,
+                toolCalls: undefined,
+                isDm: false,
+                isChannelMsg: false,
+                requestType: 'channel',
+                date: now.toISOString().split('T')[0],
+                month: now.toISOString().split('T')[0].slice(0, 7),
+            }).catch((err) => logger.warn('[Chat] Archive failed (non-critical)', { error: err }));
 
             // 4️⃣ Get upsell suggestions for the top recommended product
             // We keep this logic here for now to ensure the UI gets the 'upsells' field it expects
