@@ -25,6 +25,7 @@ export interface SlackResponseRecord {
     // Response
     agentResponse: string;
     responseLength: number;
+    toolCalls?: string[];
 
     // Context
     isDm: boolean;
@@ -34,6 +35,30 @@ export interface SlackResponseRecord {
     // Indexed fields for queries
     date: string; // YYYY-MM-DD for daily grouping
     month: string; // YYYY-MM for monthly grouping
+}
+
+export interface SlackMessageRecord {
+    // Metadata
+    timestamp: Date;
+    slackUserId: string;
+    slackUserEmail?: string;
+    channel: string;
+    channelName?: string;
+    threadTs: string;
+    messageTs?: string;
+
+    // Message
+    userMessage: string;
+    rawText?: string;
+
+    // Context
+    isDm: boolean;
+    isChannelMsg: boolean;
+    requestType: 'dm' | 'mention' | 'channel' | 'slash-command' | 'thread';
+
+    // Indexed fields for queries
+    date: string;
+    month: string;
 }
 
 let firestore: ReturnType<typeof getAdminFirestore> | null = null;
@@ -63,6 +88,25 @@ export async function archiveSlackResponse(record: SlackResponseRecord): Promise
     } catch (err: any) {
         logger.error(`[SlackArchive] Failed to archive response: ${err.message}`);
         // Don't throw — archiving is non-critical
+    }
+}
+
+/**
+ * Archive a Slack inbound user message for audit trail
+ * Collection: slack_messages
+ */
+export async function archiveSlackMessage(record: SlackMessageRecord): Promise<void> {
+    try {
+        const docRef = getFirestore().collection('slack_messages').doc();
+
+        await docRef.set({
+            ...record,
+            timestamp: record.timestamp || new Date(),
+        });
+
+        logger.info(`[SlackArchive] Archived inbound message (${docRef.id})`);
+    } catch (err: any) {
+        logger.error(`[SlackArchive] Failed to archive inbound message: ${err.message}`);
     }
 }
 

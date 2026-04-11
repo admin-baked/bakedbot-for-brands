@@ -6,7 +6,7 @@ import { runMarty } from '@/server/agents/marty';
 import { runElroy } from '@/server/agents/elroy';
 import { callGLM } from '@/ai/glm';
 import { requestContext } from '@/lib/request-context';
-import { archiveSlackResponse } from './slack-response-archive';
+import { archiveSlackMessage, archiveSlackResponse } from './slack-response-archive';
 import { recordResponseFeedback } from './response-feedback';
 import { detectSlackResponseIssues } from './slack-response-quality';
 import { sanitizeForPrompt } from '@/server/security';
@@ -247,6 +247,7 @@ export interface SlackMessageContext {
     slackUserId: string;
     channel: string;
     threadTs: string;       // The ts of the parent message (or the message itself)
+    messageTs?: string;     // The ts of the incoming message
     channelName?: string;   // Optional: resolved channel name for routing
     isDm?: boolean;         // true if this is a direct message
     isChannelMsg?: boolean; // true if this is a public channel message (not @mention, not DM)
@@ -256,7 +257,7 @@ export interface SlackMessageContext {
 }
 
 export async function processSlackMessage(ctx: SlackMessageContext): Promise<void> {
-    const { text, slackUserId, channel, threadTs, channelName = '', isDm = false, isChannelMsg = false, isThreadReply = false, files = [], appId = '' } = ctx;
+    const { text, slackUserId, channel, threadTs, messageTs, channelName = '', isDm = false, isChannelMsg = false, isThreadReply = false, files = [], appId = '' } = ctx;
 
     try {
         // 1. Strip bot mention and clean up text
@@ -266,6 +267,24 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             logger.info('[SlackBridge] Empty message after stripping mention, skipping');
             return;
         }
+
+        // Archive inbound message for audit trail
+        const inboundRequestType = isThreadReply ? 'thread' : isDm ? 'dm' : isChannelMsg ? 'channel' : 'mention';
+        archiveSlackMessage({
+            timestamp: new Date(),
+            slackUserId,
+            channel,
+            channelName: channelName || '',
+            threadTs,
+            messageTs,
+            userMessage: cleanText,
+            rawText: text,
+            isDm,
+            isChannelMsg,
+            requestType: inboundRequestType,
+            date: new Date().toISOString().split('T')[0],
+            month: new Date().toISOString().split('T')[0].slice(0, 7),
+        }).catch((err) => logger.warn(`[SlackBridge] Inbound archive failed: ${err}`));
 
         // 2. Extract and resolve user mentions for context enrichment
         const mentionedUserIds = extractMentions(text);
@@ -658,6 +677,12 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             }
         } catch (agentErr: any) {
             logger.error('[SlackBridge] Agent execution error:', agentErr.message);
+            const isTimeout = /timeout/i.test(agentErr.message);
+            if (isElroy && /Uncle Elroy timeout/i.test(agentErr.message)) {
+                await sendOrUpdateThreadMessage(
+                    'I hit a timeout while researching. I can retry with a faster lookup and report back, or you can share any DNS/registrar clues you already have. Want me to keep going?'
+                );
+            }
             recordResponseFeedback({
                 agentName: personaId,
                 rating: 'negative',
@@ -667,14 +692,16 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 conversationId: threadTs,
                 channel,
                 comment: `${getPersonaName(personaId)} failed to execute in Slack.`,
-                reason: 'execution_error',
+                reason: isTimeout ? 'timeout' : 'execution_error',
                 userMessage: cleanText,
                 agentResponse: agentErr.message,
                 metadata: { isDm, isChannelMsg, appId },
             }).catch((err) => logger.warn(`[SlackBridge] Feedback write failed: ${err}`));
-            await sendOrUpdateThreadMessage(
-                `⚠️ ${getPersonaName(personaId)} encountered an issue: ${agentErr.message}. The team has been notified.`
-            );
+            if (!isElroy || !/Uncle Elroy timeout/i.test(agentErr.message)) {
+                await sendOrUpdateThreadMessage(
+                    `⚠️ ${getPersonaName(personaId)} encountered an issue: ${agentErr.message}. The team has been notified.`
+                );
+            }
             return;
         }
 
@@ -773,6 +800,9 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
 
         // 10. Archive response for audit trail
         const requestType = isDm ? 'dm' : isChannelMsg ? 'channel' : 'mention';
+        const toolNames = Array.isArray(result.toolCalls)
+            ? result.toolCalls.map((tool: any) => tool?.toolName || tool?.name || tool?.tool || 'unknown')
+            : undefined;
         archiveSlackResponse({
             timestamp: new Date(),
             slackUserId,
@@ -784,6 +814,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             agentName: personaName,
             agentResponse: cleanContent,
             responseLength: cleanContent.length,
+            toolCalls: toolNames,
             isDm,
             isChannelMsg,
             requestType,

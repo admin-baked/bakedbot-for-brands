@@ -230,8 +230,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             }
 
             await processSlackMessage({
-                text, slackUserId, channel, threadTs: threadTs || ts, channelName, isDm,
-                isChannelMsg, isThreadReply, files, appId
+                text,
+                slackUserId,
+                channel,
+                threadTs: threadTs || ts,
+                messageTs: ts,
+                channelName,
+                isDm,
+                isChannelMsg,
+                isThreadReply,
+                files,
+                appId,
             });
         } catch (err: any) {
             logger.error('[Slack/Events] Background processing error:', err.message);
