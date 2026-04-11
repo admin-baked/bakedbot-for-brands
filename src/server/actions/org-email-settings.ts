@@ -420,7 +420,8 @@ export async function sendTestEmail(type: 'workspace' | 'mailjet' | 'ses'): Prom
             if (brandId) {
                 const brandDoc = await firestore.collection('brands').doc(brandId).get();
                 fromName = (brandDoc.data()?.name as string) || brandId;
-                fromEmail = `${brandId.replace(/[^a-z0-9]/g, '')}@bakedbot.ai`;
+                const { deriveTenantSlug } = await import('@/lib/email/dispatcher');
+                fromEmail = `hello@${deriveTenantSlug(brandId)}.bakedbot.ai`;
             }
 
             await sendSesEmail({

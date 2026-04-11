@@ -236,8 +236,29 @@ async function sendViaOrgWorkspace(
 
 // ─────────────────────────────────────────────────────────────
 // Per-org SES from-address resolution
-// Maps orgId → branded {slug}@bakedbot.ai sender identity
+// Priority: verified custom domain → tenant subdomain → platform default
+// Tenant subdomain pattern: hello@{slug}.bakedbot.ai
+//   - Inherits SES verification + DKIM from parent bakedbot.ai
+//   - Isolates domain reputation per tenant (spam reports don't affect root)
+//   - No DNS setup required — works immediately
 // ─────────────────────────────────────────────────────────────
+
+/** Map brand IDs to clean subdomain slugs for tenant email isolation */
+const TENANT_SLUG_MAP: Record<string, string> = {
+    brand_thrive_syracuse: 'thrive',
+    brand_ecstatic_edibles: 'ecstatic',
+};
+
+export function deriveTenantSlug(brandId: string): string {
+    // Use explicit mapping if available, otherwise derive from brandId
+    if (TENANT_SLUG_MAP[brandId]) return TENANT_SLUG_MAP[brandId];
+    // Strip common prefixes and clean
+    return brandId
+        .replace(/^brand_/, '')
+        .replace(/[^a-z0-9-]/g, '')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+}
 
 const orgSesFromCache = new Map<string, { from: { email: string; name: string }; expiry: number }>();
 
@@ -275,7 +296,8 @@ async function resolveOrgSesFrom(
             return from;
         }
 
-        // Priority 2: Derive from brand slug → slug@bakedbot.ai
+        // Priority 2: Tenant subdomain — hello@{slug}.bakedbot.ai
+        // Inherits SES verification from bakedbot.ai, isolates reputation
         const orgDoc = await firestore.collection('organizations').doc(orgId).get();
         const orgData = orgDoc.data();
         const brandId = orgData?.brandId as string | undefined;
@@ -284,8 +306,8 @@ async function resolveOrgSesFrom(
             const brandDoc = await firestore.collection('brands').doc(brandId).get();
             const brandData = brandDoc.data();
             const brandName = (brandData?.name as string) || brandId;
-            const slug = brandId.replace(/[^a-z0-9]/g, '');
-            const from = { email: `${slug}@bakedbot.ai`, name: brandName };
+            const slug = deriveTenantSlug(brandId);
+            const from = { email: `hello@${slug}.bakedbot.ai`, name: brandName };
             orgSesFromCache.set(orgId, { from, expiry: Date.now() + 300_000 });
             return from;
         }
