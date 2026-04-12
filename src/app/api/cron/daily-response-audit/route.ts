@@ -328,11 +328,49 @@ Suggested fix: ${i.suggestedFix || 'none'}`;
 }
 
 /**
- * Step 1: Opus proposes an initial coaching patch
+ * Call the best available reasoning model: Opus (best) → Gemini 2.5 Flash (free fallback).
+ * Ensures coaching never stalls due to Claude credit exhaustion.
  */
-async function opusPropose(agent: string, failRate: string, stats: { poor: number; fail: number; total: number }, issueDetails: string): Promise<string> {
-    return callClaude({
-        model: 'claude-opus-4-20250514',
+async function callCoachingModel(opts: { systemPrompt: string; userMessage: string; maxTokens: number; temperature: number; caller: string }): Promise<{ text: string; model: string }> {
+    // Tier 1: Opus — best reasoning for coaching quality
+    try {
+        const text = await callClaude({
+            model: 'claude-opus-4-20250514',
+            systemPrompt: opts.systemPrompt,
+            userMessage: opts.userMessage,
+            maxTokens: opts.maxTokens,
+            temperature: opts.temperature,
+            caller: opts.caller,
+        });
+        return { text, model: 'opus' };
+    } catch (err) {
+        logger.warn('[ResponseAudit] Opus unavailable, falling back to Gemini 2.5 Flash', {
+            caller: opts.caller,
+            error: err instanceof Error ? err.message : String(err),
+        });
+    }
+
+    // Tier 2: Gemini 2.5 Flash — free, solid reasoning
+    if (isGeminiFlashConfigured()) {
+        const text = await callGemini({
+            model: 'googleai/gemini-2.5-flash',
+            systemPrompt: opts.systemPrompt,
+            userMessage: opts.userMessage,
+            maxTokens: opts.maxTokens,
+            temperature: opts.temperature,
+            caller: `${opts.caller}-gemini-fallback`,
+        });
+        return { text, model: 'gemini-2.5-flash' };
+    }
+
+    throw new Error('No coaching model available — both Opus and Gemini unavailable');
+}
+
+/**
+ * Step 1: Propose an initial coaching patch (Opus → Gemini fallback)
+ */
+async function opusPropose(agent: string, failRate: string, stats: { poor: number; fail: number; total: number }, issueDetails: string): Promise<{ text: string; model: string }> {
+    return callCoachingModel({
         systemPrompt: COACHING_SYSTEM_PROMPT,
         userMessage: `Agent "${agent}" scored ${failRate}% poor/fail (${stats.poor} poor, ${stats.fail} fail out of ${stats.total} total).
 
@@ -350,7 +388,7 @@ Generate a coaching patch as JSON:
 }`,
         maxTokens: 1500,
         temperature: 0.3,
-        caller: 'deliberative-coaching-opus-propose',
+        caller: 'deliberative-coaching-propose',
     });
 }
 
@@ -403,23 +441,22 @@ Review the proposal. Be specific about what's good, what's missing, and what nee
 }
 
 /**
- * Step 3: Opus synthesizes final agreed patch from both perspectives
+ * Step 3: Synthesize final agreed patch from both perspectives (Opus → Gemini fallback)
  */
-async function opusSynthesize(agent: string, opusProposal: string, geminiReviewText: string): Promise<string> {
-    return callClaude({
-        model: 'claude-opus-4-20250514',
-        systemPrompt: `You are synthesizing the final coaching patch for an AI agent. You proposed an initial patch, and a peer reviewer (Gemini) critiqued it. Now produce the FINAL agreed-upon patch that incorporates valid feedback.
+async function opusSynthesize(agent: string, opusProposal: string, geminiReviewText: string): Promise<{ text: string; model: string }> {
+    return callCoachingModel({
+        systemPrompt: `You are synthesizing the final coaching patch for an AI agent. An initial patch was proposed, and a peer reviewer critiqued it. Now produce the FINAL agreed-upon patch that incorporates valid feedback.
 
 Rules:
-- Accept Gemini's critique when it makes the instructions more testable or catches a missed pattern.
-- Reject Gemini's suggestions when they make instructions vague or conflict with the agent's core role.
+- Accept the reviewer's critique when it makes the instructions more testable or catches a missed pattern.
+- Reject suggestions when they make instructions vague or conflict with the agent's core role.
 - The final patch MUST be strictly actionable — every instruction must be testable.
 - Include a "deliberation.agreement" field explaining what changed and why.
 - Output valid JSON only.`,
-        userMessage: `Your original proposal:
+        userMessage: `Original proposal:
 ${opusProposal}
 
-Gemini's review:
+Reviewer's feedback:
 ${geminiReviewText}
 
 Produce the final, agreed-upon coaching patch as JSON:
@@ -430,13 +467,13 @@ Produce the final, agreed-upon coaching patch as JSON:
   "exampleFixes": [{ "userMessage": "...", "badResponse": "...", "improvedResponse": "..." }],
   "priority": "critical"|"important"|"minor",
   "deliberation": {
-    "agreement": "what changed after Gemini review and why",
-    "disagreements": ["points where you rejected Gemini feedback and why"]
+    "agreement": "what changed after review and why",
+    "disagreements": ["points where reviewer feedback was rejected and why"]
   }
 }`,
         maxTokens: 2000,
         temperature: 0.2,
-        caller: 'deliberative-coaching-opus-synthesize',
+        caller: 'deliberative-coaching-synthesize',
     });
 }
 
@@ -464,30 +501,31 @@ async function generateCoachingPatches(
         const issueDetails = buildIssueDetails(agentIssues);
 
         try {
-            // === DELIBERATIVE PIPELINE: Opus proposes → Gemini reviews → Opus synthesizes ===
+            // === DELIBERATIVE PIPELINE: Propose → Review → Synthesize (Opus preferred, Gemini fallback) ===
             logger.info('[ResponseAudit] Deliberative coaching starting', { agent });
 
-            // Step 1: Opus proposes initial patch
-            const opusRaw = await opusPropose(agent, failRate, stats, issueDetails);
+            // Step 1: Propose initial patch
+            const proposal = await opusPropose(agent, failRate, stats, issueDetails);
 
             // Step 2: Gemini reviews the proposal
-            const geminiRaw = await geminiReview(agent, opusRaw, issueDetails);
+            const geminiRaw = await geminiReview(agent, proposal.text, issueDetails);
 
-            // Step 3: Opus synthesizes final agreed patch
-            const synthesizedRaw = await opusSynthesize(agent, opusRaw, geminiRaw);
+            // Step 3: Synthesize final agreed patch
+            const synthesis = await opusSynthesize(agent, proposal.text, geminiRaw);
 
-            const cleaned = synthesizedRaw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+            const cleaned = synthesis.text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
             const patch = JSON.parse(cleaned) as CoachingPatch;
 
             // Preserve the full deliberation record
+            const modelsUsed = `propose:${proposal.model}, review:gemini, synthesize:${synthesis.model}`;
             if (!patch.deliberation) {
                 patch.deliberation = {
-                    opusProposal: opusRaw.slice(0, 500),
+                    opusProposal: proposal.text.slice(0, 500),
                     geminiReview: geminiRaw.slice(0, 500),
-                    agreement: 'Synthesized from both perspectives',
+                    agreement: `Synthesized from both perspectives (${modelsUsed})`,
                 };
             } else {
-                patch.deliberation.opusProposal = opusRaw.slice(0, 500);
+                patch.deliberation.opusProposal = proposal.text.slice(0, 500);
                 patch.deliberation.geminiReview = geminiRaw.slice(0, 500);
             }
 
@@ -495,6 +533,7 @@ async function generateCoachingPatches(
 
             logger.info('[ResponseAudit] Deliberative coaching complete', {
                 agent,
+                modelsUsed,
                 instructionCount: patch.instructions.length,
                 priority: patch.priority,
                 hasDisagreements: (patch.deliberation.disagreements?.length ?? 0) > 0,
