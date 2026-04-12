@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ Production live; cannabis data portal shipped — 5K+ strain pages, lab results, terpene encyclopedia | **Last update:** 2026-04-12 (public SEO layer: /strains, /lab-results, /terpenes + COA pipeline + Metrc docs)
+**Current Status:** ðŸŸ¢ Production live; overnight training pipeline running — Hive Mind cross-agent learning wired | **Last update:** 2026-04-12 (overnight orchestrator + Hive Mind + 3 Firestore indexes + temporal awareness categories)
 
 ---
 

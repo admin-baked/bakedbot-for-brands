@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** ðŸŸ¢ Production live; cannabis data portal shipped (5K+ SEO pages)
-**Recent work (2026-04-12):** `8f922bc7b` Cannabis data portal — /strains (5,200 pages), /lab-results, /terpenes (15 pages), COA pipeline, Metrc docs, auto-publish from POS sync
-**Prior (2026-04-11):** Auth-aware E2E pipeline, deploy unblock, daily audit cron, Groq free tier swap, COA pipeline, social media suite
+**Current Status:** ðŸŸ¢ Production live; overnight training pipeline running — Hive Mind cross-agent learning
+**Recent work (2026-04-12):** `765bfc342` Overnight training orchestrator + Hive Mind integration — coaching patches to Letta, 3 Firestore indexes, 16 domain categories, #ceo Slack at 95+
+**Prior (2026-04-12):** `8f922bc7b` Cannabis data portal — /strains (5,200 pages), /lab-results, /terpenes, COA pipeline, Metrc docs
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
 - 7-day retention nudge email (cron job)
