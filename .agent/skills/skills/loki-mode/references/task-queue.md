@@ -4,6 +4,39 @@ Distributed task queue system, dead letter handling, and circuit breakers.
 
 ---
 
+## ShipIt Review Findings (Last 7 Days)
+
+**Date:** 2026-04-12
+**Reviewed Commits:** 25 feature/fix commits from Apr 9-12
+
+### Summary
+| Category | Status |
+|----------|--------|
+| REUSE | ✅ GOOD - No duplicate patterns found |
+| QUALITY | ⚠️ 1 Medium issue (LLM timeout in content-adapter.ts:162) |
+| EFFICIENCY | ✅ GOOD - Optimal patterns (token refresh, COA caching) |
+| TYPE CHECK | ⚠️ BLOCKED - Node.js not available in remote environment |
+
+### Issues Found
+
+**Medium Priority:**
+- `src/server/services/social-media/content-adapter.ts:162` - No error handling for LLM timeout
+  - **Impact:** Content adaptation fails silently if LLM call times out
+  - **Recommendation:** Add timeout + fallback to original content
+
+**Low Priority:**
+- `src/app/api/cron/daily-response-audit/route.ts:45` - Hardcoded grade-to-score switch
+- `src/server/services/social-media/rate-limiter.ts` - Missing JSDoc on exported types
+
+### Deploy Status
+```
+✅ Latest Deploy: 24302014188 - completed (46s)
+   Commit: docs: codify agent task queue in refs and prime.md
+   Status: success
+```
+
+---
+
 ## Task Schema
 
 ```json
