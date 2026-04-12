@@ -36,7 +36,11 @@ export async function saveGmailToken(userId: string, tokens: Credentials) {
         payload.refreshTokenEncrypted = encrypt(tokens.refresh_token);
     }
 
-    // We might also want to store expiry to know when to refresh without trying
+    // Persist the access token so it can be used immediately without a refresh round-trip
+    if (tokens.access_token) {
+        payload.accessTokenEncrypted = encrypt(tokens.access_token);
+    }
+
     if (tokens.expiry_date) {
         payload.expiryDate = tokens.expiry_date;
         payload.expiresAt = new Date(tokens.expiry_date).toISOString();
@@ -66,6 +70,14 @@ export async function getGmailToken(userId: string): Promise<Credentials | null>
                 hasEncryptionKey: Boolean(process.env.TOKEN_ENCRYPTION_KEY?.trim()),
             });
             return null;
+        }
+    }
+
+    if (data.accessTokenEncrypted) {
+        try {
+            credentials.access_token = decrypt(data.accessTokenEncrypted);
+        } catch {
+            // Non-fatal — will trigger a refresh
         }
     }
 
