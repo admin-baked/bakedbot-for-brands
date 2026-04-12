@@ -4996,13 +4996,13 @@ function isGLMRefusal(result: ClaudeResult): boolean {
     return GLM_REFUSAL_PATTERNS.some(p => result.content.toLowerCase().includes(p));
 }
 
-/** Notify Slack #linus-cto when Groq rate limit triggers fallback to Gemini Flash */
+/** Notify Slack #linus-incidents when Groq rate limit triggers fallback to Gemini Flash */
 async function notifyGroqRateLimitSlack(agent: string, failedTier: string): Promise<void> {
     try {
         const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
         await postLinusIncidentSlack({
             source: 'auto-escalator',
-            channelName: 'linus-cto',
+            channelName: 'linus-incidents',
             fallbackText: `Groq rate limit hit — ${agent} falling back from ${failedTier} to Gemini Flash`,
             blocks: [{
                 type: 'section',
