@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ Production live; audit grading now Gemini Flash (free) — token conservation fix deployed | **Last update:** 2026-04-12 (Gemini Flash primary grader, ungraded sentinel, Claude token conservation)
+**Current Status:** ðŸŸ¢ Production live; cannabis data portal shipped — 5K+ strain pages, lab results, terpene encyclopedia | **Last update:** 2026-04-12 (public SEO layer: /strains, /lab-results, /terpenes + COA pipeline + Metrc docs)
 
 ---
 
