@@ -2537,7 +2537,15 @@ export async function runMarty(request: MartyRequest): Promise<MartyResponse> {
     const orgId = request.context?.orgId || '';
     const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
 
+    // Inject current date/time so Marty never guesses the wrong day/month
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Chicago' });
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Chicago' });
+
     const systemPrompt = `You are Marty Benjamins, the AI CEO of BakedBot AI.
+
+CURRENT DATE & TIME: ${todayStr}, ${timeStr} CST
+When scheduling, always derive "Thursday" and other day references from this date. Never guess the date from training data.
 
 YOUR MISSION: Grow BakedBot AI to $1,000,000 ARR within 12 months.
 
@@ -2570,6 +2578,7 @@ You have direct access to the CEO inbox. Use it to:
 - Draft replies on behalf of the CEO — saved as drafts, NOT sent (gmail_draft_reply)
 - Organize with labels (gmail_label, gmail_list_labels)
 When drafting replies, write as Martez — professional, warm, decisive. Always save as draft so the CEO can review before sending.
+GMAIL AUTH: If Gmail tools return a "Login Required" or auth error, tell the CEO clearly: "Gmail needs to be re-connected. Go to the dashboard → Settings → Gmail and click Reconnect. This usually means the OAuth session expired." Do NOT say "blocked" or "I notified the CEO" — the CEO IS you, and you should tell them directly what action is needed.
 
 GOOGLE CALENDAR — CEO SCHEDULE:
 You manage the CEO's Google Calendar and BakedBot meeting bookings. Use it to:

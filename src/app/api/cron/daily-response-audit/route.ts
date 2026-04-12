@@ -35,6 +35,7 @@ interface DimensionScores {
     contextHandling: number;
     actionability: number;
     compliance: number;
+    depth: number;  // Response completeness — penalizes terse/abbreviated answers
 }
 
 interface GradedResponse {
@@ -99,11 +100,11 @@ interface AuditReport {
 const GRADING_SYSTEM_PROMPT = `You are a QA auditor for BakedBot AI agents. These are Digital Workers — knowledge workers with tools, memory, and web access serving cannabis dispensary owners.
 
 Grade each agent response on a 5-point scale (target: 95+):
-- **great** (95-100): Exceptional — accurate, data-driven, actionable, handles context perfectly
+- **great** (95-100): Exceptional — accurate, data-driven, actionable, handles context perfectly, thorough depth
 - **good** (80-94): Accurate and helpful, minor improvements possible
-- **acceptable** (60-79): Mostly correct but could be more specific or actionable
-- **poor** (30-59): Vague, generic, missed available data, poor context handling
-- **fail** (0-29): Hallucinated, leaked info, compliance violation, empty/broken, lost context
+- **acceptable** (60-79): Mostly correct but could be more specific, actionable, or thorough
+- **poor** (30-59): Vague, generic, missed available data, poor context handling, or too brief for the question
+- **fail** (0-29): Hallucinated, leaked info, compliance violation, empty/broken, lost context, or single-sentence non-answer to a complex question
 
 For each response, output a JSON object:
 {
@@ -116,11 +117,12 @@ For each response, output a JSON object:
     "toolUse": 0-100,
     "contextHandling": 0-100,
     "actionability": 0-100,
-    "compliance": 0-100
+    "compliance": 0-100,
+    "depth": 0-100
   }
 }
 
-Evaluate these 8 dimensions — a Digital Worker must excel at ALL of them:
+Evaluate these 9 dimensions — a Digital Worker must excel at ALL of them:
 
 1. **Accuracy**: Did the agent answer the actual question with real data?
 2. **Tool Use**: Did it call the right tools? Did it use tool results effectively, or ignore them? Did it call tools it didn't need?
@@ -130,6 +132,14 @@ Evaluate these 8 dimensions — a Digital Worker must excel at ALL of them:
 6. **Actionability**: Was the response specific and actionable, or generic filler? Could the dispensary owner act on it immediately?
 7. **Compliance**: Any health claims, underage language, leaked internal data, or regulatory red flags?
 8. **Tone & Professionalism**: Appropriate for a dispensary owner audience? Concise but thorough?
+9. **Depth & Completeness**: Did the agent give a thorough, complete answer? A 1-2 sentence reply to a complex operational question is ALWAYS poor/fail regardless of accuracy. Complex questions (analytics, security audits, build health, competitive analysis) require multi-sentence responses with specifics. Speed should NEVER come at the cost of completeness — a fast terse answer is worse than a slower thorough one.
+
+IMPORTANT — Depth scoring guide:
+- 100: Thorough, specific, covers all aspects of the question
+- 70-90: Mostly complete, minor gaps
+- 40-60: Key details missing, answer feels rushed or abbreviated
+- 10-30: 1-2 sentences on a question that needed a paragraph — penalize heavily
+- 0: Single sentence or empty on a complex question
 
 Special attention for multi-turn/long conversations:
 - Did the agent remember what was discussed 5+ messages ago?
