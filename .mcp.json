@@ -1,5 +1,15 @@
 {
   "mcpServers": {
+    "cognee-experiment": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "scripts/cognee-experiment/mcp_server.py"
+      ],
+      "env": {
+        "ENABLE_BACKEND_ACCESS_CONTROL": "false"
+      }
+    },
     "reddit": {
       "type": "stdio",
       "command": "uvx",
