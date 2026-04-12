@@ -396,16 +396,13 @@ Generate a coaching patch as JSON:
  * Step 2: Gemini reviews and challenges the Opus proposal
  */
 async function geminiReview(agent: string, opusProposal: string, issueDetails: string): Promise<string> {
-    const geminiModel = isGeminiFlashConfigured()
-        ? 'googleai/gemini-2.5-flash'
-        : null;
-
-    if (!geminiModel) {
-        return JSON.stringify({ approved: true, critique: 'Gemini unavailable — Opus proposal accepted as-is', suggestions: [] });
+    if (!isGeminiFlashConfigured()) {
+        return JSON.stringify({ approved: true, critique: 'Gemini unavailable — proposal accepted as-is', suggestions: [] });
     }
 
+    // Use Gemini 3 Pro (smartest Gemini) for the critical review step
     return callGemini({
-        model: geminiModel,
+        model: 'googleai/gemini-3-pro-preview',
         systemPrompt: `You are a senior AI systems reviewer. Another AI coach (Opus) has proposed a coaching patch for a failing agent. Your job is to critically review the proposal and either approve it, challenge specific instructions, or add missing coaching that Opus overlooked.
 
 Focus your review on:
