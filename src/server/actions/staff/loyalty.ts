@@ -37,6 +37,22 @@ export async function getActiveVisitSessions(organizationId: string, storeId?: s
     }
 }
 
+export async function markSessionRecognized(sessionId: string, staffUserId?: string) {
+    try {
+        const db = getAdminFirestore();
+        await db.collection('visit_sessions').doc(sessionId).update({
+            status: 'recognized',
+            recognizedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            ...(staffUserId ? { staffUserId } : {}),
+        });
+        return { success: true };
+    } catch (error: any) {
+        logger.error(`[StaffActions] Failed to mark session ${sessionId} as recognized: ${error.message}`);
+        return { success: false, error: error.message };
+    }
+}
+
 export async function attachSessionToCart(sessionId: string, posCartRef: string) {
     try {
         await VisitSessionService.updateSessionStatus(sessionId, 'attached_to_cart', { posCartRef });

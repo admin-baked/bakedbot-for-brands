@@ -727,28 +727,51 @@ export async function captureTabletLead(params: {
             }
         }
 
-        // 2. Open Visit Session for Staff Queue
+        // 2. Open Visit Session for Staff Queue — enriched with cart + mood for back-office notification
         let queuePosition: number | undefined;
         try {
             const mshipMatches = await getAdminFirestore().collection('memberships')
                 .where('memberId', '==', result.customerId)
                 .limit(1)
                 .get();
-            
+
             const membershipId = !mshipMatches.empty ? mshipMatches.docs[0].id : `legacy_${result.customerId}`;
-            
+
+            // Resolve product names from cached inventory for the cart (gives back-office full item details)
+            let cartSessionItems: Array<{ productId: string; name: string; price: number; category?: string }> | undefined;
+            if (cartProductIds?.length) {
+                const allProducts = await getCachedMenuProducts(orgId).catch(() => [] as RawMenuProduct[]);
+                const idSet = new Set(cartProductIds);
+                cartSessionItems = allProducts
+                    .filter(p => {
+                        const pid = (p.id ?? p.productId ?? p.externalId ?? p.sku_id ?? '') as string;
+                        return idSet.has(pid);
+                    })
+                    .map(p => ({
+                        productId: (p.id ?? p.productId ?? p.externalId ?? p.sku_id ?? '') as string,
+                        name: ((p.name ?? p.product_name ?? p.productName ?? '') as string).trim(),
+                        price: Number(p.price ?? p.selling_price ?? p.salePrice ?? p.retailPrice ?? p.latest_price ?? p.current_price ?? 0),
+                        category: normalizeCategoryName((p.category ?? p.category_name ?? '') as string) || undefined,
+                    }))
+                    .filter(p => p.productId && p.name);
+            }
+
             await VisitSessionService.createSession({
                 organizationId: orgId,
                 storeId: orgId,
                 memberId: result.customerId,
                 membershipId: membershipId,
                 source: "tablet",
-                deviceId: "tablet_kiosk"
+                deviceId: "tablet_kiosk",
+                cartItems: cartSessionItems,
+                customerMood: mood,
+                customerName: firstName !== 'Guest' ? firstName : undefined,
+                visitCheckinId: result.visitId,
             });
 
             // Calculate queue position via service
             queuePosition = await VisitSessionService.getQueuePosition(orgId, orgId);
-            
+
         } catch (sessionErr) {
             logger.warn('[LoyaltyTablet] Visit session creation failed (soft)', { sessionErr });
         }

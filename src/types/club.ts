@@ -93,6 +93,11 @@ export type VisitSession = {
   posCartRef?: string;
   posTransactionRef?: string;
   notes?: string[];
+  // Tablet check-in enrichment
+  cartItems?: Array<{ productId: string; name: string; price: number; category?: string }>;
+  customerMood?: string;
+  customerName?: string;
+  visitCheckinId?: string;   // links back to checkin_visits doc
   createdAt: string;
   updatedAt: string;
 };

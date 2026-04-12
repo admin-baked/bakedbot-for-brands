@@ -7,6 +7,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { NavigationProgress } from '@/components/navigation-progress';
 import SmokeyFloatingButton from '@/components/dashboard/smokey-support-button';
 import { BrandThemeProvider } from '@/components/dashboard/brand-theme-provider';
+import { IncomingVisitNotification } from '@/components/ui/incoming-visit-notification';
 import type { ReactNode } from 'react';
 import { withAuth } from '@/lib/with-auth';
 
@@ -29,6 +30,9 @@ function DashboardLayoutContent({ children }: { children: ReactNode }) {
 
                 {/* Smokey Support Hub - Floating Action Button */}
                 <SmokeyFloatingButton />
+
+                {/* Intrusive notification when a customer checks in on the loyalty tablet */}
+                <IncomingVisitNotification />
             </SidebarProvider>
         </BrandThemeProvider>
     );

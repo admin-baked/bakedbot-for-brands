@@ -257,8 +257,11 @@ export function useTabletFlow(orgId: string) {
         });
     }, [orgId, phone, step, offerLoading, tabletOffer]);
 
+    // Prefetch inventory early — fires as soon as the customer reaches the phone step,
+    // giving 30-60s of warm-up before they pick a mood. This eliminates the Firestore
+    // cold-read latency that was causing "Smokey is finding your perfect match" to hang.
     useEffect(() => {
-        if (step !== 'mood') return;
+        if (step !== 'phone' && step !== 'offer' && step !== 'returning_check') return;
         void prefetchTabletInventory(orgId);
     }, [orgId, step]);
 

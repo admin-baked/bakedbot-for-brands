@@ -1353,6 +1353,8 @@ export async function captureVisitorCheckin(
                 source: validated.source,
                 eventName: 'customer.signup',
                 priorVisits: 0,
+                cartProductIds: cartProductIds?.length ? cartProductIds : undefined,
+                mood: validated.mood,
             }).catch((error) => {
                 logger.warn('[VisitorCheckin] Failed to dispatch customer signup event', {
                     orgId: validated.orgId,
@@ -1370,6 +1372,8 @@ export async function captureVisitorCheckin(
                 eventName: 'customer.checkin',
                 source: validated.source,
                 priorVisits: existingCustomerData?.visitCount ?? 1,
+                cartProductIds: cartProductIds?.length ? cartProductIds : undefined,
+                mood: validated.mood,
             }).catch((error) => {
                 logger.warn('[VisitorCheckin] Failed to dispatch customer checkin event', {
                     orgId: validated.orgId,

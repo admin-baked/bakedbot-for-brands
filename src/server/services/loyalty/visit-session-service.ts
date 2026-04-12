@@ -18,6 +18,11 @@ export class VisitSessionService {
         source: "customer_app" | "tablet" | "staff_scan" | "pos_lookup";
         passId?: string;
         deviceId?: string;
+        // Tablet enrichment — cart + context for back-office notification
+        cartItems?: Array<{ productId: string; name: string; price: number; category?: string }>;
+        customerMood?: string;
+        customerName?: string;
+        visitCheckinId?: string;
     }) {
         const now = new Date().toISOString();
         const sessionId = `vses_${uuidv4().replace(/-/g, '').slice(0, 16)}`;
@@ -33,6 +38,10 @@ export class VisitSessionService {
             status: "opened",
             openedAt: now,
             deviceId: params.deviceId,
+            ...(params.cartItems?.length ? { cartItems: params.cartItems } : {}),
+            ...(params.customerMood ? { customerMood: params.customerMood } : {}),
+            ...(params.customerName ? { customerName: params.customerName } : {}),
+            ...(params.visitCheckinId ? { visitCheckinId: params.visitCheckinId } : {}),
             createdAt: now,
             updatedAt: now
         };
@@ -48,7 +57,10 @@ export class VisitSessionService {
             source: { surface: params.source, deviceId: params.deviceId },
             payload: {
                 memberId: params.memberId,
-                passId: params.passId
+                passId: params.passId,
+                cartItemCount: params.cartItems?.length ?? 0,
+                customerMood: params.customerMood,
+                customerName: params.customerName,
             }
         };
 
