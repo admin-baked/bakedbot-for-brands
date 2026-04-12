@@ -799,6 +799,44 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             saveCoachingPatches(coachingPatches, partialReport.auditDate),
         ]);
 
+        // Auto-file agent tasks for poor/fail agents (Principle 6: zero dead ends)
+        try {
+            const { createTaskInternal } = await import('@/server/actions/agent-tasks');
+            const poorAgents = Object.entries(agentBreakdown)
+                .filter(([, stats]) => stats.poor > 0 || stats.fail > 0);
+
+            for (const [agent, stats] of poorAgents) {
+                const agentIssues = issues
+                    .filter(i => i.agent === agent && (i.grade === 'poor' || i.grade === 'fail'))
+                    .slice(0, 3);
+
+                const issueList = agentIssues
+                    .map(i => `- **[${i.grade.toUpperCase()} ${i.score}]** "${i.userMessage.slice(0, 80)}"\n  ${i.issue || 'No details'}${i.suggestedFix ? `\n  Fix: ${i.suggestedFix}` : ''}`)
+                    .join('\n');
+
+                await createTaskInternal({
+                    title: `${agent}: ${stats.poor + stats.fail} poor/fail responses (avg ${stats.avgScore})`,
+                    body: `Daily audit ${partialReport.auditDate} found quality issues for **${agent}**.\n\n**Stats:** ${stats.total} graded, avg ${stats.avgScore}, ${stats.poor} poor, ${stats.fail} fail\n\n**Top issues:**\n${issueList}`,
+                    priority: stats.fail > 0 ? 'high' : 'normal',
+                    category: 'agent_quality',
+                    reportedBy: 'daily-response-audit',
+                    assignedTo: 'linus',
+                });
+            }
+
+            if (poorAgents.length > 0) {
+                logger.info('[ResponseAudit] Filed agent tasks', {
+                    agents: poorAgents.map(([a]) => a),
+                    count: poorAgents.length,
+                });
+            }
+        } catch (taskErr) {
+            // Non-critical — audit still succeeded
+            logger.warn('[ResponseAudit] Failed to file agent tasks', {
+                error: taskErr instanceof Error ? taskErr.message : String(taskErr),
+            });
+        }
+
         logger.info('[ResponseAudit] Audit complete', {
             reportId,
             coachingPatches: coachingPatches.length,

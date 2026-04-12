@@ -1970,6 +1970,33 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: ['action']
         }
+    },
+    {
+        name: 'check_task_queue',
+        description: 'Check the agent task queue for open work items filed by other agents, crons, or humans. Returns tasks as markdown. Use action "list" to see open tasks, "claim" to claim one, "complete" to mark done.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                action: {
+                    type: 'string',
+                    description: 'Action: "list" (default), "claim", "complete", "markdown" (full board as markdown)',
+                    enum: ['list', 'claim', 'complete', 'markdown']
+                },
+                taskId: {
+                    type: 'string',
+                    description: 'Task ID (required for claim/complete)'
+                },
+                resolutionNote: {
+                    type: 'string',
+                    description: 'Note about how the task was resolved (for complete action)'
+                },
+                resolvedCommit: {
+                    type: 'string',
+                    description: 'Commit hash that fixed the issue (for complete action)'
+                }
+            },
+            required: ['action']
+        }
     }
 ];
 
@@ -4794,6 +4821,41 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                 }
 
                 return { success: false, error: 'Invalid action or missing deltaId' };
+            } catch (e) {
+                return { success: false, error: (e as Error).message };
+            }
+        }
+
+        case 'check_task_queue': {
+            const action = (input.action as string) || 'list';
+            const taskId = input.taskId as string | undefined;
+            try {
+                const { listAgentTasks, claimTask: claimAgentTask, updateTaskStatus, getTaskBoardMarkdown } = await import('@/server/actions/agent-tasks');
+
+                if (action === 'markdown') {
+                    const result = await getTaskBoardMarkdown();
+                    return { success: true, markdown: result.markdown, taskCount: result.taskCount };
+                }
+
+                if (action === 'list') {
+                    const result = await listAgentTasks({ status: ['open', 'claimed', 'in_progress'], limit: 20 });
+                    return { success: true, tasks: result.tasks.map(t => ({ id: t.id, title: t.title, priority: t.priority, status: t.status, reportedBy: t.reportedBy, assignedTo: t.assignedTo, category: t.category, createdAt: t.createdAt })) };
+                }
+
+                if (action === 'claim' && taskId) {
+                    const result = await claimAgentTask(taskId, 'linus');
+                    return result;
+                }
+
+                if (action === 'complete' && taskId) {
+                    const result = await updateTaskStatus(taskId, 'done', {
+                        resolutionNote: input.resolutionNote as string | undefined,
+                        resolvedCommit: input.resolvedCommit as string | undefined,
+                    });
+                    return result;
+                }
+
+                return { success: false, error: 'Invalid action or missing taskId' };
             } catch (e) {
                 return { success: false, error: (e as Error).message };
             }

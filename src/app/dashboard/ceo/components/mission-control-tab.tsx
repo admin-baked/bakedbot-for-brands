@@ -14,7 +14,10 @@
  */
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+
+const AgentTaskBoard = dynamic(() => import('./agent-task-board'), { ssr: false });
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -445,6 +448,9 @@ export default function MissionControlTab() {
                     )}
                 </div>
             </div>
+
+            {/* Section 4: Agent Task Board */}
+            <AgentTaskBoard />
         </div>
     );
 }
