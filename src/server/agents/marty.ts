@@ -608,6 +608,7 @@ export interface MartyResponse {
 /**
  * Get an authenticated Gmail client for the CEO (martez@bakedbot.ai).
  * Uses CEO_GMAIL_UID env var to look up the super user's stored OAuth tokens.
+ * Proactively refreshes the access token and persists new credentials.
  */
 async function getCeoGmailClient() {
     const ceoUid = process.env.CEO_GMAIL_UID;
@@ -622,6 +623,26 @@ async function getCeoGmailClient() {
     }
     const authClient = await getOAuth2ClientAsync();
     authClient.setCredentials(credentials);
+
+    // Proactively refresh if the token is expired or about to expire (within 5 min)
+    const isExpired = credentials.expiry_date && credentials.expiry_date < Date.now() + 300_000;
+    if (isExpired || !credentials.access_token) {
+        try {
+            const { credentials: refreshed } = await authClient.refreshAccessToken();
+            authClient.setCredentials(refreshed);
+            // Persist the refreshed tokens so subsequent calls don't re-refresh
+            const { saveGmailToken } = await import('@/server/integrations/gmail/token-storage');
+            await saveGmailToken(ceoUid, refreshed);
+            logger.info('[Marty:Gmail] Access token refreshed successfully');
+        } catch (e) {
+            logger.error('[Marty:Gmail] Token refresh failed — re-auth required', {
+                error: e instanceof Error ? e.message : String(e),
+                hint: 'Visit /dashboard/ceo > Settings > Gmail to re-authenticate',
+            });
+            return null;
+        }
+    }
+
     return google.gmail({ version: 'v1', auth: authClient });
 }
 
