@@ -484,4 +484,27 @@ const API_KEY = process.env.HEYGEN_API_KEY || '';
 **Details:** While `heygen-video.ts` has error handling, other services may not.
 
 **Recommendation:** Ensure all external API calls have try/catch and timeout handling.
+
+---
+
+## Polling Script
+
+Created scripts to automatically trigger bug hunt sessions:
+
+| File | Description |
+|------|-------------|
+| `scripts/poll-opencode.ps1` | PowerShell poller (Windows) |
+| `scripts/poll-opencode.sh` | Bash poller (Linux/Mac) |
+
+**Usage:**
+```powershell
+# Set CRON_SECRET env var first
+$env:CRON_SECRET = "your-secret-here"
+
+# Run (every 30 min default)
+.\poll-opencode.ps1
+
+# Run with custom interval
+.\poll-opencode.ps1 -IntervalMinutes 60
+```
 ```
