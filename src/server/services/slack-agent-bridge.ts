@@ -4,6 +4,7 @@ import { runAgentCore } from '@/server/agents/agent-runner';
 import { runLinus } from '@/server/agents/linus';
 import { runMarty } from '@/server/agents/marty';
 import { runElroy } from '@/server/agents/elroy';
+import { runDayDay } from '@/server/agents/dayday';
 import { callGLM } from '@/ai/glm';
 import { requestContext } from '@/lib/request-context';
 import { archiveSlackMessage, archiveSlackResponse } from './slack-response-archive';
@@ -385,6 +386,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
 
         const isLinus = personaId === 'linus';
         const isElroy = personaId === 'elroy';
+        const isDayDay = personaId === 'day_day';
         const willUseLinusTools = isLinus && linusNeedsTools(enrichedText);
         const botToken = process.env.SLACK_BOT_TOKEN;
         const linusBotToken = process.env.SLACK_LINUS_BOT_TOKEN;
@@ -662,6 +664,32 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                     }
                 });
                 result = { content: elroyResult.content, toolCalls: elroyResult.toolExecutions };
+            } else if (isDayDay) {
+                // Day Day — Growth & SEO agent, always uses tools (GSC, GA4, content creation)
+                const daydayProgress = makeThrottledProgress(channel, workingMessageTs, activeSlack);
+                let daydayCheckInTimer: NodeJS.Timeout | null = setTimeout(() => {
+                    sendOrUpdateThreadMessage('Still working on it — Day Day is pulling the data now.').catch(() => {});
+                    daydayCheckInTimer = null;
+                }, 45_000);
+
+                const daydayResult = await Promise.race([
+                    runDayDay({
+                        prompt: fullPrompt,
+                        maxIterations: 5,
+                        context: { userId: SLACK_SYSTEM_USER.uid },
+                        images: downloaded.length > 0 ? downloaded : undefined,
+                        progressCallback: daydayProgress,
+                    }),
+                    new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error(`Day Day timeout after ${Math.floor(agentTimeoutMs / 1000)} seconds`)), agentTimeoutMs)
+                    ),
+                ]).finally(() => {
+                    if (daydayCheckInTimer) {
+                        clearTimeout(daydayCheckInTimer);
+                        daydayCheckInTimer = null;
+                    }
+                });
+                result = { content: daydayResult.content, toolCalls: daydayResult.toolExecutions };
             } else {
                 // GLM path — conversational replies, other agents
                 const extraOptions = { ...(attachments ? { attachments } : {}), source: 'slack' };

@@ -40,7 +40,7 @@ const KEYWORD_MAP: Array<{ keywords: string[]; personaId: string }> = [
   { keywords: ['deebo', 'compliance', 'legal', 'regulation'], personaId: 'deebo' },
   { keywords: ['mike', 'finance', 'profitability', 'margins', 'tax', 'cfo'], personaId: 'money_mike' },
   { keywords: ['bigworm', 'research', 'market'], personaId: 'bigworm' },
-  { keywords: ['day_day', 'dayday', 'growth', 'acquisition', 'leads'], personaId: 'day_day' },
+  { keywords: ['day_day', 'dayday', 'growth', 'acquisition', 'leads', 'seo', 'ranking', 'impressions', 'search console', 'organic traffic', 'blog post', 'keyword'], personaId: 'day_day' },
   { keywords: ['felisha', 'fulfillment', 'delivery', 'driver'], personaId: 'felisha' },
   { keywords: ['elroy', 'uncle elroy', 'store ops', 'thrive'], personaId: 'elroy' },
 ];
@@ -59,6 +59,8 @@ const CHANNEL_MAP: Array<{ prefix: string; personaId: string }> = [
   { prefix: 'coo', personaId: 'leo' },
   { prefix: 'cro', personaId: 'jack' },
   { prefix: 'thrive-syracuse', personaId: 'elroy' },
+  { prefix: 'growth', personaId: 'day_day' },
+  { prefix: 'seo', personaId: 'day_day' },
 ];
 
 export function isGreeting(text: string): boolean {
