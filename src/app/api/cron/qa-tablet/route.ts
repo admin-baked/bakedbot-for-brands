@@ -153,7 +153,7 @@ async function fileFailures(results: TabletTestResult[], runId: string): Promise
 // SLACK SUMMARY
 // ============================================================================
 
-async function buildSummary(results: TabletTestResult[], runId: string): Promise<string> {
+function buildSummary(results: TabletTestResult[], runId: string): string {
     const passed = results.filter(r => r.passed).length;
     const failed = results.filter(r => !r.passed).length;
     const avgMs = Math.round(results.reduce((s, r) => s + r.durationMs, 0) / results.length);
@@ -199,7 +199,7 @@ async function run() {
         // Also post to Slack #ceo via slackService if failures exist
         try {
             const { slackService } = await import('@/server/services/communications/slack');
-            const summary = await buildSummary(results, runId);
+            const summary = buildSummary(results, runId);
             await slackService.postMessage('ceo', summary).catch(() => {
                 slackService.postMessage('linus-deployments', summary).catch(() => {});
             });

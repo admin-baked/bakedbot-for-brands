@@ -99,8 +99,9 @@ export function IncomingVisitNotification() {
         const setup = async () => {
             try {
                 const tokenResult = await user.getIdTokenResult();
-                const claims = tokenResult.claims as Record<string, string>;
-                orgId = claims.orgId || claims.currentOrgId || claims.locationId || claims.brandId || null;
+                const claims = tokenResult.claims as Record<string, unknown>;
+                const claimStr = (k: string) => (typeof claims[k] === 'string' ? (claims[k] as string) : null);
+                orgId = claimStr('orgId') || claimStr('currentOrgId') || claimStr('locationId') || claimStr('brandId');
 
                 // Super users can see all orgs — limit to most recent 20 sessions globally
                 const { firestore } = initializeFirebase();
