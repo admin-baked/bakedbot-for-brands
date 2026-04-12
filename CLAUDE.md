@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Marty weekly task board + BookingCta on all ~8K pages + verified-only outreach | **Last update:** 2026-04-12 (task board + inbound CTAs: `1fbc88b22`)
+**Current Status:** 🟢 Production live; Full roster training framework — Craig/Leo/Deebo/Ezal/DayDay wired, T3 adversarial for Elroy/Linus/Marty | **Last update:** 2026-04-12 (CHANNEL_MAP + roster training: `c05e091da`)
 
 ---
 
