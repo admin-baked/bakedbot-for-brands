@@ -21,7 +21,7 @@ import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { callClaude } from '@/ai/claude';
 import { buildMartyScoreboard, TARGET_MRR } from '@/server/services/marty-reporting';
-import { getWeekObjectives, getMondayOfWeek, buildObjectivesScoreboard } from '@/server/services/marty-objectives';
+import { getWeekObjectives, getMondayOfWeek, buildObjectivesScoreboard, type WeekObjectivesList } from '@/server/services/marty-objectives';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 240;
@@ -266,7 +266,7 @@ async function postWednesdayCheckToInbox(
     orgId: string,
     sections: InspectionSection[],
     ctx: Awaited<ReturnType<typeof loadWednesdayContext>>,
-    weekObjectives: Awaited<ReturnType<typeof import('@/server/services/marty-objectives').getWeekObjectives>> = []
+    weekObjectives: WeekObjectivesList = []
 ) {
     const db = getAdminFirestore();
 

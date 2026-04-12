@@ -17,6 +17,15 @@ import { logger } from '@/lib/logger';
 export type ObjectiveStatus = 'open' | 'in_progress' | 'hit' | 'missed' | 'carry_forward';
 export type ObjectiveType = 'short_term' | 'long_term';
 
+/** Shape of a raw objective as returned by Claude JSON output. */
+export type RawObjectiveInput = { type: string; agent: string; task: string; metric: string; target: string };
+
+/** Shape of a raw score as returned by Claude JSON output. */
+export type RawScoreInput = { id: string; status: string; current?: string; notes?: string };
+
+/** Return type of getWeekObjectives — use this instead of Awaited<ReturnType<...>>. */
+export type WeekObjectivesList = MartyObjective[];
+
 export interface MartyObjective {
     id: string;
     weekOf: string;          // YYYY-MM-DD (Monday of the week)
@@ -82,11 +91,12 @@ export async function writeWeeklyObjectives(
 }
 
 /** Read all objectives for a given weekOf date string. */
-export async function getWeekObjectives(weekOf: string): Promise<MartyObjective[]> {
+export async function getWeekObjectives(weekOf: string): Promise<WeekObjectivesList> {
     const db = getAdminFirestore();
     const snap = await db.collection('marty_objectives')
         .where('weekOf', '==', weekOf)
         .orderBy('type', 'asc')
+        .limit(20)
         .get();
     return snap.docs.map(d => d.data() as MartyObjective);
 }
@@ -111,6 +121,11 @@ export async function scoreWeeklyObjectives(
     weekOf: string,
     scores: Array<{ id: string; status: ObjectiveStatus; current?: string; notes?: string }>
 ): Promise<void> {
+    if (scores.length === 0) {
+        logger.info('[MartyObjectives] No scores to update', { weekOf });
+        return;
+    }
+
     const db = getAdminFirestore();
     const now = new Date();
     const batch = db.batch();

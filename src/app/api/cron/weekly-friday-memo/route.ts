@@ -23,7 +23,7 @@ import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { callClaude } from '@/ai/claude';
 import { buildMartyScoreboard, TARGET_MRR } from '@/server/services/marty-reporting';
-import { getWeekObjectives, getMondayOfWeek, scoreWeeklyObjectives, buildObjectivesScoreboard, type ObjectiveStatus } from '@/server/services/marty-objectives';
+import { getWeekObjectives, getMondayOfWeek, scoreWeeklyObjectives, buildObjectivesScoreboard, type ObjectiveStatus, type WeekObjectivesList, type RawScoreInput } from '@/server/services/marty-objectives';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -264,7 +264,7 @@ async function postFridayMemoToInbox(
     orgId: string,
     sections: FridaySection[],
     ctx: Awaited<ReturnType<typeof loadFridayContext>>,
-    weekObjectives: Awaited<ReturnType<typeof import('@/server/services/marty-objectives').getWeekObjectives>> = []
+    weekObjectives: WeekObjectivesList = []
 ) {
     const db = getAdminFirestore();
 
@@ -375,11 +375,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         ]);
 
         // Score open objectives: use Claude to assess hit/missed based on week context
-        if (weekObjectives.length > 0) {
-            const openObjectives = weekObjectives.filter(o => o.status === 'open' || o.status === 'in_progress');
-            if (openObjectives.length > 0) {
-                try {
-                    const scoringPrompt = `You are Marty Benjamins, CEO of BakedBot. It is Friday ${ctx.dateStr}.
+        const openObjectives = weekObjectives.filter(o => o.status === 'open' || o.status === 'in_progress');
+        let finalObjectives = weekObjectives;
+        if (openObjectives.length > 0) {
+            try {
+                const scoringPrompt = `You are Marty Benjamins, CEO of BakedBot. It is Friday ${ctx.dateStr}.
 
 WEEK IN REVIEW:
 - Outreach sent this week: ${ctx.outreachThisWeek}
@@ -393,33 +393,35 @@ ${openObjectives.map(o => `[${o.id}] ${o.agent.toUpperCase()}: ${o.task} | Targe
 For each objective, assess: hit, missed, or carry_forward (if it's a long_term goal that continues next week).
 Output ONLY JSON array: [{"id":"...","status":"hit|missed|carry_forward","current":"actual value or ?","notes":"one sentence"}]`;
 
-                    const text = await callClaude({
-                        model: 'claude-haiku-4-5-20251001',
-                        userMessage: scoringPrompt,
-                        maxTokens: 600,
-                        caller: 'weekly-friday-memo/objectives-scoring',
+                const text = await callClaude({
+                    model: 'claude-haiku-4-5-20251001',
+                    userMessage: scoringPrompt,
+                    maxTokens: 600,
+                    caller: 'weekly-friday-memo/objectives-scoring',
+                });
+                const match = text.match(/\[[\s\S]*\]/);
+                if (match) {
+                    const scores: RawScoreInput[] = JSON.parse(match[0]);
+                    const mapped = scores.map(s => ({
+                        id: s.id,
+                        status: (s.status as ObjectiveStatus) || 'missed',
+                        current: s.current,
+                        notes: s.notes,
+                    }));
+                    await scoreWeeklyObjectives(weekOf, mapped);
+                    // Merge scores locally — avoids a second Firestore round-trip
+                    const scoreMap = new Map(mapped.map(s => [s.id, s]));
+                    finalObjectives = weekObjectives.map(obj => {
+                        const update = scoreMap.get(obj.id);
+                        return update ? { ...obj, status: update.status, current: update.current ?? obj.current, notes: update.notes ?? obj.notes, updatedAt: new Date() } : obj;
                     });
-                    const match = text.match(/\[[\s\S]*\]/);
-                    if (match) {
-                        type RawScore = { id: string; status: string; current?: string; notes?: string };
-                        const scores: RawScore[] = JSON.parse(match[0]);
-                        await scoreWeeklyObjectives(weekOf, scores.map(s => ({
-                            id: s.id,
-                            status: (s.status as ObjectiveStatus) || 'missed',
-                            current: s.current,
-                            notes: s.notes,
-                        })));
-                        // Re-fetch with updated scores for memo
-                        const scored = await getWeekObjectives(weekOf);
-                        weekObjectives.splice(0, weekObjectives.length, ...scored);
-                    }
-                } catch (e) {
-                    logger.warn('[WeeklyFridayMemo] Objective scoring failed (non-fatal)', { error: String(e) });
                 }
+            } catch (e) {
+                logger.warn('[WeeklyFridayMemo] Objective scoring failed (non-fatal)', { error: String(e) });
             }
         }
 
-        await postFridayMemoToInbox(orgId, [martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection, popsSection], ctx, weekObjectives);
+        await postFridayMemoToInbox(orgId, [martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection, popsSection], ctx, finalObjectives);
 
         return NextResponse.json({
             success: true,

@@ -21,7 +21,7 @@ import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { callClaude } from '@/ai/claude';
 import { buildMartyScoreboard, TARGET_MRR } from '@/server/services/marty-reporting';
-import { writeWeeklyObjectives, getMondayOfWeek, type MartyObjective } from '@/server/services/marty-objectives';
+import { writeWeeklyObjectives, getMondayOfWeek, type MartyObjective, type RawObjectiveInput } from '@/server/services/marty-objectives';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -318,8 +318,7 @@ Output ONLY a JSON array. No explanation. Example format:
             return;
         }
 
-        type RawObjective = { type: string; agent: string; task: string; metric: string; target: string };
-        const raw: RawObjective[] = JSON.parse(match[0]);
+        const raw: RawObjectiveInput[] = JSON.parse(match[0]);
         const objectives = raw.map(o => ({
             weekOf,
             type: (o.type === 'long_term' ? 'long_term' : 'short_term') as MartyObjective['type'],
