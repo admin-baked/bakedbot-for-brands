@@ -484,6 +484,16 @@ export function SuperAdminSidebar() {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
 
+                                {/* Social & Ads Connections — session cookies for RTRVR agents */}
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/settings/connections')}>
+                                        <Link href="/dashboard/settings/connections">
+                                            <Chrome />
+                                            <span>Social Connections</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+
                                 {/* POS Config Section */}
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/admin/pos-config')}>

@@ -344,11 +344,39 @@ function HelpPanelView({
   onOnboardingClick: () => void;
 }) {
   const [messagingOpen, setMessagingOpen] = useState(false);
+  const isSuperUser = role === 'super_user';
 
   return (
     <div className="space-y-4">
       {/* Help search */}
       <HelpSearchEnhanced userRole={role} />
+
+      {/* Super User quick links — connections, integrations, settings */}
+      {isSuperUser && (
+        <div className="border-t pt-3 space-y-1.5">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Platform Setup</p>
+          {[
+            { href: '/dashboard/settings/connections', label: 'Social Connections', desc: 'LinkedIn, Facebook, Reddit, Instagram, Moltbook' },
+            { href: '/api/auth/google?service=gmail', label: 'Connect Gmail', desc: 'OAuth for Marty inbox access' },
+            { href: '/api/auth/google?service=exec_calendar&profileSlug=martez&redirect=/dashboard/ceo?tab=calendar', label: 'Connect Calendar', desc: 'Google Calendar for CEO scheduling' },
+            { href: '/dashboard/ceo?tab=admin&section=integrations', label: 'Integrations Hub', desc: 'POS, CRM, email, analytics' },
+            { href: '/dashboard/settings', label: 'General Settings', desc: 'Brand, email, AI, domain, team' },
+            { href: '/dashboard/ceo?tab=health', label: 'System Health', desc: 'Deploy status, cron jobs, errors' },
+          ].map(link => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors group"
+            >
+              <ArrowRight className="h-3.5 w-3.5 mt-0.5 text-muted-foreground group-hover:text-primary flex-shrink-0" />
+              <div>
+                <div className="text-sm font-medium">{link.label}</div>
+                <div className="text-xs text-muted-foreground">{link.desc}</div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* Support actions */}
       <div className="border-t pt-3 grid grid-cols-1 gap-2">
@@ -436,12 +464,15 @@ export function SmokeyFloatingButton() {
   const handleHelpClick = useCallback(() => setView('help'), []);
   const handleOnboardingClick = useCallback(() => setView('onboarding'), []);
 
-  // Only show for brand/dispensary users
-  if (!role || !['brand', 'brand_admin', 'dispensary', 'dispensary_admin'].includes(role)) {
+  // Show for brand/dispensary users AND super_user
+  if (!role || !['brand', 'brand_admin', 'dispensary', 'dispensary_admin', 'super_user'].includes(role)) {
     return null;
   }
 
-  const headerTitle = view === 'onboarding' ? 'Setup Guide' : 'Help Center';
+  const isSuperUser = role === 'super_user';
+  const headerTitle = view === 'onboarding'
+    ? (isSuperUser ? 'Platform Guide' : 'Setup Guide')
+    : 'Help Center';
 
   return (
     <>
