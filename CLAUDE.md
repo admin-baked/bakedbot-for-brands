@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Knowledge Engine Phase 1 shipped — Firestore+LanceDB claims pipeline, Letta promotion, Intelligence + CEO boardroom KE UI | **Last update:** 2026-04-12 (Knowledge Engine Phase 1: 33 files, 39 tests passing, `a3436943b`)
+**Current Status:** 🟢 Production live; Tablet cart integration + back-office visit notifications live — IncomingVisitNotification, QA tablet cron, Zod fix, cart→VisitSession | **Last update:** 2026-04-12 (Tablet cart + notifications: `b9d5ab6d3`)
 
 ---
 

@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; Knowledge Engine Phase 1 complete — Firestore+LanceDB claims, Letta promotion, KE UI in Intelligence + CEO boardroom
-**Recent work (2026-04-12):** `a3436943b` Knowledge Engine Phase 1 — 33 files, 4 ingestion pipelines, blended retrieval, 39 tests passing
-**Prior (2026-04-12):** `82c71c87d` GA4/GSC auth fix; `ae4512ee5` Elroy playbook tool; `166e67cdb` HeyGen video pipeline
+**Current Status:** 🟢 Production live; Tablet cart + back-office visit notifications shipped — IncomingVisitNotification, QA tablet cron, Zod firstName fix, cart→VisitSession enrichment
+**Recent work (2026-04-12):** `b9d5ab6d3` Tablet cart integration + notifications; `a3436943b` Knowledge Engine Phase 1 — 33 files, 39 tests passing
+**Prior (2026-04-12):** `cc533fa8e` Agent training audit; `82c71c87d` GA4/GSC auth fix
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
 - 7-day retention nudge email (cron job)
