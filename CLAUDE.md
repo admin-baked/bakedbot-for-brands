@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ Production live; deliberative Opus+Gemini coaching pipeline deployed — agents self-improve nightly | **Last update:** 2026-04-11 (deliberative coaching — Opus proposes, Gemini reviews, agents consume patches at runtime)
+**Current Status:** ðŸŸ¢ Production live; audit grading now Gemini Flash (free) — token conservation fix deployed | **Last update:** 2026-04-12 (Gemini Flash primary grader, ungraded sentinel, Claude token conservation)
 
 ---
 
