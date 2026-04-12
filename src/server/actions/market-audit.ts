@@ -1,6 +1,6 @@
 'use server';
 
-import Anthropic from '@anthropic-ai/sdk';
+import { callGroqOrClaude } from '@/ai/glm';
 import { auditPage } from '@/server/services/seo-auditor';
 import { captureEmailLead } from '@/server/actions/email-capture';
 import { getAdminFirestore } from '@/firebase/admin';
@@ -64,8 +64,6 @@ export async function runRetentionAudit(url: string): Promise<RetentionAuditResu
     fcp: psiResult.metrics.fcp,
     lcp: psiResult.metrics.lcp,
   };
-
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const systemPrompt = `You are a senior cannabis retention strategist auditing dispensary websites.
 You score sites across 5 dimensions tied to customer capture, welcome activation, and repeat revenue.
@@ -160,14 +158,12 @@ The report should clearly answer:
 5. Is the next proof path Access or Operator?`;
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
-
-    const raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+    const raw = (await callGroqOrClaude({
+      systemPrompt,
+      userMessage: userPrompt,
+      maxTokens: 2048,
+      caller: 'retention-audit',
+    })).trim();
     if (!raw) return { error: 'Empty response from AI' };
     let parsed: Partial<RetentionAuditResult>;
     try {
