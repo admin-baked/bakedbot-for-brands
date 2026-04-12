@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Agent tool fixes: Elroy thisWeek/lastWeek periods, Linus GitHub API git_log, CRM skipAuth bypass, rate-limit rerouted to #linus-incidents | **Last update:** 2026-04-12 (Agent training loop + tool fixes: `b57759327`)
+**Current Status:** 🟢 Production live; Day Day agent wired + /explore Cannabis Data Library live; sitemap + homepage link | **Last update:** 2026-04-12 (Day Day + explore portal: `d90755e64`)
 
 ---
 
