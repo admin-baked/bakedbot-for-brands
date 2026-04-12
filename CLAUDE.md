@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ Production live; auth-aware E2E pipeline deployed, age gate fix live | **Last update:** 2026-04-11 (auth E2E pipeline — Opus/Groq smart tier, 9 dashboard tests, age gate redirect fix)
+**Current Status:** ðŸŸ¢ Production live; deliberative Opus+Gemini coaching pipeline deployed — agents self-improve nightly | **Last update:** 2026-04-11 (deliberative coaching — Opus proposes, Gemini reviews, agents consume patches at runtime)
 
 ---
 
