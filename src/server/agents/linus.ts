@@ -2972,22 +2972,41 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
                 author?: string;
                 since?: string;
             };
+            const n = count || 10;
+            // Try local git first (works in dev), fall back to GitHub API (works in Cloud Run)
             try {
-                const n = count || 10;
                 let cmd = `git log -n ${n} --pretty=format:"%h|%an|%ar|%s"`;
                 if (author) cmd += ` --author="${author}"`;
                 if (since) cmd += ` --since="${since}"`;
                 if (file) cmd += ` -- "${file}"`;
-
-                const { stdout } = await execAsync(cmd, { cwd: PROJECT_ROOT, timeout: 15000 });
+                const { stdout } = await execAsync(cmd, { cwd: PROJECT_ROOT, timeout: 10000 });
                 const commits = stdout.split('\n').filter(Boolean).map(line => {
                     const [hash, authorName, date, ...messageParts] = line.split('|');
                     return { hash, author: authorName, date, message: messageParts.join('|') };
                 });
-
-                return { success: true, commits };
-            } catch (e: any) {
-                return { success: false, error: e.message };
+                return { success: true, commits, source: 'local' };
+            } catch {
+                // Local git unavailable (Cloud Run has no .git directory) — use GitHub API
+                try {
+                    const token = process.env.GITHUB_TOKEN;
+                    if (!token) return { success: false, error: 'No GITHUB_TOKEN available and local git failed.' };
+                    let url = `https://api.github.com/repos/admin-baked/bakedbot-for-brands/commits?per_page=${n}`;
+                    if (since) url += `&since=${encodeURIComponent(since)}`;
+                    if (file) url += `&path=${encodeURIComponent(file)}`;
+                    if (author) url += `&author=${encodeURIComponent(author)}`;
+                    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' } });
+                    if (!res.ok) return { success: false, error: `GitHub API ${res.status}: ${await res.text()}` };
+                    const data = await res.json() as Array<{ sha: string; commit: { author: { name: string; date: string }; message: string } }>;
+                    const commits = data.map(c => ({
+                        hash: c.sha.slice(0, 8),
+                        author: c.commit.author.name,
+                        date: new Date(c.commit.author.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                        message: c.commit.message.split('\n')[0],
+                    }));
+                    return { success: true, commits, source: 'github-api' };
+                } catch (e2: any) {
+                    return { success: false, error: `Both local git and GitHub API failed: ${e2.message}` };
+                }
             }
         }
 

@@ -5,7 +5,7 @@ import { logger } from '@/lib/logger';
 
 const THRIVE_TIME_ZONE = 'America/New_York';
 
-export type ElroySalesPeriod = 'today' | 'yesterday' | 'last7days' | 'thisMonth' | 'lastMonth';
+export type ElroySalesPeriod = 'today' | 'yesterday' | 'last7days' | 'thisWeek' | 'lastWeek' | 'last30days' | 'thisMonth' | 'lastMonth';
 export type ElroyTopSellerRankBy = 'units' | 'revenue';
 
 export interface ElroySalesWindowInput {
@@ -215,6 +215,49 @@ export function resolveElroySalesWindow(
         case 'lastMonth': {
             const lastMonthStart = new Date(todayStart.getFullYear(), todayStart.getMonth() - 1, 1);
             return normalizeMonthWindow(lastMonthStart.getFullYear(), lastMonthStart.getMonth() + 1);
+        }
+        case 'thisWeek': {
+            // Monday of current week → today (store week starts Monday)
+            const dayOfWeek = todayStart.getDay(); // 0=Sun, 1=Mon...
+            const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            const start = addDays(todayStart, -daysFromMonday);
+            const endExclusive = addDays(todayStart, 1);
+            return {
+                label: 'this week (Mon–today)',
+                start,
+                endExclusive,
+                startDate: formatYyyyMmDd(start),
+                endDate: formatYyyyMmDd(todayStart),
+                cacheKey: `period:thisWeek:${formatYyyyMmDd(start)}`,
+            };
+        }
+        case 'lastWeek': {
+            // Monday–Sunday of previous week
+            const dayOfWeek = todayStart.getDay();
+            const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            const thisMonday = addDays(todayStart, -daysFromMonday);
+            const lastMonday = addDays(thisMonday, -7);
+            const lastSunday = addDays(thisMonday, -1);
+            return {
+                label: 'last week (Mon–Sun)',
+                start: lastMonday,
+                endExclusive: thisMonday,
+                startDate: formatYyyyMmDd(lastMonday),
+                endDate: formatYyyyMmDd(lastSunday),
+                cacheKey: `period:lastWeek:${formatYyyyMmDd(lastMonday)}`,
+            };
+        }
+        case 'last30days': {
+            const start = addDays(todayStart, -29);
+            const endExclusive = addDays(todayStart, 1);
+            return {
+                label: 'last 30 days',
+                start,
+                endExclusive,
+                startDate: formatYyyyMmDd(start),
+                endDate: formatYyyyMmDd(todayStart),
+                cacheKey: `period:last30days:${formatYyyyMmDd(start)}`,
+            };
         }
         case 'last7days':
         default: {

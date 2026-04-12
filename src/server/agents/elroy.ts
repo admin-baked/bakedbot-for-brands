@@ -167,7 +167,7 @@ const ELROY_TOOLS: ClaudeTool[] = [
                 },
                 period: {
                     type: 'string',
-                    description: 'Optional preset window: today, yesterday, last7days, thisMonth, or lastMonth.',
+                    description: 'Optional preset window: today, yesterday, last7days, thisWeek, lastWeek, last30days, thisMonth, or lastMonth.',
                 },
                 startDate: {
                     type: 'string',
@@ -215,7 +215,7 @@ const ELROY_TOOLS: ClaudeTool[] = [
             properties: {
                 period: {
                     type: 'string',
-                    description: 'Optional preset window: today, yesterday, last7days, thisMonth, or lastMonth.',
+                    description: 'Optional preset window: today, yesterday, last7days, thisWeek, lastWeek, last30days, thisMonth, or lastMonth.',
                 },
                 startDate: {
                     type: 'string',
@@ -1209,13 +1209,10 @@ function buildElroyProgressMessage(toolName: string, input: Record<string, unkno
 
 export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
     const hasImages = (request.images?.length ?? 0) > 0;
-    const currentDate = new Date().toLocaleDateString('en-US', {
-        timeZone: 'America/Chicago',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    });
-    const fullPrompt = `${ELROY_SYSTEM_PROMPT}\n\nCurrent date: ${currentDate}\nStore timezone: America/New_York\n\n---\n\nUser Request: ${request.prompt}`;
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/New_York' });
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York' });
+    const fullPrompt = `${ELROY_SYSTEM_PROMPT}\n\nCURRENT DATE & TIME: ${todayStr}, ${timeStr} EST\nStore timezone: America/New_York\nUse thisWeek/lastWeek/last30days periods for date-range questions — never ask the user to provide dates.\n\n---\n\nUser Request: ${request.prompt}`;
 
     const onToolCall = request.progressCallback
         ? (toolName: string, input: Record<string, unknown>) =>
