@@ -1,9 +1,9 @@
 import { google, analyticsdata_v1beta } from 'googleapis';
-import { GoogleAuth } from 'google-auth-library';
 import { logger } from '@/lib/logger';
 import { getOAuth2ClientAsync } from '@/server/integrations/gmail/oauth';
 import { getGoogleAnalyticsToken } from '@/server/integrations/google-analytics/token-storage';
 import { createServerClient } from '@/firebase/server-client';
+import { buildAuthFromServiceKey } from './google-auth-helpers';
 
 export type GoogleIntegrationMode = 'oauth' | 'service_account' | 'disconnected';
 
@@ -84,20 +84,12 @@ export class GoogleAnalyticsService {
         }
 
         // Use Firebase service account key if available (bypasses Workspace RAPT policy)
-        const keyJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-        const auth = keyJson
-            ? new GoogleAuth({
-                credentials: JSON.parse(keyJson),
-                scopes: [this.scope],
-            })
-            : new GoogleAuth({
-                scopes: [this.scope],
-            });
-
-        await auth.getClient();
+        // Must pass JWT client directly — GoogleAuth wrapper doesn't attach tokens to googleapis calls
+        const auth = buildAuthFromServiceKey(this.scope);
+        const client = await auth.getClient();
 
         return {
-            analytics: google.analyticsdata({ version: 'v1beta', auth: auth as AnalyticsAuth }),
+            analytics: google.analyticsdata({ version: 'v1beta', auth: client as AnalyticsAuth }),
             authMode: 'service_account',
             propertyId: propertyId,
         };

@@ -7,10 +7,10 @@
 
 import { google, webmasters_v3 } from 'googleapis';
 import { logger } from '@/lib/logger';
-import { GoogleAuth } from 'google-auth-library';
 import { getOAuth2ClientAsync } from '@/server/integrations/gmail/oauth';
 import { getGoogleSearchConsoleToken } from '@/server/integrations/google-search-console/token-storage';
 import { createServerClient } from '@/firebase/server-client';
+import { buildAuthFromServiceKey } from './google-auth-helpers';
 import type { GoogleIntegrationMode } from './google-analytics';
 
 export interface SearchPerformanceData {
@@ -105,20 +105,12 @@ export class SearchConsoleService {
         }
 
         // Use Firebase service account key if available (bypasses Workspace RAPT policy)
-        const keyJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-        const auth = keyJson
-            ? new GoogleAuth({
-                credentials: JSON.parse(keyJson),
-                scopes: [this.scope],
-            })
-            : new GoogleAuth({
-                scopes: [this.scope],
-            });
-
-        await auth.getClient();
+        // Must pass JWT client directly — GoogleAuth wrapper doesn't attach tokens to googleapis calls
+        const auth = buildAuthFromServiceKey(this.scope);
+        const client = await auth.getClient();
 
         return {
-            webmasters: google.webmasters({ version: 'v3', auth: auth as SearchConsoleAuth }),
+            webmasters: google.webmasters({ version: 'v3', auth: client as SearchConsoleAuth }),
             authMode: 'service_account',
             siteUrl: siteUrl,
         };

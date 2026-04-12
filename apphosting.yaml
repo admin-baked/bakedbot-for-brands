@@ -666,14 +666,14 @@ env:
     availability: [ RUNTIME ]
   # Google Search Console — Day Day SEO reporting
   # Site must be verified in GSC under martez@bakedbot.ai
-  # Service account firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com
+  # GSC site URL — registered as domain property (sc-domain:), not URL prefix (https://)
+  # Service account firebase-adminsdk-fbsvc@studio-567050101-bc6e8.iam.gserviceaccount.com
   # must be added as a GSC user with "Full" permissions
   - variable: SEARCH_CONSOLE_SITE_URL
-    value: "https://bakedbot.ai"
+    value: "sc-domain:bakedbot.ai"
     availability: [ RUNTIME ]
   # Google Analytics 4 — Day Day traffic reporting
-  # Service account must be added as GA4 property viewer
-  # Find property ID: GA4 Admin → Property → Property Details → Property ID
+  # Service account must be added as GA4 property viewer (property 512230203)
   - variable: GA4_PROPERTY_ID
     secret: GA4_PROPERTY_ID@1
     availability: [ RUNTIME ]

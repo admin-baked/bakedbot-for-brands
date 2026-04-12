@@ -1,9 +1,8 @@
 
 import { logger } from '@/lib/logger';
-import { getAdminFirestore } from '@/firebase/admin';
 
 import { google } from 'googleapis';
-import { GoogleAuth } from 'google-auth-library';
+import { buildAuthFromServiceKey } from './google-auth-helpers';
 
 export class SitemapManager {
     private baseUrl: string;
@@ -11,8 +10,8 @@ export class SitemapManager {
 
     constructor() {
         this.baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai';
-        // GSC requires the exact property URL as registered
-        this.searchConsoleUrl = process.env.SEARCH_CONSOLE_SITE_URL || 'https://bakedbot.ai';
+        // GSC requires the exact property URL as registered (domain property format)
+        this.searchConsoleUrl = process.env.SEARCH_CONSOLE_SITE_URL || 'sc-domain:bakedbot.ai';
     }
 
     /**
@@ -20,11 +19,9 @@ export class SitemapManager {
      */
     async pingGoogle(sitemapIndexUrl: string = `${this.baseUrl}/sitemap.xml`): Promise<boolean> {
         try {
-            const auth = new GoogleAuth({
-                scopes: ['https://www.googleapis.com/auth/webmasters'], // Write access needed
-            });
-            
-            const webmasters = google.webmasters({ version: 'v3', auth: auth as any });
+            const auth = buildAuthFromServiceKey('https://www.googleapis.com/auth/webmasters');
+            const client = await auth.getClient();
+            const webmasters = google.webmasters({ version: 'v3', auth: client as any });
             
             logger.info(`[Sitemap] Submitting ${sitemapIndexUrl} to GSC for ${this.searchConsoleUrl}...`);
 
