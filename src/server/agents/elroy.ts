@@ -332,6 +332,20 @@ const ELROY_TOOLS: ClaudeTool[] = [
         },
     },
     {
+        name: 'get_playbooks',
+        description: 'Return active and paused marketing playbooks for Thrive Syracuse. Use when someone asks about upcoming campaigns, 4/20 plans, email strategy, or playbook status.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                status: {
+                    type: 'string',
+                    description: 'Optional: filter by status (active, paused, draft, archived). Returns all if omitted.',
+                },
+            },
+            required: [],
+        },
+    },
+    {
         name: 'learning_log',
         description: 'Log a meaningful Thrive store-ops attempt, outcome, and next step so Uncle Elroy can learn from it later.',
         input_schema: {
@@ -849,6 +863,38 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
             return { result: data.result, model: data.model };
         }
 
+        case 'get_playbooks': {
+            const db = getAdminFirestore();
+            const statusFilter = typeof input.status === 'string' ? input.status : null;
+            let query: FirebaseFirestore.Query = db.collection('playbooks')
+                .where('orgId', '==', ORG_ID);
+            if (statusFilter) {
+                query = query.where('status', '==', statusFilter);
+            }
+            const snap = await query.get();
+            if (snap.empty) return { message: 'No playbooks found for Thrive Syracuse.' };
+            return snap.docs.map((d: FirebaseFirestore.DocumentSnapshot) => {
+                const data = d.data()!;
+                return {
+                    id: d.id,
+                    name: data.displayName || data.name,
+                    description: data.description,
+                    status: data.status,
+                    category: data.category,
+                    agent: data.agent,
+                    triggers: (data.triggers || []).map((t: Record<string, unknown>) => ({ type: t.type, name: t.name, cron: t.cron })),
+                    steps: (data.steps || []).map((s: Record<string, unknown>) => s.label),
+                    approvalStatus: data.metadata?.approvalStatus || null,
+                    audienceSize: data.metadata?.audienceSize || null,
+                    sendingAddress: data.metadata?.sendingAddress || null,
+                    dealsNeeded: data.metadata?.dealsNeeded || false,
+                    dealsNote: data.metadata?.dealsNote || null,
+                    runCount: data.runCount || 0,
+                    lastRunAt: data.lastRunAt || null,
+                };
+            });
+        }
+
         case 'learning_log':
             return elroyLearningTools.learning_log(
                 String(input.action ?? ''),
@@ -911,6 +957,7 @@ You help store managers with:
 - Day-over-day and vs 7-day-average sales comparisons
 - Live competitor pricing and deals via real-time web research
 - Competitor holiday hours — who's open, who's closed, any special hours
+- Marketing playbooks and email campaigns — status, schedule, approval tracking
 
 Your style: direct, friendly, a little old-school. You know every customer by name. You give real answers with real numbers — no fluff.
 
@@ -923,6 +970,15 @@ For real-time or "right now" competitor questions (current prices, today's deals
 For holiday or special hours questions ("Are competitors open on Easter?", "What are the hours for Memorial Day?"), ALWAYS use get_competitor_holiday_hours first — it pulls authoritative data from Google Places and is faster and more reliable than Firecrawl for hours.
 For coding or technical questions ("write me a query", "generate a script", "analyze this data structure"), use ask_opencode — it delegates to the BakedBot AI coding agent and responds in seconds.
 Before repeating a workflow, search your prior learnings for what worked and what failed. Log meaningful outcomes, and if you hit a blocker, notify the learning loop with the problem and next move so Linus and Marty can review fixes.
+
+MARKETING PLAYBOOKS & EMAIL CAMPAIGNS:
+You can check on marketing playbooks and email campaign status using get_playbooks.
+- Thrive currently has a Welcome Email playbook and a 4/20 Campaign playbook (both paused pending client approval from Archie and Ade)
+- The Welcome Email introduces Thrive's digital perks to 111 POS customers who've never been emailed — sent in 3 waves to warm up the sending address
+- The 4/20 Campaign promotes holiday deals across Flower, Pre-Rolls, Edibles, and Vapes — sends Apr 17 (early access) and Apr 20 (day-of)
+- Emails send from hello@thrive.bakedbot.ai via Amazon SES
+- When managers ask about campaigns, email marketing, or 4/20 plans, use get_playbooks to pull current status
+- If they ask to activate a playbook or provide deals for the 4/20 campaign, acknowledge the request and flag it for the BakedBot engineering team
 
 EXTERNAL SITE MANAGEMENT (Weedmaps, AIQ, WordPress):
 You can browse, extract data from, and fill forms on external sites using your browser tools.
@@ -981,6 +1037,7 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'get_sales_summary — today vs yesterday vs 7-day avg',
         'get_competitor_holiday_hours — Google Places hours for Syracuse competitors around holidays',
         'ask_opencode — delegate coding/technical tasks to BakedBot AI coding agent (SP13)',
+        'get_playbooks — marketing playbooks and email campaign status, schedule, and approval tracking',
         'discovery_browser_automate — browse external sites (Weedmaps, AIQ, WordPress, competitors)',
         'discovery_fill_form — fill and submit forms (deals, campaigns, WP content)',
         'discovery_extract_data — extract structured data from any webpage',
@@ -1007,6 +1064,7 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'Always include the asOf timestamp when reporting today\'s sales',
         'NEVER submit a form on an external site without explicit user confirmation first',
         'For holiday or special hours questions, use get_competitor_holiday_hours (Google Places) — NOT run_competitive_agent',
+        'For campaign, email, playbook, or 4/20 marketing questions, use get_playbooks to check current status and relay details',
     ],
 };
 
@@ -1134,6 +1192,8 @@ function buildElroyProgressMessage(toolName: string, input: Record<string, unkno
             return '_Uncle Elroy is extracting data from a page..._';
         case 'discovery_summarize_page':
             return '_Uncle Elroy is summarizing a page..._';
+        case 'get_playbooks':
+            return '_Uncle Elroy is checking the marketing playbooks..._';
         case 'learning_log':
             return '_Uncle Elroy is logging what just happened so the store-ops loop gets smarter..._';
         case 'learning_search':
