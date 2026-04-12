@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** ðŸŸ¢ Production live; tenant email subdomains active
-**Recent work (2026-04-11):** `6762e115c` Tenant subdomain email isolation — `hello@{slug}.bakedbot.ai`, primary channel selector, Thrive+Ecstatic live
+**Current Status:** ðŸŸ¢ Production live; auth-aware E2E pipeline deployed
+**Recent work (2026-04-11):** `6a9c918e5` Auth-aware E2E pipeline — Opus/Groq smart tier test generation, 9 dashboard tests (super/dispensary/brand), age gate redirect fix
 **Prior (2026-04-11):** Deploy unblock (SUPABASE secret), daily audit cron, Groq free tier swap, COA pipeline, social media suite
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA

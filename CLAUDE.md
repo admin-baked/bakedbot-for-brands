@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ Production live; tenant email subdomains active (thrive + ecstatic) | **Last update:** 2026-04-11 (tenant subdomain email isolation, primary channel selector, Thrive DNS options sent)
+**Current Status:** ðŸŸ¢ Production live; auth-aware E2E pipeline deployed, age gate fix live | **Last update:** 2026-04-11 (auth E2E pipeline — Opus/Groq smart tier, 9 dashboard tests, age gate redirect fix)
 
 ---
 
