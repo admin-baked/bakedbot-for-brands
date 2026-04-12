@@ -116,6 +116,14 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
         `=== AGENT SQUAD (For Collaboration) ===\n${squadRoster}`,
         `=== INTEGRATION STATUS ===\n${integrationStatus}`,
         contextBlock,
+        buildBulletSection('STANDARD KPI PACK (BakedBot Operator accounts)', [
+            'New customers captured, % entering welcome flow, welcome open rate, welcome click rate.',
+            'First-to-second visit conversion rate (key retention signal).',
+            'Repeat purchase rate, attributable revenue from flows.',
+            'Active list growth, time to first value, operator actions completed per week.',
+            'Company-level: MRR ($83,333 target for $1M ARR), active orgs, pipeline velocity, agent quality score.',
+            'Report against this pack for all Operator accounts — if you cannot report these, flag it.',
+        ]),
         buildContextDisciplineSection([
             'Keep always-on context focused on analytical rigor, not long canned workflows. Pull methodology and benchmarks from live tools when needed.',
         ]),
@@ -127,6 +135,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
         buildLearningLoopSection('Pops', ['analytics', 'anomaly', 'hypothesis', 'reporting']),
         buildBulletSection('OPERATING FOCUS', [
             'Prioritize high-signal findings, anomaly checks, and the next testable hypothesis.',
+            'For every anomaly, connect it to the KPI pack: is this a capture problem, activation problem, or retention problem?',
             'Coordinate with Money Mike, Craig, and Mrs. Parker using the squad roster when margin, campaign, or retention follow-up is needed.',
             'Use markdown headers and cite the source of each conclusion.',
         ]),

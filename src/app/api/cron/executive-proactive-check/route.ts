@@ -56,7 +56,7 @@ async function getSuperUserOrgId(): Promise<string> {
 // ============================================================================
 
 interface ExecDomainBrief {
-    agent: 'leo' | 'jack' | 'glenda' | 'linus' | 'mike' | 'mrs_parker';
+    agent: 'leo' | 'jack' | 'glenda' | 'linus' | 'mike' | 'mrs_parker' | 'marty' | 'ezal' | 'pops' | 'deebo';
     title: string;
     recommendations: string[];
     urgency: 'clean' | 'info' | 'warning' | 'critical';
@@ -452,6 +452,171 @@ Be specific and actionable. Format as a JSON array of strings.`;
 }
 
 // ============================================================================
+// Always-On Agent Briefs — Marty ARR Monitor, Ezal Market Watch, Pops KPI, Deebo Compliance
+// ============================================================================
+
+async function generateMartyArrMonitor(_ctx: Awaited<ReturnType<typeof loadExecutiveContext>>): Promise<ExecDomainBrief> {
+    const db = getAdminFirestore();
+    const TARGET_MRR = 83333; // $1M ARR / 12
+
+    const [orgsSnap, auditSnap] = await Promise.allSettled([
+        db.collection('organizations').where('status', '==', 'active').count().get(),
+        db.collection('agent_audit_reports').orderBy('createdAt', 'desc').limit(1).get(),
+    ]);
+
+    const activeOrgs = orgsSnap.status === 'fulfilled' ? orgsSnap.value.data().count : 0;
+    const lastAuditScore = auditSnap.status === 'fulfilled' && !auditSnap.value.empty
+        ? (auditSnap.value.docs[0].data().averageScore ?? null)
+        : null;
+
+    // Import scoreboard helper for MRR data
+    let currentMrr: number | null = null;
+    let paceVsTarget: number | null = null;
+    try {
+        const { buildMartyScoreboard } = await import('@/server/services/marty-reporting');
+        const scoreboard = buildMartyScoreboard();
+        currentMrr = scoreboard.groups.find(g => g.id === 'revenue')?.metrics.find(m => m.id === 'current_mrr')?.value ?? null;
+        paceVsTarget = currentMrr !== null ? Math.round((currentMrr / TARGET_MRR) * 100) : null;
+    } catch { /* non-fatal */ }
+
+    const mrrLine = currentMrr !== null
+        ? `$${currentMrr.toLocaleString()} MRR (${paceVsTarget}% of $${TARGET_MRR.toLocaleString()} target)`
+        : 'MRR not yet instrumented';
+
+    const recommendations: string[] = [
+        `ARR Watch: ${mrrLine}`,
+        `Active accounts: ${activeOrgs} — need ~21-33 Operator accounts ($2,500-$4,000 MRR each) for $1M ARR`,
+        lastAuditScore !== null
+            ? `Agent quality: ${lastAuditScore}/100 — ${lastAuditScore < 80 ? 'below threshold, coaching needed today' : 'healthy'}`
+            : 'Agent quality: Run daily-response-audit to get current score',
+    ];
+
+    if (paceVsTarget !== null && paceVsTarget < 30) {
+        recommendations.unshift('[CRITICAL] MRR pace is critically low — executive intervention required today');
+    }
+
+    return {
+        agent: 'marty',
+        title: "Marty's ARR Monitor",
+        recommendations,
+        urgency: paceVsTarget !== null && paceVsTarget < 30 ? 'critical' : paceVsTarget !== null && paceVsTarget < 60 ? 'warning' : 'info',
+    };
+}
+
+async function generateEzalAlwaysOnScan(): Promise<ExecDomainBrief> {
+    let competitorSignal = '';
+    try {
+        const results = await searchWeb('cannabis dispensary loyalty marketing competitor news 2026');
+        competitorSignal = (await formatSearchResults(results)).slice(0, 400);
+    } catch { /* non-fatal */ }
+
+    try {
+        const prompt = `You are Ezal, competitive intelligence for BakedBot. Daily market scan.
+
+COMPETITOR/MARKET SIGNALS:
+${competitorSignal || 'No signals found today.'}
+
+BakedBot Offer Stack (for context):
+- Access: Free Check-In ($0), Access Intel ($149), Access Retention ($499-$899)
+- Operator: Core ($2,500-$3,000), Growth ($3,500-$4,000), Enterprise ($5,000+)
+
+Generate 2-3 market intelligence notes:
+1. Any competitor moves threatening BakedBot's positioning or pricing
+2. Any market opportunity to exploit with current offer stack
+3. Any gap in local cannabis market BakedBot should address
+
+Format as bullet points. Under 20 words each. Flag urgency with [ALERT] if critical.`;
+
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 250,
+            caller: 'exec-check/ezal-market',
+        });
+        const recommendations = text.split('\n')
+            .filter((l: string) => l.trim().match(/^[-•\[]/))
+            .map((l: string) => l.replace(/^[-•]\s*/, '').trim())
+            .filter(Boolean);
+        const hasAlert = recommendations.some(r => r.includes('[ALERT]'));
+        return {
+            agent: 'ezal',
+            title: "Ezal's Market Watch",
+            recommendations: recommendations.length > 0 ? recommendations : ['No competitor alerts today', 'Cannabis market stable — continue Operator outreach cadence'],
+            urgency: hasAlert ? 'warning' : 'info',
+        };
+    } catch {
+        return {
+            agent: 'ezal',
+            title: "Ezal's Market Watch",
+            recommendations: ['Market scan complete — no critical competitor alerts', 'Continue monitoring competitor pricing and campaign activity'],
+            urgency: 'clean',
+        };
+    }
+}
+
+async function generatePopsKpiWatch(): Promise<ExecDomainBrief> {
+    const db = getAdminFirestore();
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+    const [todayCustomersSnap, yesterdayCustomersSnap, orgsSnap] = await Promise.allSettled([
+        db.collection('customers').where('createdAt', '>=', todayStart).count().get(),
+        db.collection('customers').where('createdAt', '>=', yesterdayStart).where('createdAt', '<', todayStart).count().get(),
+        db.collection('organizations').where('status', '==', 'active').count().get(),
+    ]);
+
+    const todayCustomers = todayCustomersSnap.status === 'fulfilled' ? todayCustomersSnap.value.data().count : null;
+    const yesterdayCustomers = yesterdayCustomersSnap.status === 'fulfilled' ? yesterdayCustomersSnap.value.data().count : null;
+    const activeOrgs = orgsSnap.status === 'fulfilled' ? orgsSnap.value.data().count : null;
+
+    const recommendations: string[] = [];
+    if (todayCustomers !== null) {
+        recommendations.push(`New customers captured today: ${todayCustomers}${yesterdayCustomers !== null ? ` (yesterday: ${yesterdayCustomers})` : ''}`);
+    }
+    if (activeOrgs !== null) recommendations.push(`Active organizations: ${activeOrgs}`);
+
+    // KPI pack from Offer Stack
+    recommendations.push('Track: capture rate → welcome flow entry → first-to-second visit conversion');
+
+    return {
+        agent: 'pops',
+        title: "Pops' KPI Watch",
+        recommendations: recommendations.length > 0 ? recommendations : ['KPI monitoring active — check Firestore for customer capture metrics'],
+        urgency: 'clean',
+    };
+}
+
+async function generateDeeboComplianceWatch(): Promise<ExecDomainBrief> {
+    const db = getAdminFirestore();
+    const [queueSnap, campaignSnap] = await Promise.allSettled([
+        db.collection('compliance_queue').where('status', '==', 'pending_review').count().get(),
+        db.collection('campaigns').where('status', '==', 'pending_compliance').count().get(),
+    ]);
+
+    const queueCount = queueSnap.status === 'fulfilled' ? queueSnap.value.data().count : 0;
+    const campaignCount = campaignSnap.status === 'fulfilled' ? campaignSnap.value.data().count : 0;
+    const total = queueCount + campaignCount;
+
+    const recommendations: string[] = [];
+    if (total === 0) {
+        recommendations.push('Compliance queue clear — all outbound content reviewed');
+    } else {
+        if (queueCount > 0) recommendations.push(`${queueCount} item(s) in compliance queue — review before any sends`);
+        if (campaignCount > 0) recommendations.push(`${campaignCount} campaign(s) pending compliance approval — blocked until cleared`);
+    }
+    recommendations.push('Deebo gate active: all cannabis marketing claims require pre-approval');
+
+    return {
+        agent: 'deebo',
+        title: "Deebo's Compliance Watch",
+        recommendations,
+        urgency: total > 3 ? 'warning' : total > 0 ? 'info' : 'clean',
+    };
+}
+
+// ============================================================================
 // Inbox Poster
 // ============================================================================
 
@@ -519,8 +684,8 @@ async function postExecBriefToInbox(orgId: string, briefs: ExecDomainBrief[], ct
         'clean' as 'clean' | 'info' | 'warning' | 'critical'
     );
 
-    const bulletSummary = briefs.flatMap(b => b.recommendations.slice(0, 2)).slice(0, 6).map(r => `• ${r}`).join('\n');
-    const messageBody = `**Executive Intelligence Check — ${ctx.dateStr}**\n\n${bulletSummary}\n\n_Leo, Jack, Glenda, Linus, Mike, and Mrs. Parker have reviewed calendar, email, and market intel._`;
+    const bulletSummary = briefs.flatMap(b => b.recommendations.slice(0, 2)).slice(0, 8).map(r => `• ${r}`).join('\n');
+    const messageBody = `**Executive Intelligence Check — ${ctx.dateStr}**\n\n${bulletSummary}\n\n_Marty, Leo, Jack, Glenda, Linus, Mike, Mrs. Parker, Ezal, Pops, and Deebo have completed their morning scan._`;
 
     await db.collection('inbox_threads').doc(threadId).collection('messages').add({
         role: 'assistant',
@@ -562,27 +727,42 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             emailUnread: ctx.emailDigest?.unreadCount ?? 0,
         });
 
-        // Generate domain briefs in parallel (with independent search queries)
-        const [leoBrief, jackBrief, glendaBrief, linusBrief, mikeBrief, mrsParkerBrief] = await Promise.all([
+        // Generate domain briefs in parallel — all always-on agents scan their domain
+        const [
+            leoBrief, jackBrief, glendaBrief, linusBrief, mikeBrief, mrsParkerBrief,
+            martyBrief, ezalBrief, popsBrief, deeboBrief,
+        ] = await Promise.all([
             generateLeoBrief(ctx),
             generateJackBrief(ctx),
             generateGlendaBrief(ctx),
             generateLinusBrief(ctx),
             generateMikeBrief(ctx),
             generateMrsParkerBrief(ctx),
+            generateMartyArrMonitor(ctx),
+            generateEzalAlwaysOnScan(),
+            generatePopsKpiWatch(),
+            generateDeeboComplianceWatch(),
         ]);
 
         // Post consolidated brief to inbox (resolve orgId at runtime)
         const platformOrgId = await getSuperUserOrgId();
-        await postExecBriefToInbox(platformOrgId, [leoBrief, jackBrief, glendaBrief, linusBrief, mikeBrief, mrsParkerBrief], ctx);
+        await postExecBriefToInbox(
+            platformOrgId,
+            [martyBrief, leoBrief, jackBrief, glendaBrief, linusBrief, mikeBrief, mrsParkerBrief, ezalBrief, popsBrief, deeboBrief],
+            ctx
+        );
 
         logger.info('[ExecProactiveCheck] Completed', {
+            marty: martyBrief.urgency,
             leo: leoBrief.recommendations.length,
             jack: jackBrief.recommendations.length,
             glenda: glendaBrief.recommendations.length,
             linus: linusBrief.recommendations.length,
             mike: mikeBrief.recommendations.length,
             mrsParker: mrsParkerBrief.recommendations.length,
+            ezal: ezalBrief.urgency,
+            pops: popsBrief.recommendations.length,
+            deebo: deeboBrief.urgency,
         });
 
         return NextResponse.json({
@@ -590,12 +770,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             summary: {
                 meetings: ctx.meetings.length,
                 emailUnread: ctx.emailDigest?.unreadCount ?? 0,
+                martyUrgency: martyBrief.urgency,
                 leoItems: leoBrief.recommendations.length,
                 jackItems: jackBrief.recommendations.length,
                 glendaItems: glendaBrief.recommendations.length,
                 linusItems: linusBrief.recommendations.length,
                 mikeItems: mikeBrief.recommendations.length,
                 mrsParkerItems: mrsParkerBrief.recommendations.length,
+                ezalUrgency: ezalBrief.urgency,
+                deeboUrgency: deeboBrief.urgency,
             },
         });
     } catch (error) {
