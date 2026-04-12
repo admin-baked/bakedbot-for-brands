@@ -2,6 +2,7 @@ import { MetadataRoute } from 'next';
 import { createServerClient } from '@/firebase/server-client';
 import { articles } from '@/content/help/_index';
 import { fetchAllStrainSlugs } from '@/lib/strain-data';
+import { getAllTerpeneSlugs } from '@/lib/terpene-data';
 
 const BASE_URL = 'https://bakedbot.ai';
 
@@ -414,6 +415,52 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       console.error('[Sitemap] Failed to fetch strains:', e);
     }
 
+    // 11. Terpene Encyclopedia (static — 15 pages)
+    const terpeneRoutes: MetadataRoute.Sitemap = [
+      {
+        url: `${BASE_URL}/terpenes`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly' as const,
+        priority: 0.7,
+      },
+      ...getAllTerpeneSlugs().map((slug) => ({
+        url: `${BASE_URL}/terpenes/${slug}`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly' as const,
+        priority: 0.6,
+      })),
+    ];
+
+    // 12. Lab Results Directory (Firestore)
+    let labResultRoutes: MetadataRoute.Sitemap = [];
+    try {
+      labResultRoutes.push({
+        url: `${BASE_URL}/lab-results`,
+        lastModified: new Date(),
+        changeFrequency: 'daily' as const,
+        priority: 0.8,
+      });
+
+      const labSnap = await firestore
+        .collection('lab_results_public')
+        .select()
+        .limit(2000)
+        .get();
+
+      if (!labSnap.empty) {
+        labResultRoutes = labResultRoutes.concat(
+          labSnap.docs.map((doc) => ({
+            url: `${BASE_URL}/lab-results/${doc.id}`,
+            lastModified: new Date(),
+            changeFrequency: 'monthly' as const,
+            priority: 0.7,
+          }))
+        );
+      }
+    } catch (e) {
+      console.error('[Sitemap] Failed to fetch lab results:', e);
+    }
+
     return [
       ...homepage,
       ...conversionPages,
@@ -427,6 +474,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...blogRoutes,
       ...desertRoutes,
       ...strainRoutes,
+      ...terpeneRoutes,
+      ...labResultRoutes,
     ];
   } catch (error) {
     console.error('[Sitemap] Root failure:', error);

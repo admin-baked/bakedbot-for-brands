@@ -709,6 +709,40 @@ async function autoLookupCOAs(
         orgId, product: p.name, source: coa.source,
         thc: coa.totalThc, terpenes: coa.terpenes?.length || 0,
       });
+
+      // Publish to public lab results directory (best-effort)
+      try {
+        const { publishLabResult } = await import('@/lib/lab-data');
+        const tenantDoc = await firestore.collection('tenants').doc(orgId).get();
+        const tenantData = tenantDoc.data();
+        await publishLabResult({
+          orgId,
+          brandName: tenantData?.businessName || tenantData?.name || '',
+          strainName: coa.strainName || p.strainType || p.name,
+          productName: p.name,
+          category: p.strainType || undefined,
+          state: tenantData?.state || undefined,
+          labName: coa.labName || coa.source,
+          testDate: coa.testDate || new Date().toISOString().split('T')[0],
+          batchNumber: coa.batchNumber || p.batchId,
+          totalThc: coa.totalThc ?? undefined,
+          totalCbd: coa.totalCbd ?? undefined,
+          totalTerpenes: coa.totalTerpenes ?? undefined,
+          terpenes: coa.terpenes,
+          safetyPassed: coa.overallStatus !== 'fail',
+          pesticides: coa.pesticides || undefined,
+          heavyMetals: coa.heavyMetals || undefined,
+          microbials: coa.microbials || undefined,
+          residualSolvents: coa.residualSolvents || undefined,
+          coaUrl: coa.sourceUrl || undefined,
+          metrcTag: p.metrcTag || undefined,
+        });
+      } catch (pubErr) {
+        // Non-blocking — public directory publish failure doesn't affect sync
+        logger.warn('[POS_SYNC] Public lab result publish failed', {
+          product: p.name, error: pubErr instanceof Error ? pubErr.message : String(pubErr),
+        });
+      }
     }
   }
 
