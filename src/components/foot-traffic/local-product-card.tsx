@@ -1,5 +1,5 @@
 
-import { MapPin } from 'lucide-react';
+import { MapPin, Droplets } from 'lucide-react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -44,10 +44,23 @@ export function LocalProductCard({ product }: LocalProductCardProps) {
                     {product.brandName}
                 </p>
 
-                {/* Potency Row - Hide if no data */}
-                {isValid(product.thcPercent) && (
-                    <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{product.thcPercent}% THC</span>
+                {/* Strain type + Potency */}
+                <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                    {product.strainType && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">{product.strainType}</Badge>
+                    )}
+                    {isValid(product.thcPercent) && <span className="font-medium">{product.thcPercent}% THC</span>}
+                    {isValid(product.cbdPercent) && <span className="font-medium">{product.cbdPercent}% CBD</span>}
+                </div>
+
+                {/* Terpenes */}
+                {product.terpenes && product.terpenes.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                        {product.terpenes.slice(0, 2).map((t) => (
+                            <span key={t.name} className="inline-flex items-center gap-0.5 text-[10px] text-teal-700 dark:text-teal-400">
+                                <Droplets className="h-2.5 w-2.5" />{t.name}
+                            </span>
+                        ))}
                     </div>
                 )}
 

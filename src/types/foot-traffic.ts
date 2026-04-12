@@ -82,6 +82,8 @@ export interface LocalProduct {
     // Cannabinoids
     thcPercent?: number | null;
     cbdPercent?: number | null;
+    strainType?: string | null;
+    terpenes?: { name: string; percent: number }[];
 
     // Local availability
     availability: {

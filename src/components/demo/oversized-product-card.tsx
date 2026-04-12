@@ -336,6 +336,22 @@ export function OversizedProductCard({
           </div>
         )}
 
+        {/* Terpenes */}
+        {product.terpenes && product.terpenes.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-3">
+            {product.terpenes.slice(0, 3).map((t) => (
+              <Badge
+                key={t.name}
+                variant="outline"
+                className="text-xs px-2 py-0.5 border-teal-300 text-teal-700 dark:border-teal-700 dark:text-teal-400"
+              >
+                <Droplets className="h-2.5 w-2.5 mr-1" />
+                {t.name} {t.percent}%
+              </Badge>
+            ))}
+          </div>
+        )}
+
         {/* Price & Cart Status */}
         <div className="flex items-center justify-between mt-auto pt-3 border-t">
           <div>
