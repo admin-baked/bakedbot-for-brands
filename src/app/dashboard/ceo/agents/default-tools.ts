@@ -1435,13 +1435,15 @@ export const defaultExecutiveBoardTools = {
             integrations: Record<string, { status: string; setupRequired?: string }>;
             agents: { available: string[]; total: number };
             recommendations: string[];
+            open_bugs: { total: number; critical: number; high: number; items: Array<{ id: string; title: string; priority: string; reportedBy: string; createdAt: string }> };
         } = {
             timestamp,
             overall_status: 'GREEN',
             components: {},
             integrations: {},
             agents: { available: [], total: 0 },
-            recommendations: []
+            recommendations: [],
+            open_bugs: { total: 0, critical: 0, high: 0, items: [] },
         };
 
         // 1. Check Firebase/Firestore
@@ -1519,6 +1521,37 @@ export const defaultExecutiveBoardTools = {
 
         if (!health.components['claude_api']?.status?.includes('ACTIVE')) {
             health.recommendations.push('Configure Claude API for enhanced agent capabilities');
+        }
+
+        // 7. Open agent task bugs (errors filed by crons/agents to Linus)
+        try {
+            const { listAgentTasks } = await import('@/server/actions/agent-tasks');
+            const taskResult = await listAgentTasks({ status: ['open', 'claimed', 'in_progress'], limit: 50 });
+            if (taskResult.success) {
+                const bugs = taskResult.tasks.filter(t => t.category === 'bug' || t.priority === 'critical' || t.priority === 'high');
+                health.open_bugs = {
+                    total: bugs.length,
+                    critical: bugs.filter(t => t.priority === 'critical').length,
+                    high: bugs.filter(t => t.priority === 'high').length,
+                    items: bugs.slice(0, 5).map(t => ({
+                        id: t.id,
+                        title: t.title,
+                        priority: t.priority ?? 'normal',
+                        reportedBy: t.reportedBy ?? 'unknown',
+                        createdAt: t.createdAt,
+                    })),
+                };
+                if (bugs.some(t => t.priority === 'critical')) {
+                    if (health.overall_status === 'GREEN') health.overall_status = 'YELLOW';
+                    health.recommendations.push(
+                        `${bugs.filter(t => t.priority === 'critical').length} CRITICAL bug(s) open — Linus has them in queue. Say "@linus check_task_queue" to see details.`
+                    );
+                } else if (bugs.length > 3) {
+                    health.recommendations.push(`${bugs.length} open bug tasks assigned to Linus — review in Mission Control.`);
+                }
+            }
+        } catch {
+            // Non-fatal — agent tasks are a best-effort overlay
         }
 
         return health;
