@@ -46,6 +46,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     }));
 
+    // 2b. Cannabis Data Hub (High Priority - SEO moat / organic authority)
+    const dataHubPages = [
+      '/explore',
+      '/strains',
+      '/terpenes',
+      '/lab-results',
+    ].map((route) => ({
+      url: `${BASE_URL}${route}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    }));
+
     // 3. Product/Feature Pages
     const productPages = [
       '/menu',
@@ -464,6 +477,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [
       ...homepage,
       ...conversionPages,
+      ...dataHubPages,
       ...productPages,
       ...trustPages,
       ...helpRoutes,

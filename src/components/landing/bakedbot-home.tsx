@@ -338,6 +338,7 @@ export function BakedBotHome() {
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <a href="/pricing" className="hover:text-foreground">Pricing</a>
             <a href="/ai-retention-audit" className="hover:text-foreground">AI Retention Audit</a>
+            <a href="/explore" className="hover:text-foreground">Cannabis Data</a>
             <a href="/book/martez" className="hover:text-foreground">Book Martez</a>
             <a href="/blog" className="hover:text-foreground">Blog</a>
           </div>
