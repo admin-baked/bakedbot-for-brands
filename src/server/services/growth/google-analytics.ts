@@ -27,13 +27,44 @@ export interface GoogleAnalyticsTrafficReport {
     error?: string;
 }
 
-interface AnalyticsResolution {
-    analytics: analyticsdata_v1beta.Analyticsdata;
-    authMode: Exclude<GoogleIntegrationMode, 'disconnected'>;
+// Resolution types — OAuth uses googleapis client; SA uses raw fetch with Bearer token
+interface OAuthResolution {
+    kind: 'oauth';
+    oauth2Client: Awaited<ReturnType<typeof getOAuth2ClientAsync>>;
     propertyId: string;
 }
 
-type AnalyticsAuth = analyticsdata_v1beta.Options['auth'];
+interface ServiceAccountResolution {
+    kind: 'service_account';
+    token: string;
+    propertyId: string;
+}
+
+type AnalyticsResolution = OAuthResolution | ServiceAccountResolution;
+
+/**
+ * Raw fetch for GA4 Data API.
+ * googleapis library fails to attach tokens in Cloud Run even with JWT client.
+ */
+async function ga4RunReport(
+    token: string,
+    propertyId: string,
+    body: Record<string, unknown>
+): Promise<analyticsdata_v1beta.Schema$RunReportResponse> {
+    const resp = await fetch(
+        `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`,
+        {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        }
+    );
+    if (!resp.ok) {
+        const err = await resp.json().catch(() => ({})) as { error?: { message?: string } };
+        throw new Error(err.error?.message || resp.statusText);
+    }
+    return resp.json() as Promise<analyticsdata_v1beta.Schema$RunReportResponse>;
+}
 
 export class GoogleAnalyticsService {
     private readonly scope = 'https://www.googleapis.com/auth/analytics.readonly';
@@ -56,62 +87,40 @@ export class GoogleAnalyticsService {
         return { propertyId: process.env.GA4_PROPERTY_ID || null };
     }
 
-    private async resolveOauthAnalytics(userId: string, orgId?: string): Promise<AnalyticsResolution | null> {
+    private async resolveOauth(userId: string, orgId?: string): Promise<OAuthResolution | null> {
         const { propertyId } = await this.getTenantConfig(orgId);
-        if (!propertyId) {
-            return null;
-        }
-
+        if (!propertyId) return null;
         const tokens = await getGoogleAnalyticsToken(userId);
-        if (!tokens?.refresh_token) {
-            return null;
-        }
-
+        if (!tokens?.refresh_token) return null;
         const oauth2Client = await getOAuth2ClientAsync();
         oauth2Client.setCredentials(tokens);
-
-        return {
-            analytics: google.analyticsdata({ version: 'v1beta', auth: oauth2Client }),
-            authMode: 'oauth',
-            propertyId: propertyId,
-        };
+        return { kind: 'oauth', oauth2Client, propertyId };
     }
 
-    private async resolveServiceAccountAnalytics(orgId?: string): Promise<AnalyticsResolution | null> {
+    private async resolveServiceAccount(orgId?: string): Promise<ServiceAccountResolution | null> {
         const { propertyId } = await this.getTenantConfig(orgId);
-        if (!propertyId) {
-            return null;
-        }
-
-        // Use Firebase service account key if available (bypasses Workspace RAPT policy)
-        // Must pass JWT client directly — GoogleAuth wrapper doesn't attach tokens to googleapis calls
+        if (!propertyId) return null;
+        // Get Bearer token directly — googleapis library fails to attach tokens in Cloud Run
         const auth = buildAuthFromServiceKey(this.scope);
         const client = await auth.getClient();
-
-        return {
-            analytics: google.analyticsdata({ version: 'v1beta', auth: client as AnalyticsAuth }),
-            authMode: 'service_account',
-            propertyId: propertyId,
-        };
+        const tokenResp = await client.getAccessToken();
+        if (!tokenResp.token) return null;
+        return { kind: 'service_account', token: tokenResp.token, propertyId };
     }
 
-    private async resolveAnalytics(userId?: string, orgId?: string): Promise<AnalyticsResolution | null> {
+    private async resolve(userId?: string, orgId?: string): Promise<AnalyticsResolution | null> {
         if (userId) {
             try {
-                const oauthResolution = await this.resolveOauthAnalytics(userId, orgId);
-                if (oauthResolution) {
-                    return oauthResolution;
-                }
+                const r = await this.resolveOauth(userId, orgId);
+                if (r) return r;
             } catch (error) {
                 logger.warn('[GA4] OAuth resolution failed, falling back to service account', {
-                    userId,
-                    error: error instanceof Error ? error.message : String(error),
+                    userId, error: error instanceof Error ? error.message : String(error),
                 });
             }
         }
-
         try {
-            return await this.resolveServiceAccountAnalytics(orgId);
+            return await this.resolveServiceAccount(orgId);
         } catch (error) {
             logger.warn('[GA4] Service account resolution failed', {
                 error: error instanceof Error ? error.message : String(error),
@@ -123,54 +132,32 @@ export class GoogleAnalyticsService {
     async getConnectionStatus(userId?: string, orgId?: string): Promise<GoogleAnalyticsConnectionStatus> {
         if (userId) {
             try {
-                const oauthResolution = await this.resolveOauthAnalytics(userId, orgId);
-                if (oauthResolution) {
-                    return {
-                        connected: true,
-                        mode: 'oauth',
-                        propertyId: oauthResolution.propertyId,
-                        propertyConfigured: true,
-                    };
-                }
+                const r = await this.resolveOauth(userId, orgId);
+                if (r) return { connected: true, mode: 'oauth', propertyId: r.propertyId, propertyConfigured: true };
             } catch (error) {
                 logger.warn('[GA4] Failed to resolve OAuth status', {
-                    userId,
-                    error: error instanceof Error ? error.message : String(error),
+                    userId, error: error instanceof Error ? error.message : String(error),
                 });
             }
         }
-
         try {
-            const serviceAccountResolution = await this.resolveServiceAccountAnalytics(orgId);
-            if (serviceAccountResolution) {
-                return {
-                    connected: true,
-                    mode: 'service_account',
-                    propertyId: serviceAccountResolution.propertyId,
-                    propertyConfigured: true,
-                };
-            }
+            const r = await this.resolveServiceAccount(orgId);
+            if (r) return { connected: true, mode: 'service_account', propertyId: r.propertyId, propertyConfigured: true };
         } catch (error) {
             logger.warn('[GA4] Failed to resolve service-account status', {
                 error: error instanceof Error ? error.message : String(error),
             });
         }
-
         const { propertyId } = await this.getTenantConfig(orgId);
-        return {
-            connected: false,
-            mode: 'disconnected',
-            propertyId: propertyId ?? null,
-            propertyConfigured: Boolean(propertyId),
-        };
+        return { connected: false, mode: 'disconnected', propertyId: propertyId ?? null, propertyConfigured: Boolean(propertyId) };
     }
 
     async getTrafficReport(
         startDate: string = '7daysAgo',
         endDate: string = 'today',
-        options?: { userId?: string, orgId?: string }
+        options?: { userId?: string; orgId?: string }
     ): Promise<GoogleAnalyticsTrafficReport> {
-        const resolution = await this.resolveAnalytics(options?.userId, options?.orgId);
+        const resolution = await this.resolve(options?.userId, options?.orgId);
         if (!resolution) {
             const { propertyId } = await this.getTenantConfig(options?.orgId);
             return {
@@ -180,38 +167,39 @@ export class GoogleAnalyticsService {
             };
         }
 
-        try {
-            const response = await resolution.analytics.properties.runReport({
-                property: `properties/${resolution.propertyId}`,
-                requestBody: {
-                    dateRanges: [{ startDate, endDate }],
-                    dimensions: [{ name: 'sessionSource' }, { name: 'pagePath' }],
-                    metrics: [{ name: 'activeUsers' }, { name: 'sessions' }],
-                },
-            });
+        const requestBody = {
+            dateRanges: [{ startDate, endDate }],
+            dimensions: [{ name: 'sessionSource' }, { name: 'pagePath' }],
+            metrics: [{ name: 'activeUsers' }, { name: 'sessions' }],
+        };
 
-            const rows = (response.data.rows || []).map((row: analyticsdata_v1beta.Schema$Row) => ({
+        try {
+            let rawRows: analyticsdata_v1beta.Schema$Row[] = [];
+
+            if (resolution.kind === 'service_account') {
+                const data = await ga4RunReport(resolution.token, resolution.propertyId, requestBody);
+                rawRows = data.rows || [];
+            } else {
+                const analytics = google.analyticsdata({ version: 'v1beta', auth: resolution.oauth2Client });
+                const response = await analytics.properties.runReport({
+                    property: `properties/${resolution.propertyId}`,
+                    requestBody,
+                });
+                rawRows = response.data.rows || [];
+            }
+
+            const rows = rawRows.map((row) => ({
                 source: row.dimensionValues?.[0]?.value || 'unknown',
                 path: row.dimensionValues?.[1]?.value || '/',
                 users: Number(row.metricValues?.[0]?.value || 0),
                 sessions: Number(row.metricValues?.[1]?.value || 0),
             }));
 
-            return {
-                rows,
-                authMode: resolution.authMode,
-            };
+            return { rows, authMode: resolution.kind === 'service_account' ? 'service_account' : 'oauth' };
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            logger.error('[GA4] Report failed', {
-                authMode: resolution.authMode,
-                error: message,
-            });
-            return {
-                rows: [],
-                authMode: resolution.authMode,
-                error: message,
-            };
+            logger.error('[GA4] Report failed', { authMode: resolution.kind, error: message });
+            return { rows: [], authMode: resolution.kind === 'service_account' ? 'service_account' : 'oauth', error: message };
         }
     }
 

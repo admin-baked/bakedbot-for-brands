@@ -3,6 +3,9 @@
  *
  * Provides SEO performance data to Day Day, Pops, and the Super User dashboards.
  * Uses user OAuth when available and falls back to platform service-account auth.
+ *
+ * Service account path uses raw fetch — googleapis library fails to attach
+ * tokens in Cloud Run even with JWT client.
  */
 
 import { google, webmasters_v3 } from 'googleapis';
@@ -48,13 +51,45 @@ export interface SearchConsoleConnectionStatus {
     siteConfigured: boolean;
 }
 
-interface SearchConsoleResolution {
-    webmasters: webmasters_v3.Webmasters;
-    authMode: Exclude<GoogleIntegrationMode, 'disconnected'>;
+// Resolution types — OAuth uses googleapis client; SA uses raw fetch with Bearer token
+interface OAuthResolution {
+    kind: 'oauth';
+    oauth2Client: Awaited<ReturnType<typeof getOAuth2ClientAsync>>;
     siteUrl: string;
 }
 
-type SearchConsoleAuth = webmasters_v3.Options['auth'];
+interface ServiceAccountResolution {
+    kind: 'service_account';
+    token: string;
+    siteUrl: string;
+}
+
+type Resolution = OAuthResolution | ServiceAccountResolution;
+
+/**
+ * Raw fetch for GSC Search Analytics API.
+ * googleapis library fails to attach tokens in Cloud Run even with JWT client.
+ */
+async function gscQuery(
+    token: string,
+    siteUrl: string,
+    body: Record<string, unknown>
+): Promise<{ rows?: webmasters_v3.Schema$ApiDataRow[] }> {
+    const encodedSite = encodeURIComponent(siteUrl);
+    const resp = await fetch(
+        `https://www.googleapis.com/webmasters/v3/sites/${encodedSite}/searchAnalytics/query`,
+        {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        }
+    );
+    if (!resp.ok) {
+        const err = await resp.json().catch(() => ({})) as { error?: { message?: string } };
+        throw new Error(err.error?.message || resp.statusText);
+    }
+    return resp.json() as Promise<{ rows?: webmasters_v3.Schema$ApiDataRow[] }>;
+}
 
 export class SearchConsoleService {
     private readonly scope = 'https://www.googleapis.com/auth/webmasters.readonly';
@@ -77,62 +112,40 @@ export class SearchConsoleService {
         return { siteUrl: process.env.SEARCH_CONSOLE_SITE_URL || null };
     }
 
-    private async resolveOauthWebmasters(userId: string, orgId?: string): Promise<SearchConsoleResolution | null> {
+    private async resolveOauth(userId: string, orgId?: string): Promise<OAuthResolution | null> {
         const { siteUrl } = await this.getTenantConfig(orgId);
-        if (!siteUrl) {
-            return null;
-        }
-
+        if (!siteUrl) return null;
         const tokens = await getGoogleSearchConsoleToken(userId);
-        if (!tokens?.refresh_token) {
-            return null;
-        }
-
+        if (!tokens?.refresh_token) return null;
         const oauth2Client = await getOAuth2ClientAsync();
         oauth2Client.setCredentials(tokens);
-
-        return {
-            webmasters: google.webmasters({ version: 'v3', auth: oauth2Client }),
-            authMode: 'oauth',
-            siteUrl: siteUrl,
-        };
+        return { kind: 'oauth', oauth2Client, siteUrl };
     }
 
-    private async resolveServiceAccountWebmasters(orgId?: string): Promise<SearchConsoleResolution | null> {
+    private async resolveServiceAccount(orgId?: string): Promise<ServiceAccountResolution | null> {
         const { siteUrl } = await this.getTenantConfig(orgId);
-        if (!siteUrl) {
-            return null;
-        }
-
-        // Use Firebase service account key if available (bypasses Workspace RAPT policy)
-        // Must pass JWT client directly — GoogleAuth wrapper doesn't attach tokens to googleapis calls
+        if (!siteUrl) return null;
+        // Get Bearer token directly — googleapis library fails to attach tokens in Cloud Run
         const auth = buildAuthFromServiceKey(this.scope);
         const client = await auth.getClient();
-
-        return {
-            webmasters: google.webmasters({ version: 'v3', auth: client as SearchConsoleAuth }),
-            authMode: 'service_account',
-            siteUrl: siteUrl,
-        };
+        const tokenResp = await client.getAccessToken();
+        if (!tokenResp.token) return null;
+        return { kind: 'service_account', token: tokenResp.token, siteUrl };
     }
 
-    private async resolveWebmasters(userId?: string, orgId?: string): Promise<SearchConsoleResolution | null> {
+    private async resolve(userId?: string, orgId?: string): Promise<Resolution | null> {
         if (userId) {
             try {
-                const oauthResolution = await this.resolveOauthWebmasters(userId, orgId);
-                if (oauthResolution) {
-                    return oauthResolution;
-                }
+                const r = await this.resolveOauth(userId, orgId);
+                if (r) return r;
             } catch (error) {
                 logger.warn('[GSC] OAuth resolution failed, falling back to service account', {
-                    userId,
-                    error: error instanceof Error ? error.message : String(error),
+                    userId, error: error instanceof Error ? error.message : String(error),
                 });
             }
         }
-
         try {
-            return await this.resolveServiceAccountWebmasters(orgId);
+            return await this.resolveServiceAccount(orgId);
         } catch (error) {
             logger.warn('[GSC] Service-account resolution failed', {
                 error: error instanceof Error ? error.message : String(error),
@@ -144,62 +157,34 @@ export class SearchConsoleService {
     async getConnectionStatus(userId?: string, orgId?: string): Promise<SearchConsoleConnectionStatus> {
         if (userId) {
             try {
-                const oauthResolution = await this.resolveOauthWebmasters(userId, orgId);
-                if (oauthResolution) {
-                    return {
-                        connected: true,
-                        mode: 'oauth',
-                        siteUrl: oauthResolution.siteUrl,
-                        siteConfigured: true,
-                    };
-                }
+                const r = await this.resolveOauth(userId, orgId);
+                if (r) return { connected: true, mode: 'oauth', siteUrl: r.siteUrl, siteConfigured: true };
             } catch (error) {
                 logger.warn('[GSC] Failed to resolve OAuth status', {
-                    userId,
-                    error: error instanceof Error ? error.message : String(error),
+                    userId, error: error instanceof Error ? error.message : String(error),
                 });
             }
         }
-
         try {
-            const serviceAccountResolution = await this.resolveServiceAccountWebmasters(orgId);
-            if (serviceAccountResolution) {
-                return {
-                    connected: true,
-                    mode: 'service_account',
-                    siteUrl: serviceAccountResolution.siteUrl,
-                    siteConfigured: true,
-                };
-            }
+            const r = await this.resolveServiceAccount(orgId);
+            if (r) return { connected: true, mode: 'service_account', siteUrl: r.siteUrl, siteConfigured: true };
         } catch (error) {
             logger.warn('[GSC] Failed to resolve service-account status', {
                 error: error instanceof Error ? error.message : String(error),
             });
         }
-
         const { siteUrl } = await this.getTenantConfig(orgId);
-        return {
-            connected: false,
-            mode: 'disconnected',
-            siteUrl: siteUrl ?? null,
-            siteConfigured: Boolean(siteUrl),
-        };
+        return { connected: false, mode: 'disconnected', siteUrl: siteUrl ?? null, siteConfigured: Boolean(siteUrl) };
     }
 
-    private buildEmptyTopQueriesReport(startDate: string, endDate: string): TopQueriesReport {
-        return {
-            queries: [],
-            totalClicks: 0,
-            totalImpressions: 0,
-            avgPosition: 0,
-            dateRange: { start: startDate, end: endDate },
-        };
+    private buildEmptyReport(startDate: string, endDate: string): TopQueriesReport {
+        return { queries: [], totalClicks: 0, totalImpressions: 0, avgPosition: 0, dateRange: { start: startDate, end: endDate } };
     }
 
-    private mapQueryRows(rows: webmasters_v3.Schema$ApiDataRow[] | undefined): SearchPerformanceData[] {
+    private mapRows(rows: webmasters_v3.Schema$ApiDataRow[] | undefined, defaultPage = ''): SearchPerformanceData[] {
         return (rows || []).map((row) => ({
             query: row.keys?.[0] || '',
-            page: row.keys?.[1] || '',
+            page: row.keys?.[1] || defaultPage,
             clicks: row.clicks || 0,
             impressions: row.impressions || 0,
             ctr: row.ctr || 0,
@@ -207,180 +192,112 @@ export class SearchConsoleService {
         }));
     }
 
-    /**
-     * Get top search queries for the site
-     */
+    private async runQuery(resolution: Resolution, body: Record<string, unknown>): Promise<webmasters_v3.Schema$ApiDataRow[]> {
+        if (resolution.kind === 'service_account') {
+            const data = await gscQuery(resolution.token, resolution.siteUrl, body);
+            return data.rows || [];
+        }
+        // OAuth path — googleapis client works fine with user credentials
+        const webmasters = google.webmasters({ version: 'v3', auth: resolution.oauth2Client });
+        const response = await webmasters.searchanalytics.query({
+            siteUrl: resolution.siteUrl,
+            requestBody: body as webmasters_v3.Schema$SearchAnalyticsQueryRequest,
+        });
+        return response.data.rows || [];
+    }
+
     async getTopQueries(
         startDate: string = this.getDateDaysAgo(28),
         endDate: string = this.getDateDaysAgo(1),
         limit: number = 50,
-        options?: { userId?: string, orgId?: string }
+        options?: { userId?: string; orgId?: string }
     ): Promise<TopQueriesReport> {
-        const resolution = await this.resolveWebmasters(options?.userId, options?.orgId);
-        if (!resolution) {
-            return this.buildEmptyTopQueriesReport(startDate, endDate);
-        }
-
+        const resolution = await this.resolve(options?.userId, options?.orgId);
+        if (!resolution) return this.buildEmptyReport(startDate, endDate);
         try {
-            const response = await resolution.webmasters.searchanalytics.query({
-                siteUrl: resolution.siteUrl,
-                requestBody: {
-                    startDate,
-                    endDate,
-                    dimensions: ['query', 'page'],
-                    rowLimit: limit,
-                    dimensionFilterGroups: [],
-                },
+            const rows = await this.runQuery(resolution, {
+                startDate, endDate, dimensions: ['query', 'page'], rowLimit: limit, dimensionFilterGroups: [],
             });
-
-            const queries = this.mapQueryRows(response.data.rows);
-
+            const queries = this.mapRows(rows);
             return {
                 queries,
-                totalClicks: queries.reduce((sum, query) => sum + query.clicks, 0),
-                totalImpressions: queries.reduce((sum, query) => sum + query.impressions, 0),
-                avgPosition: queries.length > 0
-                    ? queries.reduce((sum, query) => sum + query.position, 0) / queries.length
-                    : 0,
+                totalClicks: queries.reduce((s, q) => s + q.clicks, 0),
+                totalImpressions: queries.reduce((s, q) => s + q.impressions, 0),
+                avgPosition: queries.length > 0 ? queries.reduce((s, q) => s + q.position, 0) / queries.length : 0,
                 dateRange: { start: startDate, end: endDate },
             };
         } catch (error) {
-            logger.error('[GSC] Query failed', {
-                authMode: resolution.authMode,
-                error: error instanceof Error ? error.message : String(error),
-            });
-            return this.buildEmptyTopQueriesReport(startDate, endDate);
+            logger.error('[GSC] Query failed', { authMode: resolution.kind, error: error instanceof Error ? error.message : String(error) });
+            return this.buildEmptyReport(startDate, endDate);
         }
     }
 
-    /**
-     * Find low-competition opportunities (high impressions, low clicks, position 5-20)
-     */
     async findLowCompetitionOpportunities(
         limit: number = 20,
-        options?: { userId?: string, orgId?: string }
+        options?: { userId?: string; orgId?: string }
     ): Promise<LowCompetitionOpportunity[]> {
         const report = await this.getTopQueries(this.getDateDaysAgo(28), this.getDateDaysAgo(1), 500, options);
-
-        const opportunities: LowCompetitionOpportunity[] = report.queries
-            .filter((query) => query.impressions >= 10 && query.position > 4 && query.position < 30)
-            .map((query) => {
+        return report.queries
+            .filter((q) => q.impressions >= 10 && q.position > 4 && q.position < 30)
+            .map((q) => {
                 let opportunity: 'high' | 'medium' | 'low' = 'low';
                 let reason = '';
-
-                if (query.impressions >= 100 && query.ctr < 0.03 && query.position <= 10) {
+                if (q.impressions >= 100 && q.ctr < 0.03 && q.position <= 10) {
                     opportunity = 'high';
                     reason = 'High impressions with low CTR - improve title/description';
-                } else if (query.impressions >= 50 && query.position > 10 && query.position <= 20) {
+                } else if (q.impressions >= 50 && q.position > 10 && q.position <= 20) {
                     opportunity = 'medium';
                     reason = 'Close to page 1 - content optimization could boost rankings';
                 } else {
                     reason = 'Some search visibility - monitor for growth';
                 }
-
-                return { ...query, opportunity, reason };
+                return { ...q, opportunity, reason };
             })
-            .sort((left, right) => {
-                const opportunityOrder = { high: 0, medium: 1, low: 2 };
-                if (opportunityOrder[left.opportunity] !== opportunityOrder[right.opportunity]) {
-                    return opportunityOrder[left.opportunity] - opportunityOrder[right.opportunity];
-                }
-                return right.impressions - left.impressions;
+            .sort((a, b) => {
+                const order = { high: 0, medium: 1, low: 2 };
+                return order[a.opportunity] !== order[b.opportunity]
+                    ? order[a.opportunity] - order[b.opportunity]
+                    : b.impressions - a.impressions;
             })
             .slice(0, limit);
-
-        return opportunities;
     }
 
-    /**
-     * Get performance for specific pages (like our SEO pages)
-     */
     async getPagePerformance(
         pagePaths: string[],
         startDate: string = this.getDateDaysAgo(7),
         endDate: string = this.getDateDaysAgo(1),
-        options?: { userId?: string, orgId?: string }
+        options?: { userId?: string; orgId?: string }
     ): Promise<Record<string, SearchPerformanceData[]>> {
-        const resolution = await this.resolveWebmasters(options?.userId, options?.orgId);
-        if (!resolution) {
-            return {};
-        }
-
+        const resolution = await this.resolve(options?.userId, options?.orgId);
+        if (!resolution) return {};
         const results: Record<string, SearchPerformanceData[]> = {};
-
         for (const pagePath of pagePaths) {
             try {
-                const response = await resolution.webmasters.searchanalytics.query({
-                    siteUrl: resolution.siteUrl,
-                    requestBody: {
-                        startDate,
-                        endDate,
-                        dimensions: ['query'],
-                        dimensionFilterGroups: [{
-                            filters: [{
-                                dimension: 'page',
-                                operator: 'contains',
-                                expression: pagePath,
-                            }],
-                        }],
-                        rowLimit: 10,
-                    },
+                const rows = await this.runQuery(resolution, {
+                    startDate, endDate, dimensions: ['query'],
+                    dimensionFilterGroups: [{ filters: [{ dimension: 'page', operator: 'contains', expression: pagePath }] }],
+                    rowLimit: 10,
                 });
-
-                results[pagePath] = (response.data.rows || []).map((row) => ({
-                    query: row.keys?.[0] || '',
-                    page: pagePath,
-                    clicks: row.clicks || 0,
-                    impressions: row.impressions || 0,
-                    ctr: row.ctr || 0,
-                    position: row.position || 0,
-                }));
+                results[pagePath] = this.mapRows(rows, pagePath);
             } catch (error) {
-                logger.error('[GSC] Page query failed', {
-                    authMode: resolution.authMode,
-                    pagePath,
-                    error: error instanceof Error ? error.message : String(error),
-                });
+                logger.error('[GSC] Page query failed', { authMode: resolution.kind, pagePath, error: error instanceof Error ? error.message : String(error) });
                 results[pagePath] = [];
             }
         }
-
         return results;
     }
 
-    /**
-     * Get site-wide summary stats
-     */
     async getSiteSummary(
         days: number = 7,
-        options?: { userId?: string, orgId?: string }
-    ): Promise<{
-        clicks: number;
-        impressions: number;
-        ctr: number;
-        avgPosition: number;
-        dateRange: { start: string; end: string };
-    }> {
+        options?: { userId?: string; orgId?: string }
+    ): Promise<{ clicks: number; impressions: number; ctr: number; avgPosition: number; dateRange: { start: string; end: string } }> {
         const startDate = this.getDateDaysAgo(days);
         const endDate = this.getDateDaysAgo(1);
-        const resolution = await this.resolveWebmasters(options?.userId, options?.orgId);
-
-        if (!resolution) {
-            return { clicks: 0, impressions: 0, ctr: 0, avgPosition: 0, dateRange: { start: startDate, end: endDate } };
-        }
-
+        const resolution = await this.resolve(options?.userId, options?.orgId);
+        if (!resolution) return { clicks: 0, impressions: 0, ctr: 0, avgPosition: 0, dateRange: { start: startDate, end: endDate } };
         try {
-            const response = await resolution.webmasters.searchanalytics.query({
-                siteUrl: resolution.siteUrl,
-                requestBody: {
-                    startDate,
-                    endDate,
-                    dimensions: [],
-                    rowLimit: 1,
-                },
-            });
-
-            const row = response.data.rows?.[0];
+            const rows = await this.runQuery(resolution, { startDate, endDate, dimensions: [], rowLimit: 1 });
+            const row = rows[0];
             return {
                 clicks: row?.clicks || 0,
                 impressions: row?.impressions || 0,
@@ -389,10 +306,7 @@ export class SearchConsoleService {
                 dateRange: { start: startDate, end: endDate },
             };
         } catch (error) {
-            logger.error('[GSC] Summary failed', {
-                authMode: resolution.authMode,
-                error: error instanceof Error ? error.message : String(error),
-            });
+            logger.error('[GSC] Summary failed', { authMode: resolution.kind, error: error instanceof Error ? error.message : String(error) });
             return { clicks: 0, impressions: 0, ctr: 0, avgPosition: 0, dateRange: { start: startDate, end: endDate } };
         }
     }
