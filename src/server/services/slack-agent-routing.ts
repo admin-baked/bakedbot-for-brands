@@ -61,6 +61,14 @@ const CHANNEL_MAP: Array<{ prefix: string; personaId: string }> = [
   { prefix: 'thrive-syracuse', personaId: 'elroy' },
   { prefix: 'growth', personaId: 'day_day' },
   { prefix: 'seo', personaId: 'day_day' },
+  { prefix: 'day-day', personaId: 'day_day' },
+  { prefix: 'pops', personaId: 'pops' },
+  { prefix: 'mike', personaId: 'money_mike' },
+  { prefix: 'smokey', personaId: 'smokey' },
+  { prefix: 'parker', personaId: 'mrs_parker' },
+  { prefix: 'deebo', personaId: 'deebo' },
+  { prefix: 'bigworm', personaId: 'bigworm' },
+  { prefix: 'felisha', personaId: 'felisha' },
 ];
 
 export function isGreeting(text: string): boolean {
