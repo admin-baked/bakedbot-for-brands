@@ -82,6 +82,7 @@ interface AuditReport {
     auditDate: string;
     totalResponses: number;
     graded: number;
+    ungradedCount?: number;
     grades: { great: number; good: number; acceptable: number; poor: number; fail: number };
     averageScore: number;
     agentBreakdown: Record<string, { total: number; great: number; good: number; poor: number; fail: number; avgScore: number }>;
@@ -141,6 +142,45 @@ Respond with a JSON array of objects, one per response. ONLY output the JSON arr
 // Core audit logic
 // ---------------------------------------------------------------------------
 
+/**
+ * Grade a single batch using Gemini Flash (free) → Groq → Claude Haiku fallback.
+ * Returns raw JSON string on success, throws on total failure.
+ */
+async function callGrader(prompt: string): Promise<string> {
+    // Tier 1: Gemini Flash — free, no rate limits
+    if (isGeminiFlashConfigured()) {
+        try {
+            return await callGemini({
+                systemPrompt: GRADING_SYSTEM_PROMPT,
+                userMessage: prompt,
+                maxTokens: 2048,
+                temperature: 0.2,
+                caller: 'daily-response-audit-gemini',
+            });
+        } catch (err) {
+            logger.warn('[ResponseAudit] Gemini grading failed, trying Groq', {
+                error: err instanceof Error ? err.message : String(err),
+            });
+        }
+    }
+
+    // Tier 2: Groq — free but rate-limited
+    try {
+        return await callGroqOrClaude({
+            systemPrompt: GRADING_SYSTEM_PROMPT,
+            userMessage: prompt,
+            maxTokens: 2048,
+            temperature: 0.2,
+            caller: 'daily-response-audit-groq',
+        });
+    } catch (err) {
+        logger.warn('[ResponseAudit] Groq+Claude grading failed', {
+            error: err instanceof Error ? err.message : String(err),
+        });
+        throw err;
+    }
+}
+
 async function gradeResponses(responses: SlackResponseRecord[]): Promise<GradedResponse[]> {
     // Batch into chunks of 10 for grading
     const BATCH_SIZE = 10;
@@ -157,14 +197,10 @@ Agent: ${r.agentResponse.slice(0, 500)}
 Tools: ${r.toolCalls?.join(', ') || 'none'}`
         )).join('\n\n---\n\n');
 
+        const prompt = `Grade these ${batch.length} agent responses:\n\n${formattedBatch}`;
+
         try {
-            const raw = await callGroqOrClaude({
-                systemPrompt: GRADING_SYSTEM_PROMPT,
-                userMessage: `Grade these ${batch.length} agent responses:\n\n${formattedBatch}`,
-                maxTokens: 2048,
-                temperature: 0.2,
-                caller: 'daily-response-audit',
-            });
+            const raw = await callGrader(prompt);
 
             const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
             const grades = JSON.parse(cleaned);
@@ -189,19 +225,19 @@ Tools: ${r.toolCalls?.join(', ') || 'none'}`
                 });
             }
         } catch (err) {
-            logger.warn('[ResponseAudit] Grading batch failed', {
+            logger.warn('[ResponseAudit] All grading tiers failed for batch', {
                 batchStart: i,
                 error: err instanceof Error ? err.message : String(err),
             });
-            // Mark batch as ungraded
+            // Mark batch as ungraded — distinct from real grades so coaching pipeline skips them
             batch.forEach((r) => {
                 graded.push({
                     agent: r.agent,
                     userMessage: r.userMessage.slice(0, 200),
                     agentResponse: r.agentResponse.slice(0, 300),
                     grade: 'acceptable',
-                    score: 50,
-                    issue: 'Grading failed — skipped',
+                    score: -1,
+                    issue: 'UNGRADED — all grading tiers failed',
                     channel: r.channel,
                     timestamp: r.date,
                 });
@@ -237,6 +273,19 @@ ${issueList || 'None'}
 
 Be specific about which agents need attention, their average scores, and what the common failure patterns are. If coaching patches were generated via Opus+Gemini deliberation, mention that. If all agents scored 95+, celebrate briefly.`;
 
+    // Use Gemini Flash (free) for summary, fallback to Groq/Claude
+    if (isGeminiFlashConfigured()) {
+        try {
+            return await callGemini({
+                userMessage: prompt,
+                maxTokens: 500,
+                temperature: 0.3,
+                caller: 'daily-response-audit-summary',
+            });
+        } catch {
+            // Fall through to Groq/Claude
+        }
+    }
     return callGroqOrClaude({
         userMessage: prompt,
         maxTokens: 500,
@@ -617,11 +666,15 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         // Grade responses
         const graded = await gradeResponses(toGrade);
 
-        // Build report
+        // Separate real grades from ungraded (score=-1 = grading tiers all failed)
+        const realGraded = graded.filter((g) => g.score >= 0);
+        const ungradedCount = graded.length - realGraded.length;
+
+        // Build report from real grades only
         const grades = { great: 0, good: 0, acceptable: 0, poor: 0, fail: 0 };
         const agentBreakdown: Record<string, { total: number; great: number; good: number; poor: number; fail: number; avgScore: number; _scoreSum: number }> = {};
 
-        for (const g of graded) {
+        for (const g of realGraded) {
             grades[g.grade]++;
             if (!agentBreakdown[g.agent]) {
                 agentBreakdown[g.agent] = { total: 0, great: 0, good: 0, poor: 0, fail: 0, avgScore: 0, _scoreSum: 0 };
@@ -641,15 +694,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             totalScore += stats._scoreSum;
             delete (stats as Record<string, unknown>)['_scoreSum'];
         }
-        const averageScore = graded.length > 0 ? Math.round(totalScore / graded.length) : 0;
+        const averageScore = realGraded.length > 0 ? Math.round(totalScore / realGraded.length) : 0;
 
-        // Include all non-great responses as issues for coaching consideration
-        const issues = graded.filter((g) => g.grade !== 'great');
+        // Include non-great REAL grades as issues for coaching (exclude ungraded)
+        const issues = realGraded.filter((g) => g.grade !== 'great');
 
         const partialReport = {
             auditDate: startDate.toISOString().split('T')[0],
             totalResponses: responses.length,
-            graded: graded.length,
+            graded: realGraded.length,
+            ungradedCount,
             grades,
             averageScore,
             agentBreakdown: agentBreakdown as Record<string, { total: number; great: number; good: number; poor: number; fail: number; avgScore: number }>,
@@ -678,7 +732,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             reportId,
             coachingPatches: coachingPatches.length,
             totalResponses: responses.length,
-            graded: graded.length,
+            graded: realGraded.length,
+            ungradedCount,
             grades,
             issueCount: issues.length,
         });
@@ -687,7 +742,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             ok: true,
             reportId,
             totalResponses: responses.length,
-            graded: graded.length,
+            graded: realGraded.length,
+            ungradedCount,
             averageScore,
             grades,
             issueCount: issues.length,
