@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** ðŸŸ¢ Production live; Thrive 4/20 email strategy + Elroy playbook tool
-**Recent work (2026-04-12):** `ae4512ee5` Elroy `get_playbooks` tool, 2 playbooks (welcome + 4/20) paused pending Archie/Ade approval, SES smoke test for hello@thrive.bakedbot.ai
-**Prior (2026-04-12):** `166e67cdb` HeyGen video pipeline; `765bfc342` Overnight training orchestrator + Hive Mind; `8f922bc7b` Cannabis data portal
+**Current Status:** ðŸŸ¢ Production live; GA4+GSC wired — Day Day SEO reports to Marty in #ceo
+**Recent work (2026-04-12):** `82c71c87d` GA4/GSC auth fix (JWT client + sc-domain URL), Day Day SEO cron, shared google-auth-helpers.ts
+**Prior (2026-04-12):** `ae4512ee5` Elroy playbook tool; `166e67cdb` HeyGen video pipeline; `8f922bc7b` Cannabis data portal
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
 - 7-day retention nudge email (cron job)
