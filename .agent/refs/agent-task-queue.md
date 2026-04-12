@@ -1,175 +1,180 @@
-# Agent Task Queue
+# Authentication Flow Bugs - 2026-04-12
 
-> How agents file findings, hand off work, and track resolution.
+## Bugs Found
 
----
+### BUG-001: Admin Routes Missing Authentication
+**Severity:** CRITICAL
+**Category:** security
+**File:** `src/app/api/admin/set-claims/route.ts`, `src/app/api/admin/seed/route.ts`, `src/app/api/admin/debug-booking/route.ts`
 
-## Overview
+**Issue:** Several `/api/admin/*` routes have no authentication whatsoever.
 
-The **agent task queue** (`agent_tasks` Firestore collection) is the standard way for any agent, cron job, or external tool to say "something needs fixing" and have it picked up by Linus or another builder agent.
+**Details:**
+- `set-claims`: No auth - anyone can set custom claims on any user
+- `seed`: Weak key auth only (`key=bakedbot_seed_2025`) - not a secure secret
+- `debug-booking`: Weak secret (`secret=bakedbot-dev-secret`) - not CRON_SECRET
 
-Tasks are stored as **markdown-friendly documents** — both humans (via the Mission Control dashboard) and agents (via tools or API) can read them naturally.
-
----
-
-## Architecture
-
-```
-                                 ┌──────────────────┐
-  Opencode / CLI ──POST──────→  │  /api/agent-tasks │
-  Daily Audit Cron ─auto-file→  │  (REST endpoint)  │
-  Any Agent ──────────────────→  └────────┬─────────┘
-                                          │
-                                          ▼
-                              ┌─────────────────────┐
-                              │  agent_tasks (Fstore)│
-                              │  status: open        │
-                              └────────┬────────────┘
-                                       │
-                      ┌────────────────┼────────────────┐
-                      ▼                ▼                 ▼
-              Linus tool       Dashboard panel     GET ?format=markdown
-           check_task_queue    AgentTaskBoard       (any consumer)
-              claim → fix      claim / complete
-              complete
-```
+**Recommendation:** Add `requireSuperUser()` to all admin routes.
 
 ---
 
-## Key Files
+### BUG-002: Webhook Signature Verification Inconsistent
+**Severity:** HIGH
+**Category:** security
+**File:** `src/app/api/webhooks/alleaves/route.ts`
 
-| File | Purpose |
-|------|---------|
-| `src/types/agent-task.ts` | Types + markdown rendering (`renderTaskMarkdown`, `renderTaskBoardMarkdown`) |
-| `src/server/actions/agent-tasks.ts` | Server actions: `createTaskInternal`, `listAgentTasks`, `claimTask`, `updateTaskStatus`, `getTaskBoardMarkdown` |
-| `src/app/api/agent-tasks/route.ts` | REST API (POST/GET/PATCH, `CRON_SECRET` auth) |
-| `src/app/api/cron/daily-response-audit/route.ts` | Auto-files tasks for agents scoring poor/fail |
-| `src/server/agents/linus.ts` | `check_task_queue` tool (list/claim/complete/markdown) |
-| `src/app/dashboard/ceo/components/agent-task-board.tsx` | Dashboard UI with expandable cards |
-| `src/app/dashboard/ceo/components/mission-control-tab.tsx` | Task board integrated into Mission Control |
+**Issue:** Signature verification is SKIPPED in development mode (`NODE_ENV !== 'production'`).
 
----
-
-## Firestore Schema
-
-Collection: `agent_tasks`
-
+**Details:** Line 98-108 skips signature verification entirely in non-production:
 ```typescript
-interface AgentTask {
-    id: string;
-    title: string;
-    body: string;              // Markdown — the finding, context, suggestion
-    status: 'open' | 'claimed' | 'in_progress' | 'done' | 'wont_fix';
-    priority: 'critical' | 'high' | 'normal' | 'low';
-    category: 'bug' | 'feature' | 'refactor' | 'performance' | 'security'
-            | 'compliance' | 'infra' | 'data' | 'agent_quality' | 'other';
-    reportedBy: string;        // 'opencode', 'daily-response-audit', 'pinky', 'manual'
-    assignedTo: string | null; // 'linus', 'opencode', 'claude-code', or null
-    filePath?: string;
-    errorSnippet?: string;
-    relatedCommit?: string;
-    resolvedCommit?: string;
-    resolutionNote?: string;   // Markdown
-    createdAt: string;         // ISO
-    updatedAt: string;         // ISO
-    claimedAt?: string;
-    resolvedAt?: string;
+if (process.env.NODE_ENV === 'production' && webhookSecret) {
+  const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret);
+  // ...
+}
+```
+
+**Impact:** Webhooks can be injected in development/staging environments.
+
+**Recommendation:** Use CRON_SECRET pattern for webhooks (like other cron routes), or require signature verification in all environments with a proper secret.
+
+---
+
+### BUG-003: Session Cookie Bypass in Development
+**Severity:** MEDIUM
+**Category:** security
+**File:** `src/server/auth/auth.ts`
+
+**Issue:** Mock session bypass allows any role simulation in development without real auth.
+
+**Details:** Lines 69-94 allow bypass with `x-simulated-role` cookie:
+- Any role can be simulated
+- No actual Firebase authentication required
+- Could accidentally ship to production if `NODE_ENV` check fails
+
+**Recommendation:** Ensure this code path NEVER executes in production. Add additional safeguard:
+```typescript
+if (isDev && simulatedRole) {
+  // Add explicit dev-only safeguard
+  if (process.env.NODE_ENV !== 'development') {
+    throw new Error('Dev bypass attempted in production');
+  }
+  // ...
 }
 ```
 
 ---
 
-## How to File a Task
+### BUG-004: Mock API Key Validation Always Returns True
+**Severity:** HIGH
+**Category:** security
+**File:** `src/server/auth/api-key-auth.ts`
 
-### From an agent (server-side)
-
+**Issue:** The `hasPermission` function is hardcoded to return `true`:
 ```typescript
-import { createTaskInternal } from '@/server/actions/agent-tasks';
+const hasPermission = (record: any, perm: string) => true;
+```
 
-await createTaskInternal({
-    title: 'Gmail token refresh failing in prod',
-    body: 'getCeoGmailClient() returns null because...',
-    priority: 'high',
-    category: 'bug',
-    reportedBy: 'opencode',
-    filePath: 'src/server/agents/marty.ts',
+**Impact:** All API keys have ALL permissions regardless of what was configured.
+
+**Recommendation:** Implement actual permission checking logic.
+
+---
+
+### BUG-005: Admin Debug Routes Expose Sensitive Data
+**Severity:** MEDIUM
+**Category:** security
+**File:** `src/app/api/admin/debug-user/route.ts`
+
+**Issue:** Returns sensitive token data (brandId, locationId, currentOrgId) without proper access control.
+
+**Details:** Only uses `requireUser()` - any authenticated user can query this and see org membership details of all users.
+
+**Recommendation:** Restrict to super_user role only:
+```typescript
+const user = await requireSuperUser();
+```
+
+---
+
+### BUG-006: Role Simulation Allows Any Role
+**Severity:** MEDIUM
+**Category:** security
+**File:** `src/server/auth/auth.ts`
+
+**Issue:** Role simulation (lines 134-148) allows super users to set ANY role including `super_user` itself without verification.
+
+**Details:** The whitelist only checks format, not actual permissions needed for sensitive roles:
+```typescript
+if (simulatedRole && ['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'customer'].includes(simulatedRole)) {
+```
+
+Missing: `super_user`, `super_admin`
+
+**Recommendation:** Add explicit audit logging when role simulation is used.
+
+---
+
+### BUG-007: API Key Auth Returns Mock Data
+**Severity:** HIGH
+**Category:** security
+**File:** `src/server/auth/api-key-auth.ts`
+
+**Issue:** API key validation returns a mock record instead of actually validating:
+```typescript
+const validateAPIKey = async (key: string): Promise<APIKeyRecord> => ({
+    id: 'mock',
+    orgId: 'mock',
+    permissions: [...ALL_API_PERMISSIONS],
+    // ...
 });
 ```
 
-### From CLI / Opencode (REST API)
+**Impact:** ALL API requests using key auth bypass actual validation.
 
-```bash
-curl -X POST https://bakedbot.ai/api/agent-tasks \
-  -H "Authorization: Bearer $CRON_SECRET" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Gmail token refresh failing",
-    "body": "getCeoGmailClient() returns null because...",
-    "priority": "high",
-    "category": "bug",
-    "reportedBy": "opencode",
-    "filePath": "src/server/agents/marty.ts"
-  }'
+**Recommendation:** Implement real API key validation or remove the endpoint until it's ready.
+
+---
+
+### BUG-008: Missing Org Access Verification
+**Severity:** HIGH
+**Category:** bug
+**File:** Various server actions
+
+**Issue:** Some routes verify user identity but not org access.
+
+**Example:** In `src/app/api/billing/authorize-net/route.ts`, `verifyOrgAccess` exists but may not be called consistently.
+
+**Recommendation:** Audit all routes that take `orgId` in the request body to ensure `verifyOrgAccess` is called.
+
+---
+
+### BUG-009: Webhook orgId Inference Can Be Manipulated
+**Severity:** MEDIUM
+**Category:** security
+**File:** `src/app/api/webhooks/alleaves/route.ts`
+
+**Issue:** orgId is taken from the webhook payload (`payload.data.orgId`) without validation.
+
+**Details:** Line 123 - directly uses `payload.data.orgId` which could be spoofed.
+
+**Recommendation:** Validate orgId against the organization's known configuration or verify webhook signature includes orgId.
+
+---
+
+### BUG-010: Cron Secret Check Uses String Equality
+**Severity:** LOW
+**Category:** security
+**File:** `src/app/api/agent-tasks/route.ts`
+
+**Issue:** Uses direct string equality for cron secret check:
+```typescript
+return auth === `Bearer ${cronSecret}`;
 ```
 
-### From Linus (tool call)
+**Vulnerability:** Vulnerable to timing attacks.
 
-Linus doesn't typically file tasks (he fixes them), but can via `createTaskInternal` in any tool executor.
-
----
-
-## How to Read / Claim / Complete Tasks
-
-### Linus tool: `check_task_queue`
-
-| Action | Input | Effect |
-|--------|-------|--------|
-| `list` | — | Returns open/claimed tasks as JSON |
-| `markdown` | — | Returns full board as readable markdown |
-| `claim` | `taskId` | Sets status=claimed, assignedTo=linus |
-| `complete` | `taskId`, `resolutionNote?`, `resolvedCommit?` | Sets status=done |
-
-### REST API
-
-```bash
-# List open tasks as JSON
-curl -H "Authorization: Bearer $CRON_SECRET" \
-  "https://bakedbot.ai/api/agent-tasks?status=open"
-
-# Full board as markdown
-curl -H "Authorization: Bearer $CRON_SECRET" \
-  "https://bakedbot.ai/api/agent-tasks?format=markdown"
-
-# Claim a task
-curl -X PATCH -H "Authorization: Bearer $CRON_SECRET" \
-  -d '{"taskId":"abc123","action":"claim","claimedBy":"opencode"}' \
-  https://bakedbot.ai/api/agent-tasks
-
-# Complete a task
-curl -X PATCH -H "Authorization: Bearer $CRON_SECRET" \
-  -d '{"taskId":"abc123","status":"done","resolutionNote":"Fixed in commit abc"}' \
-  https://bakedbot.ai/api/agent-tasks
+**Recommendation:** Use constant-time comparison:
+```typescript
+import { timingSafeEqual } from 'crypto';
+// or use a timing-safe comparison library
 ```
-
-### Dashboard
-
-Super users see the **Agent Task Board** on Mission Control (`/dashboard/ceo`). Cards are expandable with claim/complete buttons.
-
----
-
-## Auto-Filing Sources
-
-| Source | When | What gets filed |
-|--------|------|-----------------|
-| `daily-response-audit` cron | 7 AM CST daily | One task per agent scoring poor/fail, assigned to linus |
-| Manual (dashboard/API) | Anytime | Whatever the user or agent describes |
-
----
-
-## Design Principles
-
-1. **Markdown-first** — tasks render as readable markdown for both humans and agents
-2. **Lightweight** — no complex workflow states. Open -> Claimed -> Done.
-3. **Agent-native** — tools and API endpoints so any agent can participate
-4. **Dashboard-visible** — super users see everything on Mission Control
-5. **Auto-filing** — crons create tasks automatically, no human needed to notice problems
