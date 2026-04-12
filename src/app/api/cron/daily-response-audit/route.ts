@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
-import { callGroqOrClaude } from '@/ai/glm';
+import { callGroqOrClaude, callGLM, isGLMConfigured, GLM_MODELS } from '@/ai/glm';
 import { getResponsesByDateRange } from '@/server/services/slack-response-archive';
 import type { SlackResponseRecord } from '@/server/services/slack-response-archive';
 import { postLinusIncidentSlack } from '@/server/services/incident-notifications';
@@ -392,49 +392,79 @@ Generate a coaching patch as JSON:
     });
 }
 
-/**
- * Step 2: Gemini reviews and challenges the Opus proposal
- */
-async function geminiReview(agent: string, opusProposal: string, issueDetails: string): Promise<string> {
-    if (!isGeminiFlashConfigured()) {
-        return JSON.stringify({ approved: true, critique: 'Gemini unavailable — proposal accepted as-is', suggestions: [] });
-    }
+const ADVERSARY_REVIEW_PROMPT = `You are a senior AI systems reviewer acting as an ADVERSARY. Another AI coach proposed a coaching patch for a failing agent. Your job is to CHALLENGE the proposal — find weaknesses, missing patterns, vague instructions, and potential conflicts. Be tough but fair.
 
-    // Use Gemini 3 Pro (smartest Gemini) for the critical review step
-    return callGemini({
-        model: 'googleai/gemini-3-pro-preview',
-        systemPrompt: `You are a senior AI systems reviewer. Another AI coach (Opus) has proposed a coaching patch for a failing agent. Your job is to critically review the proposal and either approve it, challenge specific instructions, or add missing coaching that Opus overlooked.
+You are from a DIFFERENT model family than the proposer. Use your different perspective to catch blind spots the proposer's training might have missed.
 
 Focus your review on:
 1. Are the instructions TESTABLE? Could you verify the agent follows them?
 2. Are any instructions too vague or too narrow? (Good: "When POS tool returns empty, say 'I couldn't find that product' and suggest searching by category". Bad: "Handle errors better")
-3. Did Opus miss any failure patterns visible in the data?
-4. For LONG CONVERSATION failures: Did Opus address context management and compaction?
-5. For TOOL USE failures: Did Opus address when to retry vs. when to gracefully degrade?
-6. For WEB BROWSING failures: Did Opus address source citation and synthesis?
+3. Did the proposer miss any failure patterns visible in the data?
+4. For LONG CONVERSATION failures: Did the proposer address context management and compaction?
+5. For TOOL USE failures: Did the proposer address when to retry vs. when to gracefully degrade?
+6. For WEB BROWSING failures: Did the proposer address source citation and synthesis?
 7. Would these instructions conflict with each other or with the agent's core role?
+8. Are there edge cases or failure modes the proposer didn't consider?
+
+Be specific. "This is too vague" is unhelpful. "Instruction 3 says 'handle errors gracefully' but doesn't specify whether to retry, show a fallback message, or escalate — pick one" is useful.
 
 Output JSON:
 {
   "approved": true/false,
   "critique": "overall assessment",
-  "missingPatterns": ["patterns Opus missed"],
+  "missingPatterns": ["patterns the proposer missed"],
   "improvedInstructions": ["rewritten or additional instructions"],
   "removedInstructions": ["instructions that are too vague or counterproductive"],
   "suggestedExamples": [{ "userMessage": "...", "badResponse": "...", "improvedResponse": "..." }]
-}`,
-        userMessage: `Agent "${agent}" has these failures:
+}`;
+
+/**
+ * Step 2: Adversarial review — Groq Llama (Meta) → Gemini 3 Pro (Google) fallback.
+ * Different model family from proposer ensures real tension, not echo chamber.
+ * Slow-walked: coaching runs ~4 agents/day, well under Groq's 30 req/min.
+ */
+async function adversarialReview(agent: string, proposal: string, issueDetails: string): Promise<{ text: string; model: string }> {
+    const userMessage = `Agent "${agent}" has these failures:
 
 ${issueDetails}
 
-Opus proposed this coaching patch:
-${opusProposal}
+A coaching patch was proposed:
+${proposal}
 
-Review the proposal. Be specific about what's good, what's missing, and what needs to change.`,
-        maxTokens: 1500,
-        temperature: 0.3,
-        caller: 'deliberative-coaching-gemini-review',
-    });
+Review the proposal as an adversary. Be specific about what's good, what's missing, and what needs to change.`;
+
+    // Tier 1: Groq Llama 3.3 70B — Meta training, genuinely different perspective from Gemini/Claude
+    if (isGLMConfigured()) {
+        try {
+            const text = await callGLM({
+                systemPrompt: ADVERSARY_REVIEW_PROMPT,
+                userMessage,
+                model: GLM_MODELS.STRATEGIC,
+                maxTokens: 1500,
+                temperature: 0.3,
+            });
+            return { text, model: 'groq-llama-3.3-70b' };
+        } catch (err) {
+            logger.warn('[ResponseAudit] Groq adversary review failed, falling back to Gemini 3 Pro', {
+                error: err instanceof Error ? err.message : String(err),
+            });
+        }
+    }
+
+    // Tier 2: Gemini 3 Pro — different from proposer (Opus/Gemini Flash), strong reasoning
+    if (isGeminiFlashConfigured()) {
+        const text = await callGemini({
+            model: 'googleai/gemini-3-pro-preview',
+            systemPrompt: ADVERSARY_REVIEW_PROMPT,
+            userMessage,
+            maxTokens: 1500,
+            temperature: 0.3,
+            caller: 'deliberative-coaching-adversary-gemini3pro',
+        });
+        return { text, model: 'gemini-3-pro' };
+    }
+
+    return { text: JSON.stringify({ approved: true, critique: 'No adversary available — proposal accepted as-is', suggestions: [] }), model: 'none' };
 }
 
 /**
@@ -501,29 +531,34 @@ async function generateCoachingPatches(
             // === DELIBERATIVE PIPELINE: Propose → Review → Synthesize (Opus preferred, Gemini fallback) ===
             logger.info('[ResponseAudit] Deliberative coaching starting', { agent });
 
-            // Step 1: Propose initial patch
+            // Step 1: Propose initial coaching patch
             const proposal = await opusPropose(agent, failRate, stats, issueDetails);
 
-            // Step 2: Gemini reviews the proposal
-            const geminiRaw = await geminiReview(agent, proposal.text, issueDetails);
+            // Slow-walk: 3s pause between model calls to stay under rate limits
+            await new Promise((r) => setTimeout(r, 3000));
 
-            // Step 3: Synthesize final agreed patch
-            const synthesis = await opusSynthesize(agent, proposal.text, geminiRaw);
+            // Step 2: Adversarial review (different model family for real tension)
+            const review = await adversarialReview(agent, proposal.text, issueDetails);
+
+            await new Promise((r) => setTimeout(r, 3000));
+
+            // Step 3: Synthesize final agreed patch from both perspectives
+            const synthesis = await opusSynthesize(agent, proposal.text, review.text);
 
             const cleaned = synthesis.text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
             const patch = JSON.parse(cleaned) as CoachingPatch;
 
-            // Preserve the full deliberation record
-            const modelsUsed = `propose:${proposal.model}, review:gemini, synthesize:${synthesis.model}`;
+            // Preserve the full deliberation record with model provenance
+            const modelsUsed = `propose:${proposal.model}, adversary:${review.model}, synthesize:${synthesis.model}`;
             if (!patch.deliberation) {
                 patch.deliberation = {
                     opusProposal: proposal.text.slice(0, 500),
-                    geminiReview: geminiRaw.slice(0, 500),
-                    agreement: `Synthesized from both perspectives (${modelsUsed})`,
+                    geminiReview: review.text.slice(0, 500),
+                    agreement: `Synthesized with adversarial review (${modelsUsed})`,
                 };
             } else {
                 patch.deliberation.opusProposal = proposal.text.slice(0, 500);
-                patch.deliberation.geminiReview = geminiRaw.slice(0, 500);
+                patch.deliberation.geminiReview = review.text.slice(0, 500);
             }
 
             patches.push(patch);
