@@ -11,7 +11,7 @@ import { InvitationsList } from '@/components/invitations/invitations-list';
 import { useEffect, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import nextDynamic from 'next/dynamic';
-import type { SuperUserStatusCounts } from '@/server/actions/action-types';
+// SuperUserStatusCounts now consumed inside MissionControlTab
 
 const TabLoader = () => <div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
@@ -35,6 +35,7 @@ const CeoSettingsTab = nextDynamic(() => import("./components/ceo-settings-tab")
 const GLMSettingsTab = nextDynamic(() => import("./components/glm-settings-tab"), { loading: TabLoader, ssr: false });
 const AgentSandbox = nextDynamic(() => import("./components/agent-sandbox").then(mod => mod.AgentSandbox), { loading: TabLoader, ssr: false });
 const EmailTesterTab = nextDynamic(() => import("./components/email-tester-tab"), { loading: TabLoader, ssr: false });
+const MissionControlTab = nextDynamic(() => import("./components/mission-control-tab"), { loading: TabLoader, ssr: false });
 const BoardroomTab = nextDynamic(() => import("./components/boardroom-tab"), { loading: TabLoader, ssr: false });
 const CodeEvalsTab = nextDynamic(() => import("./components/code-evals-tab"), { loading: TabLoader, ssr: false });
 const DevConsoleTab = nextDynamic(() => import("./components/dev-console-tab").then(mod => mod.DevConsoleTab), { loading: TabLoader, ssr: false });
@@ -60,11 +61,7 @@ const SkillOptimizationTab = nextDynamic(() => import("./components/skill-optimi
 
 import { useUserRole } from '@/hooks/use-user-role';
 import { isSuperAdminEmail } from '@/lib/super-admin-config';
-import { Loader2, Shield, MoreHorizontal } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import Link from 'next/link';
+import { Loader2, Shield } from 'lucide-react';
 import { ClientOnly } from '@/components/client-only';
 import { RoleSwitcher } from '@/components/debug/role-switcher';
 import { MockDataToggle } from '@/components/debug/mock-data-toggle';
@@ -129,19 +126,18 @@ function CeoDashboardContent() {
     const { user, isLoading: isAuthLoading, isSuperUser } = useUserRole();
     const { clearCurrentSession } = useAgentChatStore();
 
-    // Proactive status counts for the dashboard banner
-    const [statusCounts, setStatusCounts] = useState<SuperUserStatusCounts | null>(null);
+    // Status counts moved to MissionControlTab (Principle 3: status-forward landing)
 
     // Server-side layout already enforces `requireSuperUser()`, but we keep
     // a client-side guard to handle expired sessions / client-only navigation.
     const canAccessCeo = Boolean(isSuperUser || isSuperAdminEmail(user?.email));
     const userUid = user?.uid ?? null;
     const hydratedSessionsUserRef = useRef<string | null>(null);
-    const statusCountsUserRef = useRef<string | null>(null);
+    // statusCountsUserRef removed — status loading is in MissionControlTab
     const clearedDashboardSessionRef = useRef(false);
 
     // Sync tabs with URL ?tab=...
-    const currentTab = searchParams?.get('tab') || 'boardroom'; // Default to Boardroom
+    const currentTab = searchParams?.get('tab') || 'home'; // Default to Mission Control
 
     useEffect(() => {
         if (!canAccessCeo) {
@@ -192,78 +188,9 @@ function CeoDashboardContent() {
         });
     }, [canAccessCeo, currentTab, userUid]);
 
-    useEffect(() => {
-        if (!canAccessCeo || !userUid) {
-            statusCountsUserRef.current = null;
-            setStatusCounts(null);
-            return;
-        }
+    // Status counts loading moved to MissionControlTab
 
-        if (statusCountsUserRef.current === userUid) {
-            return;
-        }
-
-        statusCountsUserRef.current = userUid;
-
-        import('@/server/actions/ny-outreach-dashboard').then(({ getSuperUserStatusCounts }) => {
-            getSuperUserStatusCounts().then(result => {
-                if (result.success && result.counts) {
-                    setStatusCounts(result.counts);
-                    return;
-                }
-
-                statusCountsUserRef.current = null;
-                setStatusCounts(null);
-            }).catch(() => {
-                statusCountsUserRef.current = null;
-                setStatusCounts(null);
-            });
-        }).catch(() => {
-            statusCountsUserRef.current = null;
-            setStatusCounts(null);
-        });
-    }, [canAccessCeo, userUid]);
-
-    // Clear chat session on mount to prevent leakage from public/customer context
-    useEffect(() => {
-        return;
-
-        if (!canAccessCeo) {
-            // Hydrate sessions globally on dashboard load
-            if (userUid) {
-                import('@/server/actions/chat-persistence').then(({ getChatSessions }) => {
-                    getChatSessions(userUid ?? undefined).then(result => {
-                        if (result.success && Array.isArray(result.sessions)) {
-                            // Revive dates from ISO strings
-                            const hydratedSessions = result.sessions.map((s: any) => ({
-                                ...s,
-                                timestamp: new Date(s.timestamp),
-                                messages: Array.isArray(s.messages) ? s.messages.map((m: any) => ({
-                                    ...m,
-                                    timestamp: new Date(m.timestamp)
-                                })) : []
-                            }));
-                            // Update store with loaded sessions
-                            useAgentChatStore.getState().hydrateSessions(hydratedSessions);
-                        }
-                    }).catch(err => {
-                        console.error("Failed to hydrate sessions (client):", err);
-                    });
-                }).catch(err => {
-                    console.error("Failed to load chat persistence actions:", err);
-                });
-
-                // Load proactive status counts (non-blocking — banner appears after auth)
-                import('@/server/actions/ny-outreach-dashboard').then(({ getSuperUserStatusCounts }) => {
-                    getSuperUserStatusCounts().then(result => {
-                        if (result.success && result.counts) {
-                            setStatusCounts(result.counts);
-                        }
-                    }).catch(() => { /* non-critical — banner just stays hidden */ });
-                }).catch(() => { /* non-critical — banner just stays hidden */ });
-            }
-        }
-    }, [canAccessCeo, clearCurrentSession, user]);
+    // Dead code removed — status counts + session hydration handled above and in MissionControlTab
 
 
 
@@ -321,40 +248,11 @@ function CeoDashboardContent() {
         return null; // Don't render anything while redirecting
     }
 
-    // Proactive status chip row — shown only when there are items needing attention
-    const hasStatusItems = statusCounts && (
-        statusCounts.pendingOutreachDrafts > 0 ||
-        statusCounts.pendingBlogDrafts > 0 ||
-        statusCounts.unenrichedLeads > 0 ||
-        statusCounts.apolloCreditsRemaining < 25
-    );
-
     // Authorized - show CEO dashboard
-    const priorityTools = [
-        { href: '/dashboard/inbox', label: 'Inbox' },
-        { href: '?tab=boardroom', label: 'Boardroom' },
-        { href: '?tab=outreach', label: 'Outreach' },
-        { href: '/dashboard/creative', label: 'Creative Center' },
-        { href: '?tab=calendar', label: 'Meetings' },
-    ];
-
-    const meetingTools = [
-        { href: '/book/martez', label: 'Book Martez' },
-        { href: '/book/jack', label: 'Book Jack' },
-    ];
-
-    const powerTools = [
-        { href: '?tab=health', label: 'System Health' },
-        { href: '?tab=email', label: 'Email Tester' },
-        { href: '?tab=content', label: 'Content' },
-        { href: '?tab=ai-settings', label: 'AI Settings' },
-        { href: '?tab=dev-console', label: 'Dev Console' },
-        { href: '?tab=qa', label: 'QA' },
-        { href: '?tab=skills-lab', label: 'Skills Lab' },
-    ];
 
     const renderContent = () => {
         switch (currentTab) {
+            case 'home': return <MissionControlTab />;
             case 'agents': return <SuperAdminAgentChat />;
             // Unified Analytics (consolidated from analytics, usage, insights, ezal, competitor-intel, research)
             case 'analytics':
@@ -404,177 +302,32 @@ function CeoDashboardContent() {
             case 'content': return <ContentCeoTab />;
             case 'skills-lab': return <SkillOptimizationTab />;
             case 'ai-settings': return <GLMSettingsTab />;
-            default: return <SuperUserPlaybooksPage />;
+            default: return <MissionControlTab />;
         }
     };
 
     return (
-        <div className="space-y-6">
-            {/* Super Admin Header */}
-            <div className="rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-                            <Shield className="h-5 w-5 text-green-600" />
-                        </div>
-                        <div>
-                            <p className="font-display text-xl font-bold text-green-900">Super User Mode</p>
-                            <p className="text-sm text-green-700">{user?.email || 'Authenticated'}</p>
-                        </div>
+        <div className="space-y-4">
+            {/* Minimal Super User Header — Principle 2: sidebar is the nav, not this */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100">
+                        <Shield className="h-4 w-4 text-green-600" />
                     </div>
-                {/* Mobile: compact Sheet trigger */}
-                <div className="flex sm:hidden items-center gap-2">
-                    <Sheet>
-                        <SheetTrigger asChild>
-                            <Button variant="outline" size="sm" className="gap-1.5 border-green-300 text-green-800 hover:bg-green-100">
-                                <MoreHorizontal className="h-3.5 w-3.5" />
-                                Tools
-                            </Button>
-                        </SheetTrigger>
-                        <SheetContent side="bottom" className="max-h-[55dvh] overflow-y-auto rounded-t-2xl">
-                            <SheetHeader className="mb-3">
-                                <SheetTitle className="text-base">Super User Tools</SheetTitle>
-                            </SheetHeader>
-                            <div className="space-y-4 pb-6">
-                                <div className="space-y-2">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Super User Core</p>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {priorityTools.map((tool) => (
-                                            <Link key={tool.href} href={tool.href}>
-                                                <Button variant="outline" size="sm" className="w-full justify-start">{tool.label}</Button>
-                                            </Link>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Boardroom Access</p>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {meetingTools.map((tool) => (
-                                            <Link key={tool.href} href={tool.href}>
-                                                <Button variant="outline" size="sm" className="w-full justify-start">{tool.label}</Button>
-                                            </Link>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Power Tools</p>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {powerTools.map((tool) => (
-                                            <Link key={tool.href} href={tool.href}>
-                                                <Button variant="outline" size="sm" className="w-full justify-start">{tool.label}</Button>
-                                            </Link>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="hidden grid grid-cols-2 gap-2 pb-6">
-                                <Link href="?tab=dev-console"><Button variant="outline" size="sm" className="w-full justify-start">Dev Console</Button></Link>
-                                <Link href="?tab=health"><Button variant="outline" size="sm" className="w-full justify-start">System Health</Button></Link>
-                                <Link href="?tab=email"><Button variant="outline" size="sm" className="w-full justify-start">Email Tester</Button></Link>
-                                <Link href="?tab=qa"><Button variant="outline" size="sm" className="w-full justify-start">QA</Button></Link>
-                                <Link href="?tab=calendar"><Button variant="outline" size="sm" className="w-full justify-start">📅 Calendar</Button></Link>
-                                <Link href="?tab=ny-pilot"><Button variant="outline" size="sm" className="w-full justify-start">NY Pilot</Button></Link>
-                                <Link href="?tab=outreach"><Button variant="outline" size="sm" className="w-full justify-start">Outreach</Button></Link>
-                                <Link href="?tab=ai-settings"><Button variant="outline" size="sm" className="w-full justify-start">AI Settings</Button></Link>
-                                <Link href="?tab=content"><Button variant="outline" size="sm" className="w-full justify-start">📝 Content</Button></Link>
-                                <Link href="?tab=skills-lab"><Button variant="outline" size="sm" className="w-full justify-start">🧪 Skills Lab</Button></Link>
-                            </div>
-                        </SheetContent>
-                    </Sheet>
-                    {process.env.NODE_ENV !== 'production' && <MockDataToggle />}
-                    {process.env.NODE_ENV !== 'production' && <RoleSwitcher />}
+                    <div>
+                        <p className="text-sm font-semibold text-foreground">Super User</p>
+                        <p className="text-[11px] text-muted-foreground">{user?.email || 'Authenticated'}</p>
+                    </div>
                 </div>
-
-                {/* Desktop: full button row (sm+) */}
-                <div className="hidden sm:flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
-                    {priorityTools.map((tool) => (
-                        <Link key={tool.href} href={tool.href}>
-                            <Button variant="ghost" size="sm">{tool.label}</Button>
-                        </Link>
-                    ))}
-                    {meetingTools.map((tool) => (
-                        <Link key={tool.href} href={tool.href}>
-                            <Button variant="ghost" size="sm">{tool.label}</Button>
-                        </Link>
-                    ))}
-                    {powerTools.map((tool) => (
-                        <Link key={tool.href} href={tool.href}>
-                            <Button variant="ghost" size="sm">{tool.label}</Button>
-                        </Link>
-                    ))}
-                    <div className="hidden">
-                    <Link href="?tab=dev-console">
-                        <Button variant="ghost" size="sm">Dev Console</Button>
-                    </Link>
-                    <Link href="?tab=health">
-                        <Button variant="ghost" size="sm">System Health</Button>
-                    </Link>
-                    <Link href="?tab=email">
-                        <Button variant="ghost" size="sm">Email Tester</Button>
-                    </Link>
-                    <Link href="?tab=qa">
-                        <Button variant="ghost" size="sm">QA</Button>
-                    </Link>
-                    <Link href="?tab=calendar">
-                        <Button variant="ghost" size="sm">📅 Calendar</Button>
-                    </Link>
-                    <Link href="?tab=ny-pilot">
-                        <Button variant="ghost" size="sm">NY Pilot</Button>
-                    </Link>
-                    <Link href="?tab=outreach">
-                        <Button variant="ghost" size="sm">Outreach</Button>
-                    </Link>
-                    <Link href="?tab=ai-settings">
-                        <Button variant="ghost" size="sm">AI Settings</Button>
-                    </Link>
-                    <Link href="?tab=content">
-                        <Button variant="ghost" size="sm">📝 Content</Button>
-                    </Link>
-                    <Link href="?tab=skills-lab">
-                        <Button variant="ghost" size="sm">🧪 Skills Lab</Button>
-                    </Link>
-                    </div>
+                <div className="flex items-center gap-2">
                     <DataImportDropdown />
                     {process.env.NODE_ENV !== 'production' && <MockDataToggle />}
                     {process.env.NODE_ENV !== 'production' && <RoleSwitcher />}
                 </div>
-                </div>{/* end inner flex row */}
-
-                {/* Proactive Status Banner — loads async after auth, shows items needing attention */}
-                {hasStatusItems && (
-                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-green-200">
-                        <span className="text-xs font-medium text-green-700">Ready for you:</span>
-                        {statusCounts!.pendingOutreachDrafts > 0 && (
-                            <Link href="?tab=outreach" className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200 transition-colors">
-                                ✉ {statusCounts!.pendingOutreachDrafts} outreach draft{statusCounts!.pendingOutreachDrafts !== 1 ? 's' : ''} to review
-                            </Link>
-                        )}
-                        {statusCounts!.pendingBlogDrafts > 0 && (
-                            <Link href="?tab=content" className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 transition-colors">
-                                📝 {statusCounts!.pendingBlogDrafts} blog draft{statusCounts!.pendingBlogDrafts !== 1 ? 's' : ''} ready
-                            </Link>
-                        )}
-                        {statusCounts!.unenrichedLeads > 0 && (
-                            <Link href="?tab=outreach" className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200 transition-colors">
-                                🔍 {statusCounts!.unenrichedLeads} leads need enrichment
-                            </Link>
-                        )}
-                        {statusCounts!.leadQueueDepth > 0 && (
-                            <Link href="?tab=outreach" className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 border border-green-300 hover:bg-green-200 transition-colors">
-                                ✅ {statusCounts!.leadQueueDepth} leads queued
-                            </Link>
-                        )}
-                        {statusCounts!.apolloCreditsRemaining < 25 && (
-                            <Link href="?tab=outreach" className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-700 border border-red-200 hover:bg-red-200 transition-colors">
-                                ⚡ {statusCounts!.apolloCreditsRemaining} Apollo credits left
-                            </Link>
-                        )}
-                    </div>
-                )}
-            </div>{/* end outer header */}
+            </div>
 
             {/* CEO Dashboard Content (URL Driven) */}
-            <div className="mt-6">
+            <div>
                 <ClientOnly fallback={<div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
                     {renderContent()}
                 </ClientOnly>
