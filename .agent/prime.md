@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** ðŸŸ¢ Production live; HeyGen video pipeline + Creative Center Video Generator
-**Recent work (2026-04-12):** `166e67cdb` HeyGen video pipeline — server actions, Creative Center Video Generator panel (super_user), onboarding coaching card video player
-**Prior (2026-04-12):** `765bfc342` Overnight training orchestrator + Hive Mind integration; `8f922bc7b` Cannabis data portal (strains, lab-results, terpenes, COA)
+**Current Status:** ðŸŸ¢ Production live; Mission Control redesign + agent task queue pipeline
+**Recent work (2026-04-11):** Mission Control landing tab, frequency-based sidebar, agent task queue (Firestore → REST API → Linus tool → dashboard board)
+**Prior (2026-04-12):** `166e67cdb` HeyGen video pipeline; `765bfc342` Overnight training orchestrator + Hive Mind; `8f922bc7b` Cannabis data portal
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
 - 7-day retention nudge email (cron job)

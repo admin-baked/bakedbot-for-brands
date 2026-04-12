@@ -346,6 +346,7 @@ Load from `.agent/refs/` on-demand (conserve context):
 | Frontend/UI | `refs/frontend.md` |
 | Testing | `refs/testing.md` |
 | Integrations | `refs/integrations.md` |
+| Agent Task Queue | `refs/agent-task-queue.md` |
 | Work Archive | `refs/work-archive.md` |
 
 **Full index:** `.agent/refs/README.md`

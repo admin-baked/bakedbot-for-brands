@@ -34,6 +34,7 @@ Detailed documentation for AI agents working in this codebase.
 | **Compiled playbook runtime + artifact repo memory** | **`playbook-artifact-repo.md`** |
 | Media generation, cost tracking | `media-generation.md` |
 | Vibe Builder, domains, publishing | `vibe-builder-spec.md` |
+| **Agent task queue, work handoff between agents** | **`agent-task-queue.md`** |
 | Past decisions | `work-archive.md` |
 
 ---
@@ -98,6 +99,7 @@ Detailed documentation for AI agents working in this codebase.
 ### Operations & Monitoring
 | File | What's Inside |
 |------|---------------|
+| `agent-task-queue.md` | **Agent task queue** — filing findings, Firestore schema, REST API, Linus tool, dashboard board |
 | `firebase-secrets.md` | **Firebase App Hosting secret management** - IAM bindings, version pinning, debugging checklist |
 | `prime.md` (Phase 4) | **Slack user mention resolution** - agent context enrichment from @mentions |
 | `prime.md` (Build Monitor) | **Firebase build monitoring** - 24/7 failure detection, Linus agent diagnostics, Cloud Scheduler integration |
