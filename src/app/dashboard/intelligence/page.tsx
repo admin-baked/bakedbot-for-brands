@@ -2,6 +2,14 @@ import { Suspense } from 'react';
 import { getCategoryBenchmarks, getBrandRetailers } from './actions/benchmarks';
 import { PriceComparisonChart } from './components/price-comparison-chart';
 import { CompetitorSetupWizard } from './components/competitor-setup-wizard';
+import { KnowledgeChangeFeed } from './components/knowledge-change-feed';
+import { KnowledgeConfidencePanel } from './components/knowledge-confidence-panel';
+import { KnowledgeActionRecommendations } from './components/knowledge-action-recommendations';
+import {
+  getKnowledgeChangeFeed,
+  getKnowledgeConfidenceSummary,
+  getKnowledgeActionRecommendations,
+} from './actions/knowledge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { LineChart, Search, MapPin, Store, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -56,12 +64,19 @@ export default async function IntelligencePage() {
 
     // Generate Report if competitors exist — separate try-catch to avoid blocking page render
     try {
-        reportMarkdown = competitors.length > 0 
-            ? await generateCompetitorReport(brandId) 
+        reportMarkdown = competitors.length > 0
+            ? await generateCompetitorReport(brandId)
             : null;
     } catch (error) {
         console.error('[Intelligence] Failed to generate report:', error);
     }
+
+    // Knowledge Engine data — non-blocking, fail gracefully
+    const [knowledgeFeed, knowledgeConfidence, knowledgeActions] = await Promise.all([
+        getKnowledgeChangeFeed({ tenantId: brandId, domain: 'competitive_intel', limit: 8 }).catch(() => []),
+        getKnowledgeConfidenceSummary(brandId).catch(() => ({ averageConfidence: 0, verifiedCount: 0, workingFactCount: 0, signalCount: 0 })),
+        getKnowledgeActionRecommendations({ tenantId: brandId, limit: 5 }).catch(() => []),
+    ]);
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -207,6 +222,21 @@ export default async function IntelligencePage() {
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            {/* Knowledge Engine — below strategic tabs */}
+            <div className="mt-8 grid gap-4 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                    <KnowledgeChangeFeed
+                        tenantId={brandId}
+                        domain="competitive_intel"
+                        results={knowledgeFeed}
+                    />
+                </div>
+                <div className="space-y-4">
+                    <KnowledgeConfidencePanel {...knowledgeConfidence} />
+                    <KnowledgeActionRecommendations tenantId={brandId} results={knowledgeActions} />
+                </div>
+            </div>
         </div>
     );
 }

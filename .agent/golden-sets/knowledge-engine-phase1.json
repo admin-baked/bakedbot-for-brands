@@ -1,0 +1,178 @@
+{
+  "_meta": {
+    "version": "1.0.0",
+    "phase": "phase1",
+    "created": "2026-04-12",
+    "tenantId": "org_thrive_syracuse",
+    "passThresholds": {
+      "claimGroundingPrecision": 0.90,
+      "provenancePresence": 1.00,
+      "falseVerifiedFactRate": 0.05,
+      "lettaPromotionPrecision": 0.90,
+      "executiveBriefActionRelevance": 0.85
+    }
+  },
+  "scenarios": [
+    {
+      "id": "CI-001",
+      "category": "competitive_intel",
+      "description": "Competitor promo affecting gummies",
+      "query": "What competitor promotions are affecting gummies this week?",
+      "domain": "competitive_intel",
+      "seed": {
+        "reportMarkdown": "### Promotions\n- **Green Leaf Dispensary** is running a 20% off gummies promotion starting April 8\n- **Empire Cannabis** matched with 15% off gummies",
+        "sourceRef": "ci-golden-CI001",
+        "observedAt": "2026-04-12T00:00:00Z",
+        "createdBy": "ezal"
+      },
+      "expectedBehavior": {
+        "minClaims": 1,
+        "claimTypes": ["competitor_promo"],
+        "allClaimsHaveProvenance": true,
+        "minConfidenceForVerified": 0.85
+      },
+      "evaluationNotes": "At least 1 competitor_promo claim for gummies. Every claim must have sourceIds and observationIds populated."
+    },
+    {
+      "id": "CI-002",
+      "category": "competitive_intel",
+      "description": "Repeated discount behavior pattern",
+      "query": "Is any competitor showing repeated discount patterns?",
+      "domain": "competitive_intel",
+      "seed": {
+        "reportMarkdown": "### Promotions\n- **Empire Cannabis** has run gummies discount 3 weeks in a row — third consecutive promotional cycle\n- **Green Leaf** occasional single-week discount only",
+        "sourceRef": "ci-golden-CI002",
+        "observedAt": "2026-04-12T00:00:00Z",
+        "createdBy": "ezal"
+      },
+      "expectedBehavior": {
+        "minClaims": 1,
+        "claimTypes": ["competitor_promo"],
+        "allClaimsHaveProvenance": true,
+        "evidenceNote": "Repeated behavior should produce a claim mentioning pattern"
+      },
+      "evaluationNotes": "Empire Cannabis repeated promo should generate at least 1 claim. No false verified_fact for first-time single observations."
+    },
+    {
+      "id": "WP-001",
+      "category": "welcome_playbooks",
+      "description": "New customer context",
+      "query": "What patterns should guide the new customer welcome flow?",
+      "domain": "welcome_playbooks",
+      "seed": {
+        "playbookId": "thrive_welcome_new",
+        "playbookName": "New Customer Welcome",
+        "flowType": "new_customer",
+        "runSummary": "New customer welcome flow completed. High completion rate (72%). Customers who received product recommendation in first message had 3x higher second-visit rate.",
+        "metrics": { "completionRate": 0.72, "secondVisitRate": 0.35 },
+        "observedAt": "2026-04-10T00:00:00Z"
+      },
+      "expectedBehavior": {
+        "minClaims": 1,
+        "claimTypes": ["playbook_pattern"],
+        "returnedContext": {
+          "domain": "welcome_playbooks",
+          "summaryNotEmpty": true,
+          "topClaimsMin": 1
+        }
+      },
+      "evaluationNotes": "buildWelcomePlaybookKnowledgeContext({flowType:'new_customer'}) must return non-empty context. Summary must reference the playbook outcome."
+    },
+    {
+      "id": "WP-002",
+      "category": "welcome_playbooks",
+      "description": "Returning customer context",
+      "query": "What patterns improve the returning customer welcome?",
+      "domain": "welcome_playbooks",
+      "seed": {
+        "playbookId": "thrive_welcome_returning",
+        "playbookName": "Returning Customer Welcome",
+        "flowType": "returning_customer",
+        "runSummary": "Returning customer flow shows better engagement when framed around new arrivals rather than discounts. Discount framing showed 40% opt-out vs 12% for discovery framing.",
+        "metrics": { "completionRate": 0.68, "optOutRate": 0.12 },
+        "observedAt": "2026-04-10T00:00:00Z"
+      },
+      "expectedBehavior": {
+        "minClaims": 1,
+        "claimTypes": ["playbook_pattern"],
+        "returnedContext": {
+          "domain": "welcome_playbooks",
+          "summaryNotEmpty": true
+        }
+      },
+      "evaluationNotes": "Returning customer context should surface the discovery vs discount insight."
+    },
+    {
+      "id": "CI-003",
+      "category": "checkin_flow",
+      "description": "Check-in flow best current action context",
+      "query": "What should agents know before executing the check-in flow today?",
+      "domain": "checkin_flow",
+      "seed": {
+        "playbookId": "thrive_checkin",
+        "playbookName": "Customer Check-In",
+        "flowType": "checkin",
+        "runSummary": "Check-in flow completion improved 18% after reducing step count from 5 to 3. Customers who completed check-in spent 2.1x more than non-completers.",
+        "metrics": { "completionRate": 0.61, "avgSpend": 82.50 },
+        "observedAt": "2026-04-11T00:00:00Z"
+      },
+      "expectedBehavior": {
+        "minClaims": 1,
+        "claimTypes": ["playbook_pattern"],
+        "returnedContext": {
+          "domain": "checkin_flow",
+          "summaryNotEmpty": true
+        }
+      },
+      "evaluationNotes": "buildWelcomePlaybookKnowledgeContext({flowType:'checkin'}) must return context. Claims must have provenance."
+    },
+    {
+      "id": "420-001",
+      "category": "playbook_420",
+      "description": "Thrive Syracuse 420 Playbook — recent learnings surfaced",
+      "query": "What worked in prior 420 campaigns that we should apply now?",
+      "domain": "playbook_420",
+      "seed": {
+        "playbookId": "thrive_420_campaign_2026",
+        "playbookName": "Thrive 4/20 Campaign 2026",
+        "flowType": "420",
+        "runSummary": "Early email outreach 3 days before 4/20 produced 40% higher open rate vs day-of sends. Product bundles outperformed single-item promos 2:1.",
+        "metrics": { "openRate": 0.38, "conversionRate": 0.12, "bundleRevenuePct": 0.67 },
+        "observedAt": "2026-04-10T00:00:00Z"
+      },
+      "expectedBehavior": {
+        "minClaims": 1,
+        "claimTypes": ["playbook_pattern"],
+        "returnedContext": {
+          "domain": "playbook_420",
+          "summaryNotEmpty": true
+        }
+      },
+      "evaluationNotes": "420 playbook context must surface early-outreach insight. Domain must be playbook_420 (not thrive_420)."
+    }
+  ],
+  "lettaPromotionScenarios": [
+    {
+      "id": "LP-001",
+      "description": "High-confidence competitive claim promotes to Ezal block",
+      "input": {
+        "tenantId": "org_thrive_syracuse",
+        "targetAgent": "ezal",
+        "domain": "competitive_intel"
+      },
+      "requiredClaimState": "verified_fact",
+      "requiredMinConfidence": 0.85,
+      "expectedBlock": "agent_ezal_memory"
+    },
+    {
+      "id": "LP-002",
+      "description": "Welcome playbook context promotes to playbook_status block",
+      "input": {
+        "tenantId": "org_thrive_syracuse",
+        "targetAgent": "system",
+        "domain": "welcome_playbooks"
+      },
+      "expectedBlock": "playbook_status"
+    }
+  ]
+}

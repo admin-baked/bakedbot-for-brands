@@ -53,6 +53,7 @@ export type QABugArea =
     | 'booking_calendar'
     | 'livekit_meetings'
     | 'x402_payments'
+    | 'tablet'
     | 'other';
 
 // ============================================================================
@@ -215,6 +216,7 @@ export const QA_AREA_CONFIG: Record<QABugArea, { label: string; emoji: string }>
     booking_calendar:  { label: 'Booking Calendar',    emoji: '📅' },
     livekit_meetings:  { label: 'LiveKit Meetings',    emoji: '🎥' },
     x402_payments:     { label: 'x402 Payments',       emoji: '💎' },
+    tablet:            { label: 'Loyalty Tablet',      emoji: '📱' },
     other:             { label: 'Other',               emoji: '🐛' },
 };
 

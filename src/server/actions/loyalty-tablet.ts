@@ -25,6 +25,7 @@ import { getCustomerHistory } from '@/server/tools/crm-tools';
 import { captureVisitorCheckin } from './visitor-checkin';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getCachedMoodVideoUrl } from '../services/loyalty/mood-video-cache';
+import { createTaskInternal } from './agent-tasks';
 
 // ============================================================
 // Inventory cache — avoids repeat Firestore reads within a warm instance
@@ -141,7 +142,7 @@ export interface TabletLeadResult {
 
 const captureSchema = z.object({
     orgId: z.string().min(1),
-    firstName: z.string().min(1).max(100),
+    firstName: z.string().max(100).transform(v => (v ?? '').trim() || 'Guest'),
     email: z.string().email().optional().or(z.literal('')),
     phone: z.string().optional(),
     emailConsent: z.boolean(),
@@ -503,6 +504,16 @@ export async function getMoodRecommendations(
 
         const products = await getCachedMenuProducts(orgId);
         if (!products.length) {
+            createTaskInternal({
+                title: `[Tablet] No products in inventory for ${orgId}`,
+                body: `getMoodRecommendations returned empty inventory for orgId=${orgId}, moodId=${moodId}.\n\nThe check-in recommendations screen showed "Could not load recommendations".\n\n**Likely causes:** POS sync not running, publicViews/products/items empty in Firestore.\n\n**File:** src/server/actions/loyalty-tablet.ts`,
+                priority: 'critical',
+                category: 'bug',
+                reportedBy: 'loyalty-tablet',
+                assignedTo: 'linus',
+                filePath: 'src/server/actions/loyalty-tablet.ts',
+                errorSnippet: `No products found for orgId=${orgId}`,
+            }).catch(() => { /* fire-and-forget */ });
             return { success: false, error: 'No products available' };
         }
 
@@ -511,6 +522,16 @@ export async function getMoodRecommendations(
         const recommendationSet = buildRecommendationSet(pool, config);
 
         if (!recommendationSet.products.length) {
+            createTaskInternal({
+                title: `[Tablet] Recommendation pool empty for mood=${moodId} in ${orgId}`,
+                body: `getMoodRecommendations built an empty pool for mood=${moodId}.\n\nInventory exists (${products.length} items) but none matched the mood filter.\n\n**File:** src/server/actions/loyalty-tablet.ts`,
+                priority: 'high',
+                category: 'bug',
+                reportedBy: 'loyalty-tablet',
+                assignedTo: 'linus',
+                filePath: 'src/server/actions/loyalty-tablet.ts',
+                errorSnippet: `Empty pool for mood=${moodId}, inventory=${products.length}`,
+            }).catch(() => { /* fire-and-forget */ });
             return { success: false, error: 'No products available' };
         }
 
@@ -533,7 +554,18 @@ export async function getMoodRecommendations(
             videoUrl,
         };
     } catch (error) {
-        logger.error('[LoyaltyTablet] getMoodRecommendations failed', { error });
+        const errMsg = error instanceof Error ? error.message : 'Failed to get recommendations';
+        logger.error('[LoyaltyTablet] getMoodRecommendations failed', { error, orgId, moodId });
+        createTaskInternal({
+            title: `[Tablet] getMoodRecommendations crashed for ${orgId}`,
+            body: `getMoodRecommendations threw an unexpected error.\n\n**OrgId:** ${orgId}\n**MoodId:** ${moodId}\n**Error:** ${errMsg}\n\nCustomers saw "Could not load recommendations" on the check-in tablet.\n\n**File:** src/server/actions/loyalty-tablet.ts`,
+            priority: 'critical',
+            category: 'bug',
+            reportedBy: 'loyalty-tablet',
+            assignedTo: 'linus',
+            filePath: 'src/server/actions/loyalty-tablet.ts',
+            errorSnippet: errMsg,
+        }).catch(() => { /* fire-and-forget */ });
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to get recommendations',
@@ -731,10 +763,33 @@ export async function captureTabletLead(params: {
         };
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return { success: false, isNewLead: false, error: error.errors[0].message };
+            const msg = error.errors[0].message;
+            // Auto-file to Linus — Zod errors on the tablet mean a data contract bug
+            createTaskInternal({
+                title: `[Tablet] Check-in Zod validation failed: ${msg}`,
+                body: `captureTabletLead threw a Zod error on the loyalty tablet.\n\n**Error:** ${msg}\n\n**Fields:** ${JSON.stringify(error.errors.map(e => ({ path: e.path, msg: e.message })))}\n\n**File:** src/server/actions/loyalty-tablet.ts`,
+                priority: 'high',
+                category: 'bug',
+                reportedBy: 'loyalty-tablet',
+                assignedTo: 'linus',
+                filePath: 'src/server/actions/loyalty-tablet.ts',
+                errorSnippet: msg,
+            }).catch(() => { /* fire-and-forget */ });
+            return { success: false, isNewLead: false, error: 'Check-in failed — please ask a budtender.' };
         }
+        const errMsg = error instanceof Error ? error.message : 'Failed to capture lead';
         logger.error('[LoyaltyTablet] Capture failed', { error });
-        return { success: false, isNewLead: false, error: error instanceof Error ? error.message : 'Failed to capture lead' };
+        createTaskInternal({
+            title: `[Tablet] Check-in server error: ${errMsg.slice(0, 80)}`,
+            body: `captureTabletLead threw an unexpected error on the loyalty tablet.\n\n**Error:** ${errMsg}\n\n**File:** src/server/actions/loyalty-tablet.ts`,
+            priority: 'critical',
+            category: 'bug',
+            reportedBy: 'loyalty-tablet',
+            assignedTo: 'linus',
+            filePath: 'src/server/actions/loyalty-tablet.ts',
+            errorSnippet: errMsg,
+        }).catch(() => { /* fire-and-forget */ });
+        return { success: false, isNewLead: false, error: 'Check-in failed — please ask a budtender.' };
     }
 }
 

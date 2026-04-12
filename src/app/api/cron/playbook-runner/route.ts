@@ -17,6 +17,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import {
+  ingestPlaybookRunKnowledge,
+  buildWelcomePlaybookKnowledgeContext,
+  promoteRuntimeKnowledgeToLetta,
+} from '@/server/services/knowledge-engine';
+import {
     checkAIStudioActionAllowed,
     chargeAIStudioCredits,
 } from '@/server/services/ai-studio-billing-service';
@@ -436,7 +441,34 @@ export async function POST(request: NextRequest) {
             duration: executionRecord.duration,
         });
 
-        // 7. Return success
+        // 7. Knowledge Engine: ingest run outcome (non-blocking)
+        const orgId = playbook.orgId;
+        const flowType = resolveFlowType(playbook.name);
+        if (orgId && flowType) {
+            try {
+                await ingestPlaybookRunKnowledge({
+                    tenantId: orgId,
+                    playbookId: playbook.id,
+                    playbookName: playbook.name,
+                    flowType,
+                    runSummary: `Playbook "${playbook.name}" completed. Steps: ${playbook.steps.length}. Duration: ${executionRecord.duration}ms.`,
+                    metrics: { durationMs: executionRecord.duration, stepCount: playbook.steps.length },
+                    observedAt: new Date(),
+                });
+                await promoteRuntimeKnowledgeToLetta({
+                    tenantId: orgId,
+                    targetAgent: 'system',
+                    domain: flowType === '420' ? 'playbook_420' : flowType === 'checkin' ? 'checkin_flow' : 'welcome_playbooks',
+                    limit: 3,
+                });
+            } catch (keErr) {
+                logger.warn('[PlaybookRunner] Knowledge engine ingest failed (non-blocking)', {
+                    playbookId, error: (keErr as Error).message,
+                });
+            }
+        }
+
+        // 8. Return success
         return NextResponse.json({
             success: true,
             playbookId: playbook.id,
@@ -475,4 +507,24 @@ export async function POST(request: NextRequest) {
             { status: 500 }
         );
     }
+}
+
+// =============================================================================
+// KNOWLEDGE ENGINE HELPERS
+// =============================================================================
+
+/**
+ * Derive flowType from playbook name for knowledge engine ingestion.
+ * Returns null for non-customer-flow playbooks (system health, etc.).
+ */
+function resolveFlowType(
+  playbookName: string
+): 'checkin' | 'new_customer' | 'returning_customer' | 'welcome' | '420' | null {
+  const lower = playbookName.toLowerCase();
+  if (lower.includes('checkin') || lower.includes('check-in') || lower.includes('check_in')) return 'checkin';
+  if (lower.includes('new_customer') || lower.includes('new customer')) return 'new_customer';
+  if (lower.includes('returning') || lower.includes('return_customer')) return 'returning_customer';
+  if (lower.includes('420') || lower.includes('four twenty')) return '420';
+  if (lower.includes('welcome')) return 'welcome';
+  return null;
 }

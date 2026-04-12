@@ -139,6 +139,28 @@ function buildSmokeTests(cronSecret: string): SmokeTestDef[] {
             priority: 'P3',
         },
 
+        // Tablet check-in flow
+        {
+            testId: null as unknown as string,
+            name: 'Loyalty tablet page loads',
+            area: 'tablet',
+            url: '/loyalty-tablet',
+            method: 'GET',
+            expectedStatus: 200,
+            priority: 'P0',
+            validate: (body) => body.length > 1000,
+        },
+        {
+            testId: null as unknown as string,
+            name: 'Loyalty tablet with Thrive orgId loads',
+            area: 'tablet',
+            url: '/loyalty-tablet?orgId=org_thrive_syracuse',
+            method: 'GET',
+            expectedStatus: 200,
+            priority: 'P0',
+            validate: (body) => body.length > 1000,
+        },
+
         // Infrastructure
         {
             testId: null as unknown as string,

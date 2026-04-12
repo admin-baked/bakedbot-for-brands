@@ -451,6 +451,58 @@ export default function MissionControlTab() {
 
             {/* Section 4: Agent Task Board */}
             <AgentTaskBoard />
+
+            {/* Section 5: Knowledge Engine Brief + Alerts */}
+            <KnowledgeBoardroomSection tenantId={''} />
+        </div>
+    );
+}
+
+// =============================================================================
+// KNOWLEDGE BOARDROOM SECTION (client-fetched)
+// =============================================================================
+
+import type { KnowledgeSearchResult, KnowledgeAlert } from '@/server/services/knowledge-engine';
+import { KnowledgeExecutiveBrief } from './knowledge-executive-brief';
+import { KnowledgeAlertsPanel } from './knowledge-alerts-panel';
+
+interface KnowledgeBriefData {
+    summary: string;
+    claims: KnowledgeSearchResult[];
+    actions: string[];
+}
+
+function KnowledgeBoardroomSection({ tenantId }: { tenantId: string }) {
+    const [brief, setBrief] = useState<KnowledgeBriefData | null>(null);
+    const [alerts] = useState<KnowledgeAlert[]>([]);
+
+    useEffect(() => {
+        if (!tenantId) return;
+        fetch('/api/knowledge/executive-brief', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tenantId, lookbackDays: 14, limit: 6 }),
+        })
+            .then(r => r.json())
+            .then((data: KnowledgeBriefData) => setBrief(data))
+            .catch(() => {});
+    }, [tenantId]);
+
+    if (!brief || brief.claims.length === 0) return null;
+
+    return (
+        <div className="grid gap-4 lg:grid-cols-3 mt-4">
+            <div className="lg:col-span-2">
+                <KnowledgeExecutiveBrief
+                    tenantId={tenantId}
+                    summary={brief.summary}
+                    claims={brief.claims}
+                    actions={brief.actions}
+                />
+            </div>
+            <div>
+                <KnowledgeAlertsPanel tenantId={tenantId} alerts={alerts} />
+            </div>
         </div>
     );
 }

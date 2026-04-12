@@ -127,6 +127,25 @@ function buildChecks(): SmokeCheck[] {
             severity: 'P1',
             area: 'routing',
         },
+        // P0 — Tablet check-in flow
+        {
+            name: 'Loyalty tablet page loads',
+            url: '/loyalty-tablet',
+            method: 'GET',
+            expectedStatus: 200,
+            validate: (b) => b.length > 1000,
+            severity: 'P0',
+            area: 'tablet',
+        },
+        {
+            name: 'Loyalty tablet with orgId param loads',
+            url: '/loyalty-tablet?orgId=org_thrive_syracuse',
+            method: 'GET',
+            expectedStatus: 200,
+            validate: (b) => b.length > 1000,
+            severity: 'P0',
+            area: 'tablet',
+        },
         // P2 — SEO/Infra
         {
             name: 'robots.txt serves',
