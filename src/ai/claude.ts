@@ -260,6 +260,16 @@ export function selectModel(prompt: string, options?: {
 }
 
 /**
+ * Returns true when an Anthropic API error indicates the credit balance is exhausted.
+ * Both 400 and 529 (payment required) codes can carry this message.
+ */
+function isCreditsExhaustedError(err: unknown): boolean {
+    if (!(err instanceof Error)) return false;
+    return /credit balance is too low/i.test(err.message) ||
+        ('status' in err && (err as { status?: number }).status === 529);
+}
+
+/**
  * Get the Anthropic client singleton
  */
 let anthropicClient: Anthropic | null = null;
@@ -403,13 +413,24 @@ export async function executeWithTools(
             break;
         }
 
-        const response = await client.messages.create({
-            model: selectedModel,
-            max_tokens: 4096,
-            tools: cachedTools,
-            messages,
-            system: cachedSystemPrompt,
-        });
+        let response: Awaited<ReturnType<typeof client.messages.create>>;
+        try {
+            response = await client.messages.create({
+                model: selectedModel,
+                max_tokens: 4096,
+                tools: cachedTools,
+                messages,
+                system: cachedSystemPrompt,
+            });
+        } catch (err) {
+            if (isCreditsExhaustedError(err)) {
+                logger.warn('[Claude] Credit balance exhausted — falling back to Gemini Flash', { model: selectedModel });
+                const { executeGeminiFlashWithTools, isGeminiFlashConfigured } = await import('@/ai/gemini-flash-tools');
+                if (!isGeminiFlashConfigured()) throw err;
+                return executeGeminiFlashWithTools(prompt, tools, executor, context);
+            }
+            throw err;
+        }
 
         totalInputTokens += response.usage.input_tokens;
         totalOutputTokens += response.usage.output_tokens;
@@ -713,16 +734,33 @@ export async function callClaude(options: ClaudeCallOptions): Promise<string> {
     });
 
     const callStart = Date.now();
-    const response = await client.messages.create({
-        model: selectedModel,
-        max_tokens: maxTokens,
-        temperature,
-        system: buildCachedSystemPrompt(systemPrompt),
-        messages: [{
-            role: 'user',
-            content: messageContent as any // Type assertion for flexibility
-        }]
-    });
+    let response: Awaited<ReturnType<typeof client.messages.create>>;
+    try {
+        response = await client.messages.create({
+            model: selectedModel,
+            max_tokens: maxTokens,
+            temperature,
+            system: buildCachedSystemPrompt(systemPrompt),
+            messages: [{
+                role: 'user',
+                content: messageContent as any // Type assertion for flexibility
+            }]
+        });
+    } catch (err) {
+        if (isCreditsExhaustedError(err)) {
+            logger.warn('[Claude] Credit balance exhausted — falling back to Gemini Flash', { model: selectedModel });
+            const { callGemini, isGeminiFlashConfigured } = await import('@/ai/gemini-flash-tools');
+            if (!isGeminiFlashConfigured()) throw err;
+            return callGemini({
+                userMessage,
+                systemPrompt,
+                maxTokens,
+                temperature,
+                caller: options.caller,
+            });
+        }
+        throw err;
+    }
     const callDurationMs = Date.now() - callStart;
 
     // Fire-and-forget telemetry — every callClaude call tracked in agent_telemetry
