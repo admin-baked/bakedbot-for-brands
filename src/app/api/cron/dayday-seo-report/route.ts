@@ -50,5 +50,15 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+    // Diagnostic mode: ?diagnose=1 returns raw auth test results
+    const { searchParams } = new URL(request.url);
+    if (searchParams.get('diagnose') === '1') {
+        const authError = await requireCronSecret(request, 'dayday-seo-report');
+        if (authError) return authError;
+
+        const { diagnoseAnalyticsAuth } = await import('./diagnose');
+        const results = await diagnoseAnalyticsAuth();
+        return NextResponse.json(results);
+    }
     return POST(request);
 }
