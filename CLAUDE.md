@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ Production live; HeyGen video pipeline + Creative Center Video Generator for Super Users | **Last update:** 2026-04-12 (HeyGen server actions + Video Generator panel + onboarding video player)
+**Current Status:** ðŸŸ¢ Production live; Thrive 4/20 email strategy + Elroy playbook tool | **Last update:** 2026-04-12 (Elroy get_playbooks tool, 2 playbooks paused pending approval, SES smoke test)
 
 ---
 
