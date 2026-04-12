@@ -33,6 +33,7 @@ export interface AgentContext {
     capabilities: string[]; // Tool category summaries
     groundingRules: string[]; // Anti-hallucination rules
     superPowers?: string;   // Quick-reference automation scripts block
+    coachingRules?: string[]; // Behavioral coaching from daily audit (Opus+Gemini deliberation)
 }
 
 export interface ClaudeContext {
@@ -583,6 +584,15 @@ export function buildSystemPrompt(context: ClaudeContext): string {
         if (ac.superPowers) {
             parts.push('=== SUPER POWERS (ALWAYS AVAILABLE — USE THESE FIRST) ===');
             parts.push(ac.superPowers);
+            parts.push('');
+        }
+
+        // Coaching rules — behavioral patches from daily Opus+Gemini audit
+        if (ac.coachingRules && ac.coachingRules.length > 0) {
+            parts.push('=== COACHING (FROM DAILY PERFORMANCE REVIEW — FOLLOW THESE) ===');
+            for (let i = 0; i < ac.coachingRules.length; i++) {
+                parts.push(`${i + 1}. ${ac.coachingRules[i]}`);
+            }
             parts.push('');
         }
 

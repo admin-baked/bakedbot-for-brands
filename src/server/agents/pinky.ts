@@ -866,7 +866,10 @@ export async function runPinky(request: PinkyRequest): Promise<PinkyResponse> {
             userId: request.context?.userId,
             orgId: request.context?.orgId,
             maxIterations: request.maxIterations ?? 10,
-            agentContext: PINKY_AGENT_CONTEXT,
+            agentContext: await (async () => {
+                const { enrichWithCoaching } = await import('@/server/services/coaching-loader');
+                return enrichWithCoaching(PINKY_AGENT_CONTEXT);
+            })(),
         }
     );
 

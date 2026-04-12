@@ -6,9 +6,11 @@ import { getResponsesByDateRange } from '@/server/services/slack-response-archiv
 import type { SlackResponseRecord } from '@/server/services/slack-response-archive';
 import { postLinusIncidentSlack } from '@/server/services/incident-notifications';
 import { callClaude } from '@/ai/claude';
+import { callGemini, isGeminiFlashConfigured } from '@/ai/gemini-flash-tools';
+import { invalidateCoachingCache } from '@/server/services/coaching-loader';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 120;
+export const maxDuration = 300; // Deliberative coaching: 3 model calls per agent (Opus→Gemini→Opus)
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -26,23 +28,33 @@ function getAuthToken(req: NextRequest): string | null {
 // Types
 // ---------------------------------------------------------------------------
 
+interface DimensionScores {
+    accuracy: number;
+    toolUse: number;
+    contextHandling: number;
+    actionability: number;
+    compliance: number;
+}
+
 interface GradedResponse {
     agent: string;
     userMessage: string;
     agentResponse: string;
-    grade: 'good' | 'acceptable' | 'poor' | 'fail';
+    grade: 'great' | 'good' | 'acceptable' | 'poor' | 'fail';
     score: number;          // 0-100 numeric score for trend tracking
     issue?: string;
     suggestedFix?: string;
+    dimensions?: DimensionScores;
     channel: string;
     timestamp: string;
 }
 
 function gradeToScore(grade: string): number {
     switch (grade) {
-        case 'good': return 90;
-        case 'acceptable': return 60;
-        case 'poor': return 30;
+        case 'great': return 97;
+        case 'good': return 85;
+        case 'acceptable': return 65;
+        case 'poor': return 35;
         case 'fail': return 10;
         default: return 50;
     }
@@ -58,14 +70,21 @@ interface CoachingPatch {
         improvedResponse: string;
     }>;
     priority: 'critical' | 'important' | 'minor';
+    deliberation?: {          // Opus + Gemini agreement record
+        opusProposal: string;
+        geminiReview: string;
+        agreement: string;    // Final synthesized rationale
+        disagreements?: string[]; // Points where models initially disagreed
+    };
 }
 
 interface AuditReport {
     auditDate: string;
     totalResponses: number;
     graded: number;
-    grades: { good: number; acceptable: number; poor: number; fail: number };
-    agentBreakdown: Record<string, { total: number; good: number; poor: number; fail: number }>;
+    grades: { great: number; good: number; acceptable: number; poor: number; fail: number };
+    averageScore: number;
+    agentBreakdown: Record<string, { total: number; great: number; good: number; poor: number; fail: number; avgScore: number }>;
     issues: GradedResponse[];
     summary: string;
     coachingPatches?: CoachingPatch[];
@@ -75,23 +94,46 @@ interface AuditReport {
 // Grading prompt
 // ---------------------------------------------------------------------------
 
-const GRADING_SYSTEM_PROMPT = `You are a QA auditor for BakedBot AI agents. These agents serve cannabis dispensary owners.
+const GRADING_SYSTEM_PROMPT = `You are a QA auditor for BakedBot AI agents. These are Digital Workers — knowledge workers with tools, memory, and web access serving cannabis dispensary owners.
 
-Grade each agent response on a 4-point scale:
-- **good**: Accurate, helpful, on-brand, uses data when available
-- **acceptable**: Mostly correct but could be more specific or actionable
-- **poor**: Vague, generic, missing data the agent should have used, or off-topic
-- **fail**: Factually wrong, hallucinated data, leaked internal info, compliance violation, or empty/broken
+Grade each agent response on a 5-point scale (target: 95+):
+- **great** (95-100): Exceptional — accurate, data-driven, actionable, handles context perfectly
+- **good** (80-94): Accurate and helpful, minor improvements possible
+- **acceptable** (60-79): Mostly correct but could be more specific or actionable
+- **poor** (30-59): Vague, generic, missed available data, poor context handling
+- **fail** (0-29): Hallucinated, leaked info, compliance violation, empty/broken, lost context
 
 For each response, output a JSON object:
-{ "grade": "good"|"acceptable"|"poor"|"fail", "issue": "brief explanation if poor/fail", "suggestedFix": "what the agent should have done differently" }
+{
+  "grade": "great"|"good"|"acceptable"|"poor"|"fail",
+  "score": 0-100,
+  "issue": "brief explanation if below great",
+  "suggestedFix": "what the agent should have done differently",
+  "dimensions": {
+    "accuracy": 0-100,
+    "toolUse": 0-100,
+    "contextHandling": 0-100,
+    "actionability": 0-100,
+    "compliance": 0-100
+  }
+}
 
-Focus on:
-1. Did the agent answer the actual question?
-2. Did it use real data (POS, CRM, competitive) or make things up?
-3. Was the tone appropriate for a dispensary owner audience?
-4. Any compliance red flags (health claims, underage language)?
-5. Was the response actionable or just filler?
+Evaluate these 8 dimensions — a Digital Worker must excel at ALL of them:
+
+1. **Accuracy**: Did the agent answer the actual question with real data?
+2. **Tool Use**: Did it call the right tools? Did it use tool results effectively, or ignore them? Did it call tools it didn't need?
+3. **Context Handling**: In multi-turn conversations, did it maintain context? Did it reference earlier messages correctly? Did it handle topic switches gracefully?
+4. **Context Compaction**: When conversations are long, did the agent summarize/compress earlier context intelligently, or did it lose track of earlier details?
+5. **Web Browsing & Research**: When the agent has web access, did it search effectively? Did it cite sources? Did it synthesize findings rather than just dumping raw results?
+6. **Actionability**: Was the response specific and actionable, or generic filler? Could the dispensary owner act on it immediately?
+7. **Compliance**: Any health claims, underage language, leaked internal data, or regulatory red flags?
+8. **Tone & Professionalism**: Appropriate for a dispensary owner audience? Concise but thorough?
+
+Special attention for multi-turn/long conversations:
+- Did the agent remember what was discussed 5+ messages ago?
+- Did it avoid repeating itself or asking questions already answered?
+- Did it gracefully handle "as I mentioned earlier" type references?
+- Did tool failures degrade the response quality, or did the agent adapt?
 
 Respond with a JSON array of objects, one per response. ONLY output the JSON array.`;
 
@@ -130,14 +172,16 @@ Tools: ${r.toolCalls?.join(', ') || 'none'}`
             if (Array.isArray(grades)) {
                 grades.forEach((g: any, idx: number) => {
                     if (idx < batch.length) {
+                        const grade = g.grade || 'acceptable';
                         graded.push({
                             agent: batch[idx].agent,
                             userMessage: batch[idx].userMessage.slice(0, 200),
                             agentResponse: batch[idx].agentResponse.slice(0, 300),
-                            grade: g.grade || 'acceptable',
-                            score: typeof g.score === 'number' ? g.score : gradeToScore(g.grade || 'acceptable'),
+                            grade,
+                            score: typeof g.score === 'number' ? g.score : gradeToScore(grade),
                             issue: g.issue,
                             suggestedFix: g.suggestedFix,
+                            dimensions: g.dimensions || undefined,
                             channel: batch[idx].channel,
                             timestamp: batch[idx].date,
                         });
@@ -171,18 +215,19 @@ Tools: ${r.toolCalls?.join(', ') || 'none'}`
 async function generateSummary(report: Omit<AuditReport, 'summary'>): Promise<string> {
     const issueList = report.issues
         .filter((i) => i.grade === 'poor' || i.grade === 'fail')
-        .map((i) => `- [${i.grade.toUpperCase()}] ${i.agent}: "${i.userMessage.slice(0, 80)}..." → ${i.issue}`)
+        .map((i) => `- [${i.grade.toUpperCase()} ${i.score}] ${i.agent}: "${i.userMessage.slice(0, 80)}..." → ${i.issue}`)
         .join('\n');
 
     const agentStats = Object.entries(report.agentBreakdown)
-        .map(([agent, stats]) => `${agent}: ${stats.total} responses (${stats.good} good, ${stats.poor} poor, ${stats.fail} fail)`)
+        .map(([agent, stats]) => `${agent}: ${stats.total} responses, avg ${stats.avgScore} (${stats.great} great, ${stats.good} good, ${stats.poor} poor, ${stats.fail} fail)`)
         .join('\n');
 
-    const prompt = `Write a brief executive summary (3-5 sentences) of this daily agent audit:
+    const prompt = `Write a brief executive summary (3-5 sentences) of this daily agent audit. Target is 95+ average score.
 
 Date: ${report.auditDate}
 Total responses: ${report.totalResponses}
-Grades: ${report.grades.good} good, ${report.grades.acceptable} acceptable, ${report.grades.poor} poor, ${report.grades.fail} fail
+Average score: ${report.averageScore}
+Grades: ${report.grades.great} great, ${report.grades.good} good, ${report.grades.acceptable} acceptable, ${report.grades.poor} poor, ${report.grades.fail} fail
 
 Agent breakdown:
 ${agentStats}
@@ -190,7 +235,7 @@ ${agentStats}
 Issues found:
 ${issueList || 'None'}
 
-Be specific about which agents need attention and what the common failure patterns are. If all agents performed well, say so briefly.`;
+Be specific about which agents need attention, their average scores, and what the common failure patterns are. If coaching patches were generated via Opus+Gemini deliberation, mention that. If all agents scored 95+, celebrate briefly.`;
 
     return callGroqOrClaude({
         userMessage: prompt,
@@ -201,50 +246,46 @@ Be specific about which agents need attention and what the common failure patter
 }
 
 // ---------------------------------------------------------------------------
-// Opus Coaching — uses high-intelligence model to generate behavioral patches
+// Deliberative Coaching — Opus proposes, Gemini reviews, Opus synthesizes
 // ---------------------------------------------------------------------------
 
-async function generateCoachingPatches(
-    report: Omit<AuditReport, 'summary' | 'coachingPatches'>
-): Promise<CoachingPatch[]> {
-    // Only coach agents with poor/fail grades — no wasted Opus calls
-    const agentsNeedingCoaching = Object.entries(report.agentBreakdown)
-        .filter(([, stats]) => stats.poor > 0 || stats.fail > 0)
-        .map(([agent]) => agent);
+const COACHING_SYSTEM_PROMPT = `You are a senior AI systems coach. Your job is to analyze an AI agent's failures and produce a precise "coaching patch" — behavioral instructions that will be injected into the agent's system prompt to fix the observed failure patterns.
 
-    if (agentsNeedingCoaching.length === 0) return [];
-
-    const patches: CoachingPatch[] = [];
-
-    for (const agent of agentsNeedingCoaching) {
-        const agentIssues = report.issues.filter(
-            (i) => i.agent === agent && (i.grade === 'poor' || i.grade === 'fail')
-        );
-        if (agentIssues.length === 0) continue;
-
-        const stats = report.agentBreakdown[agent];
-        const failRate = ((stats.poor + stats.fail) / stats.total * 100).toFixed(0);
-
-        const issueDetails = agentIssues.map((i, idx) =>
-            `[${idx + 1}] Grade: ${i.grade.toUpperCase()}
-User asked: "${i.userMessage}"
-Agent said: "${i.agentResponse}"
-Issue: ${i.issue}
-Suggested fix: ${i.suggestedFix || 'none'}`
-        ).join('\n\n');
-
-        try {
-            const raw = await callClaude({
-                model: 'claude-opus-4-20250514',
-                systemPrompt: `You are a senior AI systems coach. Your job is to analyze an AI agent's failures and produce a precise "coaching patch" — behavioral instructions that will be injected into the agent's system prompt to fix the observed failure patterns.
+These agents are Digital Workers — knowledge workers with tools, memory, web browsing, and multi-turn conversation capabilities. Coach them like you would coach a new employee who has access to all the right tools but isn't using them effectively.
 
 Rules:
 - Be concrete and actionable. "Be more helpful" is useless. "When the user asks about inbox/calendar and Gmail auth fails, acknowledge the failure in one sentence then offer 3 alternative actions you CAN take" is useful.
 - Each instruction should be a single, testable rule the agent can follow.
 - Include before/after response examples so the agent can pattern-match.
-- Prioritize: "critical" = hallucinating data or leaking internal info, "important" = failing to answer questions, "minor" = tone/style issues.
-- Output valid JSON only.`,
-                userMessage: `Agent "${agent}" scored ${failRate}% poor/fail (${stats.poor} poor, ${stats.fail} fail out of ${stats.total} total).
+- Address these Digital Worker competencies specifically:
+  * TOOL USE: When to call tools, how to handle tool failures, when NOT to call tools
+  * CONTEXT MANAGEMENT: How to maintain context in long conversations, what to remember vs. re-ask
+  * WEB RESEARCH: How to search effectively, cite sources, synthesize rather than dump
+  * COMPACTION: How to summarize earlier context without losing critical details
+- Prioritize: "critical" = hallucinating data, leaking info, or losing context mid-conversation, "important" = poor tool use or failing to answer, "minor" = tone/style issues.
+- Output valid JSON only.`;
+
+function buildIssueDetails(agentIssues: GradedResponse[]): string {
+    return agentIssues.map((i, idx) => {
+        const dims = i.dimensions
+            ? `\nDimension scores: accuracy=${i.dimensions.accuracy}, toolUse=${i.dimensions.toolUse}, contextHandling=${i.dimensions.contextHandling}, actionability=${i.dimensions.actionability}, compliance=${i.dimensions.compliance}`
+            : '';
+        return `[${idx + 1}] Grade: ${i.grade.toUpperCase()} (Score: ${i.score})${dims}
+User asked: "${i.userMessage}"
+Agent said: "${i.agentResponse}"
+Issue: ${i.issue}
+Suggested fix: ${i.suggestedFix || 'none'}`;
+    }).join('\n\n');
+}
+
+/**
+ * Step 1: Opus proposes an initial coaching patch
+ */
+async function opusPropose(agent: string, failRate: string, stats: { poor: number; fail: number; total: number }, issueDetails: string): Promise<string> {
+    return callClaude({
+        model: 'claude-opus-4-20250514',
+        systemPrompt: COACHING_SYSTEM_PROMPT,
+        userMessage: `Agent "${agent}" scored ${failRate}% poor/fail (${stats.poor} poor, ${stats.fail} fail out of ${stats.total} total).
 
 Here are the specific failures:
 
@@ -258,15 +299,159 @@ Generate a coaching patch as JSON:
   "exampleFixes": [{ "userMessage": "...", "badResponse": "...", "improvedResponse": "..." }],
   "priority": "critical"|"important"|"minor"
 }`,
-                maxTokens: 1500,
-                temperature: 0.3,
-            });
+        maxTokens: 1500,
+        temperature: 0.3,
+        caller: 'deliberative-coaching-opus-propose',
+    });
+}
 
-            const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+/**
+ * Step 2: Gemini reviews and challenges the Opus proposal
+ */
+async function geminiReview(agent: string, opusProposal: string, issueDetails: string): Promise<string> {
+    const geminiModel = isGeminiFlashConfigured()
+        ? 'googleai/gemini-2.5-flash'
+        : null;
+
+    if (!geminiModel) {
+        return JSON.stringify({ approved: true, critique: 'Gemini unavailable — Opus proposal accepted as-is', suggestions: [] });
+    }
+
+    return callGemini({
+        model: geminiModel,
+        systemPrompt: `You are a senior AI systems reviewer. Another AI coach (Opus) has proposed a coaching patch for a failing agent. Your job is to critically review the proposal and either approve it, challenge specific instructions, or add missing coaching that Opus overlooked.
+
+Focus your review on:
+1. Are the instructions TESTABLE? Could you verify the agent follows them?
+2. Are any instructions too vague or too narrow? (Good: "When POS tool returns empty, say 'I couldn't find that product' and suggest searching by category". Bad: "Handle errors better")
+3. Did Opus miss any failure patterns visible in the data?
+4. For LONG CONVERSATION failures: Did Opus address context management and compaction?
+5. For TOOL USE failures: Did Opus address when to retry vs. when to gracefully degrade?
+6. For WEB BROWSING failures: Did Opus address source citation and synthesis?
+7. Would these instructions conflict with each other or with the agent's core role?
+
+Output JSON:
+{
+  "approved": true/false,
+  "critique": "overall assessment",
+  "missingPatterns": ["patterns Opus missed"],
+  "improvedInstructions": ["rewritten or additional instructions"],
+  "removedInstructions": ["instructions that are too vague or counterproductive"],
+  "suggestedExamples": [{ "userMessage": "...", "badResponse": "...", "improvedResponse": "..." }]
+}`,
+        userMessage: `Agent "${agent}" has these failures:
+
+${issueDetails}
+
+Opus proposed this coaching patch:
+${opusProposal}
+
+Review the proposal. Be specific about what's good, what's missing, and what needs to change.`,
+        maxTokens: 1500,
+        temperature: 0.3,
+        caller: 'deliberative-coaching-gemini-review',
+    });
+}
+
+/**
+ * Step 3: Opus synthesizes final agreed patch from both perspectives
+ */
+async function opusSynthesize(agent: string, opusProposal: string, geminiReviewText: string): Promise<string> {
+    return callClaude({
+        model: 'claude-opus-4-20250514',
+        systemPrompt: `You are synthesizing the final coaching patch for an AI agent. You proposed an initial patch, and a peer reviewer (Gemini) critiqued it. Now produce the FINAL agreed-upon patch that incorporates valid feedback.
+
+Rules:
+- Accept Gemini's critique when it makes the instructions more testable or catches a missed pattern.
+- Reject Gemini's suggestions when they make instructions vague or conflict with the agent's core role.
+- The final patch MUST be strictly actionable — every instruction must be testable.
+- Include a "deliberation.agreement" field explaining what changed and why.
+- Output valid JSON only.`,
+        userMessage: `Your original proposal:
+${opusProposal}
+
+Gemini's review:
+${geminiReviewText}
+
+Produce the final, agreed-upon coaching patch as JSON:
+{
+  "agent": "${agent}",
+  "patterns": ["final pattern list"],
+  "instructions": ["final instruction list — merged from both perspectives"],
+  "exampleFixes": [{ "userMessage": "...", "badResponse": "...", "improvedResponse": "..." }],
+  "priority": "critical"|"important"|"minor",
+  "deliberation": {
+    "agreement": "what changed after Gemini review and why",
+    "disagreements": ["points where you rejected Gemini feedback and why"]
+  }
+}`,
+        maxTokens: 2000,
+        temperature: 0.2,
+        caller: 'deliberative-coaching-opus-synthesize',
+    });
+}
+
+async function generateCoachingPatches(
+    report: Omit<AuditReport, 'summary' | 'coachingPatches'>
+): Promise<CoachingPatch[]> {
+    // Coach agents below 95 average — not just poor/fail, but anything below great
+    const agentsNeedingCoaching = Object.entries(report.agentBreakdown)
+        .filter(([, stats]) => stats.avgScore < 95 || stats.poor > 0 || stats.fail > 0)
+        .map(([agent]) => agent);
+
+    if (agentsNeedingCoaching.length === 0) return [];
+
+    const patches: CoachingPatch[] = [];
+
+    for (const agent of agentsNeedingCoaching) {
+        // Include all non-great responses for coaching — we're targeting 95+
+        const agentIssues = report.issues.filter(
+            (i) => i.agent === agent && i.grade !== 'great'
+        );
+        if (agentIssues.length === 0) continue;
+
+        const stats = report.agentBreakdown[agent];
+        const failRate = ((stats.poor + stats.fail) / stats.total * 100).toFixed(0);
+        const issueDetails = buildIssueDetails(agentIssues);
+
+        try {
+            // === DELIBERATIVE PIPELINE: Opus proposes → Gemini reviews → Opus synthesizes ===
+            logger.info('[ResponseAudit] Deliberative coaching starting', { agent });
+
+            // Step 1: Opus proposes initial patch
+            const opusRaw = await opusPropose(agent, failRate, stats, issueDetails);
+
+            // Step 2: Gemini reviews the proposal
+            const geminiRaw = await geminiReview(agent, opusRaw, issueDetails);
+
+            // Step 3: Opus synthesizes final agreed patch
+            const synthesizedRaw = await opusSynthesize(agent, opusRaw, geminiRaw);
+
+            const cleaned = synthesizedRaw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
             const patch = JSON.parse(cleaned) as CoachingPatch;
+
+            // Preserve the full deliberation record
+            if (!patch.deliberation) {
+                patch.deliberation = {
+                    opusProposal: opusRaw.slice(0, 500),
+                    geminiReview: geminiRaw.slice(0, 500),
+                    agreement: 'Synthesized from both perspectives',
+                };
+            } else {
+                patch.deliberation.opusProposal = opusRaw.slice(0, 500);
+                patch.deliberation.geminiReview = geminiRaw.slice(0, 500);
+            }
+
             patches.push(patch);
+
+            logger.info('[ResponseAudit] Deliberative coaching complete', {
+                agent,
+                instructionCount: patch.instructions.length,
+                priority: patch.priority,
+                hasDisagreements: (patch.deliberation.disagreements?.length ?? 0) > 0,
+            });
         } catch (err) {
-            logger.warn('[ResponseAudit] Opus coaching failed for agent', {
+            logger.warn('[ResponseAudit] Deliberative coaching failed for agent', {
                 agent,
                 error: err instanceof Error ? err.message : String(err),
             });
@@ -299,7 +484,13 @@ async function saveCoachingPatches(patches: CoachingPatch[], auditDate: string):
     );
 
     await Promise.all([...writes, ...historyWrites]);
-    logger.info('[ResponseAudit] Coaching patches saved', {
+
+    // Invalidate in-memory cache so agents pick up new patches immediately
+    for (const patch of patches) {
+        invalidateCoachingCache(patch.agent);
+    }
+
+    logger.info('[ResponseAudit] Coaching patches saved + cache invalidated', {
         agents: patches.map((p) => p.agent),
         priorities: patches.map((p) => `${p.agent}:${p.priority}`),
     });
@@ -313,21 +504,30 @@ async function postAuditToSlack(report: AuditReport): Promise<void> {
     const issueBlocks = report.issues
         .filter((i) => i.grade === 'poor' || i.grade === 'fail')
         .slice(0, 5)
-        .map((i) => `> *[${i.grade.toUpperCase()}]* \`${i.agent}\`: _"${i.userMessage.slice(0, 60)}..."_\n>  ${i.issue}${i.suggestedFix ? `\n>  Fix: ${i.suggestedFix}` : ''}`)
+        .map((i) => `> *[${i.grade.toUpperCase()} ${i.score}]* \`${i.agent}\`: _"${i.userMessage.slice(0, 60)}..."_\n>  ${i.issue}${i.suggestedFix ? `\n>  Fix: ${i.suggestedFix}` : ''}`)
         .join('\n\n');
 
-    const scoreEmoji = report.grades.fail > 0 ? '🔴' : report.grades.poor > 2 ? '⚠️' : '✅';
+    const avgScore = report.averageScore;
+    const scoreEmoji = avgScore >= 95 ? '🏆' : avgScore >= 80 ? '✅' : avgScore >= 60 ? '⚠️' : '🔴';
+    const coachingCount = report.coachingPatches?.length ?? 0;
+    const deliberationNote = coachingCount > 0
+        ? `\n🧠 *${coachingCount} coaching patch${coachingCount > 1 ? 'es' : ''}* generated via Opus+Gemini deliberation`
+        : '';
+
+    const agentScores = Object.entries(report.agentBreakdown)
+        .map(([agent, stats]) => `\`${agent}\` avg ${stats.avgScore}`)
+        .join(' | ');
 
     const blocks = [
         {
             type: 'header',
-            text: { type: 'plain_text', text: `${scoreEmoji} Daily Agent Audit — ${report.auditDate}` },
+            text: { type: 'plain_text', text: `${scoreEmoji} Daily Agent Audit — ${report.auditDate} (avg: ${avgScore})` },
         },
         {
             type: 'section',
             text: {
                 type: 'mrkdwn',
-                text: `*${report.totalResponses} responses graded*\n✅ ${report.grades.good} good | 🟡 ${report.grades.acceptable} acceptable | 🟠 ${report.grades.poor} poor | 🔴 ${report.grades.fail} fail`,
+                text: `*${report.totalResponses} responses graded — Target: 95+*\n🏆 ${report.grades.great} great | ✅ ${report.grades.good} good | 🟡 ${report.grades.acceptable} acceptable | 🟠 ${report.grades.poor} poor | 🔴 ${report.grades.fail} fail${deliberationNote}\n\n${agentScores}`,
             },
         },
         {
@@ -343,7 +543,7 @@ async function postAuditToSlack(report: AuditReport): Promise<void> {
     await postLinusIncidentSlack({
         source: 'agent-dream-review',
         channelName: 'ceo',
-        fallbackText: `${scoreEmoji} Daily Agent Audit — ${report.auditDate}: ${report.grades.good} good, ${report.grades.poor} poor, ${report.grades.fail} fail`,
+        fallbackText: `${scoreEmoji} Daily Agent Audit — ${report.auditDate}: avg ${avgScore}, ${report.grades.great} great, ${report.grades.poor} poor, ${report.grades.fail} fail`,
         blocks,
     });
 }
@@ -418,37 +618,50 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         const graded = await gradeResponses(toGrade);
 
         // Build report
-        const grades = { good: 0, acceptable: 0, poor: 0, fail: 0 };
-        const agentBreakdown: Record<string, { total: number; good: number; poor: number; fail: number }> = {};
+        const grades = { great: 0, good: 0, acceptable: 0, poor: 0, fail: 0 };
+        const agentBreakdown: Record<string, { total: number; great: number; good: number; poor: number; fail: number; avgScore: number; _scoreSum: number }> = {};
 
         for (const g of graded) {
             grades[g.grade]++;
             if (!agentBreakdown[g.agent]) {
-                agentBreakdown[g.agent] = { total: 0, good: 0, poor: 0, fail: 0 };
+                agentBreakdown[g.agent] = { total: 0, great: 0, good: 0, poor: 0, fail: 0, avgScore: 0, _scoreSum: 0 };
             }
             agentBreakdown[g.agent].total++;
+            agentBreakdown[g.agent]._scoreSum += g.score;
+            if (g.grade === 'great') agentBreakdown[g.agent].great++;
             if (g.grade === 'good') agentBreakdown[g.agent].good++;
             if (g.grade === 'poor') agentBreakdown[g.agent].poor++;
             if (g.grade === 'fail') agentBreakdown[g.agent].fail++;
         }
 
-        const issues = graded.filter((g) => g.grade === 'poor' || g.grade === 'fail');
+        // Compute averages
+        let totalScore = 0;
+        for (const [, stats] of Object.entries(agentBreakdown)) {
+            stats.avgScore = stats.total > 0 ? Math.round(stats._scoreSum / stats.total) : 0;
+            totalScore += stats._scoreSum;
+            delete (stats as Record<string, unknown>)['_scoreSum'];
+        }
+        const averageScore = graded.length > 0 ? Math.round(totalScore / graded.length) : 0;
+
+        // Include all non-great responses as issues for coaching consideration
+        const issues = graded.filter((g) => g.grade !== 'great');
 
         const partialReport = {
             auditDate: startDate.toISOString().split('T')[0],
             totalResponses: responses.length,
             graded: graded.length,
             grades,
-            agentBreakdown,
+            averageScore,
+            agentBreakdown: agentBreakdown as Record<string, { total: number; great: number; good: number; poor: number; fail: number; avgScore: number }>,
             issues,
         };
 
         // Generate executive summary (Groq — free)
         const summary = await generateSummary(partialReport);
 
-        // Generate coaching patches (Opus — targeted, only for agents with failures)
-        // This is the key intelligence leverage: cheap models grade, expensive model coaches.
-        const coachingPatches = (issues.length > 0)
+        // Generate coaching patches via Opus+Gemini deliberation — targeted at agents below 95 avg
+        // This is the key intelligence leverage: cheap models grade, expensive models deliberate on coaching.
+        const coachingPatches = (averageScore < 95 || issues.length > 0)
             ? await generateCoachingPatches(partialReport)
             : [];
 
@@ -475,10 +688,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             reportId,
             totalResponses: responses.length,
             graded: graded.length,
+            averageScore,
             grades,
             issueCount: issues.length,
             coachingPatchCount: coachingPatches.length,
             coachingAgents: coachingPatches.map((p) => `${p.agent}:${p.priority}`),
+            deliberative: coachingPatches.length > 0,
             summary,
         });
 

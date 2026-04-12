@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 import { createServerClient } from '@/firebase/server-client';
 import { articles } from '@/content/help/_index';
+import { fetchAllStrainSlugs } from '@/lib/strain-data';
 
 const BASE_URL = 'https://bakedbot.ai';
 
@@ -390,6 +391,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     }));
 
+    // 10. Cannabis Strain Encyclopedia (Supabase — up to 5K pages)
+    let strainRoutes: MetadataRoute.Sitemap = [];
+    try {
+      strainRoutes.push({
+        url: `${BASE_URL}/strains`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+      });
+
+      const strainSlugs = await fetchAllStrainSlugs();
+      strainRoutes = strainRoutes.concat(
+        strainSlugs.map((s) => ({
+          url: `${BASE_URL}/strains/${s.slug}`,
+          lastModified: new Date(),
+          changeFrequency: 'monthly' as const,
+          priority: 0.7,
+        }))
+      );
+    } catch (e) {
+      console.error('[Sitemap] Failed to fetch strains:', e);
+    }
+
     return [
       ...homepage,
       ...conversionPages,
@@ -402,6 +426,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...locationRoutes,
       ...blogRoutes,
       ...desertRoutes,
+      ...strainRoutes,
     ];
   } catch (error) {
     console.error('[Sitemap] Root failure:', error);

@@ -754,12 +754,15 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                 orgId: context.orgId,
                 brandId: context.brandId,
                 // Wire agentContext so claude.ts fires recordAgentTelemetry automatically
-                agentContext: context.agentName ? {
-                    name: context.agentName,
-                    role: 'Agent',
-                    capabilities: [],
-                    groundingRules: [],
-                } : undefined,
+                agentContext: context.agentName ? await (async () => {
+                    const { enrichWithCoaching } = await import('@/server/services/coaching-loader');
+                    return enrichWithCoaching({
+                        name: context.agentName!,
+                        role: 'Agent',
+                        capabilities: [],
+                        groundingRules: [],
+                    });
+                })() : undefined,
             }
         );
 

@@ -148,3 +148,64 @@ export async function executeGeminiFlashWithTools(
         throw err;
     }
 }
+
+/**
+ * Simple text-based Gemini call without tools.
+ * Used for deliberative review tasks (coaching, evaluation).
+ * Cost: ~$0.10/$0.40 per 1M tokens (Gemini 2.0 Flash)
+ *       ~$1.25/$10 per 1M tokens (Gemini 3 Pro)
+ */
+export async function callGemini({
+    userMessage,
+    systemPrompt,
+    model = GEMINI_FLASH_MODEL,
+    maxTokens = 2048,
+    temperature = 0.3,
+    caller,
+}: {
+    userMessage: string;
+    systemPrompt?: string;
+    model?: string;
+    maxTokens?: number;
+    temperature?: number;
+    caller?: string;
+}): Promise<string> {
+    const { ai } = await import('@/ai/genkit');
+    const callStart = Date.now();
+
+    try {
+        const result = await ai.generate({
+            model,
+            system: systemPrompt || undefined,
+            prompt: userMessage,
+            config: {
+                maxOutputTokens: maxTokens,
+                temperature,
+            },
+        });
+
+        const text = result.text || '';
+        const durationMs = Date.now() - callStart;
+        const usage = result.usage;
+
+        logger.info('[Gemini] callGemini complete', {
+            model,
+            caller,
+            durationMs,
+            inputTokens: usage?.inputTokens,
+            outputTokens: usage?.outputTokens,
+            responseLength: text.length,
+        });
+
+        return text;
+    } catch (err) {
+        const durationMs = Date.now() - callStart;
+        logger.error('[Gemini] callGemini failed', {
+            model,
+            caller,
+            durationMs,
+            error: err instanceof Error ? err.message : String(err),
+        });
+        throw err;
+    }
+}

@@ -2764,12 +2764,15 @@ User Request: ${request.prompt}`;
         maxIterations: request.maxIterations ?? 4,
         orgId: request.context?.orgId,
         brandId: request.context?.brandId,
-        agentContext: {
-            name: 'Marty Benjamins',
-            role: 'CEO',
-            capabilities: ['delegation', 'gmail', 'calendar', 'crm', 'outreach', 'linkedin', 'facebook', 'reddit', 'instagram', 'moltbook', 'market-research', 'system-health', 'super-powers'],
-            groundingRules: ['Only report real data', 'Delegate to named agents'],
-        },
+        agentContext: await (async () => {
+            const { enrichWithCoaching } = await import('@/server/services/coaching-loader');
+            return enrichWithCoaching({
+                name: 'Marty Benjamins',
+                role: 'CEO',
+                capabilities: ['delegation', 'gmail', 'calendar', 'crm', 'outreach', 'linkedin', 'facebook', 'reddit', 'instagram', 'moltbook', 'market-research', 'system-health', 'super-powers'],
+                groundingRules: ['Only report real data', 'Delegate to named agents'],
+            });
+        })(),
         onToolCall,
     };
     const martyExecutor = createMartyToolExecutor({

@@ -1162,11 +1162,15 @@ export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
               request.progressCallback!(buildElroyProgressMessage(toolName, input))
         : undefined;
 
+    // Enrich agent context with coaching rules from daily Opus+Gemini audit
+    const { enrichWithCoaching } = await import('@/server/services/coaching-loader');
+    const coachedContext = await enrichWithCoaching(ELROY_AGENT_CONTEXT);
+
     const sharedContext = {
         userId: request.context?.userId,
         orgId: ORG_ID,
         maxIterations: request.maxIterations ?? 5,
-        agentContext: ELROY_AGENT_CONTEXT,
+        agentContext: coachedContext,
         onToolCall,
     };
 

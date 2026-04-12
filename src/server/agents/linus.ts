@@ -5441,12 +5441,16 @@ User Request: ${request.prompt}`;
               request.progressCallback!(buildLinusProgressMessage(toolName, input))
         : undefined;
 
+    // Enrich agent context with coaching rules from daily Opus+Gemini audit
+    const { enrichWithCoaching } = await import('@/server/services/coaching-loader');
+    const coachedContext = await enrichWithCoaching(LINUS_AGENT_CONTEXT);
+
     const sharedContext = {
         userId: request.context?.userId,
         orgId: request.context?.orgId,
         brandId: request.context?.brandId,
         maxIterations: request.maxIterations ?? 5,
-        agentContext: LINUS_AGENT_CONTEXT,
+        agentContext: coachedContext,
         onToolCall,
     };
     const linusExecutor = createLinusToolExecutor({
