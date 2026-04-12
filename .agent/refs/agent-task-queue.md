@@ -507,4 +507,34 @@ $env:CRON_SECRET = "your-secret-here"
 # Run with custom interval
 .\poll-opencode.ps1 -IntervalMinutes 60
 ```
+
+## Agent Wakeup System
+
+Automated agent triggering system for bug hunting:
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/agent-wakeup` | POST | Spawns opencode agent to process tasks |
+| `/api/cron/agent-poller` | GET | Checks for pending tasks, triggers wakeup |
+
+**Flow:**
+1. Poller creates task in `agent_tasks` collection
+2. Cron endpoint (`/api/cron/agent-poller`) picks up open tasks
+3. Cron calls `/api/agent-wakeup` to spawn opencode
+4. Opencode processes the task
+
+**Setup:**
+```bash
+# Add to crontab (runs every 5 minutes)
+*/5 * * * * curl -s -H "Authorization: Bearer $CRON_SECRET" \
+  https://bakedbot.ai/api/cron/agent-poller
+
+# Or use the PowerShell poller which handles both steps
+./poll-opencode.ps1
+```
+
+**Environment:**
+- `CRON_SECRET` - Required for auth
+- `AGENT_WORKSPACE` - Workspace path (default: `/workspace/bakedbot-for-brands`)
+- `OPENCODE_PATH` - Path to opencode binary (default: `/usr/local/bin/opencode`)
 ```
