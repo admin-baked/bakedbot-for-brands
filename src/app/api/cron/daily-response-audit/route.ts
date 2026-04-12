@@ -8,6 +8,7 @@ import { postLinusIncidentSlack } from '@/server/services/incident-notifications
 import { callClaude } from '@/ai/claude';
 import { callGemini, isGeminiFlashConfigured } from '@/ai/gemini-flash-tools';
 import { invalidateCoachingCache } from '@/server/services/coaching-loader';
+import { lettaBlockManager, BLOCK_LABELS } from '@/server/services/letta/block-manager';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // Deliberative coaching: 3 model calls per agent (Opus→Gemini→Opus)
@@ -614,6 +615,25 @@ async function saveCoachingPatches(patches: CoachingPatch[], auditDate: string):
         agents: patches.map((p) => p.agent),
         priorities: patches.map((p) => `${p.agent}:${p.priority}`),
     });
+
+    // Persist coaching summary to Hive Mind (Letta) — cross-agent learning
+    // Marty (CEO) and all agents can see what the team learned overnight
+    try {
+        const summary = patches.map((p) =>
+            `[${p.agent}:${p.priority}] ${p.instructions.slice(0, 200)}`
+        ).join('\n');
+        await lettaBlockManager.appendToBlock(
+            'system',
+            BLOCK_LABELS.OVERNIGHT_LEARNINGS,
+            `Audit ${auditDate}: ${patches.length} patch(es)\n${summary}`,
+            'overnight-training'
+        );
+        logger.info('[ResponseAudit] Coaching patches persisted to Hive Mind');
+    } catch (err) {
+        logger.warn('[ResponseAudit] Failed to persist coaching to Hive Mind', {
+            error: err instanceof Error ? err.message : String(err),
+        });
+    }
 }
 
 // ---------------------------------------------------------------------------

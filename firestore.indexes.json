@@ -1788,6 +1788,30 @@
             ]
         },
         {
+            "collectionGroup": "agent_telemetry",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "_agentName", "order": "ASCENDING" },
+                { "fieldPath": "timestamp", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "response_feedback",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "rating", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "learning_deltas",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "proposedAt", "order": "DESCENDING" }
+            ]
+        },
+        {
             "collectionGroup": "proactive_approvals",
             "queryScope": "COLLECTION",
             "fields": [

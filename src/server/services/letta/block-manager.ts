@@ -22,6 +22,9 @@ export const BLOCK_LABELS = {
     COMPLIANCE_POLICIES: 'compliance_policies',
     PLAYBOOK_STATUS: 'playbook_status',
     
+    // Cross-agent learning blocks
+    OVERNIGHT_LEARNINGS: 'overnight_learnings',  // Coaching patches + audit insights from overnight training
+
     // Agent-Specific blocks (each agent's private memory)
     AGENT_LEO: 'agent_leo_memory',           // COO - Operations
     AGENT_JACK: 'agent_jack_memory',         // CEO - Strategy
@@ -89,6 +92,9 @@ export class LettaBlockManager {
             [BLOCK_LABELS.COMPLIANCE_POLICIES]: `Compliance Policies\n---\nNo medical claims\nAge-gate required (21+)\nNo interstate commerce\nState-specific regulations apply`,
             [BLOCK_LABELS.PLAYBOOK_STATUS]: `Playbook Status for ${tenantId}\n---\nActive Playbooks: None\nLast Run: Never`,
             
+            // Cross-agent learning
+            [BLOCK_LABELS.OVERNIGHT_LEARNINGS]: `Overnight Training Learnings\n---\nCoaching patches and audit insights shared across all agents.\nUpdated nightly by the training orchestrator.`,
+
             // Agent-Specific blocks (private memories)
             [BLOCK_LABELS.AGENT_LEO]: `Leo's Operations Memory\n---\nCurrent Tasks: None\nRecent Decisions: None\nTeam Status: Healthy`,
             [BLOCK_LABELS.AGENT_JACK]: `Jack's Strategic Memory\n---\nVision: Grow BakedBot to $10M ARR\nCurrent Focus: Customer acquisition\nKey Relationships: None recorded`,
@@ -245,7 +251,8 @@ export class LettaBlockManager {
                 blockLabels.push(
                     BLOCK_LABELS.EXECUTIVE_WORKSPACE,
                     BLOCK_LABELS.BRAND_CONTEXT,
-                    BLOCK_LABELS.PLAYBOOK_STATUS
+                    BLOCK_LABELS.PLAYBOOK_STATUS,
+                    BLOCK_LABELS.OVERNIGHT_LEARNINGS
                 );
                 break;
         }
