@@ -1,0 +1,77 @@
+{
+  "_comment": "Day Day Slack App Manifest — Growth & SEO Agent. Create at api.slack.com/apps → 'Create New App' → 'From Manifest'.",
+  "display_information": {
+    "name": "Day Day",
+    "description": "BakedBot's Growth & SEO Agent. Monitors search performance, finds ranking opportunities, and creates content for bakedbot.ai.",
+    "background_color": "#1a1a2e",
+    "long_description": "Day Day is BakedBot's Growth & SEO Agent. He monitors Google Search Console and GA4, finds low-competition ranking opportunities, researches the latest SEO trends (AI Overviews, E-E-A-T, topical authority), drafts blog posts and lead magnets, and submits content for approval. Lives in #ceo and answers growth questions from Martez."
+  },
+  "features": {
+    "app_home": {
+      "home_tab_enabled": false,
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": false
+    },
+    "bot_user": {
+      "display_name": "Day Day",
+      "always_online": true
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "channels:history",
+        "channels:join",
+        "channels:read",
+        "chat:write",
+        "chat:write.customize",
+        "files:read",
+        "groups:history",
+        "groups:read",
+        "groups:write",
+        "im:history",
+        "im:read",
+        "im:write",
+        "mpim:history",
+        "mpim:read",
+        "mpim:write",
+        "reactions:write",
+        "users:read"
+      ]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "request_url": "https://bakedbot.ai/api/slack/events",
+      "bot_events": [
+        "app_mention",
+        "message.channels",
+        "message.groups",
+        "message.im",
+        "message.mpim"
+      ]
+    },
+    "interactivity": {
+      "is_enabled": true,
+      "request_url": "https://bakedbot.ai/api/slack/interactions"
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  },
+  "_setup_notes": {
+    "step_1": "Go to api.slack.com/apps → 'Create New App' → 'From Manifest' → paste this JSON",
+    "step_2": "Install the app to your workspace",
+    "step_3": "Copy the Bot User OAuth Token (xoxb-...) → add to GCP Secret Manager as SLACK_DAYDAY_BOT_TOKEN",
+    "step_4": "Copy the Signing Secret → add as SLACK_DAYDAY_SIGNING_SECRET",
+    "step_5": "Copy the App ID → add as SLACK_DAYDAY_APP_ID",
+    "step_6": "Add these 3 secrets to apphosting.yaml (follow the SLACK_ELROY_* pattern at lines 409-418)",
+    "step_7": "Wire SLACK_DAYDAY_APP_ID in slack-agent-bridge.ts (same pattern as SLACK_ELROY_APP_ID at line 908)",
+    "step_8": "Invite Day Day to #ceo: /invite @Day Day",
+    "keywords_that_trigger_day_day": ["day_day", "dayday", "growth", "acquisition", "leads", "seo", "ranking", "traffic", "content", "blog"],
+    "channel_prefixes_that_route_to_day_day": ["growth", "seo"],
+    "dream_loop": "Day Day is in DREAM_AGENT_GROUPS.role_agents — runs overnight via /api/cron/dream-loop with other role agents",
+    "content_approval_channel": "#ceo — submit_for_approval posts with Approve/Decline buttons for Martez"
+  }
+}
