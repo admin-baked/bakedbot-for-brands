@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Navbar } from '@/components/landing/navbar';
 import { LandingFooter } from '@/components/landing/footer';
+import { BookingCta } from '@/components/cta/booking-cta';
 
 export const metadata: Metadata = {
     title: 'Contact Us | BakedBot AI',
@@ -41,6 +42,14 @@ export default function ContactPage() {
                             Serving cannabis brands nationwide.
                         </p>
                     </div>
+                </div>
+
+                <div className="mt-12">
+                    <BookingCta
+                        variant="banner"
+                        headline="Skip the Email — Book a Call"
+                        subtext="Got a dispensary and want to see BakedBot in action? 30 minutes, no pitch deck, just a live demo tailored to your store."
+                    />
                 </div>
             </main>
 
