@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Tablet cart integration + back-office visit notifications live — IncomingVisitNotification, QA tablet cron, Zod fix, cart→VisitSession | **Last update:** 2026-04-12 (Tablet cart + notifications: `b9d5ab6d3`)
+**Current Status:** 🟢 Production live; Agent tool fixes: Elroy thisWeek/lastWeek periods, Linus GitHub API git_log, CRM skipAuth bypass, rate-limit rerouted to #linus-incidents | **Last update:** 2026-04-12 (Agent training loop + tool fixes: `b57759327`)
 
 ---
 
