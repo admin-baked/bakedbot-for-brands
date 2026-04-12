@@ -162,7 +162,7 @@ async function generateJackBrief(ctx: Awaited<ReturnType<typeof loadExecutiveCon
     const db = getAdminFirestore();
     const [contactsSnap, leadsSnap, sentTodaySnap, pendingDraftsSnap] = await Promise.allSettled([
         db.collection('ny_dispensary_leads').count().get(),
-        db.collection('ny_dispensary_leads').where('status', '==', 'researched').where('outreachSent', '==', false).count().get(),
+        db.collection('ny_dispensary_leads').where('status', '==', 'researched').where('outreachSent', '==', false).where('emailVerified', '==', true).count().get(),
         db.collection('ny_outreach_log').where('emailSent', '==', true).count().get(),
         db.collection('ny_outreach_drafts').where('status', '==', 'draft').count().get(),
     ]);

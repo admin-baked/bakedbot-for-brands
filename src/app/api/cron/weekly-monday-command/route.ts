@@ -21,6 +21,7 @@ import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { callClaude } from '@/ai/claude';
 import { buildMartyScoreboard, TARGET_MRR } from '@/server/services/marty-reporting';
+import { writeWeeklyObjectives, getMondayOfWeek, type MartyObjective } from '@/server/services/marty-objectives';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -49,7 +50,7 @@ async function loadWeeklyCommandContext() {
 
     const [orgsSnap, leadsSnap, outreachSnap, auditSnap] = await Promise.allSettled([
         db.collection('organizations').where('status', '==', 'active').count().get(),
-        db.collection('ny_dispensary_leads').where('status', '==', 'researched').where('outreachSent', '==', false).count().get(),
+        db.collection('ny_dispensary_leads').where('status', '==', 'researched').where('outreachSent', '==', false).where('emailVerified', '==', true).count().get(),
         db.collection('ny_outreach_log').where('emailSent', '==', true).count().get(),
         db.collection('agent_audit_reports').orderBy('createdAt', 'desc').limit(1).get(),
     ]);
@@ -268,6 +269,76 @@ async function generateMikeEconomicsReview(ctx: Awaited<ReturnType<typeof loadWe
 }
 
 // ---------------------------------------------------------------------------
+// Weekly Objectives Generator — Marty sets the week's task board
+// ---------------------------------------------------------------------------
+
+async function generateWeeklyObjectives(ctx: Awaited<ReturnType<typeof loadWeeklyCommandContext>>): Promise<void> {
+    const weekOf = getMondayOfWeek();
+    const mrrStatus = ctx.currentMrr !== null
+        ? `$${ctx.currentMrr.toLocaleString()} MRR (${ctx.paceVsTarget}% of target)`
+        : 'MRR not yet instrumented';
+
+    const prompt = `You are Marty Benjamins, CEO of BakedBot AI. Today is Monday ${ctx.dateStr}.
+
+COMPANY CONTEXT:
+- ${mrrStatus} — target $${TARGET_MRR.toLocaleString()} MRR for $1M ARR
+- Active customers: ${ctx.activeOrgs}
+- Verified leads ready for outreach: ${ctx.queuedLeads}
+- Total outreach sent: ${ctx.totalOutreachSent}
+- Last agent audit: ${ctx.lastAuditScore !== null ? `${ctx.lastAuditScore}/100` : 'Not available'}
+
+OFFER STACK:
+- Free Check-In ($0) → Access Retention ($499-$899/mo) → Operator Core ($2,500-$3,000 MRR) → Operator Growth ($3,500-$4,000 MRR)
+- Path to $1M ARR: ~21-33 Operator Core accounts
+
+Generate a weekly task board with exactly:
+- 4-5 short_term objectives (1-5 day tasks for this week)
+- 2-3 long_term objectives (1-4 week ongoing goals)
+
+Each objective must have a specific agent owner and measurable success metric.
+Agents: marty, leo, jack, linus, glenda, mike, pops, mrs_parker, craig, ezal, deebo, day_day
+
+Output ONLY a JSON array. No explanation. Example format:
+[
+  {"type":"short_term","agent":"jack","task":"Send outreach to top 10 verified leads","metric":"Emails sent","target":"10"},
+  {"type":"long_term","agent":"jack","task":"Close first Operator Core account","metric":"New MRR added","target":"$2500"}
+]`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 800,
+            caller: 'weekly-monday-command/objectives',
+        });
+
+        const match = text.match(/\[[\s\S]*\]/);
+        if (!match) {
+            logger.warn('[WeeklyMondayCommand] Could not parse objectives JSON from Claude');
+            return;
+        }
+
+        type RawObjective = { type: string; agent: string; task: string; metric: string; target: string };
+        const raw: RawObjective[] = JSON.parse(match[0]);
+        const objectives = raw.map(o => ({
+            weekOf,
+            type: (o.type === 'long_term' ? 'long_term' : 'short_term') as MartyObjective['type'],
+            agent: o.agent,
+            task: o.task,
+            metric: o.metric,
+            target: o.target,
+            current: null,
+            status: 'open' as MartyObjective['status'],
+        }));
+
+        await writeWeeklyObjectives(weekOf, objectives);
+        logger.info('[WeeklyMondayCommand] Objectives written', { weekOf, count: objectives.length });
+    } catch (e) {
+        logger.warn('[WeeklyMondayCommand] Objectives generation failed (non-fatal)', { error: String(e) });
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Inbox poster
 // ---------------------------------------------------------------------------
 
@@ -373,11 +444,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         ]);
 
         const orgId = await getSuperUserOrgId();
-        await postMondayCommandToInbox(
-            orgId,
-            [martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection],
-            ctx
-        );
+        await Promise.all([
+            postMondayCommandToInbox(
+                orgId,
+                [martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection],
+                ctx
+            ),
+            generateWeeklyObjectives(ctx),
+        ]);
 
         return NextResponse.json({
             success: true,

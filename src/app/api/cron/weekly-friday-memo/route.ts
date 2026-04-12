@@ -23,6 +23,7 @@ import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { callClaude } from '@/ai/claude';
 import { buildMartyScoreboard, TARGET_MRR } from '@/server/services/marty-reporting';
+import { getWeekObjectives, getMondayOfWeek, scoreWeeklyObjectives, buildObjectivesScoreboard, type ObjectiveStatus } from '@/server/services/marty-objectives';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -51,7 +52,7 @@ async function loadFridayContext() {
 
     const [orgsSnap, leadsReadySnap, outreachThisWeekSnap, completedTasksSnap, errorTasksSnap, auditSnap] = await Promise.allSettled([
         db.collection('organizations').where('status', '==', 'active').count().get(),
-        db.collection('ny_dispensary_leads').where('status', '==', 'researched').where('outreachSent', '==', false).count().get(),
+        db.collection('ny_dispensary_leads').where('status', '==', 'researched').where('outreachSent', '==', false).where('emailVerified', '==', true).count().get(),
         db.collection('ny_outreach_log').where('sentAt', '>=', mondayThisWeek).count().get(),
         db.collection('agent_tasks').where('status', '==', 'completed').where('updatedAt', '>=', mondayThisWeek).count().get(),
         db.collection('agent_tasks').where('status', '==', 'failed').where('updatedAt', '>=', mondayThisWeek).count().get(),
@@ -262,7 +263,8 @@ async function generatePopsKpiPack(ctx: Awaited<ReturnType<typeof loadFridayCont
 async function postFridayMemoToInbox(
     orgId: string,
     sections: FridaySection[],
-    ctx: Awaited<ReturnType<typeof loadFridayContext>>
+    ctx: Awaited<ReturnType<typeof loadFridayContext>>,
+    weekObjectives: Awaited<ReturnType<typeof import('@/server/services/marty-objectives').getWeekObjectives>> = []
 ) {
     const db = getAdminFirestore();
 
@@ -302,7 +304,10 @@ async function postFridayMemoToInbox(
         .map(s => `**${s.title.split("'s")[0]}:** ${s.items[0]}`)
         .join('\n');
 
-    const body = `**Friday CEO Memo — ${ctx.weekLabel}**\n\n📊 ${mrrLine}\n\n${memoText}\n\n---\n**Executive Summaries:**\n${execBullets}`;
+    const objectivesBoard = weekObjectives.length > 0
+        ? `\n\n---\n**Week's Task Board:**\n${buildObjectivesScoreboard(weekObjectives)}`
+        : '';
+    const body = `**Friday CEO Memo — ${ctx.weekLabel}**\n\n📊 ${mrrLine}\n\n${memoText}\n\n---\n**Executive Summaries:**\n${execBullets}${objectivesBoard}`;
 
     const artifact = {
         type: 'weekly_friday_memo',
@@ -363,8 +368,58 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             generatePopsKpiPack(ctx),
         ]);
 
-        const orgId = await getSuperUserOrgId();
-        await postFridayMemoToInbox(orgId, [martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection, popsSection], ctx);
+        const weekOf = getMondayOfWeek();
+        const [orgId, weekObjectives] = await Promise.all([
+            getSuperUserOrgId(),
+            getWeekObjectives(weekOf),
+        ]);
+
+        // Score open objectives: use Claude to assess hit/missed based on week context
+        if (weekObjectives.length > 0) {
+            const openObjectives = weekObjectives.filter(o => o.status === 'open' || o.status === 'in_progress');
+            if (openObjectives.length > 0) {
+                try {
+                    const scoringPrompt = `You are Marty Benjamins, CEO of BakedBot. It is Friday ${ctx.dateStr}.
+
+WEEK IN REVIEW:
+- Outreach sent this week: ${ctx.outreachThisWeek}
+- Tasks completed: ${ctx.completedTasks}
+- Tasks failed: ${ctx.failedTasks}
+- Active customers: ${ctx.activeOrgs}
+
+OBJECTIVES TO SCORE:
+${openObjectives.map(o => `[${o.id}] ${o.agent.toUpperCase()}: ${o.task} | Target: ${o.target} | Metric: ${o.metric}`).join('\n')}
+
+For each objective, assess: hit, missed, or carry_forward (if it's a long_term goal that continues next week).
+Output ONLY JSON array: [{"id":"...","status":"hit|missed|carry_forward","current":"actual value or ?","notes":"one sentence"}]`;
+
+                    const text = await callClaude({
+                        model: 'claude-haiku-4-5-20251001',
+                        userMessage: scoringPrompt,
+                        maxTokens: 600,
+                        caller: 'weekly-friday-memo/objectives-scoring',
+                    });
+                    const match = text.match(/\[[\s\S]*\]/);
+                    if (match) {
+                        type RawScore = { id: string; status: string; current?: string; notes?: string };
+                        const scores: RawScore[] = JSON.parse(match[0]);
+                        await scoreWeeklyObjectives(weekOf, scores.map(s => ({
+                            id: s.id,
+                            status: (s.status as ObjectiveStatus) || 'missed',
+                            current: s.current,
+                            notes: s.notes,
+                        })));
+                        // Re-fetch with updated scores for memo
+                        const scored = await getWeekObjectives(weekOf);
+                        weekObjectives.splice(0, weekObjectives.length, ...scored);
+                    }
+                } catch (e) {
+                    logger.warn('[WeeklyFridayMemo] Objective scoring failed (non-fatal)', { error: String(e) });
+                }
+            }
+        }
+
+        await postFridayMemoToInbox(orgId, [martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection, popsSection], ctx, weekObjectives);
 
         return NextResponse.json({
             success: true,

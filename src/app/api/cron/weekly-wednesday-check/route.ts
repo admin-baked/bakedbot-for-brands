@@ -21,6 +21,7 @@ import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { callClaude } from '@/ai/claude';
 import { buildMartyScoreboard, TARGET_MRR } from '@/server/services/marty-reporting';
+import { getWeekObjectives, getMondayOfWeek, buildObjectivesScoreboard } from '@/server/services/marty-objectives';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 240;
@@ -50,7 +51,7 @@ async function loadWednesdayContext() {
 
     const [orgsSnap, leadsReadySnap, outreachThisWeekSnap, pendingTasksSnap, auditSnap] = await Promise.allSettled([
         db.collection('organizations').where('status', '==', 'active').count().get(),
-        db.collection('ny_dispensary_leads').where('status', '==', 'researched').where('outreachSent', '==', false).count().get(),
+        db.collection('ny_dispensary_leads').where('status', '==', 'researched').where('outreachSent', '==', false).where('emailVerified', '==', true).count().get(),
         db.collection('ny_outreach_log').where('sentAt', '>=', mondayThisWeek).count().get(),
         db.collection('agent_tasks').where('status', 'in', ['pending', 'in_progress']).count().get(),
         db.collection('agent_audit_reports').orderBy('createdAt', 'desc').limit(1).get(),
@@ -264,7 +265,8 @@ async function generateDeeboMidweekScan(): Promise<InspectionSection> {
 async function postWednesdayCheckToInbox(
     orgId: string,
     sections: InspectionSection[],
-    ctx: Awaited<ReturnType<typeof loadWednesdayContext>>
+    ctx: Awaited<ReturnType<typeof loadWednesdayContext>>,
+    weekObjectives: Awaited<ReturnType<typeof import('@/server/services/marty-objectives').getWeekObjectives>> = []
 ) {
     const db = getAdminFirestore();
 
@@ -307,7 +309,10 @@ async function postWednesdayCheckToInbox(
         .map(i => `• ${i}`)
         .join('\n');
 
-    const body = `**Wednesday Inspection — ${ctx.dateStr}** ${verdictEmoji} ${verdictLabel}\n\n**Marty's Assessment:**\n${martySummary}\n\n**Executive Reports:**\n${otherBullets}`;
+    const objectivesBoard = weekObjectives.length > 0
+        ? `\n\n**Week's Task Board:**\n${buildObjectivesScoreboard(weekObjectives)}`
+        : '';
+    const body = `**Wednesday Inspection — ${ctx.dateStr}** ${verdictEmoji} ${verdictLabel}\n\n**Marty's Assessment:**\n${martySummary}\n\n**Executive Reports:**\n${otherBullets}${objectivesBoard}`;
 
     const artifact = {
         type: 'weekly_wednesday_check',
@@ -365,8 +370,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             generateDeeboMidweekScan(),
         ]);
 
-        const orgId = await getSuperUserOrgId();
-        await postWednesdayCheckToInbox(orgId, [martySection, leoSection, jackSection, popsSection, deeboSection], ctx);
+        const [orgId, weekObjectives] = await Promise.all([
+            getSuperUserOrgId(),
+            getWeekObjectives(getMondayOfWeek()),
+        ]);
+        await postWednesdayCheckToInbox(orgId, [martySection, leoSection, jackSection, popsSection, deeboSection], ctx, weekObjectives);
 
         return NextResponse.json({
             success: true,
@@ -375,6 +383,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 outreachThisWeek: ctx.outreachThisWeek,
                 openTasks: ctx.openTasks,
                 paceVsTarget: ctx.paceVsTarget,
+                objectives: weekObjectives.length,
             },
         });
     } catch (error) {

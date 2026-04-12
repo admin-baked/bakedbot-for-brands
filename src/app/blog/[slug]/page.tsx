@@ -16,6 +16,7 @@ import { Calendar, User, Clock, ChevronRight, BookOpen, ArrowLeft } from 'lucide
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { BlogSignupCta } from '@/components/blog/blog-signup-cta';
+import { BookingCta } from '@/components/cta/booking-cta';
 import ReactMarkdown from 'react-markdown';
 import type { Metadata } from 'next';
 
@@ -269,6 +270,13 @@ export default async function PlatformBlogPostPage({ params }: BlogPostPageProps
 
                         {/* Mid-article CTA */}
                         <BlogSignupCta variant="inline" slug={post.seo.slug} />
+
+                        {/* Booking CTA — inbound conversion after article content */}
+                        <BookingCta
+                            variant="inline"
+                            headline="Want to See This Working for Your Dispensary?"
+                            subtext="Book a free 30-min strategy call and we'll walk through your specific store, market, and goals."
+                        />
 
                         {/* Tags */}
                         {post.tags && post.tags.length > 0 && (

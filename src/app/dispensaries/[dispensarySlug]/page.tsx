@@ -19,6 +19,7 @@ import { PageViewTracker } from '@/components/analytics/PageViewTracker';
 import { ChatbotPageContext } from '@/components/chatbot-page-context';
 import { Button } from '@/components/ui/button';
 import { LeadCaptureForm } from '@/components/leads/lead-capture-form';
+import { BookingCta } from '@/components/cta/booking-cta';
 import { DispensaryMenuClient } from './dispensary-menu-client';
 import { getActiveBundles } from '@/app/actions/bundles';
 import { getPublicMenuSettings } from '@/server/actions/loyalty-settings';
@@ -340,6 +341,12 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
                             </Link>
                         </Button>
                     </div>
+
+                    <BookingCta
+                        variant="sidebar"
+                        headline="Talk to a Real Human"
+                        subtext={`30-min free call. We'll walk you through exactly how BakedBot works for ${dispensary.city} dispensaries.`}
+                    />
 
                     <div id="contact">
                         <LeadCaptureForm
