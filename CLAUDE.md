@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ Production live; overnight training pipeline running — Hive Mind cross-agent learning wired | **Last update:** 2026-04-12 (overnight orchestrator + Hive Mind + 3 Firestore indexes + temporal awareness categories)
+**Current Status:** ðŸŸ¢ Production live; HeyGen video pipeline + Creative Center Video Generator for Super Users | **Last update:** 2026-04-12 (HeyGen server actions + Video Generator panel + onboarding video player)
 
 ---
 
