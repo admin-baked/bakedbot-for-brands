@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Day Day agent wired + /explore Cannabis Data Library live; sitemap + homepage link | **Last update:** 2026-04-12 (Day Day + explore portal: `d90755e64`)
+**Current Status:** 🟢 Production live; Marty weekly task board + BookingCta on all ~8K pages + verified-only outreach | **Last update:** 2026-04-12 (task board + inbound CTAs: `1fbc88b22`)
 
 ---
 

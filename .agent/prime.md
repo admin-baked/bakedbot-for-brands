@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; Day Day Slack agent (full Elroy-pattern, 14 tools) + /explore Cannabis Data Library portal shipped
-**Recent work (2026-04-12):** `d90755e64` /explore hub + sitemap + homepage link; Day Day agent wired into Slack bridge + routing
+**Current Status:** 🟢 Production live; Marty weekly task board (marty_objectives) + BookingCta on all ~8K dispensary/blog pages + verified-only outreach
+**Recent work (2026-04-12):** `1fbc88b22` task board + inbound CTAs + simplify; `d90755e64` /explore hub + Day Day agent
 **Prior (2026-04-12):** `b57759327` CRM skipAuth + agent tool fixes; `b9d5ab6d3` Tablet cart + notifications
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
