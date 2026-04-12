@@ -179,7 +179,7 @@ export async function scanReddit(): Promise<ScanResult> {
         for (const keyword of LISTEN_KEYWORDS.slice(0, 5)) { // Top 5 keywords per scan
             try {
                 // redditSearch returns formatted text — parse it for signal scoring
-                const resultText: string = await redditSearch(keyword, undefined, 'relevance', 10);
+                const resultText = await redditSearch(keyword, undefined, 'relevance', 10);
                 if (!resultText || resultText.includes('No Reddit posts found') || resultText.includes('failed')) continue;
 
                 // Parse the formatted text into rough post blocks

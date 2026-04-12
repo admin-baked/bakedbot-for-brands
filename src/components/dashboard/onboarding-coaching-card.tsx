@@ -11,8 +11,8 @@
  *   <OnboardingCoachingCard stepId="brand-guide" />
  */
 
-import { useState, useEffect } from 'react';
-import { Sparkles, X, ArrowRight, CheckCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Sparkles, X, ArrowRight, CheckCircle, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -24,7 +24,7 @@ interface StepGuidance {
   description: string;
   tips: string[];
   ctaLabel?: string;
-  videoId?: string; // future: embed Supademo/walkthrough
+  videoUrl?: string; // HeyGen walkthrough video URL
 }
 
 const STEP_GUIDANCE: Record<OnboardingStepId, StepGuidance> = {
@@ -37,6 +37,7 @@ const STEP_GUIDANCE: Record<OnboardingStepId, StepGuidance> = {
       'Set compliance keywords to auto-flag before anything goes live.',
     ],
     ctaLabel: 'Start building',
+    videoUrl: 'https://storage.googleapis.com/bakedbot-global-assets/onboarding/videos/01-brand-guide.mp4',
   },
   'link-dispensary': {
     title: 'Link your dispensary',
@@ -46,6 +47,7 @@ const STEP_GUIDANCE: Record<OnboardingStepId, StepGuidance> = {
       'This links your org to the right retail location.',
     ],
     ctaLabel: 'Search dispensaries',
+    videoUrl: 'https://storage.googleapis.com/bakedbot-global-assets/onboarding/videos/02-link-dispensary.mp4',
   },
   'connect-pos': {
     title: 'Connect your menu data',
@@ -140,6 +142,8 @@ export function OnboardingCoachingCard({
   const [dismissed, setDismissed] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [done, setDone] = useState(isComplete);
+  const [showVideo, setShowVideo] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { celebrate } = useOnboardingCelebration();
 
   useEffect(() => {
@@ -195,6 +199,33 @@ export function OnboardingCoachingCard({
                 </div>
               ))}
             </div>
+
+            {guidance.videoUrl && (
+              <div className="pt-1">
+                {showVideo ? (
+                  <div className="rounded-lg overflow-hidden border border-border/50">
+                    <video
+                      ref={videoRef}
+                      src={guidance.videoUrl}
+                      controls
+                      autoPlay
+                      className="w-full max-h-[280px] bg-black"
+                      onEnded={() => setShowVideo(false)}
+                    />
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs h-7"
+                    onClick={() => setShowVideo(true)}
+                  >
+                    <Play className="h-3 w-3 mr-1" />
+                    Watch walkthrough
+                  </Button>
+                )}
+              </div>
+            )}
 
             <div className="flex items-center gap-2 pt-1">
               <Button

@@ -25,6 +25,7 @@ import {
   Layers,
   Trash2,
   Clock,
+  Video,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,7 @@ import { approveAtLevel, rejectAtLevel } from "@/server/actions/creative-content
 import { EngagementAnalytics } from "@/components/creative/engagement-analytics";
 import { useUser } from "@/firebase/auth/use-user";
 import { DeeboCompliancePanel } from "./components/deebo-compliance-panel";
+import { VideoGenerator } from "./components/video-generator";
 import { useBrandGuide, useBrandVoice, useBrandColors } from "@/hooks/use-brand-guide";
 import { sendCreativeToInbox } from "@/server/actions/creative-inbox";
 import { getBrandKitImages } from "@/server/actions/brand-images";
@@ -163,7 +165,7 @@ type CreativeOrgPreset = {
 type ComposerMode = 'quick' | 'studio';
 
 // Left panel sections
-type LeftPanel = 'generate' | 'templates' | 'brandkit' | 'upload' | 'calendar' | 'analytics' | 'help' | 'drafts';
+type LeftPanel = 'generate' | 'templates' | 'brandkit' | 'upload' | 'calendar' | 'analytics' | 'help' | 'drafts' | 'video';
 
 // Feature flag: Gauntlet compliance verification system
 const GAUNTLET_ENABLED = true;
@@ -177,6 +179,7 @@ const LEFT_PANELS: { id: LeftPanel; icon: React.ElementType; label: string }[] =
   { id: 'drafts', icon: Layers, label: 'Drafts' },
   { id: 'calendar', icon: CalendarIcon, label: 'Calendar' },
   { id: 'analytics', icon: BarChart3, label: 'Analytics' },
+  { id: 'video', icon: Video, label: 'Video' },
   { id: 'help', icon: HelpCircle, label: 'Help' },
 ];
 
@@ -693,9 +696,11 @@ export default function CreativeCommandCenter() {
   const [tone, setTone] = useState<CreativeStyle>("professional");
   const [selectedMenuItemId, setSelectedMenuItemId] = useState("");
   const [revisionNote, setRevisionNote] = useState("");
-  const visibleLeftPanels = isMobile
+  const isSuperUser = (user as any)?.role === 'super_user';
+  const visibleLeftPanels = (isMobile
     ? LEFT_PANELS.filter(({ id }) => MOBILE_PRIMARY_PANELS.includes(id))
-    : LEFT_PANELS;
+    : LEFT_PANELS
+  ).filter(({ id }) => id !== 'video' || isSuperUser);
 
   useEffect(() => {
     if (!isMobile) {
@@ -3182,6 +3187,11 @@ export default function CreativeCommandCenter() {
                       </div>
                     </div>
                   </ScrollArea>
+                )}
+
+                {/* ╌ Panel: Video Generator (Super User) ╌ */}
+                {activeLeftPanel === 'video' && isSuperUser && (
+                  <VideoGenerator />
                 )}
 
                 {/* ╌ Panel: Help ╌ */}
