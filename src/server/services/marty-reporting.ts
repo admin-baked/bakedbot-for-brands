@@ -2,7 +2,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { MartyScoreboard, MartyScoreboardMetric, MartyWeeklyMemoData } from '@/types/marty';
 
-const TARGET_MRR = 83333;
+export const TARGET_MRR = 83333;
 const NOT_INSTRUMENTED_YET = 'Not instrumented yet';
 
 function formatChicagoDate(date: Date): string {

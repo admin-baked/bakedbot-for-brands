@@ -17,7 +17,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireCronSecret } from '@/server/auth/cron';
+import { requireCronSecret, getSuperUserOrgId, parseBullets, topUrgency } from '@/server/auth/cron';
 import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getMeetingsForDay, getUpcomingMeetingsToday } from '@/server/services/calendar-digest';
@@ -26,30 +26,10 @@ import { findSuperUserUid, getEmailDigest } from '@/server/services/email-digest
 import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 import { callClaude } from '@/ai/claude';
 import { EXEC_CONTEXT_CACHE_DOC } from '@/app/api/cron/executive-context-prewarm/route';
+import { buildMartyScoreboard, TARGET_MRR } from '@/server/services/marty-reporting';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 min — Claude calls + search can be slow
-
-// ---------------------------------------------------------------------------
-// Resolve the super-user's orgId dynamically at runtime (same logic as
-// morning-briefing getActiveOrgIds).  Falls back to 'bakedbot_super_admin'
-// if the users collection returns nothing.
-// ---------------------------------------------------------------------------
-async function getSuperUserOrgId(): Promise<string> {
-    try {
-        const db = getAdminFirestore();
-        const snap = await db.collection('users')
-            .where('role', '==', 'super_user')
-            .limit(1)
-            .get();
-        if (!snap.empty) {
-            const data = snap.docs[0].data();
-            const orgId = data.orgId || data.currentOrgId;
-            if (orgId && typeof orgId === 'string') return orgId;
-        }
-    } catch { /* fall through */ }
-    return 'bakedbot_super_admin';
-}
 
 // ============================================================================
 // Types
@@ -143,7 +123,7 @@ Format as bullet points. Keep each under 20 words. No fluff.`;
             caller: 'exec-check/leo-ops',
         });
 
-        const recommendations = text.split('\n').filter((l: string) => l.trim().startsWith('-') || l.trim().startsWith('•')).map((l: string) => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
+        const recommendations = parseBullets(text);
 
         return {
             agent: 'leo',
@@ -261,7 +241,7 @@ Format as bullet points. Under 20 words each. No fluff.`;
             caller: 'exec-check/linus-eng',
         });
 
-        const recommendations = text.split('\n').filter((l: string) => l.trim().startsWith('-') || l.trim().startsWith('•')).map((l: string) => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
+        const recommendations = parseBullets(text);
 
         return {
             agent: 'linus',
@@ -307,7 +287,7 @@ Format as bullet points. Under 20 words each. No fluff.`;
             caller: 'exec-check/pops-finance',
         });
 
-        const recommendations = text.split('\n').filter((l: string) => l.trim().startsWith('-') || l.trim().startsWith('•')).map((l: string) => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
+        const recommendations = parseBullets(text);
 
         return {
             agent: 'mike',
@@ -356,7 +336,7 @@ Format as bullet points. Under 20 words each. No fluff.`;
             caller: 'exec-check/craig-marketing',
         });
 
-        const recommendations = text.split('\n').filter((l: string) => l.trim().startsWith('-') || l.trim().startsWith('•')).map((l: string) => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
+        const recommendations = parseBullets(text);
 
         return {
             agent: 'glenda',
@@ -455,9 +435,8 @@ Be specific and actionable. Format as a JSON array of strings.`;
 // Always-On Agent Briefs — Marty ARR Monitor, Ezal Market Watch, Pops KPI, Deebo Compliance
 // ============================================================================
 
-async function generateMartyArrMonitor(_ctx: Awaited<ReturnType<typeof loadExecutiveContext>>): Promise<ExecDomainBrief> {
+async function generateMartyArrMonitor(): Promise<ExecDomainBrief> {
     const db = getAdminFirestore();
-    const TARGET_MRR = 83333; // $1M ARR / 12
 
     const [orgsSnap, auditSnap] = await Promise.allSettled([
         db.collection('organizations').where('status', '==', 'active').count().get(),
@@ -469,15 +448,9 @@ async function generateMartyArrMonitor(_ctx: Awaited<ReturnType<typeof loadExecu
         ? (auditSnap.value.docs[0].data().averageScore ?? null)
         : null;
 
-    // Import scoreboard helper for MRR data
-    let currentMrr: number | null = null;
-    let paceVsTarget: number | null = null;
-    try {
-        const { buildMartyScoreboard } = await import('@/server/services/marty-reporting');
-        const scoreboard = buildMartyScoreboard();
-        currentMrr = scoreboard.groups.find(g => g.id === 'revenue')?.metrics.find(m => m.id === 'current_mrr')?.value ?? null;
-        paceVsTarget = currentMrr !== null ? Math.round((currentMrr / TARGET_MRR) * 100) : null;
-    } catch { /* non-fatal */ }
+    const scoreboard = buildMartyScoreboard();
+    const currentMrr = scoreboard.groups.find(g => g.id === 'revenue')?.metrics.find(m => m.id === 'current_mrr')?.value ?? null;
+    const paceVsTarget = currentMrr !== null ? Math.round((currentMrr / TARGET_MRR) * 100) : null;
 
     const mrrLine = currentMrr !== null
         ? `$${currentMrr.toLocaleString()} MRR (${paceVsTarget}% of $${TARGET_MRR.toLocaleString()} target)`
@@ -533,10 +506,7 @@ Format as bullet points. Under 20 words each. Flag urgency with [ALERT] if criti
             maxTokens: 250,
             caller: 'exec-check/ezal-market',
         });
-        const recommendations = text.split('\n')
-            .filter((l: string) => l.trim().match(/^[-•\[]/))
-            .map((l: string) => l.replace(/^[-•]\s*/, '').trim())
-            .filter(Boolean);
+        const recommendations = parseBullets(text);
         const hasAlert = recommendations.some(r => r.includes('[ALERT]'));
         return {
             agent: 'ezal',
@@ -678,11 +648,7 @@ async function postExecBriefToInbox(orgId: string, briefs: ExecDomainBrief[], ct
         },
     };
 
-    const urgencyPriority = { critical: 4, warning: 3, info: 2, clean: 1 };
-    const topUrgency = briefs.reduce((top, b) =>
-        (urgencyPriority[b.urgency] > urgencyPriority[top]) ? b.urgency : top,
-        'clean' as 'clean' | 'info' | 'warning' | 'critical'
-    );
+    const urgency = topUrgency(briefs.map(b => b.urgency));
 
     const bulletSummary = briefs.flatMap(b => b.recommendations.slice(0, 2)).slice(0, 8).map(r => `• ${r}`).join('\n');
     const messageBody = `**Executive Intelligence Check — ${ctx.dateStr}**\n\n${bulletSummary}\n\n_Marty, Leo, Jack, Glenda, Linus, Mike, Mrs. Parker, Ezal, Pops, and Deebo have completed their morning scan._`;
@@ -695,7 +661,7 @@ async function postExecBriefToInbox(orgId: string, briefs: ExecDomainBrief[], ct
         createdAt: now,
         metadata: {
             source: 'executive-proactive-check',
-            urgency: topUrgency,
+            urgency,
         },
     });
 
@@ -738,7 +704,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             generateLinusBrief(ctx),
             generateMikeBrief(ctx),
             generateMrsParkerBrief(ctx),
-            generateMartyArrMonitor(ctx),
+            generateMartyArrMonitor(),
             generateEzalAlwaysOnScan(),
             generatePopsKpiWatch(),
             generateDeeboComplianceWatch(),

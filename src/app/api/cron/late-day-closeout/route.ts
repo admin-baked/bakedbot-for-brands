@@ -17,7 +17,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireCronSecret } from '@/server/auth/cron';
+import { requireCronSecret, getSuperUserOrgId, parseBullets, topUrgency } from '@/server/auth/cron';
 import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { callClaude } from '@/ai/claude';
@@ -40,19 +40,6 @@ interface CloseoutSection {
 // ---------------------------------------------------------------------------
 // Org resolver
 // ---------------------------------------------------------------------------
-
-async function getSuperUserOrgId(): Promise<string> {
-    try {
-        const db = getAdminFirestore();
-        const snap = await db.collection('users').where('role', '==', 'super_user').limit(1).get();
-        if (!snap.empty) {
-            const d = snap.docs[0].data();
-            const orgId = d.orgId || d.currentOrgId;
-            if (orgId && typeof orgId === 'string') return orgId;
-        }
-    } catch { /* fall through */ }
-    return 'bakedbot_super_admin';
-}
 
 // ---------------------------------------------------------------------------
 // Context — reuse pre-warmed exec context if available
@@ -151,10 +138,7 @@ Format as bullet points. Under 25 words each.`;
             maxTokens: 350,
             caller: 'late-day-closeout/leo',
         });
-        const items = text.split('\n')
-            .filter(l => l.trim().match(/^[-•*]/))
-            .map(l => l.replace(/^[-•*]\s*/, '').trim())
-            .filter(Boolean);
+        const items = parseBullets(text);
         return {
             agent: 'leo',
             title: "Leo's Day Close",
@@ -199,10 +183,7 @@ Be specific. Format as bullet points, under 25 words each.`;
             maxTokens: 300,
             caller: 'late-day-closeout/felisha',
         });
-        const items = text.split('\n')
-            .filter(l => l.trim().match(/^[-•*]/))
-            .map(l => l.replace(/^[-•*]\s*/, '').trim())
-            .filter(Boolean);
+        const items = parseBullets(text);
         return {
             agent: 'felisha',
             title: "Felisha's Action Tracker",
@@ -276,10 +257,7 @@ Format as bullet points, actionable, under 25 words each.`;
             maxTokens: 300,
             caller: 'late-day-closeout/openclaw',
         });
-        const items = text.split('\n')
-            .filter(l => l.trim().match(/^[-•*]/))
-            .map(l => l.replace(/^[-•*]\s*/, '').trim())
-            .filter(Boolean);
+        const items = parseBullets(text);
         return {
             agent: 'openclaw',
             title: "OpenClaw's Tomorrow Queue",
@@ -326,11 +304,7 @@ async function postCloseoutToInbox(orgId: string, sections: CloseoutSection[], d
     }
 
     const now = new Date();
-    const urgencyPriority = { critical: 4, warning: 3, info: 2, clean: 1 };
-    const topUrgency = sections.reduce(
-        (top, s) => urgencyPriority[s.urgency] > urgencyPriority[top] ? s.urgency : top,
-        'clean' as CloseoutSection['urgency']
-    );
+    const urgency = topUrgency(sections.map(s => s.urgency));
 
     const bulletSummary = sections
         .flatMap(s => s.items.slice(0, 2))
@@ -356,7 +330,7 @@ async function postCloseoutToInbox(orgId: string, sections: CloseoutSection[], d
         agentId: 'leo',
         artifact,
         createdAt: now,
-        metadata: { source: 'late-day-closeout', urgency: topUrgency },
+        metadata: { source: 'late-day-closeout', urgency },
     });
 
     await db.collection('inbox_threads').doc(threadId).update({

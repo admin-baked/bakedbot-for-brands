@@ -18,7 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireCronSecret } from '@/server/auth/cron';
+import { requireCronSecret, getSuperUserOrgId, parseBullets, topUrgency } from '@/server/auth/cron';
 import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { callClaude } from '@/ai/claude';
@@ -36,23 +36,6 @@ interface OvernightSection {
     title: string;
     items: string[];
     urgency: 'clean' | 'info' | 'warning' | 'critical';
-}
-
-// ---------------------------------------------------------------------------
-// Org resolver
-// ---------------------------------------------------------------------------
-
-async function getSuperUserOrgId(): Promise<string> {
-    try {
-        const db = getAdminFirestore();
-        const snap = await db.collection('users').where('role', '==', 'super_user').limit(1).get();
-        if (!snap.empty) {
-            const d = snap.docs[0].data();
-            const orgId = d.orgId || d.currentOrgId;
-            if (orgId && typeof orgId === 'string') return orgId;
-        }
-    } catch { /* fall through */ }
-    return 'bakedbot_super_admin';
 }
 
 // ---------------------------------------------------------------------------
@@ -111,10 +94,7 @@ Format as bullet points. Under 30 words each. Flag critical alerts with [ALERT].
             maxTokens: 400,
             caller: 'overnight-queue-prep/ezal',
         });
-        const items = text.split('\n')
-            .filter(l => l.trim().match(/^[-•*\[]/))
-            .map(l => l.replace(/^[-•*]\s*/, '').trim())
-            .filter(Boolean);
+        const items = parseBullets(text);
         const hasAlerts = items.some(i => i.includes('[ALERT]'));
         return {
             agent: 'ezal',
@@ -208,10 +188,7 @@ Format as bullet points. Under 30 words each.`;
             maxTokens: 350,
             caller: 'overnight-queue-prep/roach',
         });
-        const items = text.split('\n')
-            .filter(l => l.trim().match(/^[-•*]/))
-            .map(l => l.replace(/^[-•*]\s*/, '').trim())
-            .filter(Boolean);
+        const items = parseBullets(text);
         return {
             agent: 'roach',
             title: "Roach's Morning Research Brief",
@@ -352,11 +329,7 @@ async function postOvernightToInbox(orgId: string, sections: OvernightSection[],
     }
 
     const now = new Date();
-    const urgencyPriority = { critical: 4, warning: 3, info: 2, clean: 1 };
-    const topUrgency = sections.reduce(
-        (top, s) => urgencyPriority[s.urgency] > urgencyPriority[top] ? s.urgency : top,
-        'clean' as OvernightSection['urgency']
-    );
+    const urgency = topUrgency(sections.map(s => s.urgency));
 
     const bulletSummary = sections
         .flatMap(s => s.items.slice(0, 2))
@@ -382,7 +355,7 @@ async function postOvernightToInbox(orgId: string, sections: OvernightSection[],
         agentId: 'ezal',
         artifact,
         createdAt: now,
-        metadata: { source: 'overnight-queue-prep', urgency: topUrgency },
+        metadata: { source: 'overnight-queue-prep', urgency },
     });
 
     await db.collection('inbox_threads').doc(threadId).update({

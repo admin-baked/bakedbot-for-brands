@@ -19,16 +19,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireCronSecret } from '@/server/auth/cron';
+import { requireCronSecret, getSuperUserOrgId } from '@/server/auth/cron';
 import { logger } from '@/lib/logger';
 import { generateDayPulse, postPulseToInbox } from '@/server/services/morning-briefing';
 import { getAdminFirestore } from '@/firebase/admin';
 import { callClaude } from '@/ai/claude';
 
 export const dynamic = 'force-dynamic';
-
-// Super user's home org (Martez Knox currentOrgId)
-const PLATFORM_ORG_ID = 'bakedbot_super_admin';
+export const maxDuration = 120;
 
 // ---------------------------------------------------------------------------
 // Executive Movement Check — Leo, Jack, Glenda midday progress
@@ -41,8 +39,10 @@ interface MovementNote {
 
 async function generateExecutiveMovementNotes(dateStr: string): Promise<MovementNote[]> {
     const db = getAdminFirestore();
-    const morningCutoff = new Date();
-    morningCutoff.setHours(8, 0, 0, 0); // Since 8 AM this morning
+    // 8 AM EST as UTC: EST = UTC-5, so 8 AM EST = 13:00 UTC
+    const now8amEst = new Date();
+    now8amEst.setUTCHours(13, 0, 0, 0);
+    const morningCutoff = now8amEst > new Date() ? new Date(now8amEst.getTime() - 86400000) : now8amEst;
 
     const [outreachSnap, taskProgressSnap, campaignSnap] = await Promise.allSettled([
         db.collection('ny_outreach_log')
@@ -153,15 +153,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/New_York',
         });
 
-        // Run existing pulse + executive movement check in parallel
-        const [pulse, movementNotes] = await Promise.all([
+        // Run existing pulse + executive movement check + org resolution in parallel
+        const [pulse, movementNotes, orgId] = await Promise.all([
             generateDayPulse('midday'),
             generateExecutiveMovementNotes(dateStr),
+            getSuperUserOrgId(),
         ]);
 
         // Post standard pulse, then append executive notes
-        await postPulseToInbox(PLATFORM_ORG_ID, pulse);
-        await appendMovementNotesToThread(PLATFORM_ORG_ID, movementNotes, dateStr).catch(err => {
+        await postPulseToInbox(orgId, pulse);
+        await appendMovementNotesToThread(orgId, movementNotes, dateStr).catch(err => {
             // Non-fatal — standard pulse already posted
             logger.warn('[MiddayPulse] Movement notes post failed', { error: String(err) });
         });

@@ -18,16 +18,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireCronSecret } from '@/server/auth/cron';
+import { requireCronSecret, getSuperUserOrgId, parseBullets } from '@/server/auth/cron';
 import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { callClaude } from '@/ai/claude';
-import { buildMartyScoreboard } from '@/server/services/marty-reporting';
+import { buildMartyScoreboard, TARGET_MRR } from '@/server/services/marty-reporting';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
-
-const TARGET_MRR = 83333;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -37,23 +35,6 @@ interface FridaySection {
     agent: 'marty' | 'leo' | 'jack' | 'linus' | 'glenda' | 'mike' | 'pops' | 'mrs_parker' | 'ezal';
     title: string;
     items: string[];
-}
-
-// ---------------------------------------------------------------------------
-// Org resolver
-// ---------------------------------------------------------------------------
-
-async function getSuperUserOrgId(): Promise<string> {
-    try {
-        const db = getAdminFirestore();
-        const snap = await db.collection('users').where('role', '==', 'super_user').limit(1).get();
-        if (!snap.empty) {
-            const d = snap.docs[0].data();
-            const orgId = d.orgId || d.currentOrgId;
-            if (orgId && typeof orgId === 'string') return orgId;
-        }
-    } catch { /* fall through */ }
-    return 'bakedbot_super_admin';
 }
 
 // ---------------------------------------------------------------------------
