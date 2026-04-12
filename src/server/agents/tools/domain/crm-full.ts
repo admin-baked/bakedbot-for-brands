@@ -57,7 +57,7 @@ export const crmListUsersTool = tool(
             signupAfter: input.signedUpAfter ? new Date(input.signedUpAfter) : undefined
         };
 
-        const users = await getPlatformUsers(filters);
+        const users = await getPlatformUsers(filters, undefined, { skipAuth: true });
 
         return {
             users: users.map(u => ({
@@ -90,7 +90,7 @@ export const crmGetStatsTool = tool(
         })
     },
     async () => {
-        const stats = await getCRMUserStats();
+        const stats = await getCRMUserStats(undefined, undefined, { skipAuth: true });
         return {
             totalUsers: stats.totalUsers,
             activeUsers: stats.activeUsers,
@@ -201,10 +201,10 @@ export const crmSearchTool = tool(
         const filters: CRMFilters = { search: input.query, limit };
         
         const [users, brands, dispensaries, leads] = await Promise.all([
-            getPlatformUsers(filters),
-            getBrands(filters),
-            getDispensaries(filters),
-            getPlatformLeads(filters)
+            getPlatformUsers(filters, undefined, { skipAuth: true }),
+            getBrands(filters, { skipAuth: true }),
+            getDispensaries(filters, { skipAuth: true }),
+            getPlatformLeads(filters, { skipAuth: true }),
         ]);
         
         return {

@@ -346,8 +346,8 @@ export async function upsertDispensary(
 /**
  * Get brands with optional filtering
  */
-export async function getBrands(filters: CRMFilters = {}): Promise<CRMBrand[]> {
-    await requireUser(['super_user']);
+export async function getBrands(filters: CRMFilters = {}, options?: { skipAuth?: boolean }): Promise<CRMBrand[]> {
+    if (!options?.skipAuth) await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     let query = firestore
         .collection('crm_brands')
@@ -391,8 +391,8 @@ export async function getBrands(filters: CRMFilters = {}): Promise<CRMBrand[]> {
 /**
  * Get dispensaries with optional filtering
  */
-export async function getDispensaries(filters: CRMFilters = {}): Promise<CRMDispensary[]> {
-    await requireUser(['super_user']);
+export async function getDispensaries(filters: CRMFilters = {}, options?: { skipAuth?: boolean }): Promise<CRMDispensary[]> {
+    if (!options?.skipAuth) await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     let query = firestore
         .collection('crm_dispensaries')
@@ -494,8 +494,8 @@ export interface CRMLead {
 /**
  * Get platform leads (inbound B2B)
  */
-export async function getPlatformLeads(filters: CRMFilters = {}): Promise<CRMLead[]> {
-    await requireUser(['super_user']);
+export async function getPlatformLeads(filters: CRMFilters = {}, options?: { skipAuth?: boolean }): Promise<CRMLead[]> {
+    if (!options?.skipAuth) await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     let query: firestore.Query = firestore
         .collection('leads')
@@ -635,9 +635,10 @@ export async function getTopLevelSubsDocs(): Promise<QueryDocumentSnapshot[]> {
  */
 export async function getPlatformUsers(
     filters: CRMFilters = {},
-    preloadedTopLevelSubsDocs?: QueryDocumentSnapshot[]
+    preloadedTopLevelSubsDocs?: QueryDocumentSnapshot[],
+    options?: { skipAuth?: boolean }
 ): Promise<CRMUser[]> {
-    await requireUser(['super_user']);
+    if (!options?.skipAuth) await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const snapshot = await firestore.collection('users').get();
 
@@ -858,14 +859,15 @@ export async function getPlatformUsers(
  */
 export async function getCRMUserStats(
     preloadedUsers?: CRMUser[],
-    preloadedTopLevelSubsDocs?: QueryDocumentSnapshot[]
+    preloadedTopLevelSubsDocs?: QueryDocumentSnapshot[],
+    options?: { skipAuth?: boolean }
 ): Promise<{
     totalUsers: number;
     activeUsers: number;
     totalMRR: number;
     byLifecycle: Record<CRMLifecycleStage, number>;
 }> {
-    await requireUser(['super_user']);
+    if (!options?.skipAuth) await requireUser(['super_user']);
     const firestore = getAdminFirestore();
 
     // Revenue source of truth: subscriptions collection (normalized to MRR)
