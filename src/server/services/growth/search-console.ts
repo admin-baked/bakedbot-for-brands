@@ -104,9 +104,16 @@ export class SearchConsoleService {
             return null;
         }
 
-        const auth = new GoogleAuth({
-            scopes: [this.scope],
-        });
+        // Use Firebase service account key if available (bypasses Workspace RAPT policy)
+        const keyJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+        const auth = keyJson
+            ? new GoogleAuth({
+                credentials: JSON.parse(keyJson),
+                scopes: [this.scope],
+            })
+            : new GoogleAuth({
+                scopes: [this.scope],
+            });
 
         await auth.getClient();
 
