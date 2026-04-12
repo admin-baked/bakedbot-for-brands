@@ -475,10 +475,9 @@ env:
     value: "https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app"
     availability:
       - RUNTIME
-  # Booking CTA — update to your Google Calendar / Calendly appointment URL
-  # Example: https://calendar.google.com/calendar/appointments/schedules/...
+  # Booking CTA — Martez's appointment page (synced with Google Calendar)
   - variable: NEXT_PUBLIC_BOOKING_URL
-    value: "https://calendar.google.com/calendar/u/0/r"
+    value: "https://bakedbot.ai/martez"
     availability:
       - BUILD
       - RUNTIME
