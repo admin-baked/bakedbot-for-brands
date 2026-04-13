@@ -10,6 +10,8 @@ import { BaseTool } from './base-tool';
 import type { ToolContext, ToolResult, ToolAuthType } from '@/types/tool';
 import { logger } from '@/lib/logger';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { getAdminAuth } from '@/firebase/admin';
+import { isBrandRole, isDispensaryRole } from '@/types/roles';
 
 // --- Types ---
 
@@ -100,6 +102,12 @@ export class EmailTool extends BaseTool<EmailSendInput, EmailSendOutput> {
         const startTime = Date.now();
 
         try {
+            if (!context.userId) throw this.createError('UNAUTHORIZED_ACCESS', 'User ID missing', false);
+            const auth = getAdminAuth();
+            const userRecord = await auth.getUser(context.userId);
+            const role = (userRecord.customClaims?.role || '') + '';
+            const isAuthorized = role === 'super_user' || role === 'super_admin' || isBrandRole(role) || isDispensaryRole(role);
+            if (!isAuthorized) throw this.createError('UNAUTHORIZED_ACCESS', 'Unauthorized', false);
             // Validate input
             if (!input.to || !input.subject || !input.body) {
                 throw this.createError('INVALID_INPUT', 'Missing required fields: to, subject, body', false);

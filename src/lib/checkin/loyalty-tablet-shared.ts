@@ -46,6 +46,10 @@ export interface MoodRecommendationsResult {
     bundle?: TabletBundle;
     videoUrl?: string; // Remotion-on-AWS generated video
     error?: string;
+    /** Set when the result is a best-effort fallback rather than a precise mood match. */
+    fallbackMode?: 'inventory_unavailable' | 'mood_no_match';
+    /** Human-readable message to surface in the tablet UI alongside fallback results. */
+    fallbackMessage?: string;
 }
 
 export interface TabletSearchRecommendationsResult extends MoodRecommendationsResult {

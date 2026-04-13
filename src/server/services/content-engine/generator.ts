@@ -35,11 +35,16 @@ async function gatherDataForTemplate(
     try {
         switch (template.dataSource) {
             case 'ezal': {
-                // Fetch competitive intel data
-                const competitorsSnap = await db
-                    .collectionGroup('competitors')
-                    .limit(50)
-                    .get();
+                // Fetch competitive intel data scoped to the requesting org.
+                // competitors live at tenants/{orgId}/competitors — use a direct
+                // path when orgId is available to avoid cross-tenant exposure.
+                const ezalOrgId = variables.orgId;
+                const competitorsSnap = ezalOrgId
+                    ? await db
+                        .collection('tenants').doc(ezalOrgId)
+                        .collection('competitors').limit(50)
+                        .get()
+                    : await db.collectionGroup('competitors').limit(50).get();
 
                 const competitors = competitorsSnap.docs.map(d => ({
                     name: d.data().name,
@@ -186,9 +191,12 @@ async function gatherDataForTemplate(
             case 'combined': {
                 // Fetch from multiple sources
                 const state = variables.state || 'NY';
+                const combinedOrgId = variables.orgId;
 
                 const [competitorsSnap, benchmarksSnap] = await Promise.all([
-                    db.collectionGroup('competitors').limit(20).get(),
+                    combinedOrgId
+                        ? db.collection('tenants').doc(combinedOrgId).collection('competitors').limit(20).get()
+                        : db.collectionGroup('competitors').limit(20).get(),
                     db.collection('market_benchmarks').orderBy('updatedAt', 'desc').limit(1).get(),
                 ]);
 

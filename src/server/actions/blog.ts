@@ -825,12 +825,27 @@ export async function getRelatedPosts(postId: string, limit = 3): Promise<BlogPo
 /**
  * Increment view count for a blog post
  */
-export async function incrementViewCount(postId: string): Promise<void> {
+export async function incrementViewCount(postId: string, orgId?: string): Promise<void> {
     try {
         if (!isValidDocumentId(postId)) {
             return;
         }
         const { firestore } = await createServerClient();
+
+        // When orgId is known, use a direct document path to avoid cross-tenant
+        // collectionGroup exposure (BUG-021).
+        if (orgId && isValidDocumentId(orgId)) {
+            const docRef = firestore
+                .collection('tenants').doc(orgId)
+                .collection('blog_posts').doc(postId);
+            const snap = await docRef.get();
+            if (!snap.exists) return;
+            await docRef.update({
+                viewCount: (snap.data()?.viewCount || 0) + 1,
+                lastViewedAt: Timestamp.now(),
+            });
+            return;
+        }
 
         const postsQuery = await firestore
             .collectionGroup('blog_posts')

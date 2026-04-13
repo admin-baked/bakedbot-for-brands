@@ -71,7 +71,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     }
 
     // Track view (async, don't await)
-    incrementViewCount(post.id).catch(console.error);
+    incrementViewCount(post.id, post.orgId).catch(console.error);
 
     // Get related posts
     const relatedPosts = await getRelatedPosts(post.id, 3);

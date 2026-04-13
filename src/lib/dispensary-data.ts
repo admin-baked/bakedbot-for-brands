@@ -1,5 +1,6 @@
 
 import { createServerClient } from '@/firebase/server-client';
+import { logger } from '@/lib/logger';
 import { Retailer, Product } from '@/types/domain';
 import { DispensarySEOPage } from '@/types/foot-traffic';
 
@@ -75,17 +76,37 @@ export async function fetchDispensaryPageData(slug: string) {
 export async function fetchDiscoveredDispensaryPages(limit = 50) {
     try {
         const { firestore } = await createServerClient();
-        
+
         const snapshot = await firestore
             .collection('seo_pages_dispensary')
             .orderBy('createdAt', 'desc')
             .limit(limit)
             .get();
-        
+
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DispensarySEOPage));
     } catch (error) {
         console.error('[fetchDiscoveredDispensaryPages] Error:', error);
         // Return empty array if Firestore fails (e.g., auth issues locally)
+        return [];
+    }
+}
+
+/**
+ * Fetch licensed retailers from the CRM for the public dispensary directory.
+ * Includes NY OCM-sourced dispensaries and any other claimed/active retailers.
+ * Optionally filtered by state (e.g., 'NY', 'IL').
+ */
+export async function fetchRetailersForDirectory(state?: string, limit = 150): Promise<Retailer[]> {
+    try {
+        const { firestore } = await createServerClient();
+        const col = firestore.collection('retailers');
+        const q = state
+            ? col.where('state', '==', state).limit(limit)
+            : col.limit(limit);
+        const snapshot = await q.get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Retailer));
+    } catch (error) {
+        logger.error('[fetchRetailersForDirectory] Error', { error, state });
         return [];
     }
 }

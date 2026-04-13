@@ -66,7 +66,7 @@ export default async function PlatformBlogPostPage({ params }: BlogPostPageProps
     }
 
     // Track view (async, don't await)
-    incrementViewCount(post.id).catch(() => {});
+    incrementViewCount(post.id, post.orgId).catch(() => {});
 
     // Get related posts
     const relatedPosts = await getRelatedPlatformPosts(post.id, 3);

@@ -405,6 +405,33 @@ function buildProductReason(config: MoodRecommendationConfig, category: string):
     return `${config.reason} It keeps the ${category.toLowerCase()} mix grounded in Thrive's live menu.`;
 }
 
+/**
+ * Cross-category sampler used when the mood filter returns no matches.
+ * Picks the first product from each unique category (up to 3) so the tablet
+ * always shows something rather than an error screen.
+ */
+function buildPopularPicksFallback(products: RawMenuProduct[]): TabletProduct[] {
+    const seenCategories = new Set<string>();
+    const picks: TabletProduct[] = [];
+    for (const product of products) {
+        if (picks.length >= 3) break;
+        const category = getProductCategory(product);
+        if (!seenCategories.has(category)) {
+            seenCategories.add(category);
+            picks.push({
+                productId: getProductId(product),
+                name: getProductName(product),
+                price: getProductPrice(product),
+                category,
+                brandName: getProductBrandName(product),
+                imageUrl: getProductImageUrl(product),
+                reason: "A staff favorite from today's menu — you might enjoy this one.",
+            });
+        }
+    }
+    return picks;
+}
+
 function toTabletProduct(product: RawMenuProduct, config: MoodRecommendationConfig): TabletProduct {
     const category = getProductCategory(product);
 
@@ -545,7 +572,14 @@ export async function getMoodRecommendations(
                 filePath: 'src/server/actions/loyalty-tablet.ts',
                 errorSnippet: `No products found for orgId=${orgId}`,
             }).catch(() => { /* fire-and-forget */ });
-            return { success: false, error: 'No products available' };
+            
+            // UX Safety Fallback (BUG-031) - Instead of returning an error string that crashes the tablet flow, return an empty but valid recommendation set
+            return { 
+                success: true, 
+                products: [], 
+                bundle: null,
+                fallbackMode: 'inventory_unavailable'
+            };
         }
 
         const config = MOOD_RECOMMENDATION_CONFIGS[mood.id];
@@ -563,7 +597,15 @@ export async function getMoodRecommendations(
                 filePath: 'src/server/actions/loyalty-tablet.ts',
                 errorSnippet: `Empty pool for mood=${moodId}, inventory=${products.length}`,
             }).catch(() => { /* fire-and-forget */ });
-            return { success: false, error: 'No products available' };
+            // Graceful fallback: show a cross-category sampler so the tablet
+            // never blocks the check-in flow (BUG-031).
+            return {
+                success: true,
+                products: buildPopularPicksFallback(products),
+                bundle: undefined,
+                fallbackMode: 'mood_no_match',
+                fallbackMessage: "We didn't find an exact match for that vibe — here are some of today's popular picks.",
+            };
         }
 
         // 4. Look up pre-rendered mood video (instant — no Lambda render)

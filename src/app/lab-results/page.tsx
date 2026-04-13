@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { FlaskConical, Search, ShieldCheck, ShieldX, Leaf } from 'lucide-react';
+import { Navbar } from '@/components/landing/navbar';
+import { LandingFooter } from '@/components/landing/footer';
 import { fetchLabResults, type LabResultFilters } from '@/lib/lab-data';
 
 export const revalidate = 3600; // 1h ISR — lab results can come in from POS sync
@@ -31,7 +33,9 @@ export default async function LabResultsIndexPage({ searchParams }: Props) {
   const { results, total } = await fetchLabResults(filters);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <>
+    <Navbar />
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white pt-16">
       <div className="max-w-6xl mx-auto px-4 py-12">
 
         {/* Hero */}
@@ -233,5 +237,7 @@ export default async function LabResultsIndexPage({ searchParams }: Props) {
         </footer>
       </div>
     </div>
+    <LandingFooter />
+    </>
   );
 }

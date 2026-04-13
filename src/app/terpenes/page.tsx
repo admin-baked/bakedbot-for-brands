@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { Droplets, ArrowRight, Leaf, FlaskConical } from 'lucide-react';
+import { Navbar } from '@/components/landing/navbar';
+import { LandingFooter } from '@/components/landing/footer';
 import { TERPENES } from '@/lib/terpene-data';
 
 export const revalidate = 86400; // 24h ISR — static reference content
@@ -36,7 +38,9 @@ function getColor(key: string) {
 
 export default function TerpenesIndexPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
+    <>
+    <Navbar />
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white pt-16">
       <div className="max-w-6xl mx-auto px-4 py-12">
 
         {/* Hero */}
@@ -142,5 +146,7 @@ export default function TerpenesIndexPage() {
         </footer>
       </div>
     </div>
+    <LandingFooter />
+    </>
   );
 }

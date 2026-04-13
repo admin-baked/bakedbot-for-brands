@@ -147,6 +147,7 @@ export type Product = {
 export type Retailer = {
     id: string;
     name: string;
+    slug?: string;
     address: string;
     city: string;
     state: string;

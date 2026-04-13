@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { Leaf, Search, FlaskConical, Star } from 'lucide-react';
+import { Navbar } from '@/components/landing/navbar';
+import { LandingFooter } from '@/components/landing/footer';
 import { fetchStrains, fetchStrainStats, type StrainFilters } from '@/lib/strain-data';
 
 export const revalidate = 86400; // 24h ISR — strain data changes infrequently
@@ -39,7 +41,9 @@ export default async function StrainsIndexPage({ searchParams }: Props) {
   const currentPage = filters.page || 1;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
+    <>
+    <Navbar />
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white pt-16">
       <div className="max-w-6xl mx-auto px-4 py-12">
 
         {/* Hero */}
@@ -245,6 +249,8 @@ export default async function StrainsIndexPage({ searchParams }: Props) {
         </footer>
       </div>
     </div>
+    <LandingFooter />
+    </>
   );
 }
 
