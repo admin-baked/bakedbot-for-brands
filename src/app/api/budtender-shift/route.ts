@@ -57,12 +57,12 @@ export async function GET(request: NextRequest) {
                     .orderBy('clockedInAt', 'asc')
                     .get();
             } catch (collectionError: any) {
-                // Collection might not exist - return empty array gracefully
-                if (collectionError.code === 5 || collectionError.message?.includes('not found')) {
-                    logger.info('[BudtenderShift API] Collection does not exist yet', { orgId });
-                    return NextResponse.json({ success: true, budtenders: [] });
-                }
-                throw collectionError;
+                // Collection might not exist or has no indexes - return empty array gracefully
+                logger.warn('[BudtenderShift API] Collection query failed, returning empty', { 
+                    orgId, 
+                    error: collectionError.message || String(collectionError) 
+                });
+                return NextResponse.json({ success: true, budtenders: [] });
             }
 
             const budtenders = snapshot.docs.map(doc => {
