@@ -158,14 +158,19 @@ The report should clearly answer:
 5. Is the next proof path Access or Operator?`;
 
   try {
-    const raw = (await callGroqOrClaude({
+    const rawText = (await callGroqOrClaude({
       systemPrompt,
       userMessage: userPrompt,
       maxTokens: 2048,
+      temperature: 0.3, // Low temp for reliable JSON output
       caller: 'retention-audit',
       preferGeminiFallback: true,
     })).trim();
-    if (!raw) return { error: 'Empty response from AI' };
+    if (!rawText) return { error: 'Empty response from AI' };
+
+    // Strip markdown code fences if the model wrapped the JSON
+    const raw = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+
     let parsed: Partial<RetentionAuditResult>;
     try {
       parsed = JSON.parse(raw) as Partial<RetentionAuditResult>;
