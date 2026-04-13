@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { requireCronSecret } from '@/server/auth/cron';
+import { requireAPIKey, APIKeyError } from '@/server/auth/api-key-auth';
 import { z } from 'zod';
 
 const clockInSchema = z.object({
@@ -20,9 +21,21 @@ export const dynamic = 'force-dynamic';
 
 /**
  * GET - Get active budtenders
+ * Auth: API key or cron secret
  */
 export async function GET(request: NextRequest) {
     try {
+        // Try API key auth first (for loyalty tablet)
+        try {
+            await requireAPIKey(request, 'read' as any);
+        } catch {
+            // Fallback to cron secret for internal calls
+            const authError = await requireCronSecret(request, 'budtender-shift');
+            if (authError) {
+                return authError;
+            }
+        }
+
         const { searchParams } = new URL(request.url);
         const orgId = searchParams.get('orgId');
         const action = searchParams.get('action');
@@ -33,11 +46,24 @@ export async function GET(request: NextRequest) {
 
         if (action === 'active') {
             const db = getAdminFirestore();
-            const snapshot = await db
-                .collection(`tenants/${orgId}/budtender_shifts`)
-                .where('status', '==', 'active')
-                .orderBy('clockedInAt', 'asc')
-                .get();
+            
+            // Check if collection exists first - gracefully handle missing collection
+            const collectionRef = db.collection(`tenants/${orgId}/budtender_shifts`);
+            
+            let snapshot;
+            try {
+                snapshot = await collectionRef
+                    .where('status', '==', 'active')
+                    .orderBy('clockedInAt', 'asc')
+                    .get();
+            } catch (collectionError: any) {
+                // Collection might not exist - return empty array gracefully
+                if (collectionError.code === 5 || collectionError.message?.includes('not found')) {
+                    logger.info('[BudtenderShift API] Collection does not exist yet', { orgId });
+                    return NextResponse.json({ success: true, budtenders: [] });
+                }
+                throw collectionError;
+            }
 
             const budtenders = snapshot.docs.map(doc => {
                 const d = doc.data();
@@ -57,7 +83,8 @@ export async function GET(request: NextRequest) {
         }
 
         return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
-    } catch (error) {
+    } catch (error: any) {
+        // Don't expose internal errors to client
         logger.error('[BudtenderShift API] GET failed', { error: String(error) });
         return NextResponse.json({ success: false, error: 'Failed to get budtenders' }, { status: 500 });
     }
