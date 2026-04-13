@@ -124,12 +124,16 @@ export async function POST(request: NextRequest) {
     }
     const serverAmountCents = Math.round(orderTotalUsd * 100);
     if (Math.abs(amount - serverAmountCents) > 0) {
-      logger.warn('[P0-PAY-CANNPAY] Client amount mismatch; using order total', {
+      logger.warn('[P0-PAY-CANNPAY] Client amount mismatch; rejecting', {
         orderId,
         clientAmount: amount,
         serverAmount: serverAmountCents,
         userId: user.uid,
       });
+      return NextResponse.json(
+        { error: 'Amount mismatch - order total has changed' },
+        { status: 400 }
+      );
     }
 
     const existingIntentId =

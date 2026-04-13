@@ -6,6 +6,7 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { requireSuperUser } from '@/server/auth/auth';
 
 export interface TemplateVersion {
   version: number;
@@ -144,6 +145,9 @@ export async function getOrgTemplateAssignment(
   templateId: string
 ): Promise<OrgTemplateAssignment[]> {
   try {
+    // Ensure only super users can access org template assignments (cross-org data)
+    await requireSuperUser();
+    
     const firestore = getAdminFirestore();
 
     // Get latest template version

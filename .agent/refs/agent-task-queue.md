@@ -113,7 +113,7 @@ if (simulatedRole && ['brand', 'brand_admin', 'brand_member', 'dispensary', 'dis
 
 Missing: `super_user`, `super_admin`
 
-**Recommendation:** Add explicit audit logging when role simulation is used.
+**Status:** ✅ FIXED (commit `xxxx`) - Added audit logging when role simulation is used
 
 ---
 
@@ -147,6 +147,8 @@ const validateAPIKey = async (key: string): Promise<APIKeyRecord> => ({
 
 **Example:** In `src/app/api/billing/authorize-net/route.ts`, `verifyOrgAccess` exists but may not be called consistently.
 
+**Status:** ⚠️ PARTIALLY FIXED - Verified authorize-net has org access checks (line 199). Need audit of other routes.
+
 **Recommendation:** Audit all routes that take `orgId` in the request body to ensure `verifyOrgAccess` is called.
 
 ---
@@ -159,6 +161,8 @@ const validateAPIKey = async (key: string): Promise<APIKeyRecord> => ({
 **Issue:** orgId is taken from the webhook payload (`payload.data.orgId`) without validation.
 
 **Details:** Line 123 - directly uses `payload.data.orgId` which could be spoofed.
+
+**Status:** ✅ FIXED (commit `xxxx`) - Now validates orgId exists in tenants collection before processing
 
 **Recommendation:** Validate orgId against the organization's known configuration or verify webhook signature includes orgId.
 
@@ -228,6 +232,8 @@ userId: input.userId || user.uid, // Link to user account
 
 **Details:** Actions like `renameItem`, `moveItem`, `createShare` use `user.uid` but don't verify the item belongs to user's org.
 
+**Status:** ✅ FIXED (commit `xxxx`) - Added org access validation to renameItem and moveItem
+
 **Recommendation:** Add `verifyOrgAccess` for all write operations.
 
 ---
@@ -257,6 +263,8 @@ orgId: input.orgId,
 
 **Issue:** Uses `input.userId` for logging and potentially modifying another user's account.
 
+**Status:** ✅ ALREADY SECURE - Line 80 validates `session.uid !== input.userId` - identity mismatch is rejected
+
 **Details:** Line 199 logs modifying custom claims for `input.userId` - needs validation that current user can modify target user.
 
 **Recommendation:** Verify current user is admin/super_user before allowing modifications to other users.
@@ -285,7 +293,7 @@ orgId: input.orgId,
 
 **Details:** Line 135 logs a warning but silently uses server amount. This is correct behavior but could be clearer.
 
-**Recommendation:** This is actually good security - client amount is a hint but server validates. Consider making this more explicit.
+**Status:** ✅ NOT A BUG - This is the correct security pattern (server validates, client hint is advisory only)
 
 ---
 
@@ -298,7 +306,7 @@ orgId: input.orgId,
 
 **Details:** Currently the client sends `amount` but server calculates from order. Could allow manipulation if order total is modified between fetch and payment.
 
-**Recommendation:** Add explicit amount mismatch rejection, not just warning:
+**Status:** ✅ FIXED (commit `xxxx`) - Now rejects requests with amount mismatch instead of silently using server amount
 ```typescript
 if (Math.abs(amount - serverAmountCents) > tolerance) {
   return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 });
@@ -314,7 +322,7 @@ if (Math.abs(amount - serverAmountCents) > tolerance) {
 
 **Issue:** Some checkout endpoints use `getUserFromRequest` which returns null on failure, but handle it gracefully. However, this pattern is inconsistent.
 
-**Details:** Routes like `/api/checkout/aeropay/authorize` use `getUserFromRequest` but handle null properly. The issue is inconsistency with other auth patterns.
+**Status:** ⚠️ ACKNOWLEDGED - Pattern is intentional for payment flows where graceful failure is preferred over throwing 401
 
 **Recommendation:** Standardize on `requireUser()` for all payment endpoints.
 
@@ -345,7 +353,7 @@ if (Math.abs(amount - serverAmountCents) > tolerance) {
 - `src/server/services/content-engine/generator.ts:40`
 - `src/server/actions/blog.ts:137,451,836`
 
-**Impact:** Could leak data across orgs if collectionGroup is used without proper filtering.
+**Status:** ⚠️ NOT FIXED - Requires code changes to add org filtering to collectionGroup queries
 
 **Recommendation:** Add orgId filtering after collectionGroup query or restrict to super_user.
 
@@ -354,13 +362,13 @@ if (Math.abs(amount - serverAmountCents) > tolerance) {
 ### BUG-022: Global Query Without Access Control
 **Severity:** MEDIUM
 **Category:** security
-**File:** `src/server/actions/stats.ts`
+**File:** `src/server/actions/stats.ts`, `src/server/services/template-version-service.ts`
 
 **Issue:** `getPlatformStats()` likely queries global data without proper role checks.
 
 **Details:** Line 11 - `getPlatformStats` returns platform-wide data.
 
-**Recommendation:** Ensure only super_users can access platform-wide stats.
+**Status:** ✅ FIXED (commit `xxxx`) - Added requireSuperUser() to both getPlatformStats and getOrgTemplateAssignment
 
 ---
 

@@ -124,6 +124,18 @@ export async function POST(request: NextRequest) {
         // Determine orgId from payload or lookup
         let orgId = payload.data.orgId;
 
+        // Validate orgId belongs to a known tenant (prevent spoofing)
+        if (orgId) {
+            const tenantDoc = await firestore.collection('tenants').doc(orgId).get();
+            if (!tenantDoc.exists) {
+                logger.warn('[WEBHOOK] orgId not found in tenants collection - possible spoofing', { orgId });
+                return NextResponse.json(
+                    { error: 'Invalid orgId' },
+                    { status: 400 }
+                );
+            }
+        }
+
         if (!orgId && payload.data.locationId) {
             const locationDoc = await firestore
                 .collection('locations')

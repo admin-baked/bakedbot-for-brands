@@ -626,6 +626,14 @@ export async function renameItem(input: RenameItemInput): Promise<DriveActionRes
     }
 
     const data = doc.data() as DriveFileDoc | DriveFolderDoc;
+    
+    // Verify org access - ensure user's org matches item's org
+    const userOrgId = (user as any).currentOrgId || (user as any).orgId;
+    if (userOrgId && data.orgId && data.orgId !== userOrgId) {
+      logger.warn('[Drive] Org access denied in renameItem', { userOrgId, itemOrgId: data.orgId });
+      return { success: false, error: 'Access denied' };
+    }
+    
     if (data.ownerId !== user.uid) {
       return { success: false, error: 'Access denied' };
     }
@@ -670,6 +678,14 @@ export async function moveItem(input: MoveItemInput): Promise<DriveActionResult>
     }
 
     const data = doc.data() as DriveFileDoc | DriveFolderDoc;
+    
+    // Verify org access - ensure user's org matches item's org
+    const userOrgId = (user as any).currentOrgId || (user as any).orgId;
+    if (userOrgId && data.orgId && data.orgId !== userOrgId) {
+      logger.warn('[Drive] Org access denied in moveItem', { userOrgId, itemOrgId: data.orgId });
+      return { success: false, error: 'Access denied' };
+    }
+    
     if (data.ownerId !== user.uid) {
       return { success: false, error: 'Access denied' };
     }

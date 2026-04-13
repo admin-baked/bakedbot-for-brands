@@ -18,6 +18,7 @@ import { getGoogleReviewUrl } from '@/lib/reviews/google-review-url';
 import { handleCustomerOnboardingSignal } from '@/server/services/customer-onboarding';
 import { dispatchPlaybookEvent } from '@/server/services/playbook-event-dispatcher';
 import { getCustomerHistory } from '@/server/tools/crm-tools';
+import { requireUser } from '@/server/auth/auth';
 import { z } from 'zod';
 import { captureEmailLead } from './email-capture';
 
@@ -1082,6 +1083,35 @@ export async function captureVisitorCheckin(
 ): Promise<CaptureVisitorCheckinResult> {
     try {
         const validated = captureVisitorCheckinSchema.parse(request);
+        
+        // Validate org access - only allow check-ins for user's org or as super_user
+        let sessionUser;
+        try {
+            sessionUser = await requireUser();
+        } catch {
+            // Tablet kiosk may not have session - allow if no user context
+            sessionUser = null;
+        }
+        
+        if (sessionUser) {
+            const userOrgId = (sessionUser as any).currentOrgId || (sessionUser as any).orgId;
+            const userRole = (sessionUser as any).role;
+            const isSuperUser = userRole === 'super_user' || userRole === 'super_admin';
+            
+            if (!isSuperUser && userOrgId && userOrgId !== validated.orgId) {
+                logger.warn('[VisitorCheckin] Org access denied', {
+                    userOrgId,
+                    requestedOrgId: validated.orgId,
+                });
+                return {
+                    success: false,
+                    isNewLead: false,
+                    isReturningCustomer: false,
+                    error: 'Unauthorized org',
+                };
+            }
+        }
+        
         const normalizedEmail = normalizeEmail(validated.email || undefined);
         const normalizedPhone = validated.lookupCandidate
             ? await resolveLookupCandidatePhone(validated.orgId, validated.lookupCandidate)
@@ -1118,29 +1148,35 @@ export async function captureVisitorCheckin(
         // Enroll in weekly campaign list if email consent given
         if (emailConsent && normalizedEmail) {
             try {
-                const existingSubscriber = await db
-                    .collection('weekly_campaign_subscribers')
-                    .where('email', '==', normalizedEmail)
-                    .where('orgId', '==', validated.orgId)
-                    .limit(1)
-                    .get();
+                // Use transaction to prevent race conditions
+                await db.runTransaction(async (transaction) => {
+                    const existingSubscriber = await transaction.get(
+                        db.collection('weekly_campaign_subscribers')
+                            .where('email', '==', normalizedEmail)
+                            .where('orgId', '==', validated.orgId)
+                            .limit(1)
+                    );
 
-                if (existingSubscriber.empty) {
-                    await db.collection('weekly_campaign_subscribers').add({
-                        orgId: validated.orgId,
-                        customerId: validated.orgId + '_' + normalizedPhone.slice(-4),
-                        email: normalizedEmail,
-                        firstName: validated.firstName,
-                        enrolledAt: now,
-                        lastSentAt: null,
-                        status: 'active',
-                        source: validated.source,
-                    });
-                    logger.info('[VisitorCheckin] Enrolled in weekly campaign', {
-                        orgId: validated.orgId,
-                        email: normalizedEmail,
-                    });
-                }
+                    if (existingSubscriber.empty) {
+                        transaction.set(
+                            db.collection('weekly_campaign_subscribers').doc(),
+                            {
+                                orgId: validated.orgId,
+                                customerId: validated.orgId + '_' + normalizedPhone.slice(-4),
+                                email: normalizedEmail,
+                                firstName: validated.firstName,
+                                enrolledAt: now,
+                                lastSentAt: null,
+                                status: 'active',
+                                source: validated.source,
+                            }
+                        );
+                        logger.info('[VisitorCheckin] Enrolled in weekly campaign via transaction', {
+                            orgId: validated.orgId,
+                            email: normalizedEmail,
+                        });
+                    }
+                });
             } catch (err) {
                 logger.warn('[VisitorCheckin] Failed to enroll in weekly campaign', {
                     orgId: validated.orgId,

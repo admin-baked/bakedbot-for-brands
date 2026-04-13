@@ -1,6 +1,7 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
+import { requireSuperUser } from '@/server/auth/auth';
 
 export interface PlatformStats {
     dispensaries: number;
@@ -10,6 +11,9 @@ export interface PlatformStats {
 
 export async function getPlatformStats(): Promise<PlatformStats> {
     try {
+        // Ensure only super users can access platform-wide stats
+        await requireSuperUser();
+        
         const { firestore } = await createServerClient();
 
         // Run counts in parallel

@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@/firebase/server-client';
 import { DecodedIdToken } from 'firebase-admin/auth';
 import { SUPER_ADMIN_EMAILS } from '@/lib/super-admin-config';
+import { logger } from '@/lib/logger';
 import {
   UserRole,
   isBrandRole,
@@ -140,6 +141,13 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
   if (decodedToken.role === 'super_user' || decodedToken.role === 'super_admin') {
     const simulatedRole = cookieStore.get('x-simulated-role')?.value as Role | undefined;
     if (simulatedRole && ['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'customer'].includes(simulatedRole)) {
+      // AUDIT: Log role simulation for security tracking
+      logger.warn('[AUTH] Role simulation used', {
+        realUserId: decodedToken.uid,
+        realRole: decodedToken.role,
+        simulatedRole,
+        timestamp: new Date().toISOString(),
+      });
       // Override the role in the returned token
       decodedToken = { ...decodedToken, role: simulatedRole };
 
