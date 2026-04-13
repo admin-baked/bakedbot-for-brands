@@ -23,22 +23,22 @@ import {
     Loader2,
     Mail,
     Users,
-    CalendarClock,
-    ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import type { InboxArtifact } from '@/types/inbox';
 import type { OutreachDraftData } from '@/types/inbox';
+import { stripHtmlForRendering } from '@/server/security/sanitize';
 import {
     sendCampaignFromInbox,
     scheduleCampaignFromInbox,
@@ -269,7 +269,7 @@ function NYOutreachDraftCard({ artifact }: { artifact: InboxArtifact }) {
                     {data.htmlBody ? (
                         <div
                             className="mt-1 px-3 py-2 rounded-md bg-muted/50 text-sm max-h-60 overflow-y-auto prose prose-sm"
-                            dangerouslySetInnerHTML={{ __html: data.htmlBody }}
+                            dangerouslySetInnerHTML={{ __html: stripHtmlForRendering(data.htmlBody) }}
                         />
                     ) : (
                         <div className="mt-1 px-3 py-2 rounded-md bg-muted/50 text-sm whitespace-pre-wrap text-muted-foreground max-h-60 overflow-y-auto">

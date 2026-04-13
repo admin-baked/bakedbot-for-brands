@@ -167,3 +167,30 @@ export function sanitizeObjectStrings(obj: unknown, maxDepth: number = 3): unkno
 
     return obj;
 }
+
+/**
+ * Strip dangerous HTML elements for safe rendering.
+ * Removes script tags, event handlers, and javascript: URLs.
+ * Use this before rendering HTML via dangerouslySetInnerHTML.
+ * 
+ * @param html - Raw HTML string
+ * @returns Sanitized HTML safe for rendering
+ */
+export function stripHtmlForRendering(html: string | null | undefined): string {
+    if (!html || typeof html !== 'string') {
+        return '';
+    }
+
+    return html
+        // Remove script tags and content
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        // Remove event handler attributes (onclick, onerror, etc.)
+        .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '')
+        // Remove javascript: URLs
+        .replace(/javascript:/gi, '')
+        // Remove data: URLs (potential XSS)
+        .replace(/data:/gi, '')
+        // Remove iframe tags
+        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+        // Remove object/embed tags
+        .replace(/<(?:object|embed)\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/(?:object|embed)>/gi, '');

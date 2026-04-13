@@ -1,15 +1,15 @@
 export const dynamic = 'force-dynamic';
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { requireCronSecret } from '@/server/auth/cron';
 
-export async function POST(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const secret = searchParams.get('secret');
-
-    if (secret !== 'bakedbot-dev-secret') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export async function POST(request: NextRequest) {
+    // Use CRON_SECRET pattern for secure authentication
+    const authError = await requireCronSecret(request, 'debug-booking');
+    if (authError) {
+        return authError;
     }
 
     try {

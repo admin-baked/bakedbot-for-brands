@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth } from '@/firebase/admin';
+import { requireSuperUser } from '@/server/auth/auth';
 
 /**
  * Admin API: Set Custom Claims
@@ -10,6 +11,9 @@ import { getAdminAuth } from '@/firebase/admin';
  */
 export async function POST(request: NextRequest) {
   try {
+    // Require super user authentication
+    await requireSuperUser();
+    
     const { email, claims } = await request.json();
 
     if (!email || !claims) {

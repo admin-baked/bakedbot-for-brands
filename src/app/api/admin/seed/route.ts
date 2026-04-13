@@ -1,22 +1,22 @@
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { runChicagoPilotJob } from '@/server/jobs/seo-generator';
 import { runBrandPilotJob } from '@/server/jobs/brand-discovery-job';
 import { ragService } from '@/server/services/vector-search/rag-service';
+import { requireCronSecret } from '@/server/auth/cron';
 
 // Force dynamic rendering - prevents build-time evaluation of agent dependencies
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes
 
-export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const key = searchParams.get('key');
-    
-    // Simple protection
-    if (key !== 'bakedbot_seed_2025') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export async function GET(request: NextRequest) {
+    // Use CRON_SECRET pattern for secure authentication
+    const authError = await requireCronSecret(request, 'admin-seed');
+    if (authError) {
+        return authError;
     }
-
+    
+    const { searchParams } = new URL(request.url);
     const city = searchParams.get('city');
     
     const TARGETS = [

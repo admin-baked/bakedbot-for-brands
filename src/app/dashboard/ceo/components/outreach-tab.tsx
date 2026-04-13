@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import type { OutreachDraft } from '@/server/services/ny-outreach/outreach-service';
 import type { ApolloCreditStatus } from '@/server/services/ny-outreach/apollo-enrichment';
+import { stripHtmlForRendering } from '@/server/security/sanitize';
 
 type OutreachDashboardActions = typeof import('@/server/actions/ny-outreach-dashboard');
 
@@ -271,7 +272,7 @@ function DraftCard({
                         draft.htmlBody ? (
                             <div
                                 className="mt-1 px-3 py-2 rounded-md bg-muted/50 text-sm max-h-60 overflow-y-auto prose prose-sm"
-                                dangerouslySetInnerHTML={{ __html: draft.htmlBody }}
+                                dangerouslySetInnerHTML={{ __html: stripHtmlForRendering(draft.htmlBody) }}
                             />
                         ) : (
                             <div className="mt-1 px-3 py-2 rounded-md bg-muted/50 text-sm whitespace-pre-wrap text-muted-foreground max-h-60 overflow-y-auto">

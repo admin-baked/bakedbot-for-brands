@@ -1,15 +1,19 @@
 import { z } from 'zod';
 import { getAdminFirestore } from '@/firebase/admin';
+import { requireSuperUser } from '@/server/auth/auth';
 
 export const queryDatabaseSchemaToolDef = {
     name: 'query_database_schema',
-    description: 'Query the Firestore database to discover root collections, or sample a specific collection to infer its document schema/structure.',
+    description: 'Query the Firestore database to discover root collections, or sample a specific collection to infer its document schema/structure. WARNING: Requires super_user role.',
     schema: z.object({
         action: z.enum(['list_collections', 'sample_collection']).describe('Whether to list all collections or sample a specific collection.'),
         collectionName: z.string().optional().describe('The name of the collection to sample. Required if action is sample_collection.'),
         sampleSize: z.number().optional().describe('Number of documents to sample (default 1, max 5).')
     }),
     async execute(inputs: any, context?: any) {
+        // Require super_user for database queries
+        await requireSuperUser();
+        
         const db = getAdminFirestore();
         try {
             if (inputs.action === 'list_collections') {
