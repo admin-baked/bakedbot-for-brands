@@ -464,12 +464,21 @@ export async function getProfitabilityDashboard(
 
   // allSettled: if any calculation fails (e.g. missing Firestore composite index on orders)
   // we fall back to zero-filled data so the rest of the page stays functional
-  const [tax280EResult, nyTaxResult, workingCapitalResult, metricsResult] = await Promise.allSettled([
+  const [tax280EResult, nyTaxResult, inventoryResult, metricsResult] = await Promise.allSettled([
     calculate280EAnalysis(orgId, start, end),
     calculateNYTaxSummary(orgId, start, end),
-    calculateWorkingCapital(orgId, config || undefined),
+    getProductProfitabilityData(), // Fetch real inventory value in parallel
     calculateProfitabilityMetrics(orgId, start, end, config || undefined),
   ]);
+
+  const realInventoryValue = inventoryResult.status === 'fulfilled' 
+    ? inventoryResult.value.summary.totalInventoryValue 
+    : 100000;
+
+  // Now calculate working capital using the real inventory value
+  const workingCapital = await calculateWorkingCapital(orgId, config || undefined, { 
+    inventoryValue: realInventoryValue 
+  });
 
   if (tax280EResult.status === 'rejected') {
     logger.error('[profitability] 280E calculation failed (likely missing Firestore index)', { error: String(tax280EResult.reason) });
@@ -477,14 +486,11 @@ export async function getProfitabilityDashboard(
   if (nyTaxResult.status === 'rejected') {
     logger.error('[profitability] NY tax calculation failed', { error: String(nyTaxResult.reason) });
   }
-  if (workingCapitalResult.status === 'rejected') {
-    logger.error('[profitability] Working capital calculation failed', { error: String(workingCapitalResult.reason) });
-  }
 
   return {
     tax280E: tax280EResult.status === 'fulfilled' ? tax280EResult.value : emptyTax280E(orgId, start, end),
     nyTax: nyTaxResult.status === 'fulfilled' ? nyTaxResult.value : emptyNYTax(orgId, start, end),
-    workingCapital: workingCapitalResult.status === 'fulfilled' ? workingCapitalResult.value : emptyWorkingCapital(orgId),
+    workingCapital,
     metrics: metricsResult.status === 'fulfilled' ? metricsResult.value : emptyMetrics(orgId, start, end),
     config,
   };
@@ -668,14 +674,19 @@ export async function getThriveProfitabilityDashboard(
 
   logger.info('[profitability] Fetching Thrive Syracuse dashboard', { period });
 
-  // Fetch all data
-  const [tax280E, nyTax, workingCapital] = await Promise.all([
+  // Fetch all data in parallel
+  const [tax280E, nyTax, inventoryData] = await Promise.all([
     calculate280EAnalysis(orgId, start, end),
     calculateNYTaxSummary(orgId, start, end),
-    calculateWorkingCapital(orgId, thriveConfig),
+    getProductProfitabilityData(),
   ]);
 
-  const metrics = await calculateProfitabilityMetrics(orgId, start, end, thriveConfig);
+  const realInventoryValue = inventoryData.summary.totalInventoryValue;
+
+  const [workingCapital, metrics] = await Promise.all([
+    calculateWorkingCapital(orgId, thriveConfig, { inventoryValue: realInventoryValue }),
+    calculateProfitabilityMetrics(orgId, start, end, thriveConfig),
+  ]);
 
   return {
     metrics,
