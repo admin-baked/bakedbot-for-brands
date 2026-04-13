@@ -27,6 +27,9 @@ import {
     type TabletBundle,
     type TabletProduct,
 } from '@/lib/checkin/loyalty-tablet-shared';
+import { getCategoryIconName, getCategoryIconColor } from '@/lib/utils/product-image';
+import * as Icons from 'lucide-react';
+import Image from 'next/image';
 
 const FAVORITE_CATEGORY_OPTIONS: VisitorFavoriteCategory[] = [
     'flower',
@@ -688,23 +691,46 @@ export function VisitorCheckinCard({
                                         {recommendationProducts.map((product) => {
                                             const isSelected = selectedProductIds.includes(product.productId);
                                             return (
-                                                <div key={product.productId} className="rounded-2xl border border-border/60 p-4">
-                                                    <p className="font-semibold">{product.name}</p>
-                                                    <p className="mt-1 text-sm text-muted-foreground">
-                                                        {product.category} · {formatCurrency(product.price)}
-                                                    </p>
-                                                    <p className="mt-3 text-sm text-muted-foreground">
-                                                        {product.reason}
-                                                    </p>
-                                                    <Button
-                                                        type="button"
-                                                        variant={isSelected ? 'default' : 'outline'}
-                                                        className="mt-4 w-full"
-                                                        style={isSelected ? { backgroundColor: primaryColor } : undefined}
-                                                        onClick={() => toggleProductSelection(product.productId)}
-                                                    >
-                                                        {isSelected ? 'Saved for budtender' : 'Save for budtender'}
-                                                    </Button>
+                                                <div key={product.productId} className="flex flex-col rounded-2xl border border-border/60 overflow-hidden bg-background">
+                                                    <div className="relative aspect-square w-full bg-muted/30">
+                                                        {product.imageUrl ? (
+                                                            <Image
+                                                                src={product.imageUrl}
+                                                                alt={product.name}
+                                                                fill
+                                                                className="object-cover transition-transform hover:scale-105"
+                                                                sizes="(max-width: 768px) 100vw, 33vw"
+                                                            />
+                                                        ) : (
+                                                            <div className="flex h-full w-full items-center justify-center">
+                                                                {(() => {
+                                                                    const iconName = getCategoryIconName(product.category);
+                                                                    // @ts-ignore - Dynamic lucide icon access
+                                                                    const CategoryIcon = Icons[iconName] || Icons.Leaf;
+                                                                    const iconColor = getCategoryIconColor(product.category);
+                                                                    return <CategoryIcon className={`h-12 w-12 ${iconColor}`} strokeWidth={1.5} />;
+                                                                })()}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-1 flex-col p-4">
+                                                        <p className="font-semibold line-clamp-1">{product.name}</p>
+                                                        <p className="mt-1 text-xs text-muted-foreground">
+                                                            {product.category} · {formatCurrency(product.price)}
+                                                        </p>
+                                                        <p className="mt-3 text-sm text-muted-foreground line-clamp-3 flex-1">
+                                                            {product.reason}
+                                                        </p>
+                                                        <Button
+                                                            type="button"
+                                                            variant={isSelected ? 'default' : 'outline'}
+                                                            className="mt-4 w-full"
+                                                            style={isSelected ? { backgroundColor: primaryColor } : undefined}
+                                                            onClick={() => toggleProductSelection(product.productId)}
+                                                        >
+                                                            {isSelected ? 'Saved for budtender' : 'Save for budtender'}
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             );
                                         })}

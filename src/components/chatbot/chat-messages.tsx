@@ -29,7 +29,7 @@ type Message = {
 
 const ProductSuggestionCard = ({ product, onAskSmokey, onAddToCart, onFeedback }: { product: SuggestedProduct, onAskSmokey: (p: Product) => void, onAddToCart: (p: Product) => void, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => {
     const [imageFailed, setImageFailed] = useState(false);
-    const imageUrl = imageFailed ? '/icon-192.png' : getSafeProductImageUrl(product.imageUrl);
+    const imageUrl = imageFailed ? '/icon-192.png' : getSafeProductImageUrl(product.imageUrl) || '';
 
     const handleFeedbackClick = (e: React.MouseEvent, type: 'like' | 'dislike') => {
         e.stopPropagation();
@@ -71,7 +71,7 @@ const ProductSuggestionCard = ({ product, onAskSmokey, onAddToCart, onFeedback }
 
 const UpsellSuggestionCard = ({ product, onAddToCart }: { product: UpsellProduct; onAddToCart: (p: Product) => void }) => {
     const [imageFailed, setImageFailed] = useState(false);
-    const imageUrl = imageFailed ? '/icon-192.png' : getSafeProductImageUrl(product.imageUrl);
+    const imageUrl = imageFailed ? '/icon-192.png' : getSafeProductImageUrl(product.imageUrl) || '';
 
     return (
         <div className="w-full flex items-center gap-2 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30 p-2 text-foreground">

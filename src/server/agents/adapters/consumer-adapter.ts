@@ -202,7 +202,7 @@ export async function runConsumerAgent(
         name: product.name || product.product_name || 'Unknown Product',
         category: normalizeCategoryName(product.category),
         price: Number(product.price ?? product.latest_price ?? 0),
-        imageUrl: getSafeProductImageUrl(product.imageUrl || product.image_url || product.primary_image),
+        imageUrl: getSafeProductImageUrl(product.imageUrl || product.image_url || product.primary_image) || '',
         thcPercent: product.thcPercent ?? product.thc ?? product.percentage_thc ?? null,
         cbdPercent: product.cbdPercent ?? product.cbd ?? product.percentage_cbd ?? null,
         description: product.description || product.name || product.product_name,

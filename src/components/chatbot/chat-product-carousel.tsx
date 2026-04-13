@@ -22,8 +22,7 @@ const ChatProductCard = ({
 }) => {
   const [imageFailed, setImageFailed] = useState(false);
   const hasValidProductImage = !imageFailed && isRenderableProductImage(product.imageUrl);
-  // Falls back to Smokey mascot when no valid product image is available
-  const src = hasValidProductImage ? product.imageUrl! : getSafeProductImageUrl(undefined);
+  const src = hasValidProductImage && typeof product.imageUrl === 'string' ? product.imageUrl : (getSafeProductImageUrl(undefined) || '');
 
   return (
     <div className="group relative aspect-square w-full overflow-hidden rounded-lg border bg-muted">

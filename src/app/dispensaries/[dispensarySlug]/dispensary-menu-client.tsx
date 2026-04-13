@@ -109,9 +109,8 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
   const allProducts = useMemo(() => products.map((product) => ({
     ...product,
     category: normalizeCategoryName(product.category),
-    imageUrl: getSafeProductImageUrl(product.imageUrl),
+    imageUrl: getSafeProductImageUrl(product.imageUrl) || '',
   })), [products]);
-
   // Load favorites from localStorage on mount
   useEffect(() => {
     const storedFavorites = localStorage.getItem(`favorites-${dispensary.id}`);

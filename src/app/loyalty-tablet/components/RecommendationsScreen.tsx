@@ -23,6 +23,8 @@ import {
 } from '@/server/actions/loyalty-tablet';
 import { TabletMoodId } from '@/lib/checkin/loyalty-tablet-shared';
 import { slideVariants, hexToRgba, AMBER, AMBER_DARK, SMOKEY_FALLBACK_IMAGE, ASK_SMOKEY_PLACEHOLDER } from './shared';
+import { getCategoryIconName, getCategoryIconColor } from '@/lib/utils/product-image';
+import * as LucideIcons from 'lucide-react';
 
 interface RecommendationsScreenProps {
     brandTheme: PublicBrandTheme;
@@ -398,17 +400,29 @@ export function RecommendationsScreen({
                             style={inCart ? accentPanelStyle : panelStyle}
                         >
                             <div
-                                className="relative h-24 w-full overflow-hidden rounded-[22px] border sm:h-28 sm:w-28 sm:shrink-0"
+                                className="relative h-24 w-full overflow-hidden rounded-[22px] border sm:h-28 sm:w-28 sm:shrink-0 bg-muted/30"
                                 style={{ borderColor: '#e5e7eb' }}
                             >
-                                <img
-                                    src={product.imageUrl || SMOKEY_FALLBACK_IMAGE}
-                                    alt={product.name}
-                                    className="h-full w-full object-cover transition-opacity duration-300"
-                                    onError={handleProductImageError}
-                                    loading="lazy"
-                                    decoding="async"
-                                />
+                                {product.imageUrl ? (
+                                    <img
+                                        src={product.imageUrl}
+                                        alt={product.name}
+                                        className="h-full w-full object-cover transition-opacity duration-300"
+                                        onError={handleProductImageError}
+                                        loading="lazy"
+                                        decoding="async"
+                                    />
+                                ) : (
+                                    <div className="flex h-full w-full items-center justify-center">
+                                        {(() => {
+                                            const iconName = getCategoryIconName(product.category);
+                                            // @ts-ignore - Dynamic lucide icon access
+                                            const CategoryIcon = LucideIcons[iconName] || LucideIcons.Leaf;
+                                            const iconColor = getCategoryIconColor(product.category);
+                                            return <CategoryIcon className={`h-12 w-12 ${iconColor}`} strokeWidth={1.5} />;
+                                        })()}
+                                    </div>
+                                )}
                             </div>
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-lg font-bold text-gray-900 sm:text-xl">{product.name}</p>

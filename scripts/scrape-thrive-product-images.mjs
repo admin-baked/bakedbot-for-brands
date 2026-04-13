@@ -17,7 +17,7 @@
  *   --force     Update products that already have a non-placeholder imageUrl
  */
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
@@ -160,6 +160,51 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 // In-memory cache so we don't re-fetch the same strain slug twice
 const slugCache = new Map();
 
+// Brand asset cache from RTRVR scrape
+const RTRVR_CACHE_PATH = join(__dirname, '..', 'dev', 'rtrvr-thrive-products.json');
+const DISPENSE_CATALOG_PATH = join(__dirname, '..', 'scripts', 'dispense-images-catalog.json');
+
+let rtrvrCache = [];
+let dispenseCatalog = {};
+
+if (existsSync(RTRVR_CACHE_PATH)) {
+    try {
+        rtrvrCache = JSON.parse(readFileSync(RTRVR_CACHE_PATH, 'utf8'));
+        console.log(`\n📂 Loaded RTRVR brand cache: ${rtrvrCache.length} products`);
+    } catch {
+        console.warn(`\n⚠️ Failed to load RTRVR brand cache`);
+    }
+}
+
+if (existsSync(DISPENSE_CATALOG_PATH)) {
+    try {
+        dispenseCatalog = JSON.parse(readFileSync(DISPENSE_CATALOG_PATH, 'utf8'));
+        console.log(`\n📂 Loaded Dispense brand catalog: ${Object.keys(dispenseCatalog).length} products`);
+    } catch {
+        console.warn(`\n⚠️ Failed to load Dispense brand catalog`);
+    }
+}
+
+function findBrandImageInCache(name) {
+    const norm = name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+    // 1. Check Dispense Catalog (very high priority)
+    if (dispenseCatalog[norm] && dispenseCatalog[norm].imageUrl && !dispenseCatalog[norm].imageUrl.includes('default-')) {
+        return dispenseCatalog[norm].imageUrl;
+    }
+
+    // 2. Check RTRVR Cache
+    if (rtrvrCache.length) {
+        const match = rtrvrCache.find(p => {
+            const pNorm = p.name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+            return pNorm === norm || pNorm.includes(norm) || norm.includes(pNorm);
+        });
+        if (match) return match.imageUrl;
+    }
+
+    return null;
+}
+
 async function lookupLeaflyStrain(slug) {
     if (slugCache.has(slug)) return slugCache.get(slug);
 
@@ -190,10 +235,17 @@ async function lookupLeaflyStrain(slug) {
 }
 
 async function findProductImage(productName) {
+    // Strategy 0: Brand Image from RTRVR cache (Thrive's own site)
+    const brandUrl = findBrandImageInCache(productName);
+    if (brandUrl) {
+        console.log(`   💎 Found Brand Image in cache`);
+        return { imageUrl: brandUrl, source: 'thrive_brand' };
+    }
+
     const slugs = extractStrainSlugs(productName);
     for (const slug of slugs) {
         const imageUrl = await lookupLeaflyStrain(slug);
-        if (imageUrl) return { imageUrl, slug };
+        if (imageUrl) return { imageUrl, slug, source: 'leafly' };
         await sleep(300); // ~3 req/sec — polite to Leafly
     }
     return null;
@@ -306,12 +358,12 @@ async function main() {
             const publicUrl = await downloadAndUpload(found.imageUrl, product.name, product.brand);
             await product.docRef.update({
                 imageUrl: publicUrl,
-                imageSource: 'leafly',
+                imageSource: found.source || 'leafly',
                 imageUpdatedAt: new Date(),
             });
             console.log(`   ☁️  Stored: ${publicUrl}`);
             updated++;
-            results.push({ name: product.name, status: 'updated', slug: found.slug, publicUrl });
+            results.push({ name: product.name, status: 'updated', slug: found.slug, publicUrl, source: found.source });
         } catch (err) {
             console.error(`   ❌ Error: ${err.message}`);
             failed++;
