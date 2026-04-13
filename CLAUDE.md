@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Full roster training framework live; Gemini Flash credits fallback live (claude.ts + linus.ts two-layer); 13 tests green | **Last update:** 2026-04-13 (Gemini Flash auto-fallback on Claude credits exhaustion: `18bdd8ff3`)
+**Current Status:** 🟢 Production live; /explore Cannabis Data Library + all 5 data hub pages with Navbar; national dispensary directory with NY OCM data | **Last update:** 2026-04-13 (data-hub navbar + dispensary directory: `07bf485dd`)
 
 ---
 
