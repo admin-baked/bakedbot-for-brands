@@ -574,11 +574,11 @@ export async function getMoodRecommendations(
             }).catch(() => { /* fire-and-forget */ });
             
             // UX Safety Fallback (BUG-031) - Instead of returning an error string that crashes the tablet flow, return an empty but valid recommendation set
-            return { 
-                success: true, 
-                products: [], 
-                bundle: null,
-                fallbackMode: 'inventory_unavailable'
+            return {
+                success: true,
+                products: [],
+                fallbackMode: 'inventory_unavailable',
+                fallbackMessage: "Inventory is temporarily unavailable — check back in a moment.",
             };
         }
 
