@@ -1,0 +1,60 @@
+name: Bug Hunt Trigger
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Every 30 minutes
+  workflow_dispatch:
+    inputs:
+      manual_run:
+        description: 'Manual trigger for bug hunt'
+        required: false
+        default: 'false'
+
+jobs:
+  trigger-bug-hunt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger Bug Hunt Agent
+        run: |
+          echo "🔍 Starting bug hunt session..."
+          
+          # Create task in Firestore via agent-tasks endpoint
+          TASK_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.CRON_SECRET }}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "title": "Bug hunt session - automated",
+              "body": "Scheduled 30-minute bug hunt - scan for security vulnerabilities, bugs, and code issues",
+              "category": "bug",
+              "priority": "high",
+              "reportedBy": "scheduled-cron"
+            }')
+          
+          HTTP_CODE=$(echo "$TASK_RESPONSE" | tail -n1)
+          
+          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
+            echo "✅ Task created successfully"
+            
+            # Give Firestore 2 seconds to index the task
+            sleep 2
+            
+            # Trigger the poller to pick up the task
+            POLL_RESPONSE=$(curl -s -w "\n%{http_code}" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              "${{ secrets.APP_BASE_URL }}/api/cron/agent-poller")
+            
+            POLL_CODE=$(echo "$POLL_RESPONSE" | tail -n1)
+            
+            if [ "$POLL_CODE" = "200" ]; then
+              echo "🚀 Agent triggered successfully"
+            else
+              echo "⚠️ Poller returned: $POLL_CODE"
+            fi
+          else
+            echo "⚠️ Task creation returned: $HTTP_CODE"
+            echo "$TASK_RESPONSE"
+          fi
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
