@@ -9,11 +9,11 @@ export const dynamic = 'force-dynamic';
  */
 
 import { NextResponse } from 'next/server';
-import { requireUser } from '@/server/auth/auth';
+import { requireSuperUser } from '@/server/auth/auth';
 
 export async function GET() {
     try {
-        const user = await requireUser();
+        const user = await requireSuperUser();
         const u = user as any;
         return NextResponse.json({
             uid: u.uid,

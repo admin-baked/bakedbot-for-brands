@@ -19,8 +19,9 @@ import { getPosDossierByPhoneLast4 } from '@/server/actions/loyalty-tablet';
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+    let apiKeyRecord;
     try {
-        await requireAPIKey(request, 'read:customers');
+        apiKeyRecord = await requireAPIKey(request, 'read:customers');
     } catch (err) {
         if (err instanceof APIKeyError) return err.toResponse() as unknown as NextResponse;
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -36,6 +37,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (!/^\d{4}$/.test(phoneLast4)) {
         return NextResponse.json({ error: 'phoneLast4 must be exactly 4 digits' }, { status: 400 });
+    }
+
+    if (apiKeyRecord.orgId && apiKeyRecord.orgId !== orgId) {
+        return NextResponse.json({ error: 'API key does not have access to this organization' }, { status: 403 });
     }
 
     try {

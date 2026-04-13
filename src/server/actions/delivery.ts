@@ -154,7 +154,7 @@ export async function createDriver(input: CreateDriverInput) {
 
         const driverData: Driver = {
             id: driverId,
-            userId: input.userId || user.uid, // Link to user account
+            userId: user.uid, // Link to user account
             orgId: input.orgId,
             firstName: input.firstName,
             lastName: input.lastName,
