@@ -174,7 +174,7 @@ async function authenticatePersona(browser, persona) {
       const { getAuth, signInWithCustomToken } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
 
       const app = initializeApp({
-        apiKey: 'AIzaSyBXGZJOzLdUwPr3JhMOLFIQDCYF7J4h5CU',
+        apiKey: process.env.FIREBASE_API_KEY || 'AIzaSyBXGZJOzLdUwPr3JhMOLFIQDCYF7J4h5CU',
         authDomain: 'studio-567050101-bc6e8.firebaseapp.com',
         projectId: 'studio-567050101-bc6e8',
       });
