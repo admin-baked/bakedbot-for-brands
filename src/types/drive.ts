@@ -412,6 +412,7 @@ export interface DriveFileDoc {
   lastAccessedAt?: number; // Unix timestamp
   createdAt: number; // Unix timestamp
   updatedAt: number; // Unix timestamp
+  orgId?: string;
   isDeleted: boolean;
   deletedAt?: number;
   deletedBy?: string;
@@ -431,6 +432,7 @@ export interface DriveFolderDoc {
   color?: string;
   fileCount: number;
   totalSize: number;
+  orgId?: string;
   isShared: boolean;
   shareIds: string[];
   createdAt: number;
