@@ -37,7 +37,18 @@ function verifyAuth(req: NextRequest): boolean {
     const cronSecret = process.env.CRON_SECRET;
     if (!cronSecret) return false;
     const auth = req.headers.get('Authorization');
-    return auth === `Bearer ${cronSecret}`;
+    if (!auth || !auth.startsWith('Bearer ')) return false;
+    
+    // Use timing-safe comparison to prevent timing attacks
+    const crypto = require('crypto');
+    const providedSecret = auth.slice(7); // Remove "Bearer " prefix
+    const secretBuffer = Buffer.from(cronSecret);
+    const providedBuffer = Buffer.from(providedSecret);
+    
+    // Ensure same length for timing-safe comparison
+    if (secretBuffer.length !== providedBuffer.length) return false;
+    
+    return crypto.timingSafeEqual(secretBuffer, providedBuffer);
 }
 
 // --- POST: Create a task ---

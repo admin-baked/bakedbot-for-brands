@@ -75,6 +75,10 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
     const isDev = process.env.NODE_ENV === 'development';
 
     if (isDev && simulatedRole) {
+      // Double-check: ensure this NEVER runs in production
+      if (process.env.NODE_ENV !== 'development') {
+        throw new Error('SECURITY: Dev bypass attempted in non-development environment');
+      }
       // Return a mock token for development
       const mockToken: any = {
         uid: 'dev-user-id',

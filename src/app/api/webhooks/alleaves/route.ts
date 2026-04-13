@@ -94,8 +94,8 @@ export async function POST(request: NextRequest) {
         // Get webhook secret from environment or Firestore
         const webhookSecret = process.env.ALLEAVES_WEBHOOK_SECRET || '';
 
-        // Verify signature (skip in development)
-        if (process.env.NODE_ENV === 'production' && webhookSecret) {
+        // Verify signature in ALL environments if secret is configured
+        if (webhookSecret) {
             const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret);
 
             if (!isValid) {
@@ -105,6 +105,8 @@ export async function POST(request: NextRequest) {
                     { status: 401 }
                 );
             }
+        } else {
+            logger.warn('[WEBHOOK] ALLEAVES_WEBHOOK_SECRET not configured - skipping verification');
         }
 
         // Parse payload

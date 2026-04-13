@@ -27,6 +27,8 @@
 
 **Issue:** Signature verification is SKIPPED in development mode (`NODE_ENV !== 'production'`).
 
+**Status:** ✅ FIXED (commit `e9b051262`) - Now verifies in ALL environments if secret is configured
+
 **Details:** Line 98-108 skips signature verification entirely in non-production:
 ```typescript
 if (process.env.NODE_ENV === 'production' && webhookSecret) {
@@ -47,6 +49,8 @@ if (process.env.NODE_ENV === 'production' && webhookSecret) {
 **File:** `src/server/auth/auth.ts`
 
 **Issue:** Mock session bypass allows any role simulation in development without real auth.
+
+**Status:** ✅ FIXED (commit `e9b051262`) - Added double-check safeguard that throws in non-development
 
 **Details:** Lines 69-94 allow bypass with `x-simulated-role` cookie:
 - Any role can be simulated
@@ -169,6 +173,8 @@ return auth === `Bearer ${cronSecret}`;
 ```
 
 **Vulnerability:** Vulnerable to timing attacks.
+
+**Status:** ✅ FIXED (commit `e9b051262`) - Now uses crypto.timingSafeEqual for timing-safe comparison
 
 ---
 
