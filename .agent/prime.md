@@ -38,8 +38,12 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; Build passing (2026-04-13); Fixed Thrive inventory valuation discrepancy.
-**Recent work (2026-04-13):** `8a829f477` Fixed Thrive Syracuse inventory valuation discrepancy + replaced dashboard placeholders.
+**Current Status:** 🟢 Production live; Build passing (2026-04-13); Security fixes deployed + Firebase API key resolved.
+**Recent work (2026-04-13):** 
+- `106f5408d` Security fixes: admin routes auth, XSS sanitization, database tool permissions
+- `3272d282b` Agent task queue updated with 34 bugs found, 5 fixed
+- `7aa97a424` QA suite smoke tests added for playbook runner
+- `26b7d7ac1` Firebase API key moved to env var (resolved secret alert)
 **Prior (2026-04-12):** `c05e091da` CHANNEL_MAP + roster training; `1fbc88b22` task board + inbound CTAs
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
