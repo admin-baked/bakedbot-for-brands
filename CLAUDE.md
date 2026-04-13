@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Full roster training framework live; Thrive Syracuse retention live; Homepage GTM copy tightened; Gemini fallback routing hardened; Enforced SES isolation + Thrive strategy rollout | **Last update:** 2026-04-13 (Homepage GTM audit + retention/Slack Gemini fallback routing + SES rollout)
+**Current Status:** 🟢 Production live; Full roster training framework live; Gemini Flash credits fallback live (claude.ts + linus.ts two-layer); 13 tests green | **Last update:** 2026-04-13 (Gemini Flash auto-fallback on Claude credits exhaustion: `18bdd8ff3`)
 
 ---
 

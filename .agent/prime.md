@@ -38,11 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; Full roster training framework live; Thrive Syracuse retention live; Homepage GTM copy tightened; Gemini fallback routing hardened; Enforced SES isolation + Thrive strategy rollout.
-**Recent work (2026-04-13):** 
-- `c97faa6bd` Homepage GTM copy + Gemini routing + logger fixes
-- `0d3e85e2c` Enforce SES isolation, resolve nightly-qa secrets, persist Thrive Syracuse dashboard strategy
-- `cd4281299` docs: Update prime.md with security fixes and secret alert resolution
+**Current Status:** 🟢 Production live; Full roster training framework live; Gemini Flash credits fallback live (two-layer: claude.ts + linus.ts); 13 tests green.
+**Recent work (2026-04-13):** `d2bb4003b` claude.ts credits fallback + `17893b04a` linus tier chain hardening + `18bdd8ff3` 13 tests
 - `26b7d7ac1` Firebase API key moved to env var (resolved secret alert)
 - `106f5408d` Security fixes: admin routes auth, XSS sanitization, database tool permissions
 **Prior (2026-04-12):** `c05e091da` CHANNEL_MAP + roster training; `1fbc88b22` task board + inbound CTAs
