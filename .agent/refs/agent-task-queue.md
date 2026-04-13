@@ -537,4 +537,82 @@ Automated agent triggering system for bug hunting:
 - `CRON_SECRET` - Required for auth
 - `AGENT_WORKSPACE` - Workspace path (default: `/workspace/bakedbot-for-brands`)
 - `OPENCODE_PATH` - Path to opencode binary (default: `/usr/local/bin/opencode`)
+
+---
+
+## Thrive Syracuse Check-in Flow Bugs - Session 9 (2026-04-13)
+
+### BUG-031: "Could not load recommendations" Products Not Loading
+**Severity:** HIGH
+**Category:** bug
+**File:** `src/server/actions/loyalty-tablet.ts:505-517`
+
+**Issue:** Customers see "Could not load recommendations" when the tablet mood recommendations fail.
+
+**Root Cause:** Multiple possible causes:
+1. POS sync not running - `tenants/org_thrive_syracuse/publicViews/products/items` is empty
+2. Alleaves API credentials missing/invalid in location config
+3. Cache has empty array for 5 min TTL (line 111)
+
+**Impact:** Major UX failure on check-in tablet - customers can't get product recommendations.
+
+**Debug Steps:**
+1. Check Firestore: `tenants/org_thrive_syracuse/publicViews/products/items` exists?
+2. Check cron: `/api/cron/pos-sync?orgId=org_thrive_syracuse`
+3. Check location: `locations` doc has `posConfig.provider === 'alleaves'`
+
+**Recommendation:** Add diagnostic endpoint to check inventory status and surface issues earlier.
+
+---
+
+### BUG-032: No Org Access Validation on Check-in
+**Severity:** HIGH
+**Category:** security
+**File:** `src/server/actions/visitor-checkin.ts:1084`
+
+**Issue:** `captureVisitorCheckin` accepts any `orgId` without verifying caller has access to that org.
+
+**Details:** Line 1084 just parses the input with Zod but doesn't verify org membership.
+
+**Impact:** Users could potentially submit check-ins for other organizations.
+
+**Recommendation:** Add `verifyOrgAccess(user.uid, validated.orgId)` before processing.
+
+---
+
+### BUG-033: Weekly Campaign Subscriber Race Condition
+**Severity:** MEDIUM
+**Category:** bug
+**File:** `src/server/actions/visitor-checkin.ts:1121-1138`
+
+**Issue:** Check+insert for weekly campaign subscribers isn't atomic.
+
+**Details:** Lines 1121-1138:
+```typescript
+const existingSubscriber = await db.collection('weekly_campaign_subscribers')
+    .where('email', '==', normalizedEmail)
+    .where('orgId', '==', validated.orgId)
+    .limit(1).get();
+
+if (existingSubscriber.empty) {
+    await db.collection('weekly_campaign_subscribers').add({...});
+}
+```
+
+**Impact:** Could create duplicate subscribers if concurrent check-ins happen.
+
+**Recommendation:** Use Firestore runTransaction for atomic check+insert.
+
+---
+
+### BUG-034: Check-in Lookup Missing Org Validation
+**Severity:** MEDIUM
+**Category:** security
+**File:** `src/app/api/checkin/lookup/route.ts`
+
+**Issue:** `/api/checkin/lookup` uses API key auth but doesn't validate org access - could query other orgs.
+
+**Details:** Line 42 calls `getPosDossierByPhoneLast4(orgId, phoneLast4)` without verifying the API key has access to that org.
+
+**Recommendation:** Verify API key's allowed orgs includes the requested orgId.
 ```
