@@ -170,75 +170,57 @@ export async function captureEmailLead(request: CaptureEmailLeadRequest): Promis
             ].filter(Boolean) as string[],
         };
 
-        // Check if lead already exists (by email or phone)
         const db = getAdminFirestore();
-        let existingLead: FirebaseFirestore.QueryDocumentSnapshot | null = null;
-        if (normalizedEmail) {
-            const emailQuery = await db.collection('email_leads')
-                .where('email', '==', normalizedEmail)
-                .get();
 
-            if (!emailQuery.empty) {
-                existingLead = emailQuery.docs.find((doc) =>
-                    sameLeadScope(
-                        {
-                            brandId: doc.get('brandId'),
-                            dispensaryId: doc.get('dispensaryId'),
-                        },
-                        { brandId: request.brandId, dispensaryId: request.dispensaryId },
-                    ),
-                ) || null;
-            }
-        }
+        // ── Atomic enrollment via deterministic doc ID ────────────────────────
+        // Use a content-addressed doc ID so concurrent check-ins for the same
+        // lead cannot both create a new document (TOCTOU race).  The transaction
+        // ensures exactly-once welcome email dispatch.
+        //
+        // Doc ID strategy:
+        //   email present  → sha256(orgScope + email)
+        //   phone only     → sha256(orgScope + phone)
+        //
+        // This collapses within-scope duplicates at the DB level and avoids the
+        // non-atomic read-then-write that previously allowed duplicate welcome emails.
+        const { createHash } = await import('crypto');
+        const orgScope = request.brandId ?? request.dispensaryId ?? 'global';
+        const identityKey = normalizedEmail ?? normalizedPhone!;
+        const leadDocId = createHash('sha256').update(`${orgScope}:${identityKey}`).digest('hex');
 
-        if (!existingLead && normalizedPhone) {
-            const phoneQuery = await db.collection('email_leads')
-                .where('phone', '==', normalizedPhone)
-                .get();
-
-            if (!phoneQuery.empty) {
-                existingLead = phoneQuery.docs.find((doc) =>
-                    sameLeadScope(
-                        {
-                            brandId: doc.get('brandId'),
-                            dispensaryId: doc.get('dispensaryId'),
-                        },
-                        { brandId: request.brandId, dispensaryId: request.dispensaryId },
-                    ),
-                ) || null;
-            }
-        }
-
-        let leadId: string;
+        const leadRef = db.collection('email_leads').doc(leadDocId);
+        let leadId = leadDocId;
         let isNewLead = false;
 
-        if (existingLead) {
-            // Update existing lead
-            leadId = existingLead.id;
-            await existingLead.ref.update({
-                ...leadData,
-                lastUpdated: now,
-            });
+        await db.runTransaction(async (tx) => {
+            const existing = await tx.get(leadRef);
 
-            logger.info('[EmailCapture] Updated existing lead', {
-                leadId,
-                email: normalizedEmail,
-                phone: normalizedPhone,
-                source: request.source,
-            });
-        } else {
-            // Create new lead
-            const docRef = await db.collection('email_leads').add(leadData);
-            leadId = docRef.id;
-            isNewLead = true;
+            if (existing.exists) {
+                // Update in-place — don't retrigger welcome flow
+                tx.update(leadRef, { ...leadData, lastUpdated: now });
+                isNewLead = false;
 
-            logger.info('[EmailCapture] Created new lead', {
-                leadId,
-                email: normalizedEmail,
-                phone: normalizedPhone,
-                source: request.source,
-            });
+                logger.info('[EmailCapture] Updated existing lead (atomic)', {
+                    leadId,
+                    email: normalizedEmail,
+                    phone: normalizedPhone,
+                    source: request.source,
+                });
+            } else {
+                // Atomically create — only one concurrent writer wins
+                tx.set(leadRef, leadData);
+                isNewLead = true;
 
+                logger.info('[EmailCapture] Created new lead (atomic)', {
+                    leadId,
+                    email: normalizedEmail,
+                    phone: normalizedPhone,
+                    source: request.source,
+                });
+            }
+        });
+
+        if (isNewLead) {
             // Trigger welcome email via Craig (async, don't block)
             if (normalizedEmail && request.emailConsent) {
                 triggerWelcomeEmail(

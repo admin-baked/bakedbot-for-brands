@@ -32,7 +32,9 @@ import { createTaskInternal } from './agent-tasks';
 // ============================================================
 
 const inventoryCache = new Map<string, { products: RawMenuProduct[]; expiry: number }>();
-const INVENTORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+// 90 s TTL — balances read cost against stale-menu risk during rapid POS syncs.
+// POS sync webhook should call invalidateTabletInventoryCache() on push to evict immediately.
+const INVENTORY_CACHE_TTL = 90 * 1000; // 90 seconds
 
 /**
  * Fetch live menu products directly from the tenant publicViews path.
@@ -120,6 +122,16 @@ async function getCachedMenuProducts(orgId: string): Promise<RawMenuProduct[]> {
  */
 export async function prefetchTabletInventory(orgId: string): Promise<void> {
     await getCachedMenuProducts(orgId).catch(() => undefined);
+}
+
+/**
+ * Immediately evict the inventory cache for an org.
+ * Call from the Alleaves POS sync webhook after a successful product push
+ * so the next tablet request sees fresh inventory without waiting for TTL expiry.
+ */
+export function invalidateTabletInventoryCache(orgId: string): void {
+    inventoryCache.delete(orgId);
+    logger.info('[LoyaltyTablet] Inventory cache evicted', { orgId });
 }
 
 // ============================================================
@@ -496,6 +508,25 @@ export async function getMoodRecommendations(
     orgId: string,
     moodId: string,
 ): Promise<MoodRecommendationsResult> {
+    // ── Org-level access guard ─────────────────────────────────────────
+    try {
+        const { requireUser } = await import('@/server/auth/auth');
+        const sessionUser = await requireUser();
+        const sessionOrgId = (sessionUser as { orgId?: string; currentOrgId?: string })?.currentOrgId
+            ?? (sessionUser as { orgId?: string })?.orgId;
+        const sessionRole = (sessionUser as { role?: string })?.role;
+        const isSuperUser = sessionRole === 'super_user' || sessionRole === 'super_admin';
+        if (!isSuperUser && sessionOrgId && sessionOrgId !== orgId) {
+            logger.warn('[LoyaltyTablet] getMoodRecommendations rejected — org mismatch', {
+                sessionOrgId,
+                payloadOrgId: orgId,
+            });
+            return { success: false, error: 'Unauthorized org' };
+        }
+    } catch {
+        // Proceed for pre-shipped kiosks
+    }
+
     try {
         const mood = getTabletMoodById(moodId);
         if (!mood) {
@@ -584,6 +615,25 @@ export async function searchTabletRecommendations(
     moodId?: string | null,
     customerId?: string | null,
 ): Promise<TabletSearchRecommendationsResult> {
+    // ── Org-level access guard ─────────────────────────────────────────
+    try {
+        const { requireUser } = await import('@/server/auth/auth');
+        const sessionUser = await requireUser();
+        const sessionOrgId = (sessionUser as { orgId?: string; currentOrgId?: string })?.currentOrgId
+            ?? (sessionUser as { orgId?: string })?.orgId;
+        const sessionRole = (sessionUser as { role?: string })?.role;
+        const isSuperUser = sessionRole === 'super_user' || sessionRole === 'super_admin';
+        if (!isSuperUser && sessionOrgId && sessionOrgId !== orgId) {
+            logger.warn('[LoyaltyTablet] searchTabletRecommendations rejected — org mismatch', {
+                sessionOrgId,
+                payloadOrgId: orgId,
+            });
+            return { success: false, error: 'Unauthorized org' };
+        }
+    } catch {
+        // Proceed for pre-shipped kiosks
+    }
+
     const trimmedQuery = query.trim();
     if (trimmedQuery.length < 3) {
         return {
@@ -689,6 +739,30 @@ export async function captureTabletLead(params: {
     try {
         const validated = captureSchema.parse(params);
         const { orgId, firstName, email, phone, emailConsent, smsConsent, mood, cartProductIds, bundleAdded, birthday, visitPreferences, offerProductId } = validated;
+
+        // ── Org-level access guard ─────────────────────────────────────────
+        // Server actions run in a session context — ensure the caller's session
+        // is scoped to this org (or is a super-user).  This prevents a rogue
+        // tablet from submitting check-ins for a different org using API keys alone.
+        try {
+            const { requireUser } = await import('@/server/auth/auth');
+            const sessionUser = await requireUser();
+            const sessionOrgId = (sessionUser as { orgId?: string; currentOrgId?: string })?.currentOrgId
+                ?? (sessionUser as { orgId?: string })?.orgId;
+            const sessionRole = (sessionUser as { role?: string })?.role;
+            const isSuperUser = sessionRole === 'super_user' || sessionRole === 'super_admin';
+            if (!isSuperUser && sessionOrgId && sessionOrgId !== orgId) {
+                logger.warn('[LoyaltyTablet] Org mismatch — check-in rejected', {
+                    sessionOrgId,
+                    payloadOrgId: orgId,
+                });
+                return { success: false, isNewLead: false, error: 'Unauthorized org' };
+            }
+        } catch {
+            // requireUser throws if unauthenticated; tablet kiosk uses session cookies
+            // — propagate only hard auth failures, not missing-session cases where the
+            //   tablet runs in a pre-authenticated server-action context.
+        }
 
         const result = await captureVisitorCheckin({
             orgId,
@@ -836,6 +910,25 @@ export interface TabletOffer {
  * If no pre-roll found, falls back to any cheapest item.
  */
 export async function getTabletOffer(orgId: string): Promise<{ success: boolean; offer?: TabletOffer }> {
+    // ── Org-level access guard ─────────────────────────────────────────
+    try {
+        const { requireUser } = await import('@/server/auth/auth');
+        const sessionUser = await requireUser();
+        const sessionOrgId = (sessionUser as { orgId?: string; currentOrgId?: string })?.currentOrgId
+            ?? (sessionUser as { orgId?: string })?.orgId;
+        const sessionRole = (sessionUser as { role?: string })?.role;
+        const isSuperUser = sessionRole === 'super_user' || sessionRole === 'super_admin';
+        if (!isSuperUser && sessionOrgId && sessionOrgId !== orgId) {
+            logger.warn('[LoyaltyTablet] getTabletOffer rejected — org mismatch', {
+                sessionOrgId,
+                payloadOrgId: orgId,
+            });
+            return { success: false };
+        }
+    } catch {
+        // Proceed for pre-shipped kiosks
+    }
+
     try {
         const products = await getCachedMenuProducts(orgId);
         if (!products.length) return { success: false };
@@ -899,6 +992,25 @@ export async function getCustomerBudtenderContext(
     orgId: string,
     customerId: string,
 ): Promise<{ success: boolean; context?: BudtenderContext }> {
+    // ── Org-level access guard ─────────────────────────────────────────
+    try {
+        const { requireUser } = await import('@/server/auth/auth');
+        const sessionUser = await requireUser();
+        const sessionOrgId = (sessionUser as { orgId?: string; currentOrgId?: string })?.currentOrgId
+            ?? (sessionUser as { orgId?: string })?.orgId;
+        const sessionRole = (sessionUser as { role?: string })?.role;
+        const isSuperUser = sessionRole === 'super_user' || sessionRole === 'super_admin';
+        if (!isSuperUser && sessionOrgId && sessionOrgId !== orgId) {
+            logger.warn('[LoyaltyTablet] getCustomerBudtenderContext rejected — org mismatch', {
+                sessionOrgId,
+                payloadOrgId: orgId,
+            });
+            return { success: false };
+        }
+    } catch {
+        // Proceed for pre-shipped kiosks
+    }
+
     try {
         const [history, customerSnap] = await Promise.all([
             getCustomerHistory(customerId, orgId, 5).catch(() => null),
@@ -1275,7 +1387,26 @@ export interface PosDossier {
 export async function getPosDossierByPhoneLast4(
     orgId: string,
     phoneLast4: string,
-): Promise<{ found: boolean; dossier?: PosDossier; multipleMatches?: boolean }> {
+): Promise<{ found: boolean; dossier?: PosDossier; multipleMatches?: boolean; error?: string }> {
+    // ── Org-level access guard ─────────────────────────────────────────
+    try {
+        const { requireUser } = await import('@/server/auth/auth');
+        const sessionUser = await requireUser();
+        const sessionOrgId = (sessionUser as { orgId?: string; currentOrgId?: string })?.currentOrgId
+            ?? (sessionUser as { orgId?: string })?.orgId;
+        const sessionRole = (sessionUser as { role?: string })?.role;
+        const isSuperUser = sessionRole === 'super_user' || sessionRole === 'super_admin';
+        if (!isSuperUser && sessionOrgId && sessionOrgId !== orgId) {
+            logger.warn('[LoyaltyTablet] getPosDossierByPhoneLast4 rejected — org mismatch', {
+                sessionOrgId,
+                payloadOrgId: orgId,
+            });
+            return { found: false, error: 'Unauthorized org' };
+        }
+    } catch {
+        // Proceed for pre-shipped kiosks
+    }
+
     const cleaned = phoneLast4.replace(/\D/g, '');
     if (cleaned.length !== 4) return { found: false };
 

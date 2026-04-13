@@ -1,0 +1,20 @@
+﻿e1acca367 feat(infra): switch Linus/Elroy from Z.ai GLM to Groq Llama 3.3 70B
+1ae710e73 fix(build): remove invalid 'use server' from API route handler
+76a9f3c5e fix(build): move 'use server' above dynamic export in import-menu route
+75e65a6f0 fix(build): bump NODE_OPTIONS to 4GB ΓÇö 3GB OOMs during webpack
+d54b452db fix(build): eliminate 56min Cloud Build hang ΓÇö 3 root causes
+9b8f50ea4 fix(build): remove server import from client page causing 56min build hang
+cd73595b6 feat(cost): free GLM flash models + cannabis refusal fix for Linus/Elroy
+273635c11 fix(infra): remove .w ghost submodule blocking Cloud Build
+3081ed562 fix: Resolve Loyalty Tablet build errors (11 files) and update session logs 2026-04-07
+71c38a7dc fix(loyalty): membership-service syntax error and return types
+ba7a1f6e4 chore: re-trigger deployment for head 1f95e9b
+3aaa3a3b7 chore: redeploy retry #3
+1f95e9bb3 feat: loyalty tablet backend services, join api, and staff queue dashboard
+97a07bcdd fix(build): skip Remotion bundle in Cloud Build to reduce build time
+ac19b56e5 chore: redeploy with SKIP_REMOTION_BUNDLE=true
+8ffc3def7 chore: redeploy retry #2
+aeba1492d chore: trigger redeploy retry
+2ba45a083 chore: trigger redeploy after INTERNAL_ERROR #3
+6f20fb135 chore: trigger redeploy after INTERNAL_ERROR #2
+ff8d15a76 chore: trigger redeploy after INTERNAL_ERROR

@@ -11,10 +11,25 @@ export const dynamic = 'force-dynamic';
  *   orgId    — filter executions by org (required)
  *   limit    — max executions to return (default 20)
  */
+import { requireAPIKey, APIKeyError } from '@/server/auth/api-key-auth';
+
 export async function GET(request: NextRequest) {
     const orgId = request.nextUrl.searchParams.get('orgId');
     if (!orgId) {
         return NextResponse.json({ error: 'orgId required' }, { status: 400 });
+    }
+
+    // ── Auth & Org Validation ──────────────────────────────────────────
+    try {
+        const keyRecord = await requireAPIKey(request, 'workflows:list');
+        if (keyRecord.orgId !== 'platform_admin' && keyRecord.orgId !== orgId) {
+            return NextResponse.json({
+                error: "Unauthorized: API key does not belong to this organization"
+            }, { status: 403 });
+        }
+    } catch (e: any) {
+        if (e instanceof APIKeyError) return e.toResponse();
+        throw e;
     }
 
     const limit = Math.min(Number(request.nextUrl.searchParams.get('limit') ?? 20), 100);

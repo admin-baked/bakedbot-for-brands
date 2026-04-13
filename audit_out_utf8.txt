@@ -1,0 +1,147 @@
+﻿AUDIT_START
+ASSIGNMENT_COUNT: 72
+ASSIGNMENT: executive-daily-digest | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: executive-daily-digest | NOT_FOUND
+ASSIGNMENT: audit-prep-automation | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: audit-prep-automation | NOT_FOUND
+ASSIGNMENT: pre-send-campaign-check | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: pre-send-campaign-check | NOT_FOUND
+ASSIGNMENT: playbook_org_thrive_syracuse_welcome | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: playbook_org_thrive_syracuse_welcome | TRIGGERS: [{"type":"event","eventName":"customer.created","enabled":true}]
+ASSIGNMENT: seasonal-template-pack | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: seasonal-template-pack | NOT_FOUND
+ASSIGNMENT: pro-competitive-brief | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: pro-competitive-brief | NOT_FOUND
+ASSIGNMENT: playbook_welcome_series | STATUS: paused | TRIGGERS: 0
+GLOBAL_PB: playbook_welcome_series | NOT_FOUND
+ASSIGNMENT: usage-alert | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: usage-alert | NOT_FOUND
+ASSIGNMENT: executive-daily-digest | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: executive-daily-digest | NOT_FOUND
+ASSIGNMENT: campaign-roi-report | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: campaign-roi-report | NOT_FOUND
+ASSIGNMENT: multi-location-rollup | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: multi-location-rollup | NOT_FOUND
+ASSIGNMENT: menu-health-scan | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: menu-health-scan | NOT_FOUND
+ASSIGNMENT: birthday-loyalty-reminder | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: birthday-loyalty-reminder | NOT_FOUND
+ASSIGNMENT: white-glove-onboarding | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: white-glove-onboarding | NOT_FOUND
+ASSIGNMENT: weekly-compliance-digest | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: weekly-compliance-digest | NOT_FOUND
+ASSIGNMENT: playbook_welcome_series | STATUS: completed | TRIGGERS: 0
+GLOBAL_PB: playbook_welcome_series | NOT_FOUND
+ASSIGNMENT: daily-competitive-intel | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: daily-competitive-intel | NOT_FOUND
+ASSIGNMENT: audit-prep-automation | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: audit-prep-automation | NOT_FOUND
+ASSIGNMENT: multi-location-rollup | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: multi-location-rollup | NOT_FOUND
+ASSIGNMENT: playbook_welcome_series | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: playbook_welcome_series | NOT_FOUND
+ASSIGNMENT: new-product-launch | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: new-product-launch | NOT_FOUND
+ASSIGNMENT: daily-competitive-intel | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: daily-competitive-intel | NOT_FOUND
+ASSIGNMENT: white-glove-onboarding | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: white-glove-onboarding | NOT_FOUND
+ASSIGNMENT: pre-send-campaign-check | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: pre-send-campaign-check | NOT_FOUND
+ASSIGNMENT: menu-health-scan | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: menu-health-scan | NOT_FOUND
+ASSIGNMENT: seasonal-template-pack | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: seasonal-template-pack | NOT_FOUND
+ASSIGNMENT: daily-competitive-intel | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: daily-competitive-intel | NOT_FOUND
+ASSIGNMENT: multi-location-rollup | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: multi-location-rollup | NOT_FOUND
+ASSIGNMENT: weekly-performance-snapshot | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: weekly-performance-snapshot | NOT_FOUND
+ASSIGNMENT: seasonal-template-pack | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: seasonal-template-pack | NOT_FOUND
+ASSIGNMENT: white-glove-onboarding | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: white-glove-onboarding | NOT_FOUND
+ASSIGNMENT: menu-health-scan | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: menu-health-scan | NOT_FOUND
+ASSIGNMENT: birthday-loyalty-reminder | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: birthday-loyalty-reminder | NOT_FOUND
+ASSIGNMENT: playbook_welcome_series | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: playbook_welcome_series | NOT_FOUND
+ASSIGNMENT: audit-prep-automation | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: audit-prep-automation | NOT_FOUND
+ASSIGNMENT: real-time-price-alerts | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: real-time-price-alerts | NOT_FOUND
+ASSIGNMENT: owner-quickstart-guide | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: owner-quickstart-guide | NOT_FOUND
+ASSIGNMENT: usage-alert | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: usage-alert | NOT_FOUND
+ASSIGNMENT: welcome-sequence | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: welcome-sequence | NOT_FOUND
+ASSIGNMENT: owner-quickstart-guide | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: owner-quickstart-guide | NOT_FOUND
+ASSIGNMENT: welcome-sequence | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: welcome-sequence | NOT_FOUND
+ASSIGNMENT: post-purchase-thank-you | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: post-purchase-thank-you | NOT_FOUND
+ASSIGNMENT: campaign-roi-report | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: campaign-roi-report | NOT_FOUND
+ASSIGNMENT: win-back-sequence | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: win-back-sequence | NOT_FOUND
+ASSIGNMENT: win-back-sequence | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: win-back-sequence | NOT_FOUND
+ASSIGNMENT: pro-competitive-brief | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: pro-competitive-brief | NOT_FOUND
+ASSIGNMENT: playbook_welcome_series | STATUS: paused | TRIGGERS: 0
+GLOBAL_PB: playbook_welcome_series | NOT_FOUND
+ASSIGNMENT: vip-customer-identification | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: vip-customer-identification | NOT_FOUND
+ASSIGNMENT: birthday-loyalty-reminder | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: birthday-loyalty-reminder | NOT_FOUND
+ASSIGNMENT: jurisdiction-change-alert | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: jurisdiction-change-alert | NOT_FOUND
+ASSIGNMENT: weekly-compliance-digest | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: weekly-compliance-digest | NOT_FOUND
+ASSIGNMENT: post-purchase-thank-you | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: post-purchase-thank-you | NOT_FOUND
+ASSIGNMENT: new-product-launch | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: new-product-launch | NOT_FOUND
+ASSIGNMENT: post-purchase-thank-you | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: post-purchase-thank-you | NOT_FOUND
+ASSIGNMENT: campaign-roi-report | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: campaign-roi-report | NOT_FOUND
+ASSIGNMENT: weekly-performance-snapshot | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: weekly-performance-snapshot | NOT_FOUND
+ASSIGNMENT: new-product-launch | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: new-product-launch | NOT_FOUND
+ASSIGNMENT: jurisdiction-change-alert | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: jurisdiction-change-alert | NOT_FOUND
+ASSIGNMENT: real-time-price-alerts | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: real-time-price-alerts | NOT_FOUND
+ASSIGNMENT: weekly-compliance-digest | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: weekly-compliance-digest | NOT_FOUND
+ASSIGNMENT: executive-daily-digest | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: executive-daily-digest | NOT_FOUND
+ASSIGNMENT: weekly-performance-snapshot | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: weekly-performance-snapshot | NOT_FOUND
+ASSIGNMENT: owner-quickstart-guide | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: owner-quickstart-guide | NOT_FOUND
+ASSIGNMENT: pro-competitive-brief | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: pro-competitive-brief | NOT_FOUND
+ASSIGNMENT: win-back-sequence | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: win-back-sequence | NOT_FOUND
+ASSIGNMENT: vip-customer-identification | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: vip-customer-identification | NOT_FOUND
+ASSIGNMENT: real-time-price-alerts | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: real-time-price-alerts | NOT_FOUND
+ASSIGNMENT: vip-customer-identification | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: vip-customer-identification | NOT_FOUND
+ASSIGNMENT: usage-alert | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: usage-alert | NOT_FOUND
+ASSIGNMENT: welcome-sequence | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: welcome-sequence | NOT_FOUND
+ASSIGNMENT: pre-send-campaign-check | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: pre-send-campaign-check | NOT_FOUND
+ASSIGNMENT: jurisdiction-change-alert | STATUS: active | TRIGGERS: 0
+GLOBAL_PB: jurisdiction-change-alert | NOT_FOUND
+ACTIVE_LISTENERS: 0

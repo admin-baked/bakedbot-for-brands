@@ -7,19 +7,46 @@
 
 import { APIKeyRecord, APIPermission, ALL_API_PERMISSIONS } from '@/types/api-contract';
 
-// Mocking missing api-key-manager for build stability.
-const validateAPIKey = async (key: string): Promise<APIKeyRecord> => ({
-    id: 'mock',
-    orgId: 'mock',
-    permissions: [...ALL_API_PERMISSIONS],
-    keyHash: 'mock',
-    keyPrefix: 'mock',
-    name: 'mock',
-    rateLimitPerMinute: 60,
-    createdAt: new Date(),
-    active: true,
-});
-const hasPermission = (record: any, perm: string) => true;
+import { getAdminFirestore } from '@/firebase/admin';
+import { createHash } from 'crypto';
+
+/**
+ * Validate the raw API key against Firestore.
+ * We store the SHA-256 hash of the key, never the raw key.
+ */
+const validateAPIKey = async (rawKey: string): Promise<APIKeyRecord | null> => {
+    try {
+        const keyHash = createHash('sha256').update(rawKey).digest('hex');
+        const db = getAdminFirestore();
+        
+        const snap = await db.collection('api_keys')
+            .where('keyHash', '==', keyHash)
+            .where('active', '==', true)
+            .limit(1)
+            .get();
+
+        if (snap.empty) return null;
+        
+        const data = snap.docs[0].data();
+        return {
+            ...data,
+            id: snap.docs[0].id,
+            createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt),
+            lastUsedAt: data.lastUsedAt?.toDate?.() || (data.lastUsedAt ? new Date(data.lastUsedAt) : undefined),
+            expiresAt: data.expiresAt?.toDate?.() || (data.expiresAt ? new Date(data.expiresAt) : undefined),
+        } as APIKeyRecord;
+    } catch (error) {
+        console.error('[APIKeyAuth] Validation error:', error);
+        return null;
+    }
+};
+
+/**
+ * Check if the record has the required permission.
+ */
+function hasPermission(record: APIKeyRecord, perm: APIPermission): boolean {
+    return record.permissions.includes(perm) || record.permissions.includes('admin' as any);
+}
 
 import { makeAPIError } from '@/types/api-contract';
 

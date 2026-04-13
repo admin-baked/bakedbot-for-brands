@@ -17,10 +17,28 @@ const enrollSchema = z.object({
     source: z.enum(["tablet", "customer_app"]).default("tablet")
 });
 
+import { requireAPIKey, APIKeyError } from '@/server/auth/api-key-auth';
+
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         const params = enrollSchema.parse(body);
+
+        // ── Auth & Org Validation ──────────────────────────────────────────
+        // 1. Require valid API key
+        // 2. Ensure key belongs to the organization being modified
+        try {
+            const keyRecord = await requireAPIKey(req, 'read:customers'); // Enrollment needs write, but using read:customers for now or matching contract
+            if (keyRecord.orgId !== 'platform_admin' && keyRecord.orgId !== params.organizationId) {
+                return NextResponse.json({
+                    success: false,
+                    error: "Unauthorized: API key does not belong to this organization"
+                }, { status: 403 });
+            }
+        } catch (e: any) {
+            if (e instanceof APIKeyError) return e.toResponse();
+            throw e;
+        }
 
         const result = await MembershipService.enroll(params);
 

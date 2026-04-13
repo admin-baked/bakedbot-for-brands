@@ -1,5 +1,6 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { v4 as uuidv4 } from 'uuid';
+import { createHash } from 'crypto';
 import { Member, Membership, Pass, Reward, ClubEvent } from '@/types/club';
 import { logger } from '@/lib/logger';
 import { processClubEvent } from './event-processor';
@@ -39,16 +40,25 @@ export class MembershipService {
                 existingMember = doc.data() as Member;
             }
         } else {
-            // Lookup by phone
-            const phoneMatches = await db.collection('members')
-                .where('organizationId', '==', params.organizationId)
-                .where('phone', '==', phone)
-                .limit(1)
-                .get();
+            // Deterministic lookup based on Org + Phone context
+            const phoneHash = createHash('sha256').update(`${params.organizationId}:${phone}`).digest('hex').slice(0, 16);
+            memberId = `member_${phoneHash}`;
             
-            if (!phoneMatches.empty) {
-                existingMember = phoneMatches.docs[0].data() as Member;
-                memberId = existingMember.id;
+            const doc = await db.collection('members').doc(memberId).get();
+            if (doc.exists) {
+                existingMember = doc.data() as Member;
+            } else {
+                // Secondary check for legacy docs (optional but safe)
+                const phoneMatches = await db.collection('members')
+                    .where('organizationId', '==', params.organizationId)
+                    .where('phone', '==', phone)
+                    .limit(1)
+                    .get();
+                
+                if (!phoneMatches.empty) {
+                    existingMember = phoneMatches.docs[0].data() as Member;
+                    memberId = existingMember.id;
+                }
             }
         }
 

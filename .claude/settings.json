@@ -1,32 +1,4 @@
 {
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash(git commit*)",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "NODE_OPTIONS='--max-old-space-size=8192' npx tsc --noEmit --pretty 2>&1 | head -50"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "if": "Bash(git push *)",
-            "command": "node scripts/gh-commit-checks.mjs wait",
-            "timeout": 900,
-            "statusMessage": "Monitoring CI checks...",
-            "asyncRewake": true
-          }
-        ]
-      }
-    ]
-  },
   "permissions": {
     "allow": [
       "Bash(git push *)",
@@ -54,7 +26,37 @@
       "Bash(npx playwright test*)",
       "Bash(just *)",
       "Bash(npm run gh:checks*)",
-      "Bash(node scripts/gh-commit-checks.mjs*)"
+      "Bash(node scripts/gh-commit-checks.mjs*)",
+      "Bash(gcloud auth:*)",
+      "Bash(gcloud config:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git commit*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "NODE_OPTIONS='--max-old-space-size=8192' npx tsc --noEmit --pretty 2>&1 | head -50"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/gh-commit-checks.mjs wait",
+            "if": "Bash(git push *)",
+            "timeout": 900,
+            "statusMessage": "Monitoring CI checks...",
+            "asyncRewake": true
+          }
+        ]
+      }
     ]
   }
 }

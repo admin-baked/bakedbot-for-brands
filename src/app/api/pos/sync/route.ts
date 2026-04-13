@@ -114,6 +114,13 @@ export async function POST(request: NextRequest) {
 
     const result = await syncOrgPOSData(orgId);
 
+    // Evict the tablet inventory cache so the next check-in sees fresh products
+    // immediately — don't wait for the 90 s TTL to expire naturally.
+    if (result.success) {
+      const { invalidateTabletInventoryCache } = await import('@/server/actions/loyalty-tablet');
+      invalidateTabletInventoryCache(orgId);
+    }
+
     return NextResponse.json({
       success: result.success,
       result,

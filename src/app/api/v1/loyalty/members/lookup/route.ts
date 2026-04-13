@@ -4,6 +4,8 @@ import { Firestore } from '@google-cloud/firestore';
 import { Member, Membership, Pass, Reward } from '@/types/club';
 import { logger } from '@/lib/logger';
 
+import { requireAPIKey, APIKeyError } from '@/server/auth/api-key-auth';
+
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
@@ -12,6 +14,15 @@ export async function GET(req: NextRequest) {
 
         if (!phone && !memberId) {
             return NextResponse.json({ success: false, error: "Phone or Member ID required" }, { status: 400 });
+        }
+
+        // ── Auth Validation (Key only first) ────────────────────────────────
+        let keyRecord;
+        try {
+            keyRecord = await requireAPIKey(req, 'read:customers');
+        } catch (e: any) {
+            if (e instanceof APIKeyError) return e.toResponse();
+            throw e;
         }
 
         const db = new Firestore();
@@ -33,6 +44,14 @@ export async function GET(req: NextRequest) {
 
         const member = memberDoc.data() as Member;
         const orgId = member.organizationId;
+
+        // ── Org Validation ──────────────────────────────────────────────────
+        if (keyRecord.orgId !== 'platform_admin' && keyRecord.orgId !== orgId) {
+            return NextResponse.json({
+                success: false,
+                error: "Unauthorized: API key does not belong to this member's organization"
+            }, { status: 403 });
+        }
 
         // Fetch Membership, Pass, and Rewards
         const [mshipSnap, passSnap, rewardsSnap] = await Promise.all([
