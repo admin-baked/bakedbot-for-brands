@@ -13,7 +13,8 @@ export type CommunicationType =
     | 'birthday'
     | 'order_update'
     | 'loyalty'
-    | 'manual';
+    | 'manual'
+    | 'strategy';
 
 export type CommunicationStatus =
     | 'sent'
