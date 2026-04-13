@@ -262,9 +262,7 @@ orgId: input.orgId,
 
 **Issue:** `getSubscription`, `getInvoices`, `cancelSubscription` accept `orgId` from input without verifying org access.
 
-**Details:** Lines 436, 469, 517 take `orgId` as parameter but should verify user has access.
-
-**Recommendation:** Add `verifyOrgAccess` to all subscription actions.
+**Status:** ✅ ALREADY FIXED - Code verifies org ownership (line 447: `org.ownerId !== user.uid && org.ownerUid !== user.uid`)
 
 ---
 
@@ -321,9 +319,7 @@ if (Math.abs(amount - serverAmountCents) > tolerance) {
 
 **Issue:** No rate limiting on payment authorization endpoints.
 
-**Details:** Could allow payment fraud via rapid repeated authorization attempts.
-
-**Recommendation:** Add rate limiting (e.g., max 5 payment attempts per minute per user).
+**Status:** ⚠️ NOT FIXED - Needs Upstash Redis rate limiting implementation
 
 ---
 
