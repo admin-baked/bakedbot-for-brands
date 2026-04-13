@@ -20,9 +20,10 @@ jobs:
           echo "🔍 Starting bug hunt session..."
           
           # Create task in Firestore via agent-tasks endpoint
-          TASK_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.CRON_SECRET }}" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          TASK_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json" \
+            "$APP_BASE_URL/api/agent-tasks" \
             -d '{
               "title": "Bug hunt session - automated",
               "body": "Scheduled 30-minute bug hunt - scan for security vulnerabilities, bugs, and code issues",
@@ -41,8 +42,8 @@ jobs:
             
             # Trigger the poller to pick up the task
             POLL_RESPONSE=$(curl -s -w "\n%{http_code}" \
-              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-              "${{ secrets.APP_BASE_URL }}/api/cron/agent-poller")
+              -H "Authorization: Bearer $CRON_SECRET" \
+              "$APP_BASE_URL/api/cron/agent-poller")
             
             POLL_CODE=$(echo "$POLL_RESPONSE" | tail -n1)
             
