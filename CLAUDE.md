@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | **Last update:** 2026-04-13 (Enforced SES isolation + Thrive strategy rollout)
+**Current Status:** 🟢 Production live; Full roster training framework live; Thrive Syracuse retention live; Homepage GTM copy tightened; Gemini fallback routing hardened; Enforced SES isolation + Thrive strategy rollout | **Last update:** 2026-04-13 (Homepage GTM audit + retention/Slack Gemini fallback routing + SES rollout)
 
 ---
 
@@ -571,4 +571,5 @@ When multiple tabs have pending session files in `memory/sessions/`, say **"Cons
 ---
 
 *For detailed context, load `.agent/prime.md` first, then relevant refs as needed.*
+
 

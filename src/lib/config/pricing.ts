@@ -63,7 +63,7 @@ export const PUBLIC_PLANS: PricingPlan[] = [
         priceDisplay: '$0',
         activationFee: null,
         period: '/ mo',
-        setup: 'Best for: Early-stage dispensaries and mission-aligned operators starting with customer capture.',
+        setup: 'Best for: Social Equity dispensaries, smaller operators, and early-stage teams starting with customer capture.',
         desc: 'Launch QR or tablet capture, collect first-party customer data, and activate a lightweight welcome motion without adding operational overhead.',
         features: [
             'Tablet or QR customer capture',
@@ -91,7 +91,7 @@ export const PUBLIC_PLANS: PricingPlan[] = [
         priceDisplay: '$149',
         activationFee: null,
         period: '/ mo',
-        setup: 'Best for: Operators who need market visibility before they buy managed execution.',
+        setup: 'Best for: Social Equity dispensaries and smaller operators who need market visibility before they buy managed execution.',
         desc: 'Monitor competitor movement, local market shifts, and weekly intelligence so you can learn the market before you invest in a managed revenue motion.',
         features: [
             'Competitor tracking',
@@ -121,7 +121,7 @@ export const PUBLIC_PLANS: PricingPlan[] = [
         priceDisplay: '$499',
         activationFee: 500,
         period: '/ mo',
-        setup: 'Best for: Low-to-mid budget operators ready for welcome and lifecycle basics.',
+        setup: 'Best for: Social Equity dispensaries and smaller operators ready for welcome and lifecycle basics.',
         desc: 'Deploy a narrow welcome and retention stack with QR capture, simple segmentation, and monthly performance visibility without overpromising advanced optimization.',
         features: [
             'Welcome Email Playbook',

@@ -47,12 +47,12 @@ export async function POST(req: NextRequest) {
 
         child.stdout.on('data', (data) => {
             output += data.toString();
-            logger.info('[Opencode] output:', data.toString().slice(0, 200));
+            logger.info('[Opencode] output:', { data: data.toString().slice(0, 200) });
         });
 
         child.stderr.on('data', (data) => {
             errorOutput += data.toString();
-            logger.error('[Opencode] error:', data.toString().slice(0, 200));
+            logger.error('[Opencode] error:', { data: data.toString().slice(0, 200) });
         });
 
         child.on('close', (code) => {

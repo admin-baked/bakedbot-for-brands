@@ -65,16 +65,16 @@ const systemSteps = [
 
 const proofCards = [
   {
-    title: 'Faster proof windows',
-    desc: 'Operator plans are sold with a 30-day launch target and a 45-60 day performance review instead of vague AI promises.',
+    title: '30-day launch target',
+    desc: 'Operator engagements are scoped to launch fast, establish the baseline, and show an early proof window inside the first 45-60 days.',
   },
   {
     title: 'Named operating cadence',
-    desc: 'Every premium account has a launch plan, weekly review, KPI pack, and a clear owner on the BakedBot side.',
+    desc: 'Every premium account includes a launch plan, KPI pack, weekly review cadence, and a clear BakedBot owner.',
   },
   {
-    title: 'Mission without ceiling',
-    desc: 'Access keeps social-equity-friendly entry points alive while Operator pricing supports the path to $1M ARR.',
+    title: 'Access with a real path up',
+    desc: 'Access stays open for social equity dispensaries and smaller operators, while Operator supports teams ready for accountable managed execution.',
   },
 ];
 
@@ -128,11 +128,12 @@ export function BakedBotHome() {
               The Wedge
             </Badge>
             <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-              BakedBot wins by owning one sharp revenue loop first.
+              Fix the revenue loop most dispensaries are already leaking.
             </h2>
             <p className="text-lg text-muted-foreground">
-              We are not leading with a broad AI-commerce stack. We are leading with customer capture,
-              welcome activation, and repeat revenue for dispensaries that already have traffic but weak follow-up.
+              BakedBot starts with customer capture, welcome activation, and repeat revenue because that is where
+              many dispensaries already have traffic but weak follow-up. We help operators turn first visits into
+              measurable repeat business before layering on broader modules.
             </p>
           </div>
           <Button asChild variant="outline" className="h-11 rounded-xl px-6">
@@ -161,9 +162,10 @@ export function BakedBotHome() {
             <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-500/20">
               Proof
             </Badge>
-            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Sell proof, not possibility.</h2>
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Operator is sold as accountable execution.</h2>
             <p className="text-lg text-muted-foreground">
-              The premium offer has to feel like accountable execution with a launch plan, KPI pack, and a visible proof window.
+              The premium offer is not abstract AI potential. It is a launch plan, KPI pack, weekly operating cadence,
+              and a visible proof window you can manage against.
             </p>
           </div>
 
@@ -299,7 +301,8 @@ export function BakedBotHome() {
             Access builds trust. Operator builds the company.
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Keep self-serve and mission-aligned entry points visible, but sell the premium lane as managed revenue activation with accountable execution.
+            Keep self-serve and mission-aligned entry points visible for social equity dispensaries and smaller operators,
+            but sell the premium lane as managed revenue activation with accountable execution.
           </p>
         </div>
 

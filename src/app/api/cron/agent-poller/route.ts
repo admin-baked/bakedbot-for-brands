@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
             });
         }
 
-        logger.info('[Agent Poller] Found tasks:', tasks);
+        logger.info('[Agent Poller] Found tasks:', { tasks });
 
         const wakeupUrl = process.env.AGENT_WAKEUP_URL || `${req.nextUrl.origin}/api/agent-wakeup`;
         const cronSecret = process.env.CRON_SECRET;

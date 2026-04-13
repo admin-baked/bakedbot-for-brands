@@ -354,8 +354,8 @@ export function isGLMConfigured(): boolean {
 }
 
 /**
- * Call Groq first (free tokens), fall back to Claude Haiku on failure.
- * Drop-in replacement for callClaude in non-tool, text-generation paths.
+ * Call Groq first (free tokens), optionally prefer Gemini Flash, then fall back
+ * to Claude Haiku for non-tool text-generation paths.
  */
 export async function callGroqOrClaude({
   userMessage,
@@ -364,6 +364,7 @@ export async function callGroqOrClaude({
   maxTokens = 2048,
   temperature = 1.0,
   caller,
+  preferGeminiFallback = false,
 }: {
   userMessage: string;
   systemPrompt?: string;
@@ -371,6 +372,7 @@ export async function callGroqOrClaude({
   maxTokens?: number;
   temperature?: number;
   caller?: string;
+  preferGeminiFallback?: boolean;
 }): Promise<string> {
   // Try Groq first (free)
   if (isGLMConfigured()) {
@@ -382,6 +384,26 @@ export async function callGroqOrClaude({
       logger.warn(`[GLM] callGroqOrClaude Groq failed, falling back to Claude Haiku`, {
         caller, error: msg, isRateLimit,
       });
+    }
+  }
+
+  if (preferGeminiFallback) {
+    const { callGemini, isGeminiFlashConfigured } = await import('@/ai/gemini-flash-tools');
+    if (isGeminiFlashConfigured()) {
+      try {
+        return await callGemini({
+          userMessage,
+          systemPrompt,
+          maxTokens,
+          temperature,
+          caller: caller ?? 'callGroqOrClaude-gemini-fallback',
+        });
+      } catch (err) {
+        logger.warn('[GLM] Gemini Flash fallback failed, falling back to Claude Haiku', {
+          caller,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
   }
 

@@ -174,8 +174,8 @@ export function PricingClient() {
             <section className="space-y-6">
                 <LaneHeader
                     eyebrow="Access"
-                    title="Start free. Capture customer data. Prove the wedge."
-                    description="Access is built for top-of-funnel adoption, mission-aligned accessibility, and low-friction proof. These plans stay self-serve and lead into the premium Operator motion."
+                    title="Start free. Capture customer data. Built for smaller operators."
+                    description="Access is built for social equity dispensaries, smaller operators, and low-friction proof. These plans stay self-serve while giving teams a clear path into Operator when they need accountable execution."
                 />
                 <div className="grid gap-6 lg:grid-cols-3">
                     {ACCESS_PLANS.map((plan) => (
@@ -188,7 +188,7 @@ export function PricingClient() {
                 <LaneHeader
                     eyebrow="Operator"
                     title="Need more than software?"
-                    description="BakedBot Operator is a managed revenue activation system. We own the launch plan, KPI pack, weekly reporting cadence, and the 30-60 day proof model with you."
+                    description="BakedBot Operator is a managed revenue activation system. We own the launch plan, KPI pack, weekly reporting cadence, and the 30-60 day proof window with you."
                 />
                 <div className="grid gap-6 lg:grid-cols-3">
                     {OPERATOR_PLANS.map((plan) => (

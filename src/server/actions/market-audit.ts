@@ -163,6 +163,7 @@ The report should clearly answer:
       userMessage: userPrompt,
       maxTokens: 2048,
       caller: 'retention-audit',
+      preferGeminiFallback: true,
     })).trim();
     if (!raw) return { error: 'Empty response from AI' };
     let parsed: Partial<RetentionAuditResult>;

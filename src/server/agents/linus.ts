@@ -4954,6 +4954,7 @@ export interface LinusRequest {
     prompt: string;
     maxIterations?: number; // Default: 15 for direct use, 5 for Slack/harness context
     toolMode?: LinusToolMode;
+    preferredSlackTier?: ModelTier;
     context?: {
         userId?: string;
         sessionId?: string;
@@ -5552,8 +5553,18 @@ User Request: ${request.prompt}`;
 
     // â”€â”€ Slack mode: config-driven tier chain â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const modelConfig = await getAgentModelConfig();
-    const tierChain: ModelTier[] = [modelConfig.slackTier, ...modelConfig.fallbackChain];
-    logger.info('[Linus] Slack model chain', { tierChain, hasImages });
+    const tierChain: ModelTier[] = Array.from(
+        new Set([
+            ...(request.preferredSlackTier ? [request.preferredSlackTier] : []),
+            modelConfig.slackTier,
+            ...modelConfig.fallbackChain,
+        ]),
+    );
+    logger.info('[Linus] Slack model chain', {
+        tierChain,
+        hasImages,
+        preferredSlackTier: request.preferredSlackTier ?? null,
+    });
 
     let result: ClaudeResult | null = null;
 

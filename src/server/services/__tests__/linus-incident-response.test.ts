@@ -53,6 +53,8 @@ describe('linus-incident-response', () => {
         expect(mockRunLinus).toHaveBeenCalledWith(expect.objectContaining({
             prompt: 'repair this',
             maxIterations: 10,
+            toolMode: 'slack',
+            preferredSlackTier: 'gemini-flash',
         }));
         expect(mockPostLinusIncidentSlack).toHaveBeenCalledWith(expect.objectContaining({
             source: 'support-ticket',

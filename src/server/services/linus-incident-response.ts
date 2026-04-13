@@ -85,6 +85,8 @@ export async function dispatchLinusIncidentResponse(
         const result = await runLinus({
             prompt: request.prompt,
             maxIterations: request.maxIterations ?? 10,
+            toolMode: 'slack',
+            preferredSlackTier: 'gemini-flash',
             context: { userId: request.source },
         });
 
