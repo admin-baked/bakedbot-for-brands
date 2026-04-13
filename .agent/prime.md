@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; Build passing (2026-04-13); Roster training live; Standardized cron auth.
-**Recent work (2026-04-13):** `f7fc14a0d` Rebase + agent-wakeup/poller auth standardization + logger type fixes.
+**Current Status:** 🟢 Production live; Build passing (2026-04-13); Fixed Thrive inventory valuation discrepancy.
+**Recent work (2026-04-13):** `8a829f477` Fixed Thrive Syracuse inventory valuation discrepancy + replaced dashboard placeholders.
 **Prior (2026-04-12):** `c05e091da` CHANNEL_MAP + roster training; `1fbc88b22` task board + inbound CTAs
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
