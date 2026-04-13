@@ -22,7 +22,6 @@ Resolved a sequence of critical TypeScript build errors in the loyalty tablet sy
 ---
 
 ## Session: 2026-03-31 (Brand Guide UI Crash Fix & Rebase)
-
 ### Task ID
 fix_brand_guide_ui_crash
 
