@@ -27,6 +27,7 @@ import { readdirSync, statSync, existsSync, readFileSync, writeFileSync } from '
 import { join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import 'dotenv/config'; // Load .env.local
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, '..');
@@ -156,6 +157,16 @@ async function authenticatePersona(browser, persona) {
   const page = await context.newPage();
 
   try {
+    const firebaseConfig = {
+      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'studio-567050101-bc6e8.firebaseapp.com',
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8',
+    };
+
+    if (!firebaseConfig.apiKey) {
+      throw new Error('NEXT_PUBLIC_FIREBASE_API_KEY missing from environment');
+    }
+
     // Load Firebase client SDK in browser and sign in with custom token
     await page.goto(`${BASE_URL}/signin`, { waitUntil: 'domcontentloaded', timeout: PAGE_LOAD_TIMEOUT });
 
@@ -168,16 +179,12 @@ async function authenticatePersona(browser, persona) {
     }
 
     // Sign in via the auth API endpoint
-    const response = await page.evaluate(async ({ token, baseUrl }) => {
+    const response = await page.evaluate(async ({ token, baseUrl, config }) => {
       // Use Firebase client SDK to exchange custom token for ID token
       const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
       const { getAuth, signInWithCustomToken } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
 
-      const app = initializeApp({
-        apiKey: process.env.FIREBASE_API_KEY || 'AIzaSyBXGZJOzLdUwPr3JhMOLFIQDCYF7J4h5CU',
-        authDomain: 'studio-567050101-bc6e8.firebaseapp.com',
-        projectId: 'studio-567050101-bc6e8',
-      });
+      const app = initializeApp(config);
 
       const auth = getAuth(app);
       const cred = await signInWithCustomToken(auth, token);
@@ -191,7 +198,7 @@ async function authenticatePersona(browser, persona) {
       });
 
       return { ok: res.ok, status: res.status };
-    }, { token: adminToken, baseUrl: BASE_URL });
+    }, { token: adminToken, baseUrl: BASE_URL, config: firebaseConfig });
 
     if (!response.ok) {
       console.log(`  ⚠️ Session creation failed for ${persona.label}: ${response.status}`);

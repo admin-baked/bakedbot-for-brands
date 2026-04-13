@@ -52,6 +52,9 @@ if (local !== remote) {
   }
 }
 
+console.log('[safe-push] Scanning for hardcoded secrets...');
+run(npmCommand, ['run', '-s', 'check:secrets']);
+
 console.log('[safe-push] Checking simplify gate...');
 run(npmCommand, ['run', '-s', 'simplify:verify']);
 

@@ -31,7 +31,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<boolean> {
             subject: options.subject,
             htmlBody: options.html || options.text.replace(/\n/g, '<br>'),
             textBody: options.text,
-            fromEmail: options.from || 'hello@bakedbot.ai',
+            fromEmail: options.from, // Allow dispatcher to resolve if undefined
             fromName: 'BakedBot',
         });
 

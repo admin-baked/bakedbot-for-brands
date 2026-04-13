@@ -260,6 +260,13 @@ export function deriveTenantSlug(brandId: string): string {
         .replace(/^-|-$/g, '');
 }
 
+/** Known naked domains we want to migrate away from for org-mail */
+const NAKED_DOMAINS = new Set([
+    'hello@bakedbot.ai',
+    'team@bakedbot.ai',
+    'orders@bakedbot.ai',
+]);
+
 const orgSesFromCache = new Map<string, { from: { email: string; name: string }; expiry: number }>();
 
 async function resolveOrgSesFrom(
@@ -267,57 +274,48 @@ async function resolveOrgSesFrom(
     explicitEmail?: string,
     explicitName?: string,
 ): Promise<{ email: string; name: string }> {
-    // Caller-specified from address takes priority
+    // Priority 1: Tenant subdomain (enforced migration) — hello@{slug}.bakedbot.ai
+    // If we have an orgId, we ALWAYS prefer the subdomain over naked domains.
+    if (orgId) {
+        try {
+            const firestore = getAdminFirestore();
+
+            // Check for verified custom sending domain first
+            const sesDoc = await firestore
+                .collection('organizations').doc(orgId)
+                .collection('integrations').doc('ses')
+                .get();
+            const sesData = sesDoc.data();
+            if (sesData?.status === 'verified' && sesData?.fromEmail) {
+                return { email: sesData.fromEmail, name: sesData.fromName ?? 'BakedBot' };
+            }
+
+            // Fallback to tenant subdomain if using a naked domain or no explicit email
+            if (!explicitEmail || NAKED_DOMAINS.has(explicitEmail)) {
+                const orgDoc = await firestore.collection('organizations').doc(orgId).get();
+                const orgData = orgDoc.data();
+                const brandId = orgData?.brandId as string | undefined;
+
+                if (brandId) {
+                    const brandDoc = await firestore.collection('brands').doc(brandId).get();
+                    const brandData = brandDoc.data();
+                    const brandName = (brandData?.name as string) || brandId;
+                    const slug = deriveTenantSlug(brandId);
+                    return { email: `hello@${slug}.bakedbot.ai`, name: explicitName ?? brandName };
+                }
+            }
+        } catch (e) {
+            logger.warn('[Dispatcher] Org subdomain resolution failed (non-fatal)', { orgId, error: e });
+        }
+    }
+
+    // Priority 2: Caller-specified from address (if not org-mail or not naked)
     if (explicitEmail) {
         return { email: explicitEmail, name: explicitName ?? 'BakedBot' };
     }
 
-    // No org → platform default
-    if (!orgId) {
-        return { email: 'team@bakedbot.ai', name: 'BakedBot' };
-    }
-
-    // Check cache
-    const cached = orgSesFromCache.get(orgId);
-    if (cached && cached.expiry > Date.now()) return cached.from;
-
-    try {
-        const firestore = getAdminFirestore();
-
-        // Priority 1: Org has a verified custom sending domain via SES
-        const sesDoc = await firestore
-            .collection('organizations').doc(orgId)
-            .collection('integrations').doc('ses')
-            .get();
-        const sesData = sesDoc.data();
-        if (sesData?.status === 'verified' && sesData?.fromEmail) {
-            const from = { email: sesData.fromEmail, name: sesData.fromName ?? 'BakedBot' };
-            orgSesFromCache.set(orgId, { from, expiry: Date.now() + 300_000 });
-            return from;
-        }
-
-        // Priority 2: Tenant subdomain — hello@{slug}.bakedbot.ai
-        // Inherits SES verification from bakedbot.ai, isolates reputation
-        const orgDoc = await firestore.collection('organizations').doc(orgId).get();
-        const orgData = orgDoc.data();
-        const brandId = orgData?.brandId as string | undefined;
-
-        if (brandId) {
-            const brandDoc = await firestore.collection('brands').doc(brandId).get();
-            const brandData = brandDoc.data();
-            const brandName = (brandData?.name as string) || brandId;
-            const slug = deriveTenantSlug(brandId);
-            const from = { email: `hello@${slug}.bakedbot.ai`, name: brandName };
-            orgSesFromCache.set(orgId, { from, expiry: Date.now() + 300_000 });
-            return from;
-        }
-    } catch (e) {
-        logger.warn('[Dispatcher] Failed to resolve org SES from address', { orgId, error: e });
-    }
-
-    const fallback = { email: 'team@bakedbot.ai', name: 'BakedBot' };
-    orgSesFromCache.set(orgId, { from: fallback, expiry: Date.now() + 60_000 });
-    return fallback;
+    // Priority 3: Platform default
+    return { email: 'team@bakedbot.ai', name: 'BakedBot' };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -354,7 +352,7 @@ export type GenericEmailData = {
     htmlBody: string;
     textBody?: string;
     orgId?: string;
-    communicationType?: 'campaign' | 'transactional' | 'welcome' | 'winback' | 'birthday' | 'order_update' | 'loyalty' | 'manual';
+    communicationType?: 'campaign' | 'transactional' | 'welcome' | 'winback' | 'birthday' | 'order_update' | 'loyalty' | 'manual' | 'strategy';
     agentName?: string;
     campaignId?: string;
     userId?: string;
@@ -393,24 +391,7 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
 
     const primaryChannel = data.orgId ? await getOrgPrimaryChannel(data.orgId) : 'ses';
 
-    // ── Workspace-first path (all email types, including bulk) ───────
-    if (primaryChannel === 'workspace' && data.orgId) {
-        try {
-            const wsConfig = await getOrgWorkspaceConfig(data.orgId);
-            if (wsConfig) {
-                result = await sendViaOrgWorkspace(data.orgId, wsConfig.sendAs, data);
-                if (result.success) {
-                    logCrm(result, data, 'google_workspace');
-                    return result;
-                }
-                logger.warn('[Dispatcher] Workspace-first failed, falling back to SES', { orgId: data.orgId });
-            }
-        } catch (e) {
-            logger.warn('[Dispatcher] Workspace-first lookup failed', { orgId: data.orgId, error: e });
-        }
-    }
-
-    // ── Route 1: Amazon SES (customer-facing, primary) ───────────────
+    // ── Route 1: Amazon SES (Absolute Primary, All tiers) ───────────────
     if (process.env.AWS_SES_ACCESS_KEY_ID && process.env.AWS_SES_SECRET_ACCESS_KEY) {
         try {
             const sesFrom = await resolveOrgSesFrom(data.orgId, data.fromEmail, data.fromName);
@@ -431,8 +412,8 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
         }
     }
 
-    // ── Route 2: Org Google Workspace (default-channel fallback) ─────
-    if (data.orgId && primaryChannel !== 'workspace') {
+    // ── Route 2: Org Google Workspace (Paid legacy fallback) ─────────
+    if (data.orgId && (primaryChannel === 'workspace' || !isFreeOrg)) {
         // Only try Workspace here if we didn't already try it above
         try {
             const wsConfig = await getOrgWorkspaceConfig(data.orgId);

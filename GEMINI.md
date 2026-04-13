@@ -41,6 +41,8 @@ After completing ANY code modifications AND **before every `git push` / Firebase
 | **Server Actions** | Use `'use server'` directive for mutations |
 | **Firestore** | Use `@google-cloud/firestore` (not client SDK) |
 | **Error Handling** | Always wrap async in try/catch |
+| **Secrets** | Never hardcode API keys or tokens. Use `.env.local` |
+| **Email** | Use verified SES subdomains for consumer mail (`hello@slug.bakedbot.ai`) |
 | **Logging** | Use `@/lib/logger` (never `console.log`) |
 | **Changes** | Small, incremental. Test after each change. |
 
@@ -110,8 +112,10 @@ src/components/        # React components
 Before finalizing code, verify:
 
 - [ ] I reused canonical patterns where possible.
+- [ ] I did not hardcode any secrets (API keys, credentials, tokens).
 - [ ] I did not create a duplicate abstraction for an existing concept.
 - [ ] I followed naming, boundary, error-handling, permission, tenancy, logging, and retry conventions.
+- [ ] I used verified AWS SES subdomains for consumer outreach.
 - [ ] I did not suppress warnings instead of fixing root causes.
 - [ ] I handled likely failure modes intentionally.
 - [ ] A human reviewer will be able to explain this code.

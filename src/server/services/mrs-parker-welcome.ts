@@ -200,7 +200,7 @@ export async function sendWelcomeEmail(context: WelcomeEmailContext): Promise<{ 
             htmlBody = thriveWelcome.htmlBody;
             textBody = thriveWelcome.textBody;
             fromName = 'Thrive Syracuse';
-            fromEmail = 'hello@bakedbot.ai';
+            fromEmail = undefined; // Resolved by dispatcher via orgId
         } else {
             // === AI-POWERED CONTENT GENERATION ===
             const { generateWelcomeEmail } = await import('./mrs-parker-ai-welcome');
@@ -223,7 +223,7 @@ export async function sendWelcomeEmail(context: WelcomeEmailContext): Promise<{ 
             htmlBody = generated.htmlBody;
             textBody = generated.textBody;
             fromName = generated.fromName;
-            fromEmail = generated.fromEmail;
+            fromEmail = undefined; // Resolved by dispatcher via orgId
         }
 
         // Send email via Mailjet

@@ -88,6 +88,8 @@ Decide what logs, metrics, traces, or audit data are needed.
 
 ### Reuse Rules
 
+- Never hardcode secrets (API keys, tokens, credentials). Use `.env.local` and `process.env` exclusively.
+- Use verified AWS SES subdomains (`hello@slug.bakedbot.ai`) for all client or consumer outreach. Never send consumer emails from the naked `bakedbot.ai` domain.
 - Reuse existing domain types for existing concepts.
 - Extend validated schemas instead of recreating them.
 - Reuse existing adapters for the same integration boundary.
@@ -242,8 +244,10 @@ What should be logged or measured?
 Before finalizing code, verify:
 
 - [ ] I reused canonical patterns where possible.
+- [ ] I did not hardcode any secrets (API keys, credentials, tokens).
 - [ ] I did not create a duplicate abstraction for an existing concept.
 - [ ] I followed naming, boundary, error-handling, permission, tenancy, logging, and retry conventions.
+- [ ] I used verified AWS SES subdomains for consumer outreach and avoided the naked `bakedbot.ai` domain.
 - [ ] I did not suppress warnings instead of fixing root causes.
 - [ ] I handled likely failure modes intentionally.
 - [ ] I matched tests to the task’s risk level.
