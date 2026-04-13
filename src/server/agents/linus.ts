@@ -5558,6 +5558,7 @@ User Request: ${request.prompt}`;
             ...(request.preferredSlackTier ? [request.preferredSlackTier] : []),
             modelConfig.slackTier,
             ...modelConfig.fallbackChain,
+            'gemini-flash', // Always-on last resort — survives Claude credit exhaustion
         ]),
     );
     logger.info('[Linus] Slack model chain', {
@@ -5655,16 +5656,26 @@ User Request: ${request.prompt}`;
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             const isRateLimit = msg.includes('429') || msg.includes('413') || msg.toLowerCase().includes('rate limit') || msg.toLowerCase().includes('request too large');
-            logger.error(`[Linus] Tier ${tier} failed`, { error: msg, isRateLimit });
-            // Notify Slack when Groq rate limit triggers fallback
+            const isCreditsExhausted = /credit balance is too low/i.test(msg);
+            logger.error(`[Linus] Tier ${tier} failed`, { error: msg, isRateLimit, isCreditsExhausted });
             if (isRateLimit && (tier === 'glm' || tier === 'gemini')) {
                 notifyGroqRateLimitSlack('Linus', tier).catch(() => {});
+            }
+            // Skip remaining Claude tiers immediately — they'll all fail for the same reason
+            if (isCreditsExhausted && (tier === 'haiku' || tier === 'sonnet')) {
+                logger.warn('[Linus] Claude credits exhausted — skipping to gemini-flash');
+                try {
+                    result = await executeGeminiFlashWithTools(fullPrompt, getLinusTools(toolMode), linusExecutor, sharedContext);
+                } catch (geminiErr) {
+                    logger.error('[Linus] Gemini Flash fallback failed', { error: (geminiErr as Error).message });
+                }
+                break;
             }
         }
     }
 
     if (!result) {
-        throw new Error('All AI tiers exhausted. Claude credits may be depleted, and Groq prompt is too large. Try: @linus set model tier to gemini-flash');
+        throw new Error('All AI tiers exhausted (including Gemini Flash fallback). Check GEMINI_API_KEY and Groq quota.');
     }
 
     return buildLinusResponse(result, request);
