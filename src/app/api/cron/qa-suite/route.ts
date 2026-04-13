@@ -173,6 +173,15 @@ function buildChecks(): SmokeCheck[] {
             severity: 'P2',
             area: 'marketing',
         },
+        // P0 — Playbooks
+        {
+            name: 'Playbook runner cron serves (authenticated)',
+            url: '/api/cron/playbook-runner',
+            method: 'GET',
+            expectedStatus: 200,
+            severity: 'P0',
+            area: 'playbooks',
+        },
     ];
 }
 
