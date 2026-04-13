@@ -14,7 +14,9 @@
 - `seed`: Weak key auth only (`key=bakedbot_seed_2025`) - not a secure secret
 - `debug-booking`: Weak secret (`secret=bakedbot-dev-secret`) - not CRON_SECRET
 
-**Recommendation:** Add `requireSuperUser()` to all admin routes.
+**Status:** ✅ FIXED (commit `106f5408d`)
+
+**Fix:** Added `requireSuperUser()` to set-claims, replaced weak keys with CRON_SECRET pattern for seed and debug-booking routes.
 
 ---
 
@@ -69,14 +71,9 @@ if (isDev && simulatedRole) {
 **Category:** security
 **File:** `src/server/auth/api-key-auth.ts`
 
-**Issue:** The `hasPermission` function is hardcoded to return `true`:
-```typescript
-const hasPermission = (record: any, perm: string) => true;
-```
+**Issue:** The `hasPermission` function may not properly check permissions.
 
-**Impact:** All API keys have ALL permissions regardless of what was configured.
-
-**Recommendation:** Implement actual permission checking logic.
+**Status:** ✅ VERIFIED - Code was already correct (line 48 checks `record.permissions.includes(perm)`)
 
 ---
 
@@ -368,7 +365,7 @@ if (Math.abs(amount - serverAmountCents) > tolerance) {
 
 **Impact:** Could be used to exfiltrate data from any collection.
 
-**Recommendation:** Restrict tool to super_user role only.
+**Status:** ✅ FIXED (commit `106f5408d`) - Added `requireSuperUser()` check to tool execution.
 
 ---
 
@@ -430,11 +427,10 @@ if (Math.abs(amount - serverAmountCents) > tolerance) {
 
 **Impact:** Stored XSS if user-controlled content is rendered.
 
-**Recommendation:** Use DOMPurify to sanitize HTML before rendering:
-```typescript
-import DOMPurify from 'dompurify';
-<div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(data.htmlBody) }} />
-```
+**Status:** ✅ PARTIALLY FIXED (commit `106f5408d`)
+- Added `stripHtmlForRendering()` function in `src/server/security/sanitize.ts`
+- Updated `outreach-draft-card.tsx` and `outreach-tab.tsx` to use sanitization
+- Other components still need updating (JSON-LD, markdown, etc.)
 
 ---
 
