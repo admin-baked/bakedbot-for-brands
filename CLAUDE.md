@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; /explore Cannabis Data Library + all 5 data hub pages with Navbar; national dispensary directory with NY OCM data | **Last update:** 2026-04-13 (data-hub navbar + dispensary directory: `07bf485dd`)
+**Current Status:** 🟢 Production live; BUG-021/031/024 security fixes + drive.ts type fix; all 5 data hub pages with Navbar; national dispensary directory | **Last update:** 2026-04-13 (collectionGroup org isolation + tablet fallback: `058e89756`)
 
 ---
 

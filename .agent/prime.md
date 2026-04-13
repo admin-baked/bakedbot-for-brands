@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; /explore Cannabis Data Library + all 5 data hub pages with Navbar/Footer; national dispensary directory with NY OCM data.
-**Recent work (2026-04-13):** `07bf485dd` data hub Navbar + dispensary directory; `d90755e64` /explore portal + Day Day agent; `18bdd8ff3` Gemini Flash fallback
+**Current Status:** 🟢 Production live; BUG-021/031/024 security fixes; collectionGroup org-scoped; tablet fallback sampler; DriveFileDoc type fix.
+**Recent work (2026-04-13):** `058e89756` drive.ts type fix; `c07049d78` tablet bundle type; `07bf485dd` data hub Navbar + BUG-021/031/024
 - `26b7d7ac1` Firebase API key moved to env var (resolved secret alert)
 - `106f5408d` Security fixes: admin routes auth, XSS sanitization, database tool permissions
 **Prior (2026-04-12):** `c05e091da` CHANNEL_MAP + roster training; `1fbc88b22` task board + inbound CTAs
