@@ -129,7 +129,7 @@ export async function prefetchTabletInventory(orgId: string): Promise<void> {
  * Call from the Alleaves POS sync webhook after a successful product push
  * so the next tablet request sees fresh inventory without waiting for TTL expiry.
  */
-export function invalidateTabletInventoryCache(orgId: string): void {
+export async function invalidateTabletInventoryCache(orgId: string): Promise<void> {
     inventoryCache.delete(orgId);
     logger.info('[LoyaltyTablet] Inventory cache evicted', { orgId });
 }
