@@ -631,4 +631,65 @@ if (existingSubscriber.empty) {
 **Status:** ✅ FIXED (commit `xxxx`) - Now validates API key's orgId matches requested orgId
 
 **Recommendation:** Verify API key's allowed orgs includes the requested orgId.
+
+---
+
+## Session 10 Bugs (2026-04-13) - New Findings
+
+### BUG-035: TTS Health Check Exposes Service Info Without Auth
+**Severity:** MEDIUM
+**Category:** security
+**File:** `src/app/api/tts/route.ts:146`
+
+**Issue:** GET /api/tts health check returns sensitive service info (available voices, max length) without authentication.
+
+**Recommendation:** Add `requireUser()` check to health endpoint or protect via CRON_SECRET pattern.
+
+---
+
+### BUG-036: Weak Auth on Linked Dispensary Endpoint
+**Severity:** MEDIUM
+**Category:** security
+**File:** `src/app/api/user/linked-dispensary/route.ts:6`
+
+**Issue:** Uses manual session cookie parsing instead of `requireUser()`, returns sensitive user profile data.
+
+**Recommendation:** Replace with `const user = await requireUser()`.
+
+---
+
+### BUG-037: Missing Org Access Checks on Team/Invite/Campaign Actions
+**Severity:** HIGH
+**Category:** security
+**Files:** 
+- `src/server/actions/team-management.ts:52` (getUsersByOrg)
+- `src/server/actions/invitations.ts:255` (getInvitationsAction)
+- `src/server/actions/campaigns.ts:329` (getCampaignStats)
+- `src/server/actions/loyalty-settings.ts:63,95` (getPublicMenuSettings, getLoyaltySettings)
+
+**Issue:** Actions accept orgId parameter but don't verify caller has access to that org.
+
+**Recommendation:** Add `assertOrgAccess(user, orgId)` at the start of each function.
+
+---
+
+### BUG-038: Markdown Viewer XSS Risk
+**Severity:** MEDIUM
+**Category:** security
+**File:** `src/components/drive/file-viewer.tsx:210`
+
+**Issue:** `renderMarkdown()` output passed directly to `dangerouslySetInnerHTML` without HTML sanitization.
+
+**Recommendation:** Use `DOMPurify.sanitize()` on renderMarkdown output before rendering.
+
+---
+
+### BUG-039: Silent Catch Blocks Swallow Authorization Errors
+**Severity:** MEDIUM
+**Category:** bug
+**File:** `src/server/actions/invitations.ts:342,348`
+
+**Issue:** Empty catch blocks silently swallow permission check failures, making debugging impossible.
+
+**Recommendation:** Log errors or use proper conditional checks instead of try/catch with empty catch.
 ```
