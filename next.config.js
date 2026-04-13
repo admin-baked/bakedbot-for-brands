@@ -7,11 +7,18 @@ try {
 }
 
 /** @type {import('next').NextConfig} */
+const outputMode = process.env.NEXT_OUTPUT_MODE?.trim().toLowerCase();
+const shouldUseStandaloneOutput =
+  outputMode === 'standalone' ||
+  (outputMode !== 'default' && process.platform !== 'win32');
+
 const nextConfig = {
   env: {
     ...ciEnv,
   },
-  output: 'standalone',
+  // Next's Windows standalone copy step can intermittently fail with EBUSY on traced assets.
+  // Keep standalone packaging for deploys, but let local Windows builds opt out by default.
+  ...(shouldUseStandaloneOutput ? { output: 'standalone' } : {}),
   reactStrictMode: true,
 
   // Build performance optimizations

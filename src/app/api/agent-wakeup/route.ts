@@ -10,20 +10,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import { logger } from '@/lib/logger';
+import { requireCronSecret } from '@/server/auth/cron';
 
 export const dynamic = 'force-dynamic';
 
-function verifyAuth(req: NextRequest): boolean {
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret) return false;
-    const auth = req.headers.get('Authorization');
-    return auth === `Bearer ${cronSecret}`;
-}
-
 export async function POST(req: NextRequest) {
-    if (!verifyAuth(req)) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authError = await requireCronSecret(req, 'agent-wakeup');
+    if (authError) return authError;
 
     try {
         const body = await req.json();
@@ -63,7 +56,7 @@ export async function POST(req: NextRequest) {
         });
 
         child.on('close', (code) => {
-            logger.info('[Opencode] exited with code:', code);
+            logger.info('[Opencode] exited with code:', { code });
         });
 
         return NextResponse.json({ 
@@ -74,7 +67,7 @@ export async function POST(req: NextRequest) {
         });
 
     } catch (error) {
-        logger.error('[Agent Wakeup] Failed:', error);
+        logger.error('[Agent Wakeup] Failed:', { error });
         return NextResponse.json({ 
             error: 'Failed to spawn agent',
             details: String(error)

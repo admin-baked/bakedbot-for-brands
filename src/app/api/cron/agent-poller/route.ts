@@ -12,17 +12,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { requireCronSecret } from '@/server/auth/cron';
 
 export const dynamic = 'force-dynamic';
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
-function verifyAuth(req: NextRequest): boolean {
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret) return false;
-    const auth = req.headers.get('Authorization');
-    return auth === `Bearer ${cronSecret}`;
-}
 
 async function checkForPendingTasks(): Promise<{ hasTasks: boolean; tasks: Array<{ id: string; title: string; reportedBy: string }> }> {
     const db = getAdminFirestore();
@@ -48,9 +43,8 @@ async function checkForPendingTasks(): Promise<{ hasTasks: boolean; tasks: Array
 }
 
 export async function GET(req: NextRequest) {
-    if (!verifyAuth(req)) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authError = await requireCronSecret(req, 'agent-poller');
+    if (authError) return authError;
 
     try {
         logger.info('[Agent Poller] Checking for pending tasks...');
@@ -104,7 +98,7 @@ export async function GET(req: NextRequest) {
         });
 
     } catch (error) {
-        logger.error('[Agent Poller] Error:', error);
+        logger.error('[Agent Poller] Error:', { error });
         return NextResponse.json({
             error: 'Poller failed',
             details: String(error)

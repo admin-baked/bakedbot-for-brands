@@ -12,6 +12,9 @@ env:
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"
     availability: [ BUILD ]
+  - variable: NEXT_OUTPUT_MODE
+    value: "standalone"
+    availability: [ BUILD ]
   # Runtime memory allocation
   - variable: NODE_OPTIONS
     value: "--max-old-space-size=12288"

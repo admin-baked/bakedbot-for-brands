@@ -20,7 +20,7 @@ export const maxDuration = 60;
 export async function GET(req: NextRequest) { return POST(req); }
 
 export async function POST(req: NextRequest) {
-  const authError = requireCronSecret(req, 'knowledge-alerts');
+  const authError = await requireCronSecret(req, 'knowledge-alerts');
   if (authError) return authError;
 
   try {

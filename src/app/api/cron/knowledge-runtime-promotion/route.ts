@@ -21,7 +21,7 @@ export const maxDuration = 120;
 export async function GET(req: NextRequest) { return POST(req); }
 
 export async function POST(req: NextRequest) {
-  const authError = requireCronSecret(req, 'knowledge-runtime-promotion');
+  const authError = await requireCronSecret(req, 'knowledge-runtime-promotion');
   if (authError) return authError;
 
   try {
