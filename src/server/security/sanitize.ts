@@ -194,3 +194,4 @@ export function stripHtmlForRendering(html: string | null | undefined): string {
         .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
         // Remove object/embed tags
         .replace(/<(?:object|embed)\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/(?:object|embed)>/gi, '');
+}
