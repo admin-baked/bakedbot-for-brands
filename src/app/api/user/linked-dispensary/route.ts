@@ -1,6 +1,8 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/auth/auth';
+import { createServerClient } from '@/firebase/server-client';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: Request) {
     try {
@@ -51,7 +53,7 @@ export async function GET(request: Request) {
         
         return NextResponse.json({ linkedDispensary: null, posConnected: false });
     } catch (error) {
-        console.error('[API] linked-dispensary error:', error);
+        logger.error('[API] linked-dispensary error', { error });
         return NextResponse.json({ linkedDispensary: null }, { status: 200 });
     }
 }
