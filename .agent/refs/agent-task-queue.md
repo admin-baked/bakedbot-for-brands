@@ -703,4 +703,70 @@ if (existingSubscriber.empty) {
 **Status:** ⚠️ ACKNOWLEDGED - The try/catch pattern is intentional (checks if user can access target org). Would be better to use conditional checks, but not a security issue - unauthorized users still correctly rejected at line 352.
 
 **Recommendation:** Refactor to use conditional checks instead of try/catch for permission checks.
+
+---
+
+## Session 11 Bugs (2026-04-13) - Additional Security Findings
+
+### BUG-040: Insecure Randomness in Security Functions
+**Severity:** HIGH
+**Category:** security
+**File:** `src/server/security/sanitize.ts:51`
+
+**Issue:** Uses `Math.random()` for generating security random markers in prompt delimiters.
+
+**Details:** The `generateRandomMarker()` function uses `Math.random()` which is cryptographically weak.
+
+**Recommendation:** Replace with `crypto.getRandomValues()` or `crypto.randomUUID()`
+
+---
+
+### BUG-041: Command Injection in Linus run_bash Tool
+**Severity:** CRITICAL
+**Category:** security
+**File:** `src/server/agents/linus.ts:2275,2374,5770`
+
+**Issue:** `spawn()` with user-provided command via `run_bash` tool allows shell injection.
+
+**Details:** The Linus agent's `run_bash` tool accepts user commands and executes them via `spawn()` with `shell: true`.
+
+**Recommendation:** Validate commands against allowlist, use `shell: false`, or restrict to read-only operations.
+
+---
+
+### BUG-042: Agent-wakeup Passes Full Environment to Child
+**Severity:** HIGH
+**Category:** security
+**File:** `src/app/api/agent-wakeup/route.ts:36`
+
+**Issue:** `spawn()` passes entire `process.env` to child process - potential env injection/leakage.
+
+**Recommendation:** Pass only required env vars explicitly, not full environment.
+
+---
+
+### BUG-043: SSRF - URL Fetch Without Validation
+**Severity:** HIGH
+**Category:** security
+**Files:** 
+- `src/server/actions/market-audit.ts:472`
+- `src/server/agents/linus.ts:2997`
+- `src/server/services/slack-agent-bridge.ts:450`
+
+**Issue:** `fetch(url)` without URL validation - could allow internal service access.
+
+**Recommendation:** Validate URLs against allowlist, block internal IPs (localhost, 127.0.0.1, 10.x, 172.16.x, 192.168.x).
+
+---
+
+### BUG-044: Math.random() Used for IDs
+**Severity:** LOW
+**Category:** bug
+**Files:** 
+- `src/server/actions/delivery.ts:153,355,754`
+- `src/server/services/knowledge-engine/ontology.ts:115`
+
+**Issue:** Uses `Math.random()` for generating IDs where uniqueness matters.
+
+**Recommendation:** Use `crypto.randomUUID()` or Firestore's `doc().id`
 ```
