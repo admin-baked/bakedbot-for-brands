@@ -64,7 +64,7 @@ export function BrandHero({
       </div>
 
       {/* Optional hero image as background */}
-      {heroImage && (
+      {heroImage && heroImage.trim() !== '' && (
         <>
           <Image
             src={heroImage}
@@ -84,7 +84,7 @@ export function BrandHero({
           <div className="text-white space-y-6">
             {/* Brand Logo & Badge */}
             <div className="flex items-center gap-4">
-              {brandLogo ? (
+              {brandLogo && brandLogo.trim() !== '' ? (
                 <div className="relative h-20 w-20 bg-white rounded-2xl p-2 shadow-xl">
                   <Image
                     src={brandLogo}

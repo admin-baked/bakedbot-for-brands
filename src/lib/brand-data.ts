@@ -316,11 +316,31 @@ export async function fetchBrandPageData(brandParam: string) {
             console.warn('[fetchBrandPageData] Auth failed (local dev), using mock data');
         } else {
             console.error('[fetchBrandPageData] Error fetching brand data:', error);
+            
+            // Auto-report to Linus in production
+            if (process.env.NODE_ENV === 'production') {
+                try {
+                    // Start a non-blocking fetch to report the ticket
+                    // We reach for a shared helper or fetch directly for speed
+                    void fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/tickets`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            title: `[Production Fail] Brand Page Fetch: ${brandParam}`,
+                            description: `Critical error fetching data for brand slug/id: ${brandParam}\nError: ${error.message}`,
+                            priority: 'high',
+                            category: 'system_error',
+                            reporterEmail: 'server-sys-monitor',
+                        }),
+                    }).catch(e => console.error('Failed to report fetch error to Linus:', e));
+                } catch (reportError) {
+                    // fail silently to not block the current request
+                }
+            }
         }
 
         // MOCK FALLBACK for local development credential bypass
-        if (brandParam === 'brand_ecstatic_edibles') {
-            console.log('[fetchBrandPageData] Using MOCK data for Ecstatic Edibles due to error');
+        if (brandParam === 'brand_ecstatic_edibles' || brandParam === 'ecstaticedibles') {
+            console.log(`[fetchBrandPageData] Using MOCK data for ${brandParam} due to error`);
             return {
                 brand: {
                     id: 'brand_ecstatic_edibles',
@@ -352,7 +372,8 @@ export async function fetchBrandPageData(brandParam: string) {
                         thc: '100mg',
                         brandId: 'brand_ecstatic_edibles',
                         stock: 100,
-                        active: true
+                        active: true,
+                        status: 'coming_soon'
                     },
                     {
                         id: 'prod_cheesecake',
@@ -364,7 +385,22 @@ export async function fetchBrandPageData(brandParam: string) {
                         thc: '100mg',
                         brandId: 'brand_ecstatic_edibles',
                         stock: 100,
-                        active: true
+                        active: true,
+                        status: 'coming_soon'
+                    },
+                    {
+                        id: 'prod_surprise_420',
+                        name: 'Surprise 4/20 Drop Product',
+                        description: 'A special limited edition treat for 4/20. Unlock the mystery on drop day.',
+                        price: 42.00,
+                        category: 'Edibles',
+                        imageUrl: 'https://images.unsplash.com/photo-1628151015626-302fe57845ef?auto=format&fit=crop&w=800&q=80',
+                        thc: '420mg',
+                        brandId: 'brand_ecstatic_edibles',
+                        stock: 0,
+                        active: true,
+                        status: 'coming_soon',
+                        trending: true
                     }
                 ] as any,
                 retailers: []

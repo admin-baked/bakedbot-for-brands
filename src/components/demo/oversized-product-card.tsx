@@ -7,12 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Plus, Minus, Heart, ShoppingCart, Leaf, Zap, Wind, Cookie,
-  Droplet, Droplets, Package, Check,
+  Droplet, Droplets, Package, Check, Mail, Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSafeProductImageUrl } from '@/lib/utils/product-image';
 import type { LucideIcon } from 'lucide-react';
 import type { Product } from '@/types/domain';
+import { captureEmailLead } from '@/server/actions/email-capture';
 
 function getCategoryIcon(category?: string): LucideIcon {
   const c = (category ?? '').toLowerCase().replace(/[-_\s]/g, '');
@@ -81,6 +82,8 @@ export function OversizedProductCard({
   const [isHovered, setIsHovered] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
+  const [notified, setNotified] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState('');
 
   const handleAddToCart = () => {
     onAddToCart?.(product, quantity);
@@ -133,6 +136,31 @@ export function OversizedProductCard({
   const isPlaceholder = imageFailed || rawImageUrl === '/icon-192.png';
   const imageUrl = isPlaceholder ? null : rawImageUrl;
   const CategoryIcon = getCategoryIcon(product.category);
+  const isComingSoon = product.status === 'coming_soon';
+
+  const handleNotify = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!notifyEmail) return;
+    
+    try {
+      setNotified(true);
+      
+      await captureEmailLead({
+        email: notifyEmail,
+        emailConsent: true,
+        smsConsent: false,
+        source: 'coming_soon_product',
+        brandId: product.brandId || 'brand_ecstatic_edibles', // Default to ecstatic for this campaign if not set
+        state: 'NY', // Default for this pilot
+      });
+      
+      console.log(`[Notify] Captured ${notifyEmail} for ${product.id}`);
+    } catch (error) {
+      console.error('[Notify] Failed to capture lead:', error);
+      // Revert notified state so they can try again if it failed
+      setNotified(false);
+    }
+  };
 
   return (
     <Card
@@ -164,6 +192,21 @@ export function OversizedProductCard({
             <span className="text-xs text-muted-foreground/50 font-medium uppercase tracking-widest">
               {product.category}
             </span>
+          </div>
+        )}
+
+        {/* Coming Soon Overlay */}
+        {isComingSoon && (
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center p-4 z-10">
+            <div className="bg-white/95 dark:bg-black/95 text-black dark:text-white px-4 py-2 rounded-full font-bold shadow-2xl flex items-center gap-2 transform -rotate-2">
+              <Clock className="h-5 w-5 text-orange-500" />
+              COMING SOON
+            </div>
+            {product.id === 'prod_surprise_420' && (
+              <p className="text-white text-center mt-2 text-sm font-medium drop-shadow-md">
+                Limited 4/20 Edition
+              </p>
+            )}
           </div>
         )}
 
@@ -230,60 +273,92 @@ export function OversizedProductCard({
           />
         </Button>
 
-        {/* Quick Add Overlay (shown on hover) */}
+        {/* Quick Add / Notify Overlay (shown on hover) */}
         {showQuickAdd && (
           <div
             className={cn(
-              'absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300'
+              'absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-20'
             )}
           >
-            <div className="flex items-center gap-2">
-              {/* Quantity Controls */}
-              <div className="flex items-center bg-white rounded-lg shadow-lg">
+            {isComingSoon ? (
+              <div className="bg-white dark:bg-zinc-900 p-3 rounded-xl shadow-2xl border border-primary/20 space-y-2">
+                <p className="text-xs font-bold text-center uppercase tracking-tight" style={{ color: primaryColor }}>
+                  Get Notified when it drops
+                </p>
+                {notified ? (
+                  <div className="h-10 flex items-center justify-center gap-2 text-emerald-600 font-bold bg-emerald-50 rounded-lg">
+                    <Check className="h-4 w-4" />
+                    You&apos;re on the list!
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      placeholder="your@email.com"
+                      className="flex-1 bg-muted px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                      value={notifyEmail}
+                      onChange={(e) => setNotifyEmail(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <Button
+                      size="icon"
+                      style={{ backgroundColor: primaryColor }}
+                      onClick={handleNotify}
+                    >
+                      <Mail className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                {/* Quantity Controls */}
+                <div className="flex items-center bg-white rounded-lg shadow-lg">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-10 w-10 rounded-l-lg"
+                    onClick={decrementQuantity}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="w-10 text-center font-bold">{quantity}</span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-10 w-10 rounded-r-lg"
+                    onClick={incrementQuantity}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Add to Cart */}
                 <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-10 w-10 rounded-l-lg"
-                  onClick={decrementQuantity}
+                  className={cn(
+                    'flex-1 h-10 font-bold transition-all duration-300',
+                    addedToCart && 'scale-105'
+                  )}
+                  style={{ backgroundColor: addedToCart ? '#16a34a' : primaryColor }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddToCart();
+                  }}
                 >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <span className="w-10 text-center font-bold">{quantity}</span>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-10 w-10 rounded-r-lg"
-                  onClick={incrementQuantity}
-                >
-                  <Plus className="h-4 w-4" />
+                  {addedToCart ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2 animate-bounce" />
+                      Added!
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Add to Cart
+                    </>
+                  )}
                 </Button>
               </div>
-
-              {/* Add to Cart */}
-              <Button
-                className={cn(
-                  'flex-1 h-10 font-bold transition-all duration-300',
-                  addedToCart && 'scale-105'
-                )}
-                style={{ backgroundColor: addedToCart ? '#16a34a' : primaryColor }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAddToCart();
-                }}
-              >
-                {addedToCart ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2 animate-bounce" />
-                    Added!
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Add to Cart
-                  </>
-                )}
-              </Button>
-            </div>
+            )}
           </div>
         )}
       </div>

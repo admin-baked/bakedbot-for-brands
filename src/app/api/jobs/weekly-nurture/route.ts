@@ -62,27 +62,53 @@ export async function POST(request: NextRequest) {
         };
 
         const roles = roleMap[segment] || [];
+        const recipients = [];
+
+        // 1. Get standard users of this segment
         const usersSnapshot = await db
             .collection('users')
             .where('role', 'in', roles)
             .where('onboardingCompletedAt', '<', new Date(sevenDaysAgo).toISOString())
-            .limit(100) // Process max 100 users per run
+            .limit(100)
             .get();
 
-        logger.info('[WeeklyNurture] Found users to nurture', {
+        for (const doc of usersSnapshot.docs) {
+            recipients.push({ ...doc.data(), id: doc.id, source: 'user' });
+        }
+
+        // 2. Specialty: Ecstatic Edibles Brand Leads (from email_leads)
+        if (segment === 'lead') {
+            const emailLeadsSnapshot = await db
+                .collection('email_leads')
+                .where('brandId', '==', 'brand_ecstatic_edibles')
+                .where('capturedAt', '<', sevenDaysAgo) // Only nurture if captured > 7 days ago
+                .limit(50)
+                .get();
+
+            for (const doc of emailLeadsSnapshot.docs) {
+                recipients.push({
+                    ...doc.data(),
+                    id: doc.id,
+                    role: 'lead',
+                    source: 'email_lead',
+                    brandId: 'brand_ecstatic_edibles'
+                });
+            }
+        }
+
+        logger.info('[WeeklyNurture] Found recipients to nurture', {
             segment,
-            count: usersSnapshot.size,
+            count: recipients.length,
         });
 
         const results = [];
 
-        for (const userDoc of usersSnapshot.docs) {
-            const userData = userDoc.data();
-            const userId = userDoc.id;
-            const email = userData.email;
+        for (const recipientData of recipients) {
+            const userId = recipientData.id;
+            const email = recipientData.email;
             // Try multiple field names - different signup paths store name differently
-            const fullName = userData.displayName || userData.name || userData.firstName || '';
-            const firstName = userData.firstName || fullName.split(' ')[0] || undefined;
+            const fullName = recipientData.displayName || recipientData.name || recipientData.firstName || '';
+            const firstName = recipientData.firstName || fullName.split(' ')[0] || undefined;
 
             if (!email) {
                 logger.warn('[WeeklyNurture] Skipping user without email', { userId });
@@ -90,32 +116,33 @@ export async function POST(request: NextRequest) {
             }
 
             try {
-                const onboardingCompletedAtMs = Date.parse(String(userData.onboardingCompletedAt || ''));
+                const onboardingCompletedAtMs = Date.parse(String(recipientData.onboardingCompletedAt || recipientData.capturedAt || ''));
                 const elapsedWeeks = Number.isFinite(onboardingCompletedAtMs)
                     ? Math.floor((Date.now() - onboardingCompletedAtMs) / (7 * 24 * 60 * 60 * 1000))
                     : 1;
                 const weekIndex = Math.max(elapsedWeeks - 1, 0);
-                const currentOrgId = typeof userData.currentOrgId === 'string' ? userData.currentOrgId : null;
-                const orgMemberships = userData.orgMemberships && typeof userData.orgMemberships === 'object'
-                    ? userData.orgMemberships as Record<string, { orgName?: string }>
+                const currentOrgId = typeof recipientData.currentOrgId === 'string' ? recipientData.currentOrgId : null;
+                const orgMemberships = recipientData.orgMemberships && typeof recipientData.orgMemberships === 'object'
+                    ? recipientData.orgMemberships as Record<string, { orgName?: string }>
                     : null;
                 const workspaceName =
                     (currentOrgId && orgMemberships?.[currentOrgId]?.orgName)
-                    || userData.organizationName
-                    || userData.orgName
-                    || userData.brandName
-                    || userData.dispensaryName
+                    || recipientData.organizationName
+                    || recipientData.orgName
+                    || recipientData.brandName
+                    || recipientData.dispensaryName
+                    || (recipientData.brandId === 'brand_ecstatic_edibles' ? 'Ecstatic Edibles' : undefined)
                     || undefined;
 
                 const delivery = await sendPlatformOnboardingEmail({
                     userId,
                     email,
                     firstName,
-                    role: userData.role,
-                    orgId: userData.orgId || userData.brandId || userData.currentOrgId,
-                    brandId: userData.brandId,
-                    dispensaryId: userData.dispensaryId,
-                    primaryGoal: userData.onboarding?.primaryGoal,
+                    role: recipientData.role,
+                    orgId: recipientData.orgId || recipientData.brandId || recipientData.currentOrgId,
+                    brandId: recipientData.brandId,
+                    dispensaryId: recipientData.dispensaryId,
+                    primaryGoal: recipientData.onboarding?.primaryGoal,
                     workspaceName,
                     sequenceType: 'weekly_feature',
                     weekIndex,

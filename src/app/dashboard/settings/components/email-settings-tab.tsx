@@ -3,13 +3,13 @@
 /**
  * Email Settings Tab
  *
- * Amazon SES is the primary sender for all email types (company + tenant wide).
+ * BakedBot Mail (SES) is the primary sender for all email types (company + tenant wide).
  * Optional fallback channels:
- *  - Custom Sending Domain (SES) → tenant sends from their own domain
+ *  - Custom Sending Domain (BakedBot Mail) → tenant sends from their own domain
  *  - Google Workspace  → personal / transactional fallback
  *  - Mailjet           → bulk / marketing fallback (6k free/month)
  *
- * The dispatcher in lib/email/dispatcher.ts routes: SES → Workspace/Mailjet → Platform.
+ * The dispatcher in lib/email/dispatcher.ts routes: BakedBot Mail → Workspace/Mailjet → Platform.
  */
 
 import { useState, useEffect, useTransition } from 'react';
@@ -852,7 +852,7 @@ function SesDomainSection() {
         startTransition(async () => {
             const result = await sendTestEmail('ses');
             toast(result.success
-                ? { title: 'Test email sent via SES' }
+                ? { title: 'Test email sent via BakedBot Mail' }
                 : { variant: 'destructive', title: 'Test failed', description: result.error });
         });
     };
@@ -873,7 +873,7 @@ function SesDomainSection() {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Mail className="h-5 w-5 text-orange-500" />
-                        <CardTitle className="text-base">Custom Sending Domain (SES)</CardTitle>
+                        <CardTitle className="text-base">Custom Sending Domain (BakedBot Mail)</CardTitle>
                     </div>
                     {isVerified && <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Verified</Badge>}
                     {isPendingVerification && <Badge className="bg-amber-100 text-amber-800 border-amber-200">Pending</Badge>}
@@ -1040,7 +1040,7 @@ function PrimaryChannelCard({ onChannelChange }: { onChannelChange?: (ch: 'ses' 
                 setChannel(newChannel);
                 onChannelChange?.(newChannel);
                 toast({
-                    title: `Primary channel switched to ${newChannel === 'workspace' ? 'Google Workspace' : 'Amazon SES'}`,
+                    title: `Primary channel switched to ${newChannel === 'workspace' ? 'Google Workspace' : 'BakedBot Mail'}`,
                     description: newChannel === 'workspace'
                         ? `All emails will send from ${wsSendAs}`
                         : `All emails will send from ${sesFromEmail || 'your verified domain'}`,
@@ -1053,7 +1053,7 @@ function PrimaryChannelCard({ onChannelChange }: { onChannelChange?: (ch: 'ses' 
 
     if (isLoading) return null;
 
-    const activeLabel = channel === 'workspace' ? 'Google Workspace' : 'Amazon SES (Custom Domain)';
+    const activeLabel = channel === 'workspace' ? 'Google Workspace' : 'BakedBot Mail (Custom Domain)';
     const activeAddress = channel === 'workspace' ? wsSendAs : (sesFromEmail || 'Pending DNS verification');
 
     return (
@@ -1135,7 +1135,7 @@ function PrimaryChannelCard({ onChannelChange }: { onChannelChange?: (ch: 'ses' 
                         </div>
                         <ShieldCheck className="h-4 w-4 text-orange-500 flex-shrink-0" />
                         <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium">Amazon SES (Custom Domain)</p>
+                            <p className="text-sm font-medium">BakedBot Mail (Custom Domain)</p>
                             <p className="text-xs text-muted-foreground">
                                 {sesVerified
                                     ? `Send as ${sesFromEmail} — domain verified`
@@ -1146,7 +1146,7 @@ function PrimaryChannelCard({ onChannelChange }: { onChannelChange?: (ch: 'ses' 
                             </p>
                         </div>
                         <Badge variant="outline" className="text-xs flex-shrink-0">
-                            {sesVerified ? (channel === 'ses' ? 'Active' : 'Available') : 'Pending DNS'}
+                            {sesVerified ? (channel === 'ses' ? 'Active' : 'Available') : 'Ready to verify'}
                         </Badge>
                     </button>
                 </div>
@@ -1158,8 +1158,8 @@ function PrimaryChannelCard({ onChannelChange }: { onChannelChange?: (ch: 'ses' 
                         <div>
                             <p className="font-medium text-blue-900">Using Workspace while DNS propagates</p>
                             <p className="text-blue-700 text-xs mt-0.5">
-                                Your custom domain ({sesDomain}) is pending DNS verification.
-                                Once verified, switch to SES for higher deliverability and unlimited volume.
+                                Your custom domain ({sesDomain}) is ready for verification.
+                                Once verified, switch to BakedBot Mail for higher deliverability and unlimited volume.
                             </p>
                         </div>
                     </div>
@@ -1170,7 +1170,7 @@ function PrimaryChannelCard({ onChannelChange }: { onChannelChange?: (ch: 'ses' 
                         <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
                         <p className="text-amber-800 text-xs">
                             <strong>Google Workspace limit:</strong> 2,000 emails/day (Business Standard) or 500/day (Starter).
-                            For high-volume campaigns, switch to SES when your domain is verified.
+                            For high-volume campaigns, switch to BakedBot Mail when your domain is verified.
                         </p>
                     </div>
                 )}
@@ -1205,12 +1205,12 @@ function RoutingReferenceCard() {
                             <span>Fallback</span>
                         </div>
                         {[
-                            ['Campaign blast', 'Amazon SES', 'Mailjet (org) → Platform'],
-                            ['Win-back / birthday', 'Amazon SES', 'Mailjet (org) → Platform'],
-                            ['Loyalty rewards', 'Amazon SES', 'Mailjet (org) → Platform'],
-                            ['Welcome email', 'Amazon SES', 'Workspace → Platform'],
-                            ['Follow-up / manual', 'Amazon SES', 'Workspace → Platform'],
-                            ['Order confirmation', 'Amazon SES', 'Workspace → Platform'],
+                            ['Campaign blast', 'BakedBot Mail', 'Mailjet (org) → Platform'],
+                            ['Win-back / birthday', 'BakedBot Mail', 'Mailjet (org) → Platform'],
+                            ['Loyalty rewards', 'BakedBot Mail', 'Mailjet (org) → Platform'],
+                            ['Welcome email', 'BakedBot Mail', 'Workspace → Platform'],
+                            ['Follow-up / manual', 'BakedBot Mail', 'Workspace → Platform'],
+                            ['Order confirmation', 'BakedBot Mail', 'Workspace → Platform'],
                         ].map(([type, channel, fallback]) => (
                             <div key={type} className="grid grid-cols-3 px-3 py-1.5 border-t">
                                 <span className="text-muted-foreground">{type}</span>
@@ -1242,7 +1242,7 @@ export function EmailSettingsTab() {
             <div>
                 <h2 className="text-lg font-semibold">Email Channels</h2>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                    Choose your primary sending channel. When your custom domain DNS is ready, switch to SES for best deliverability.
+                    Choose your primary sending channel. When your custom domain is ready, switch to BakedBot Mail for best deliverability.
                 </p>
             </div>
 

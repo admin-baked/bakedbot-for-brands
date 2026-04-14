@@ -27,7 +27,8 @@ type PlatformOnboardingTopicKey =
   | 'playbooks'
   | 'inbox'
   | 'inbox_martez'
-  | 'martez';
+  | 'martez'
+  | 'launch_nurture';
 
 export interface PlatformOnboardingEmailContext {
   userId: string;
@@ -100,7 +101,10 @@ function getRoleSpecificWeeklyTopics(role: UserRole | undefined): PlatformOnboar
   return ['creative', 'competitive', 'playbooks', 'inbox', 'brand_guide'];
 }
 
-function getWeeklyTopic(role: UserRole | undefined, weekIndex: number): PlatformOnboardingTopicKey {
+function getWeeklyTopic(role: UserRole | undefined, weekIndex: number, brandId?: string): PlatformOnboardingTopicKey {
+  if (brandId === 'brand_ecstatic_edibles') {
+    return 'launch_nurture';
+  }
   const topics = getRoleSpecificWeeklyTopics(role);
   return topics[weekIndex % topics.length] ?? topics[0];
 }
@@ -125,9 +129,25 @@ function buildEmailContent(job: PlatformOnboardingEmailJobData): EmailTemplateCo
   const goalHref = getOnboardingGoalHref(primaryGoal, role ?? null);
   const topicKey = job.topicKey
     ?? (job.sequenceType === 'weekly_feature'
-      ? getWeeklyTopic(role, job.weekIndex ?? 0)
+      ? getWeeklyTopic(role, job.weekIndex ?? 0, job.brandId)
       : getRoleSpecificFirstWeekTopics(role)[job.dayIndex ?? 0]
     );
+
+  if (job.brandId === 'brand_ecstatic_edibles' && job.sequenceType === 'weekly_feature') {
+    return {
+      subject: '🍪 Ecstatic Edibles 4/20 Drop: A Message from Melanie',
+      preview: 'The 4/20 countdown is on in Los Angeles. Here is what Melanie is dropping this week.',
+      heading: 'Straight from LA: The 4/20 Countdown',
+      body: [
+        `Hi ${firstName}, Melanie Comarcho and the Ecstatic team are hard at work in LA preparing for our biggest drop yet.`,
+        'We are adding more limited-edition treats to the "Coming Soon" catalog this week. Trusted by the best, baked for joy.',
+        'Keep an eye on the shop—when the clock hits 4/20, these exclusive items go live for order through our retail partners.',
+        'Stay Ecstatic.',
+      ],
+      primaryCta: { label: 'Preview the Drop', href: absoluteUrl('/ecstaticedibles') },
+      secondaryCta: { label: 'Follow Melanie on Social', href: 'https://instagram.com/melaniecomarcho' },
+    };
+  }
 
   switch (topicKey) {
     case 'brand_guide':

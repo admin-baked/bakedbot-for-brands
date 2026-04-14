@@ -144,7 +144,7 @@ export function BrandMenuHeader({
               <SheetContent side="left" className="w-[300px]">
                 <SheetHeader>
                   <SheetTitle className="flex items-center gap-2">
-                    {brandLogo ? (
+                    {brandLogo && brandLogo.trim() !== '' ? (
                       <div className="relative h-8 w-8">
                         <Image
                           src={brandLogo}
@@ -256,7 +256,7 @@ export function BrandMenuHeader({
 
             {/* Logo */}
             <Link href="#" className="flex items-center gap-3">
-              {brandLogo ? (
+              {brandLogo && brandLogo.trim() !== '' ? (
                 <div className="relative h-10 w-10 md:h-12 md:w-12">
                   <Image
                     src={brandLogo}

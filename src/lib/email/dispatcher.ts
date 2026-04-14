@@ -12,9 +12,9 @@ import Mailjet from 'node-mailjet';
 
 // ─────────────────────────────────────────────────────────────
 // Email type routing
-// ALL types → Amazon SES (primary, company + tenant wide default)
+// ALL types → BakedBot Mail (AWS SES primary, company + tenant wide default)
 // Fallbacks: Workspace (personal) · Mailjet (bulk) · Platform legacy
-// Orgs can override primary channel to 'workspace' (e.g. when SES domain DNS is pending)
+// Orgs can override primary channel to 'workspace' (e.g. when domain DNS is pending)
 // ─────────────────────────────────────────────────────────────
 const BULK_TYPES = new Set(['campaign', 'winback', 'birthday', 'loyalty']);
 
@@ -391,7 +391,7 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
 
     const primaryChannel = data.orgId ? await getOrgPrimaryChannel(data.orgId) : 'ses';
 
-    // ── Route 1: Amazon SES (Absolute Primary, All tiers) ───────────────
+    // ── Route 1: BakedBot Mail (Absolute Primary, All tiers) ───────────────
     if (process.env.AWS_SES_ACCESS_KEY_ID && process.env.AWS_SES_SECRET_ACCESS_KEY) {
         try {
             const sesFrom = await resolveOrgSesFrom(data.orgId, data.fromEmail, data.fromName);
@@ -404,11 +404,11 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
                 textBody: data.textBody,
             });
             result = { success: true };
-            logCrm(result, data, 'ses');
+            logCrm(result, data, 'bakedbot_mail');
             return result;
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
-            logger.warn('[Dispatcher] SES failed, trying fallbacks', { error: msg, orgId: data.orgId });
+            logger.warn('[Dispatcher] BakedBot Mail (SES) failed, trying fallbacks', { error: msg, orgId: data.orgId });
         }
     }
 

@@ -428,9 +428,9 @@ export async function sendTestEmail(type: 'workspace' | 'mailjet' | 'ses'): Prom
                 to: user.email!,
                 from: fromEmail,
                 fromName,
-                subject: `BakedBot Email Test — Amazon SES (${fromName})`,
-                htmlBody: `<p>This is a test email from <strong>Amazon SES</strong> for <strong>${fromName}</strong>.</p><p>Sending as: <code>${fromEmail}</code></p><p>If you received this, SES is working correctly for your organization.</p>`,
-                textBody: `Test email from Amazon SES for ${fromName}. Sending as: ${fromEmail}. SES is working correctly.`,
+                subject: `BakedBot Mail Test — ${fromName}`,
+                htmlBody: `<p>This is a test email from <strong>BakedBot Mail</strong> for <strong>${fromName}</strong>.</p><p>Sending as: <code>${fromEmail}</code></p><p>If you received this, BakedBot Mail is working correctly for your organization.</p>`,
+                textBody: `Test email from BakedBot Mail for ${fromName}. Sending as: ${fromEmail}. BakedBot Mail is working correctly.`,
             });
             return { success: true };
         }

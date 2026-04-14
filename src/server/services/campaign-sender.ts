@@ -2,7 +2,7 @@
  * Campaign Send Engine
  *
  * Resolves audience → personalizes content → sends per channel → updates performance.
- * Uses existing email (Mailjet/SendGrid) and SMS (Blackleaf) infrastructure.
+ * Uses existing email (BakedBot Mail, Mailjet/SendGrid) and SMS (Blackleaf) infrastructure.
  */
 
 import { createServerClient } from '@/firebase/server-client';

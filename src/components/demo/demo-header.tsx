@@ -199,7 +199,7 @@ export function DemoHeader({
 
             {/* Logo */}
             <Link href={brandSlug ? `/${brandSlug}` : '/demo-shop'} className="flex items-center gap-2">
-              {brandLogo ? (
+              {brandLogo && brandLogo.trim() !== '' ? (
                 <Image
                   src={brandLogo}
                   alt={brandName}
