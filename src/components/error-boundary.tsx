@@ -45,6 +45,32 @@ export class ErrorBoundary extends React.Component<
         // Log error to monitoring service
         logger.error('Error boundary caught error:', { error, errorInfo, isDeploymentMismatch });
 
+        // Log critical errors to Firestore for agent monitoring
+        if (typeof window !== 'undefined' && !isDeploymentMismatch) {
+            try {
+                // Import dynamically to avoid build issues
+                import('@/firebase/client')
+                    .then(({ db }) => {
+                        if (db) {
+                            db.collection('client_errors').add({
+                                message: error.message,
+                                stack: error.stack,
+                                componentStack: errorInfo.componentStack,
+                                url: window.location.href,
+                                userAgent: navigator.userAgent,
+                                timestamp: new Date(),
+                                isDeploymentMismatch
+                            }).catch(() => {
+                                // Fail silently if Firestore is unavailable
+                            });
+                        }
+                    })
+                    .catch(() => { });
+            } catch (e) {
+                // Ignore logging failures
+            }
+        }
+
         // For deployment mismatches, attempt automatic reload (once)
         if (isDeploymentMismatch && typeof window !== 'undefined') {
             if (shouldAttemptDeploymentReload(window.sessionStorage)) {
