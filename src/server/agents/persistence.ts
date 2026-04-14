@@ -41,6 +41,7 @@ export const mockMemoryAdapter: MemoryAdapter = {
         if (agentName === 'pops') return { ...base, hypotheses_backlog: [], decision_journal: [] } as any;
         if (agentName === 'ezal') return { ...base, competitor_watchlist: [], menu_snapshots: [], open_gaps: [] } as any;
         if (agentName === 'money_mike') return { ...base, pricing_rules: [], pricing_experiments: [] } as any;
+        if (agentName === 'uncle_elroy') return { ...base, challenges_raised: [], audit_trail: [], trust_scores: {} } as any;
         if (agentName === 'mrs_parker') return { ...base, loyalty_segments: [], journeys: [] } as any;
 
         return base as T;

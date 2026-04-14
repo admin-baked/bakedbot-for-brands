@@ -3,7 +3,7 @@
  * Shared configuration used by both Client and Server code.
  */
 
-export type AgentId = 'craig' | 'pops' | 'ezal' | 'smokey' | 'money_mike' | 'mike_exec' | 'mrs_parker' | 'day_day' | 'felisha' | 'general' | 'puff' | 'deebo' | 'leo' | 'linus' | 'roach' | 'big_worm' | 'jack' | 'glenda' | 'openclaw' | 'marty';
+export type AgentId = 'craig' | 'pops' | 'ezal' | 'smokey' | 'money_mike' | 'mike_exec' | 'mrs_parker' | 'day_day' | 'felisha' | 'general' | 'puff' | 'deebo' | 'leo' | 'linus' | 'roach' | 'big_worm' | 'jack' | 'glenda' | 'openclaw' | 'marty' | 'uncle_elroy';
 
 export interface AgentCapability {
     id: AgentId;
@@ -192,6 +192,15 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
         description: 'Autonomous task execution agent for WhatsApp messaging, task management, personal memory, and web form automation.',
         responseFormat: 'Action-oriented. Confirm task, execute, report results. No fluff.',
         roleRestrictions: ['guest', 'customer', 'dispensary', 'brand', 'intern'] // Super User only
+    },
+    {
+        id: 'uncle_elroy',
+        name: 'Uncle Elroy',
+        specialty: 'Adversarial Data Auditor',
+        keywords: ['audit', 'verify', 'challenge', 'trust', 'inventory audit', 'data integrity', 'prove it', 'discrepancy', 'uncle elroy', 'deliberation', 'adversarial'],
+        description: 'Adversarial data auditor who challenges every financial claim with raw data verification. Runs the deliberative pipeline with Money Mike to ensure inventory valuations, COGS, and revenue numbers are grounded in truth.',
+        responseFormat: 'Use ✅/⚠️/❌ for audit status. Show evidence chain. End with TRUST / DON\'T TRUST / VERIFY AGAIN verdict.',
+        roleRestrictions: ['guest', 'customer']
     }
 ];
 
