@@ -471,13 +471,19 @@ export async function getProfitabilityDashboard(
     calculateProfitabilityMetrics(orgId, start, end, config || undefined),
   ]);
 
-  const realInventoryValue = inventoryResult.status === 'fulfilled' 
-    ? inventoryResult.value.summary.totalInventoryValue 
-    : 100000;
+  // FIX: Removed hardcoded $100,000 fallback — use 0 if query fails so dashboard
+  // shows "no data" instead of a fabricated six-figure inventory value.
+  const realInventoryValue = inventoryResult.status === 'fulfilled'
+    ? inventoryResult.value.summary.totalInventoryValue
+    : 0;
+
+  if (inventoryResult.status === 'rejected') {
+    logger.error('[profitability] Inventory data fetch failed', { error: String(inventoryResult.reason) });
+  }
 
   // Now calculate working capital using the real inventory value
-  const workingCapital = await calculateWorkingCapital(orgId, config || undefined, { 
-    inventoryValue: realInventoryValue 
+  const workingCapital = await calculateWorkingCapital(orgId, config || undefined, {
+    inventoryValue: realInventoryValue
   });
 
   if (tax280EResult.status === 'rejected') {
@@ -500,17 +506,55 @@ export async function getProfitabilityDashboard(
 // PRODUCT COGS PROFITABILITY (POS-sourced data)
 // =============================================================================
 
+/**
+ * Normalize product categories to canonical names.
+ * Alleaves sends inconsistent casing/variations (e.g., "Pre-Rolls" vs "Pre rolls").
+ */
+const CATEGORY_NORMALIZE_MAP: Record<string, string> = {
+  'flower': 'Flower',
+  'pre-rolls': 'Pre-Rolls',
+  'pre rolls': 'Pre-Rolls',
+  'prerolls': 'Pre-Rolls',
+  'pre-roll': 'Pre-Rolls',
+  'edibles': 'Edibles',
+  'edible': 'Edibles',
+  'vapes': 'Vapes',
+  'vape': 'Vapes',
+  'concentrates': 'Concentrates',
+  'concentrate': 'Concentrates',
+  'accessories': 'Accessories',
+  'accessory': 'Accessories',
+  'tinctures': 'Tinctures',
+  'tincture': 'Tinctures',
+  'topicals': 'Topicals',
+  'topical': 'Topicals',
+  'beverages': 'Beverages',
+  'beverage': 'Beverages',
+  'gift cards': 'Gift Cards',
+  'gift_card': 'Gift Cards',
+  'gift card': 'Gift Cards',
+  'other': 'Other',
+};
+
+function normalizeCategory(raw: string): string {
+  const lower = raw.toLowerCase().trim();
+  return CATEGORY_NORMALIZE_MAP[lower] || raw;
+}
+
 export interface ProductProfitabilityItem {
   id: string;
   name: string;
-  category: string;
+  category: string;           // normalized canonical category
+  rawCategory: string;        // original category from POS
   retailPrice: number;
   effectiveCost: number | null; // cost ?? batchCost from POS
-  costSource: 'cost_of_good' | 'batch_cost' | 'none';
+  estimatedCost: number | null; // estimated from category avg margin (Phase 2A)
+  costSource: 'cost_of_good' | 'batch_cost' | 'estimated' | 'none';
   marginPercent: number | null; // (price - cost) / price
   marginAmount: number | null;  // price - cost
   stockCount: number;
-  inventoryValue: number | null; // effectiveCost * stockCount
+  inventoryValue: number | null; // effectiveCost * stockCount (null if estimated or anomalous)
+  costAnomaly: 'none' | 'cost_exceeds_retail' | 'negative_margin' | 'gift_card';
 }
 
 /**
@@ -545,11 +589,20 @@ export async function getProductProfitabilityData(): Promise<{
     .collection('items')
     .get();
 
-  const products: ProductProfitabilityItem[] = itemsSnap.docs.map(doc => {
+  // Categories that are NOT physical merchandise — exclude from inventory valuation
+  const NON_MERCHANDISE_CATEGORIES = new Set([
+    'Gift Cards', 'gift cards', 'gift_card', 'Gift Card',
+  ]);
+
+  // Phase 1: Build raw product rows with normalized categories
+  const rawProducts = itemsSnap.docs.map(doc => {
     const data = doc.data();
     const retailPrice: number = typeof data.price === 'number' ? data.price : 0;
     const cost: number | undefined = typeof data.cost === 'number' ? data.cost : undefined;
     const batchCost: number | undefined = typeof data.batchCost === 'number' ? data.batchCost : undefined;
+    const name: string = typeof data.name === 'string' ? data.name : 'Unknown';
+    const rawCategory: string = typeof data.category === 'string' ? data.category : 'Other';
+    const normalizedCategory = normalizeCategory(rawCategory);
 
     // cost (Cost of Good) takes priority; fall back to batchCost (Wholesale/Batch Cost)
     const effectiveCost = cost !== undefined ? cost : (batchCost !== undefined ? batchCost : null);
@@ -557,6 +610,18 @@ export async function getProductProfitabilityData(): Promise<{
       cost !== undefined ? 'cost_of_good' : (batchCost !== undefined ? 'batch_cost' : 'none');
 
     const stockCount: number = typeof data.stockCount === 'number' ? data.stockCount : 0;
+
+    // Detect cost anomalies — likely case-level pricing instead of unit pricing
+    let costAnomaly: ProductProfitabilityItem['costAnomaly'] = 'none';
+    if (NON_MERCHANDISE_CATEGORIES.has(normalizedCategory)) {
+      costAnomaly = 'gift_card';
+    } else if (effectiveCost !== null && retailPrice > 0 && effectiveCost > retailPrice) {
+      costAnomaly = 'cost_exceeds_retail';
+    } else if (effectiveCost !== null && retailPrice > 0 && effectiveCost >= retailPrice * 0.95) {
+      costAnomaly = 'negative_margin';
+    }
+
+    const isMerchandise = !NON_MERCHANDISE_CATEGORIES.has(normalizedCategory);
 
     const marginPercent =
       effectiveCost !== null && retailPrice > 0
@@ -567,29 +632,85 @@ export async function getProductProfitabilityData(): Promise<{
         ? retailPrice - effectiveCost
         : null;
     const inventoryValue =
-      effectiveCost !== null && stockCount > 0
+      isMerchandise && effectiveCost !== null && stockCount > 0 && costAnomaly !== 'cost_exceeds_retail'
         ? effectiveCost * stockCount
         : null;
 
     return {
       id: doc.id,
-      name: typeof data.name === 'string' ? data.name : 'Unknown',
-      category: typeof data.category === 'string' ? data.category : 'Other',
+      name,
+      category: normalizedCategory,
+      rawCategory,
       retailPrice,
       effectiveCost,
+      estimatedCost: null as number | null,
       costSource,
       marginPercent,
       marginAmount,
       stockCount,
       inventoryValue,
+      costAnomaly,
+      isMerchandise,
     };
   });
 
-  // Sort: products with COGS first (lowest margin = needs attention), no-COGS last
+  // Phase 2A: Estimate COGS for products without cost data using category-average margins
+  // Only use products with reliable cost data (no anomalies) to compute averages
+  const categoryMargins = new Map<string, { sum: number; count: number }>();
+  for (const p of rawProducts) {
+    if (p.effectiveCost !== null && p.marginPercent !== null
+      && p.costAnomaly === 'none' && p.retailPrice > 0) {
+      const entry = categoryMargins.get(p.category) || { sum: 0, count: 0 };
+      entry.sum += p.marginPercent;
+      entry.count += 1;
+      categoryMargins.set(p.category, entry);
+    }
+  }
+  const categoryAvgMargin = new Map<string, number>();
+  for (const [cat, { sum, count }] of categoryMargins) {
+    if (count >= 2) { // need at least 2 products with COGS to estimate
+      categoryAvgMargin.set(cat, sum / count);
+    }
+  }
+
+  // Apply estimated cost to products without COGS
+  const products: ProductProfitabilityItem[] = rawProducts.map(p => {
+    let estimatedCost: number | null = null;
+    let finalCostSource = p.costSource;
+
+    if (p.effectiveCost === null && p.retailPrice > 0 && p.isMerchandise) {
+      const avgMargin = categoryAvgMargin.get(p.category);
+      if (avgMargin !== undefined) {
+        estimatedCost = Math.round(p.retailPrice * (1 - avgMargin) * 100) / 100;
+        finalCostSource = 'estimated';
+      }
+    }
+
+    return {
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      rawCategory: p.rawCategory,
+      retailPrice: p.retailPrice,
+      effectiveCost: p.effectiveCost,
+      estimatedCost,
+      costSource: finalCostSource,
+      marginPercent: p.effectiveCost !== null ? p.marginPercent :
+        (estimatedCost !== null ? (p.retailPrice - estimatedCost) / p.retailPrice : null),
+      marginAmount: p.effectiveCost !== null ? p.marginAmount :
+        (estimatedCost !== null ? p.retailPrice - estimatedCost : null),
+      stockCount: p.stockCount,
+      inventoryValue: p.inventoryValue,
+      costAnomaly: p.costAnomaly,
+    };
+  });
+
+  // Sort: products with real COGS first, then estimated, then none
   products.sort((a, b) => {
-    if (a.effectiveCost === null && b.effectiveCost === null) return 0;
-    if (a.effectiveCost === null) return 1;
-    if (b.effectiveCost === null) return -1;
+    const sourceOrder = { cost_of_good: 0, batch_cost: 1, estimated: 2, none: 3 };
+    const aOrder = sourceOrder[a.costSource] ?? 3;
+    const bOrder = sourceOrder[b.costSource] ?? 3;
+    if (aOrder !== bOrder) return aOrder - bOrder;
     if (a.marginPercent === null && b.marginPercent === null) return 0;
     if (a.marginPercent === null) return 1;
     if (b.marginPercent === null) return -1;
@@ -600,7 +721,7 @@ export async function getProductProfitabilityData(): Promise<{
   const totalInventoryValue = productsWithCogsArr.reduce((sum, p) => sum + (p.inventoryValue ?? 0), 0);
   const totalRevenuePotential = products.reduce((sum, p) => sum + p.retailPrice * p.stockCount, 0);
   const margins = productsWithCogsArr
-    .filter(p => p.marginPercent !== null)
+    .filter(p => p.marginPercent !== null && p.costAnomaly === 'none')
     .map(p => p.marginPercent!);
   const avgMarginPercent =
     margins.length > 0 ? margins.reduce((a, b) => a + b, 0) / margins.length : null;

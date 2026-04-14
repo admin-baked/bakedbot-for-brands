@@ -91,7 +91,7 @@ async function main() {
     // Update products in Firestore
     console.log('\n💾 Updating products in Firestore...');
 
-    const batch = db.batch();
+    let batch = db.batch();
     let updateCount = 0;
 
     for (const product of products) {
@@ -108,6 +108,9 @@ async function main() {
             brand: product.brand,
             category: product.category,
             price: product.price,
+            cost: product.cost || null,             // Cost of Good (unit-level COGS from Alleaves)
+            batchCost: product.batchCost || null,   // Batch-level COGS from Alleaves
+            stockCount: product.stock || 0,         // Normalize stock → stockCount
             stock: product.stock,
             thcPercent: product.thcPercent || null,
             cbdPercent: product.cbdPercent || null,
@@ -121,6 +124,7 @@ async function main() {
 
         if (updateCount % 500 === 0) {
             await batch.commit();
+            batch = db.batch(); // Create a new batch after committing
             console.log(`  ✅ Updated ${updateCount}/${products.length} products...`);
         }
     }
