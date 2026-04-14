@@ -136,7 +136,7 @@ export function OversizedProductCard({
   const isPlaceholder = imageFailed || rawImageUrl === '/icon-192.png';
   const imageUrl = isPlaceholder ? null : rawImageUrl;
   const CategoryIcon = getCategoryIcon(product.category);
-  const isComingSoon = product.status === 'coming_soon';
+  const isComingSoon = product.lifecycleStatus === 'coming_soon';
 
   const handleNotify = async (e: React.MouseEvent) => {
     e.stopPropagation();

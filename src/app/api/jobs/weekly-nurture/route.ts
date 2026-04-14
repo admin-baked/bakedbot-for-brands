@@ -121,28 +121,26 @@ export async function POST(request: NextRequest) {
                     ? Math.floor((Date.now() - onboardingCompletedAtMs) / (7 * 24 * 60 * 60 * 1000))
                     : 1;
                 const weekIndex = Math.max(elapsedWeeks - 1, 0);
-                const currentOrgId = typeof recipientData.currentOrgId === 'string' ? recipientData.currentOrgId : null;
-                const orgMemberships = recipientData.orgMemberships && typeof recipientData.orgMemberships === 'object'
-                    ? recipientData.orgMemberships as Record<string, { orgName?: string }>
-                    : null;
+                const currentOrgId = (recipientData as any).currentOrgId;
+                const orgMemberships = (recipientData as any).orgMemberships;
                 const workspaceName =
                     (currentOrgId && orgMemberships?.[currentOrgId]?.orgName)
-                    || recipientData.organizationName
-                    || recipientData.orgName
-                    || recipientData.brandName
-                    || recipientData.dispensaryName
-                    || (recipientData.brandId === 'brand_ecstatic_edibles' ? 'Ecstatic Edibles' : undefined)
+                    || (recipientData as any).organizationName
+                    || (recipientData as any).orgName
+                    || (recipientData as any).brandName
+                    || (recipientData as any).dispensaryName
+                    || ((recipientData as any).brandId === 'brand_ecstatic_edibles' ? 'Ecstatic Edibles' : undefined)
                     || undefined;
 
                 const delivery = await sendPlatformOnboardingEmail({
                     userId,
                     email,
                     firstName,
-                    role: recipientData.role,
-                    orgId: recipientData.orgId || recipientData.brandId || recipientData.currentOrgId,
-                    brandId: recipientData.brandId,
-                    dispensaryId: recipientData.dispensaryId,
-                    primaryGoal: recipientData.onboarding?.primaryGoal,
+                    role: (recipientData as any).role,
+                    orgId: (recipientData as any).orgId || (recipientData as any).brandId || (recipientData as any).currentOrgId,
+                    brandId: (recipientData as any).brandId,
+                    dispensaryId: (recipientData as any).dispensaryId,
+                    primaryGoal: (recipientData as any).onboarding?.primaryGoal,
                     workspaceName,
                     sequenceType: 'weekly_feature',
                     weekIndex,

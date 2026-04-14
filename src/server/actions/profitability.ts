@@ -606,7 +606,7 @@ export async function getProductProfitabilityData(): Promise<{
 
     // cost (Cost of Good) takes priority; fall back to batchCost (Wholesale/Batch Cost)
     const effectiveCost = cost !== undefined ? cost : (batchCost !== undefined ? batchCost : null);
-    const costSource: 'cost_of_good' | 'batch_cost' | 'none' =
+    const costSource: 'cost_of_good' | 'batch_cost' | 'estimated' | 'none' =
       cost !== undefined ? 'cost_of_good' : (batchCost !== undefined ? 'batch_cost' : 'none');
 
     const stockCount: number = typeof data.stockCount === 'number' ? data.stockCount : 0;

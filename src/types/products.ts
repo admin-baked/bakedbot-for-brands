@@ -142,7 +142,7 @@ export type Product = {
     salesVelocity?: number; // Units per day (7-day average for trending calculation)
     lastSaleAt?: Date; // Most recent purchase timestamp
     trending?: boolean; // Auto-calculated: high velocity + recent sales
-    status?: 'active' | 'coming_soon' | 'discontinued'; // Product release status
+    lifecycleStatus?: 'active' | 'coming_soon' | 'discontinued'; // Product release status
 };
 
 export type Retailer = {
