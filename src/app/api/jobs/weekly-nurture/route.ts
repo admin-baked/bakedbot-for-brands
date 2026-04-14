@@ -105,10 +105,10 @@ export async function POST(request: NextRequest) {
 
         for (const recipientData of recipients) {
             const userId = recipientData.id;
-            const email = recipientData.email;
+            const email = (recipientData as any).email;
             // Try multiple field names - different signup paths store name differently
-            const fullName = recipientData.displayName || recipientData.name || recipientData.firstName || '';
-            const firstName = recipientData.firstName || fullName.split(' ')[0] || undefined;
+            const fullName = (recipientData as any).displayName || (recipientData as any).name || (recipientData as any).firstName || '';
+            const firstName = (recipientData as any).firstName || fullName.split(' ')[0] || undefined;
 
             if (!email) {
                 logger.warn('[WeeklyNurture] Skipping user without email', { userId });
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
             }
 
             try {
-                const onboardingCompletedAtMs = Date.parse(String(recipientData.onboardingCompletedAt || recipientData.capturedAt || ''));
+                const onboardingCompletedAtMs = Date.parse(String((recipientData as any).onboardingCompletedAt || (recipientData as any).capturedAt || ''));
                 const elapsedWeeks = Number.isFinite(onboardingCompletedAtMs)
                     ? Math.floor((Date.now() - onboardingCompletedAtMs) / (7 * 24 * 60 * 60 * 1000))
                     : 1;

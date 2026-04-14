@@ -676,7 +676,7 @@ export async function getProductProfitabilityData(): Promise<{
   // Apply estimated cost to products without COGS
   const products: ProductProfitabilityItem[] = rawProducts.map(p => {
     let estimatedCost: number | null = null;
-    let finalCostSource = p.costSource;
+    let finalCostSource: 'cost_of_good' | 'batch_cost' | 'estimated' | 'none' = p.costSource as any;
 
     if (p.effectiveCost === null && p.retailPrice > 0 && p.isMerchandise) {
       const avgMargin = categoryAvgMargin.get(p.category);

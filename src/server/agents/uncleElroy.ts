@@ -29,6 +29,7 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 // --- Memory Schema ---
 export interface UncleElroyMemory {
+    [key: string]: unknown;
     agent_id: string;
     system_instructions?: string;
     challenges_raised: ChallengeRecord[];
