@@ -5,6 +5,8 @@
  * Used across API routes and agent handlers.
  */
 
+import { randomBytes } from 'crypto';
+
 /**
  * Sanitize user-provided data to prevent prompt injection.
  * Removes/escapes patterns that could manipulate agent behavior.
@@ -42,8 +44,6 @@ export function sanitizeForPrompt(input: string, maxLength: number = 2000): stri
 
     return sanitized.trim();
 }
-
-import { randomBytes } from 'crypto';
 
 /**
  * Generate a random marker suffix for delimiter unpredictability.
