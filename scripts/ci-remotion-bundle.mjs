@@ -28,15 +28,15 @@ const shouldSkip = isCI || skipExplicit;
 
 const bundleDir = path.resolve(process.cwd(), '.remotion', 'bundle');
 
-// Create zod/v3 shim — zod@3.x doesn't export /v3 subpath, but @remotion/bundler
-// and some server code imports from 'zod/v3'. The shim re-exports from 'zod'.
-// We patch zod's package.json exports AND create the v3/ subpath files.
-async function createZodV3Shim() {
+// Create zod/v3 and v4 shims — zod@3.x doesn't export /v3 or /v4 subpaths, 
+// but modern tools and some server code attempts to import from them.
+// The shims re-export from 'zod'.
+async function createZodShims() {
   const zodDir = path.resolve(process.cwd(), 'node_modules', 'zod');
   const zodPkgPath = path.join(zodDir, 'package.json');
-  const zodV3Dir = path.join(zodDir, 'v3');
+  const versions = ['v3', 'v4'];
 
-  // Patch zod's package.json to add ./v3 export
+  // Patch zod's package.json to add exports
   const pkgContent = await fs.readFile(zodPkgPath, 'utf-8');
   const pkg = JSON.parse(pkgContent);
 
@@ -44,17 +44,16 @@ async function createZodV3Shim() {
     pkg.exports = {};
   }
 
-  pkg.exports['./v3'] = {
-    types: './v3/index.d.ts',
-    require: './v3/index.js',
-    import: './v3/index.mjs',
-  };
+  for (const v of versions) {
+    pkg.exports[`./${v}`] = {
+      types: `./${v}/index.d.ts`,
+      require: `./${v}/index.js`,
+      import: `./${v}/index.mjs`,
+    };
+  }
 
   await fs.writeFile(zodPkgPath, JSON.stringify(pkg, null, 2) + '\n');
-  console.log('[zod-v3-shim] Patched zod/package.json exports');
-
-  // Create v3/ subpath files
-  await fs.mkdir(zodV3Dir, { recursive: true });
+  console.log(`[zod-shim] Patched zod/package.json exports for: ${versions.join(', ')}`);
 
   const indexJs = `"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -76,12 +75,16 @@ export { z } from 'zod';
 export { default } from 'zod';
 `;
 
-  await Promise.all([
-    fs.writeFile(path.join(zodV3Dir, 'index.js'), indexJs),
-    fs.writeFile(path.join(zodV3Dir, 'index.mjs'), indexMjs),
-    fs.writeFile(path.join(zodV3Dir, 'index.d.ts'), indexDts),
-  ]);
-  console.log('[zod-v3-shim] Created zod/v3 subpath files re-exporting from zod');
+  for (const v of versions) {
+    const vDir = path.join(zodDir, v);
+    await fs.mkdir(vDir, { recursive: true });
+    await Promise.all([
+      fs.writeFile(path.join(vDir, 'index.js'), indexJs),
+      fs.writeFile(path.join(vDir, 'index.mjs'), indexMjs),
+      fs.writeFile(path.join(vDir, 'index.d.ts'), indexDts),
+    ]);
+  }
+  console.log(`[zod-shim] Created zod subpath files re-exporting from zod for: ${versions.join(', ')}`);
 }
 
 if (shouldSkip) {
@@ -96,8 +99,8 @@ if (shouldSkip) {
   console.log('[ci-remotion-bundle] Placeholder written. Build continues.');
 }
 
-// Always create zod/v3 shim (needed even when bundle is skipped)
-await createZodV3Shim();
+// Always create zod shims (needed even when bundle is skipped)
+await createZodShims();
 
 if (shouldSkip) {
   // Already handled above

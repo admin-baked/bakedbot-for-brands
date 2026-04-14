@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; BUG-021/031/024 security fixes + drive.ts type fix; all 5 data hub pages with Navbar; national dispensary directory | **Last update:** 2026-04-13 (collectionGroup org isolation + tablet fallback: `058e89756`)
+**Current Status:** 🟢 Production live; build memory optimized (8GB heap) for Next.js 16; zod shims (v3/v4) restored for tools; local rebase clean | **Last update:** 2026-04-14 (Build memory fix + rebase sync)
 
 ---
 
