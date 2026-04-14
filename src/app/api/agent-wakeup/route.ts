@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
         const child = spawn(opencodePath, args, {
             stdio: ['pipe', 'pipe', 'pipe'],
             env: {
-                ...process.env,
+                PATH: process.env.PATH,
+                NODE_ENV: process.env.NODE_ENV,
                 OPENCODE_TASK_ID: taskId,
                 OPENCODE_TASK_TYPE: taskType || 'bug-hunt',
             }

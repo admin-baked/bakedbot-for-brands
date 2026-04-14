@@ -49,8 +49,31 @@ function gradeFromScore(score: number): string {
   return 'F';
 }
 
+function isAllowedUrl(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+    const hostname = url.hostname.toLowerCase();
+    
+    // Block private/internal IP ranges
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0') return false;
+    if (hostname.startsWith('10.') || hostname.startsWith('192.168.')) return false;
+    if (hostname.startsWith('172.') && parseInt(hostname.split('.')[1]) >= 16 && parseInt(hostname.split('.')[1]) <= 31) return false;
+    if (hostname.endsWith('.local')) return false;
+    
+    // Only allow http/https
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export async function runRetentionAudit(url: string): Promise<RetentionAuditResult | { error: string }> {
   const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
+  
+  // Validate URL to prevent SSRF
+  if (!isAllowedUrl(normalizedUrl)) {
+    return { error: 'URL not allowed - only public web pages are supported' };
+  }
 
   // Fetch page content and PSI data in parallel
   const [pageContent, psiResult] = await Promise.all([

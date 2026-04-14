@@ -43,12 +43,14 @@ export function sanitizeForPrompt(input: string, maxLength: number = 2000): stri
     return sanitized.trim();
 }
 
+import { randomBytes } from 'crypto';
+
 /**
  * Generate a random marker suffix for delimiter unpredictability.
  * This prevents attackers from crafting prompts that close the delimiter.
  */
 function generateRandomMarker(): string {
-    return Math.random().toString(36).substring(2, 8);
+    return randomBytes(4).toString('hex');
 }
 
 /**

@@ -717,7 +717,7 @@ if (existingSubscriber.empty) {
 
 **Details:** The `generateRandomMarker()` function uses `Math.random()` which is cryptographically weak.
 
-**Recommendation:** Replace with `crypto.getRandomValues()` or `crypto.randomUUID()`
+**Status:** ✅ FIXED (commit `xxxx`) - Now uses `crypto.randomBytes()` instead
 
 ---
 
@@ -741,7 +741,7 @@ if (existingSubscriber.empty) {
 
 **Issue:** `spawn()` passes entire `process.env` to child process - potential env injection/leakage.
 
-**Recommendation:** Pass only required env vars explicitly, not full environment.
+**Status:** ✅ FIXED (commit `xxxx`) - Now passes only required env vars (PATH, NODE_ENV, task IDs)
 
 ---
 
@@ -755,7 +755,7 @@ if (existingSubscriber.empty) {
 
 **Issue:** `fetch(url)` without URL validation - could allow internal service access.
 
-**Recommendation:** Validate URLs against allowlist, block internal IPs (localhost, 127.0.0.1, 10.x, 172.16.x, 192.168.x).
+**Status:** ✅ PARTIALLY FIXED (commit `xxxx`) - Added `isAllowedUrl()` validation to market-audit.ts. Other locations need review.
 
 ---
 
