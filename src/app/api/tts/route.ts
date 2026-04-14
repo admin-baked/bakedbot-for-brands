@@ -144,6 +144,9 @@ export const POST = withAuth(async (request: NextRequest) => {
 
 // Health check
 export async function GET() {
+  const { requireUser } = await import('@/server/auth/auth');
+  await requireUser();
+  
   const available = isOpenAITTSAvailable();
 
   return NextResponse.json({

@@ -1,28 +1,12 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/firebase/server-client';
-import { getAuth } from 'firebase-admin/auth';
+import { requireUser } from '@/server/auth/auth';
 
 export async function GET(request: Request) {
     try {
+        const user = await requireUser();
+        const userId = user.uid;
         const { firestore } = await createServerClient();
-        
-        // Get user from session cookie
-        const cookieHeader = request.headers.get('cookie') || '';
-        const sessionCookie = cookieHeader
-            .split(';')
-            .find(c => c.trim().startsWith('session='))
-            ?.split('=')[1];
-            
-        if (!sessionCookie) {
-            return NextResponse.json({ linkedDispensary: null }, { status: 200 });
-        }
-        
-        // Verify session and get user
-        const { getAdminAuth } = await import('@/firebase/admin');
-        const auth = getAdminAuth();
-        const decodedClaims = await auth.verifySessionCookie(sessionCookie);
-        const userId = decodedClaims.uid;
         
         // Get user profile with linked dispensary
         const userDoc = await firestore.collection('users').doc(userId).get();

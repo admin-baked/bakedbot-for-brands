@@ -643,7 +643,7 @@ if (existingSubscriber.empty) {
 
 **Issue:** GET /api/tts health check returns sensitive service info (available voices, max length) without authentication.
 
-**Recommendation:** Add `requireUser()` check to health endpoint or protect via CRON_SECRET pattern.
+**Status:** ✅ FIXED (commit `xxxx`) - Now requires authentication via `requireUser()`
 
 ---
 
@@ -654,7 +654,7 @@ if (existingSubscriber.empty) {
 
 **Issue:** Uses manual session cookie parsing instead of `requireUser()`, returns sensitive user profile data.
 
-**Recommendation:** Replace with `const user = await requireUser()`.
+**Status:** ✅ FIXED (commit `xxxx`) - Now uses `requireUser()` and `user.uid` from session
 
 ---
 
@@ -669,7 +669,14 @@ if (existingSubscriber.empty) {
 
 **Issue:** Actions accept orgId parameter but don't verify caller has access to that org.
 
-**Recommendation:** Add `assertOrgAccess(user, orgId)` at the start of each function.
+**Status:** ✅ ALREADY SECURE - All actions have proper org access checks:
+- getUsersByOrg (line 56): has `assertOrgAccess(user, orgId)`
+- getInvitationsAction (line 264-272): has org access checks
+- getCampaignStats uses getCampaigns which has `canAccessOrg` (line 262)
+- getLoyaltySettings (line 103): has `assertOrgAccess(user, orgId)`
+- getPublicMenuSettings is intentionally public (line 60) - no auth needed
+
+**Recommendation:** Keep existing implementation
 
 ---
 
@@ -680,7 +687,9 @@ if (existingSubscriber.empty) {
 
 **Issue:** `renderMarkdown()` output passed directly to `dangerouslySetInnerHTML` without HTML sanitization.
 
-**Recommendation:** Use `DOMPurify.sanitize()` on renderMarkdown output before rendering.
+**Status:** ✅ NOT A BUG - Custom markdown renderer only outputs safe HTML tags (strong, em, code, a) and escapes content. Content is from internal Firebase Storage only (see line 91 comment).
+
+**Recommendation:** Keep existing implementation - it's secure.
 
 ---
 
@@ -691,5 +700,7 @@ if (existingSubscriber.empty) {
 
 **Issue:** Empty catch blocks silently swallow permission check failures, making debugging impossible.
 
-**Recommendation:** Log errors or use proper conditional checks instead of try/catch with empty catch.
+**Status:** ⚠️ ACKNOWLEDGED - The try/catch pattern is intentional (checks if user can access target org). Would be better to use conditional checks, but not a security issue - unauthorized users still correctly rejected at line 352.
+
+**Recommendation:** Refactor to use conditional checks instead of try/catch for permission checks.
 ```
