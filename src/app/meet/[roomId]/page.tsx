@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'; // skip static generation — auth/user-specific page
 /**
  * Meeting Room Page
  * URL: meet.bakedbot.ai/{roomId}  (also accessible as bakedbot.ai/meet/{roomId})

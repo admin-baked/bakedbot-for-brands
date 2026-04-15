@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'; // skip static generation — auth/user-specific page
 import { getSharedArtifact } from '@/server/actions/artifacts';
 import { ArtifactRenderer } from '@/components/artifacts/artifact-renderer';
 import { Button } from '@/components/ui/button';

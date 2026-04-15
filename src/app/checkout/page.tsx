@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'; // skip static generation — auth/user-specific page
 'use client';
 
 // src/app/checkout/page.tsx

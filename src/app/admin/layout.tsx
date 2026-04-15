@@ -1,3 +1,6 @@
+// Force dynamic rendering — admin pages require auth and live Firestore data
+export const dynamic = 'force-dynamic';
+
 export default function AdminLayout({
     children,
 }: {

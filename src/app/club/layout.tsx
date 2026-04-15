@@ -3,6 +3,9 @@ import { Suspense } from 'react';
 import { ClubProvider } from './components/ClubProvider';
 import { ClubNav } from './components/ClubNav';
 
+// Force dynamic rendering — club pages require auth and user-specific loyalty data
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
     title: 'BakedBot Club',
     description: 'Your dispensary membership',
