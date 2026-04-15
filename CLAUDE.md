@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; deliberative inventory pipeline wired to Elroy + briefings; campaign crash fixed | **Last update:** 2026-04-15 (inventory pipeline + campaign-card optional chain `43bb637c4`)
+**Current Status:** 🟢 Production live; order revenue fix (totals.total) + 4/20 playbook activated + ErrorBoundary→Linus + Elroy dedup | **Last update:** 2026-04-15 (inventory/sales fixes + 4/20 playbook `0b110bc9c`)
 
 ---
 

@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; deliberative inventory pipeline wired to Elroy + briefings; campaign crash fixed.
-**Recent work (2026-04-15):** `43bb637c4` inventory pipeline + campaign-card crash fix; `2ba92515f` budtender-shift auth; `757334b18` BUILD-GUARD
+**Current Status:** 🟢 Production live; order revenue fix (totals.total) + 4/20 playbook activated + ErrorBoundary→Linus + Elroy dedup.
+**Recent work (2026-04-15):** `0b110bc9c` Elroy dedup + bare catches; `841d58acd` order revenue totals.total fix; `9fe4d08b8` ErrorBoundary→Linus /api/errors/client; `43bb637c4` inventory pipeline + campaign-card crash fix
 - `26b7d7ac1` Firebase API key moved to env var (resolved secret alert)
 - `106f5408d` Security fixes: admin routes auth, XSS sanitization, database tool permissions
 **Prior (2026-04-12):** `c05e091da` CHANNEL_MAP + roster training; `1fbc88b22` task board + inbound CTAs
