@@ -11,7 +11,7 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import type { UpsellPlacement, UpsellStrategy } from '@/types/upsell';
 
-const db = getAdminFirestore();
+const getDb = () => getAdminFirestore();
 
 // --- Types ---
 
@@ -84,7 +84,7 @@ export async function getUpsellAnalytics(orgId: string): Promise<UpsellAnalytics
         const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
         // Fetch upsell events from the last 7 days
-        const eventsSnapshot = await db
+        const eventsSnapshot = await getDb()
             .collection('upsell_events')
             .where('orgId', '==', orgId)
             .where('timestamp', '>=', sevenDaysAgo)
