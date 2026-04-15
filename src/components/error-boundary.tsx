@@ -45,30 +45,21 @@ export class ErrorBoundary extends React.Component<
         // Log error to monitoring service
         logger.error('Error boundary caught error:', { error, errorInfo, isDeploymentMismatch });
 
-        // Log critical errors to Firestore for agent monitoring
+        // Report to Linus — creates agent_tasks doc + Slack alert in #linus-incidents
         if (typeof window !== 'undefined' && !isDeploymentMismatch) {
-            try {
-                // Import dynamically to avoid build issues
-                import('@/firebase/client')
-                    .then(({ db }) => {
-                        if (db) {
-                            db.collection('client_errors').add({
-                                message: error.message,
-                                stack: error.stack,
-                                componentStack: errorInfo.componentStack,
-                                url: window.location.href,
-                                userAgent: navigator.userAgent,
-                                timestamp: new Date(),
-                                isDeploymentMismatch
-                            }).catch(() => {
-                                // Fail silently if Firestore is unavailable
-                            });
-                        }
-                    })
-                    .catch(() => { });
-            } catch (e) {
-                // Ignore logging failures
-            }
+            fetch('/api/errors/client', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: error.message,
+                    stack: error.stack,
+                    componentStack: errorInfo.componentStack,
+                    url: window.location.href,
+                    userAgent: navigator.userAgent,
+                }),
+            }).catch(() => {
+                // Fail silently — never let error reporting crash the error UI
+            });
         }
 
         // For deployment mismatches, attempt automatic reload (once)

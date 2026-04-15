@@ -9,7 +9,7 @@ export type LinusIncidentSlackBlock = Record<string, unknown>;
 export interface LinusIncidentSlackMessage {
     blocks: LinusIncidentSlackBlock[];
     fallbackText: string;
-    source: 'auto-escalator' | 'support-ticket' | 'server-error' | 'marty-ceo-briefing' | 'marty-meeting-reminder' | 'marty-problem-report' | 'marty-followup-cadence' | 'agent-dream-review' | 'agent-dream-batch' | 'dayday-seo-report';
+    source: 'auto-escalator' | 'support-ticket' | 'server-error' | 'client-error' | 'marty-ceo-briefing' | 'marty-meeting-reminder' | 'marty-problem-report' | 'marty-followup-cadence' | 'agent-dream-review' | 'agent-dream-batch' | 'dayday-seo-report';
     incidentId?: string | null;
     channelName?: string;
     threadTs?: string;
