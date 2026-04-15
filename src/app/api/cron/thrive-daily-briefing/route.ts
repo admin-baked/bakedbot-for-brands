@@ -33,6 +33,7 @@ import {
     type Holiday,
     type CompetitorHours,
 } from '@/server/services/holiday-hours';
+import { loadSlowMoverInsight, type SlowMoverInsight } from '@/server/services/morning-briefing';
 
 export const maxDuration = 300;
 
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
         const upcomingHolidays = getUpcomingHolidays(7);
         const nearestHoliday = upcomingHolidays[0] ?? null;
 
-        const [segmentResult, atRiskResult, intelReport, todayCheckins, products, holidayHoursResult, staleOrdersResult] = await Promise.allSettled([
+        const [segmentResult, atRiskResult, intelReport, todayCheckins, products, holidayHoursResult, staleOrdersResult, slowMoversResult] = await Promise.allSettled([
             getSegmentSummary(ORG_ID),
             getAtRiskCustomers(ORG_ID, 5, true),
             getLatestWeeklyReport(ORG_ID),
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
             // Only hit Places API if a holiday is within 7 days
             nearestHoliday ? fetchCompetitorHolidayHours(SYRACUSE_COMPETITORS) : Promise.resolve([]),
             loadStaleOrders(ORG_ID),
+            loadSlowMoverInsight(ORG_ID),
         ]);
 
         const segment = segmentResult.status === 'fulfilled' ? segmentResult.value : null;
@@ -66,6 +68,7 @@ export async function POST(request: NextRequest) {
         const inventory = products.status === 'fulfilled' ? products.value : [];
         const competitorHolidays: CompetitorHours[] = holidayHoursResult.status === 'fulfilled' ? holidayHoursResult.value : [];
         const staleOrders: StaleOrder[] = staleOrdersResult.status === 'fulfilled' ? staleOrdersResult.value : [];
+        const slowMovers: SlowMoverInsight | null = slowMoversResult.status === 'fulfilled' ? slowMoversResult.value : null;
 
         // Identify discount candidates — slice to 50 before processing to cap iteration cost
         const discountCandidates = identifyDiscountCandidates(inventory.slice(0, 50));
@@ -80,6 +83,7 @@ export async function POST(request: NextRequest) {
             nearestHoliday,
             competitorHolidays,
             staleOrders,
+            slowMovers,
         });
 
         const blocks = buildBriefingBlocks({
@@ -92,6 +96,7 @@ export async function POST(request: NextRequest) {
             nearestHoliday,
             competitorHolidays,
             staleOrders,
+            slowMovers,
         });
 
         // Ensure channel exists and bot is a member before posting
@@ -227,6 +232,7 @@ interface BriefingData {
     nearestHoliday: Holiday | null;
     competitorHolidays: CompetitorHours[];
     staleOrders: StaleOrder[];
+    slowMovers: SlowMoverInsight | null;
 }
 
 async function synthesizeActionItems(data: BriefingData): Promise<string[]> {
@@ -253,7 +259,13 @@ async function synthesizeActionItems(data: BriefingData): Promise<string[]> {
             contextLines.push(`Top competitor deal spotted: ${deal.dealName} at $${deal.price} (${deal.competitorName})`);
         }
 
-        if (data.discountCandidates.length) {
+        if (data.slowMovers && data.slowMovers.totalValueAtRisk > 0) {
+            contextLines.push(`Slow-moving inventory: ${data.slowMovers.headline} (deliberative audit, cross-checked against POS sales history)`);
+            if (data.slowMovers.topProducts.length) {
+                const top = data.slowMovers.topProducts[0];
+                contextLines.push(`Top slow mover: ${top.name} (${top.category}) — ${top.daysInInventory}d in inventory, $${Math.round(top.valueAtRisk)} at risk`);
+            }
+        } else if (data.discountCandidates.length) {
             const c = data.discountCandidates[0];
             contextLines.push(`Discount opportunity: ${c.name} — ${c.reason}`);
         }
@@ -357,8 +369,21 @@ function buildBriefingBlocks(data: BriefingData & { actionItems: string[] }): an
         });
     }
 
-    // 🏷️ Discount Opportunities
-    if (data.discountCandidates.length) {
+    // 📦 Slow Moving Inventory (deliberative audit) — shown when real data is available
+    if (data.slowMovers && data.slowMovers.totalValueAtRisk > 0) {
+        const productLines = data.slowMovers.topProducts.map(p =>
+            `• *${p.name}* (${p.category}) — ${p.daysInInventory}d in inventory · $${Math.round(p.valueAtRisk)} at risk`
+        ).join('\n');
+        blocks.push({ type: 'divider' });
+        blocks.push({
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `*📦 Slow Moving Inventory*\n_${data.slowMovers.headline}_\n${productLines}`,
+            },
+        });
+    } else if (data.discountCandidates.length) {
+        // 🏷️ Discount Opportunities (stock-count heuristic fallback)
         const dealList = data.discountCandidates.map(c =>
             `• *${c.name}* (${c.category}) — $${c.price} · ${c.reason}`
         ).join('\n');

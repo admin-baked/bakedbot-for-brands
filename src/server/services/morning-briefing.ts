@@ -378,6 +378,41 @@ async function loadContentAnalyticsSnapshotForBriefing(orgId: string): Promise<C
     }
 }
 
+export interface SlowMoverInsight {
+    headline: string;
+    totalValueAtRisk: number;
+    totalSkus: number;
+    topProducts: Array<{ name: string; category: string; valueAtRisk: number; daysInInventory: number }>;
+}
+
+/**
+ * Load slow-mover inventory insight from the deliberative audit pipeline.
+ * Written by InventoryVelocityGenerator into tenants/{orgId}/insights.
+ */
+export async function loadSlowMoverInsight(orgId: string): Promise<SlowMoverInsight | null> {
+    try {
+        const db = getAdminFirestore();
+        const docId = `${orgId}:velocity:slow_movers`;
+        const snap = await db.collection(`tenants/${orgId}/insights`).doc(docId).get();
+        if (!snap.exists) return null;
+        const d = snap.data()!;
+        const meta = (d.metadata ?? {}) as Record<string, unknown>;
+        return {
+            headline: String(d.headline ?? ''),
+            totalValueAtRisk: Number(meta.totalValueAtRisk ?? 0),
+            totalSkus: Number(meta.totalSkus ?? 0),
+            topProducts: ((meta.topProducts ?? []) as any[]).slice(0, 5).map((p: any) => ({
+                name: String(p.name ?? 'Unknown'),
+                category: String(p.category ?? ''),
+                valueAtRisk: Number(p.valueAtRisk ?? 0),
+                daysInInventory: Number(p.daysInInventory ?? 0),
+            })),
+        };
+    } catch {
+        return null;
+    }
+}
+
 /**
  * Load counts of items awaiting super user review.
  * Added to the morning briefing so the inbox artifact surfaces actionable items.
@@ -408,6 +443,7 @@ function buildMetrics(
     outreachFunnel?: OutreachFunnel | null,
     contentAnalytics?: ContentAnalyticsSnapshot | null,
     isPlatformOrg: boolean = false,
+    slowMovers?: SlowMoverInsight | null,
 ): BriefingMetric[] {
     const metrics: BriefingMetric[] = [];
     const hasTrackedOrderHistory = yesterdayOrders.length > 0 || last7Orders.length > 0;
@@ -520,7 +556,18 @@ function buildMetrics(
         });
     }
 
-    // 4. Inventory At Risk (60+ days no sale)
+    // 4. Inventory At Risk — prefer deliberative pipeline result (cross-checked against Alleaves sales
+    //    history) over the lastSaleAt field which POS sync does not write.
+    if (slowMovers && slowMovers.totalValueAtRisk > 0) {
+        metrics.push({
+            title: 'Inventory At Risk',
+            value: `$${Math.round(slowMovers.totalValueAtRisk).toLocaleString()} (${slowMovers.totalSkus} SKUs)`,
+            trend: 'down',
+            vsLabel: 'slow-moving inventory · deliberative audit',
+            status: slowMovers.totalValueAtRisk > 5000 ? 'warning' : 'good',
+            actionable: 'Consider markdown or bundle deals — ask Elroy for the full list',
+        });
+    } else {
     const now = Date.now();
     const inventoryAgeCandidates = activeProducts
         .map(product => ({ product, lastSale: toAnalyticsDate(product.lastSaleAt) }))
@@ -549,6 +596,7 @@ function buildMetrics(
             actionable: atRiskValue > 0 ? 'Consider markdown or liquidation' : undefined,
         });
     }
+    } // end slow-movers else
 
     // 5. Active SKU Count
     const activeSku = activeProducts.length;
@@ -732,7 +780,7 @@ function buildMetrics(
 // ============ Core generation function ============
 
 export async function generateMorningBriefing(orgId: string): Promise<AnalyticsBriefing> {
-    const [benchmarks, products, yesterdayOrders, last7Orders, greenledgerSummary, outreachStatsResult, pendingCountsResult, meetingsResult, emailDigestResult, platformGrowthResult, outreachFunnelResult, contentAnalyticsResult] = await Promise.allSettled([
+    const [benchmarks, products, yesterdayOrders, last7Orders, greenledgerSummary, outreachStatsResult, pendingCountsResult, meetingsResult, emailDigestResult, platformGrowthResult, outreachFunnelResult, contentAnalyticsResult, slowMoversResult] = await Promise.allSettled([
         getMarketBenchmarks(orgId),
         loadOrgProducts(orgId),
         loadYesterdayOrders(orgId),
@@ -745,6 +793,7 @@ export async function generateMorningBriefing(orgId: string): Promise<AnalyticsB
         loadPlatformGrowthStats(), // P1: MRR + customer count
         loadOutreachFunnel(),      // P4: outreach pipeline funnel
         loadContentAnalyticsSnapshotForBriefing(orgId),
+        loadSlowMoverInsight(orgId), // deliberative inventory audit pipeline
     ]);
 
     const bm = benchmarks.status === 'fulfilled' ? benchmarks.value : await getMarketBenchmarks('');
@@ -759,6 +808,7 @@ export async function generateMorningBriefing(orgId: string): Promise<AnalyticsB
     const platformGrowth = platformGrowthResult.status === 'fulfilled' ? platformGrowthResult.value : null;
     const outreachFunnel = outreachFunnelResult.status === 'fulfilled' ? outreachFunnelResult.value : null;
     const contentAnalytics = contentAnalyticsResult.status === 'fulfilled' ? contentAnalyticsResult.value : null;
+    const slowMovers = slowMoversResult.status === 'fulfilled' ? slowMoversResult.value : null;
 
     // Build metrics
     const metrics = buildMetrics(
@@ -773,6 +823,7 @@ export async function generateMorningBriefing(orgId: string): Promise<AnalyticsB
         outreachFunnel,
         contentAnalytics,
         PLATFORM_SIGNAL_ORG_IDS.has(orgId),
+        slowMovers,
     );
 
     // Read industry news from pre-warmed cache (written at 5:30 AM by industry-pulse-refresh cron)

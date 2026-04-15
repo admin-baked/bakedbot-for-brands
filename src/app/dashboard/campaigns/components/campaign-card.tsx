@@ -71,10 +71,10 @@ export function CampaignCard({ campaign, onRefresh }: CampaignCardProps) {
                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             {/* Channels */}
                             <div className="flex items-center gap-1">
-                                {campaign.channels.includes('email') && (
+                                {campaign.channels?.includes('email') && (
                                     <Mail className="h-3.5 w-3.5" />
                                 )}
-                                {campaign.channels.includes('sms') && (
+                                {campaign.channels?.includes('sms') && (
                                     <MessageSquare className="h-3.5 w-3.5" />
                                 )}
                             </div>
@@ -83,7 +83,7 @@ export function CampaignCard({ campaign, onRefresh }: CampaignCardProps) {
                             <div className="flex items-center gap-1">
                                 <Users className="h-3.5 w-3.5" />
                                 <span>
-                                    {campaign.audience.resolvedCount || campaign.audience.estimatedCount} recipients
+                                    {campaign.audience?.resolvedCount || campaign.audience?.estimatedCount} recipients
                                 </span>
                             </div>
 

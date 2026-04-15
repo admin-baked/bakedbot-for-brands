@@ -98,6 +98,10 @@ export function IncomingVisitNotification() {
 
         const setup = async () => {
             try {
+                if (typeof user.getIdTokenResult !== 'function') {
+                    logger.warn('[IncomingVisitNotification] user.getIdTokenResult unavailable — skipping');
+                    return;
+                }
                 const tokenResult = await user.getIdTokenResult();
                 const claims = tokenResult.claims as Record<string, unknown>;
                 const claimStr = (k: string) => (typeof claims[k] === 'string' ? (claims[k] as string) : null);

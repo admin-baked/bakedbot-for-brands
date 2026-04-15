@@ -399,6 +399,15 @@ const ELROY_TOOLS: ClaudeTool[] = [
             required: [],
         },
     },
+    {
+        name: 'get_slow_movers',
+        description: 'Return slow-moving inventory for Thrive Syracuse from the deliberative audit pipeline. Shows products that have not sold recently, their dollar value at risk, and days sitting in inventory. More accurate than raw stock counts because it cross-checks Alleaves sales history.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {},
+            required: [],
+        },
+    },
 ];
 
 // ============================================================================
@@ -934,6 +943,37 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
             };
         }
 
+        case 'get_slow_movers': {
+            const db = getAdminFirestore();
+            const docId = `${ORG_ID}:velocity:slow_movers`;
+            const snap = await db.collection(`tenants/${ORG_ID}/insights`).doc(docId).get();
+            if (!snap.exists) {
+                return { message: 'No slow mover data available yet. The inventory velocity audit may not have run. Ask Linus to trigger it.' };
+            }
+            const d = snap.data()!;
+            const meta = (d.metadata ?? {}) as Record<string, unknown>;
+            const updatedAt = (d.updatedAt as { toDate?: () => Date } | null)?.toDate?.()?.toISOString() ?? d.updatedAt ?? null;
+            const ageHours = updatedAt ? Math.round((Date.now() - new Date(String(updatedAt)).getTime()) / 3_600_000) : null;
+            return {
+                headline: d.headline,
+                totalValueAtRisk: meta.totalValueAtRisk ?? 0,
+                totalSkus: meta.totalSkus ?? 0,
+                topSlowMovers: ((meta.topProducts ?? []) as any[]).slice(0, 10).map((p: any) => ({
+                    name: p.name,
+                    category: p.category,
+                    price: p.price,
+                    stockLevel: p.stockLevel,
+                    daysInInventory: p.daysInInventory,
+                    valueAtRisk: p.valueAtRisk,
+                })),
+                categoryBreakdown: meta.categoryBreakdown ?? {},
+                dataFreshness: ageHours !== null
+                    ? (ageHours < 24 ? 'fresh (< 24h)' : `${Math.floor(ageHours / 24)}d old`)
+                    : 'unknown',
+                note: 'Deliberative audit pipeline — cross-checked against Alleaves sales history.',
+            };
+        }
+
         default:
             return { error: `Unknown tool: ${toolName}` };
     }
@@ -958,6 +998,7 @@ You help store managers with:
 - Live competitor pricing and deals via real-time web research
 - Competitor holiday hours — who's open, who's closed, any special hours
 - Marketing playbooks and email campaigns — status, schedule, approval tracking
+- Slow-moving inventory — which SKUs are sitting too long and how much value is at risk
 
 Your style: direct, friendly, a little old-school. You know every customer by name. You give real answers with real numbers — no fluff.
 
@@ -1038,6 +1079,7 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'get_competitor_holiday_hours — Google Places hours for Syracuse competitors around holidays',
         'ask_opencode — delegate coding/technical tasks to BakedBot AI coding agent (SP13)',
         'get_playbooks — marketing playbooks and email campaign status, schedule, and approval tracking',
+        'get_slow_movers — slow-moving inventory from deliberative audit pipeline (value at risk, days in inventory)',
         'discovery_browser_automate — browse external sites (Weedmaps, AIQ, WordPress, competitors)',
         'discovery_fill_form — fill and submit forms (deals, campaigns, WP content)',
         'discovery_extract_data — extract structured data from any webpage',
@@ -1065,6 +1107,7 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'NEVER submit a form on an external site without explicit user confirmation first',
         'For holiday or special hours questions, use get_competitor_holiday_hours (Google Places) — NOT run_competitive_agent',
         'For campaign, email, playbook, or 4/20 marketing questions, use get_playbooks to check current status and relay details',
+        'For slow mover, aging inventory, or "what\'s sitting" questions, use get_slow_movers — it uses verified Alleaves sales history, not stock count alone',
     ],
 };
 
