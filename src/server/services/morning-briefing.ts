@@ -212,7 +212,8 @@ async function loadYesterdayOrders(orgId: string): Promise<OrderRow[]> {
 
     try {
         return await loadOrdersInRange(orgId, yesterdayStart, yesterdayEnd);
-    } catch {
+    } catch (err) {
+        logger.warn('[MorningBriefing] loadYesterdayOrders failed', { orgId, error: String(err) });
         return [];
     }
 }
@@ -222,7 +223,8 @@ async function loadLast7DaysOrders(orgId: string): Promise<OrderRow[]> {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     try {
         return await loadOrdersInRange(orgId, sevenDaysAgo);
-    } catch {
+    } catch (err) {
+        logger.warn('[MorningBriefing] loadLast7DaysOrders failed', { orgId, error: String(err) });
         return [];
     }
 }
@@ -383,16 +385,28 @@ async function loadContentAnalyticsSnapshotForBriefing(orgId: string): Promise<C
     }
 }
 
+export interface SlowMoverProduct {
+    name: string;
+    category: string;
+    valueAtRisk: number;
+    daysInInventory: number;
+    price?: number;
+    stockLevel?: number;
+}
+
 export interface SlowMoverInsight {
     headline: string;
     totalValueAtRisk: number;
     totalSkus: number;
-    topProducts: Array<{ name: string; category: string; valueAtRisk: number; daysInInventory: number }>;
+    topProducts: SlowMoverProduct[];
+    categoryBreakdown: Record<string, unknown>;
+    dataFreshness: string;
 }
 
 /**
  * Load slow-mover inventory insight from the deliberative audit pipeline.
  * Written by InventoryVelocityGenerator into tenants/{orgId}/insights.
+ * Returns full insight including category breakdown and freshness for Elroy tool use.
  */
 export async function loadSlowMoverInsight(orgId: string): Promise<SlowMoverInsight | null> {
     try {
@@ -402,16 +416,24 @@ export async function loadSlowMoverInsight(orgId: string): Promise<SlowMoverInsi
         if (!snap.exists) return null;
         const d = snap.data()!;
         const meta = (d.metadata ?? {}) as Record<string, unknown>;
+        const updatedAt = (d.updatedAt as { toDate?: () => Date } | null)?.toDate?.()?.toISOString() ?? d.updatedAt ?? null;
+        const ageHours = updatedAt ? Math.round((Date.now() - new Date(String(updatedAt)).getTime()) / 3_600_000) : null;
         return {
             headline: String(d.headline ?? ''),
             totalValueAtRisk: Number(meta.totalValueAtRisk ?? 0),
             totalSkus: Number(meta.totalSkus ?? 0),
-            topProducts: ((meta.topProducts ?? []) as any[]).slice(0, 5).map((p: any) => ({
+            topProducts: ((meta.topProducts ?? []) as any[]).slice(0, 10).map((p: any) => ({
                 name: String(p.name ?? 'Unknown'),
                 category: String(p.category ?? ''),
                 valueAtRisk: Number(p.valueAtRisk ?? 0),
                 daysInInventory: Number(p.daysInInventory ?? 0),
+                price: p.price !== undefined ? Number(p.price) : undefined,
+                stockLevel: p.stockLevel !== undefined ? Number(p.stockLevel) : undefined,
             })),
+            categoryBreakdown: (meta.categoryBreakdown as Record<string, unknown>) ?? {},
+            dataFreshness: ageHours !== null
+                ? (ageHours < 24 ? 'fresh (< 24h)' : `${Math.floor(ageHours / 24)}d old`)
+                : 'unknown',
         };
     } catch {
         return null;

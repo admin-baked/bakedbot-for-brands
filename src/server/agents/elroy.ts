@@ -29,6 +29,7 @@ import { getAtRiskCustomers, getSegmentSummary, getTodayCheckins } from '@/serve
 import { getLatestWeeklyReport } from '@/server/services/ezal/weekly-intel-report';
 import { fetchMenuProducts, normalizeProduct } from '@/server/agents/adapters/consumer-adapter';
 import { getAdminFirestore } from '@/firebase/admin';
+import { loadSlowMoverInsight } from '@/server/services/morning-briefing';
 import { discovery } from '@/server/services/firecrawl';
 import { withCache, CachePrefix, CacheTTL } from '@/lib/cache';
 import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
@@ -944,32 +945,17 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
         }
 
         case 'get_slow_movers': {
-            const db = getAdminFirestore();
-            const docId = `${ORG_ID}:velocity:slow_movers`;
-            const snap = await db.collection(`tenants/${ORG_ID}/insights`).doc(docId).get();
-            if (!snap.exists) {
+            const insight = await loadSlowMoverInsight(ORG_ID);
+            if (!insight) {
                 return { message: 'No slow mover data available yet. The inventory velocity audit may not have run. Ask Linus to trigger it.' };
             }
-            const d = snap.data()!;
-            const meta = (d.metadata ?? {}) as Record<string, unknown>;
-            const updatedAt = (d.updatedAt as { toDate?: () => Date } | null)?.toDate?.()?.toISOString() ?? d.updatedAt ?? null;
-            const ageHours = updatedAt ? Math.round((Date.now() - new Date(String(updatedAt)).getTime()) / 3_600_000) : null;
             return {
-                headline: d.headline,
-                totalValueAtRisk: meta.totalValueAtRisk ?? 0,
-                totalSkus: meta.totalSkus ?? 0,
-                topSlowMovers: ((meta.topProducts ?? []) as any[]).slice(0, 10).map((p: any) => ({
-                    name: p.name,
-                    category: p.category,
-                    price: p.price,
-                    stockLevel: p.stockLevel,
-                    daysInInventory: p.daysInInventory,
-                    valueAtRisk: p.valueAtRisk,
-                })),
-                categoryBreakdown: meta.categoryBreakdown ?? {},
-                dataFreshness: ageHours !== null
-                    ? (ageHours < 24 ? 'fresh (< 24h)' : `${Math.floor(ageHours / 24)}d old`)
-                    : 'unknown',
+                headline: insight.headline,
+                totalValueAtRisk: insight.totalValueAtRisk,
+                totalSkus: insight.totalSkus,
+                topSlowMovers: insight.topProducts,
+                categoryBreakdown: insight.categoryBreakdown,
+                dataFreshness: insight.dataFreshness,
                 note: 'Deliberative audit pipeline — cross-checked against Alleaves sales history.',
             };
         }
