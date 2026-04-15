@@ -1,4 +1,8 @@
 // src/app/layout.tsx
+// Force-dynamic at root: layout uses cookies()+headers() and propagates dynamic rendering
+// to all child segments, preventing any page from attempting Firestore calls at build time.
+export const dynamic = 'force-dynamic';
+
 import type { Metadata, Viewport } from 'next';
 import React from 'react';
 import { cookies, headers } from 'next/headers';
