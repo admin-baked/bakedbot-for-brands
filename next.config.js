@@ -100,6 +100,11 @@ const nextConfig = {
   // in Next.js 16), so those packages get bundled. The externals function below
   // prevents that regardless of what the adapter does to the config.
   webpack: (config, { isServer, dev }) => {
+    // Limit webpack parallelism in production — parallel workers exhaust the 2GB build machine RAM.
+    // Without this, heap pressure causes the "Collecting page data" phase to hang.
+    if (!dev) {
+      config.parallelism = 1;
+    }
     // Remotion bundles reference zod/v3 which doesn't exist in zod@3.x
     // Alias to zod root to fix build errors
     config.resolve.alias = {
