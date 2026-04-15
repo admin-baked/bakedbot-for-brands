@@ -1,4 +1,3 @@
-export const dynamic = 'force-dynamic'; // skip static generation — auth/user-specific page
 
 import type { Metadata } from 'next';
 import { AccountTabs } from './components/account-tabs';

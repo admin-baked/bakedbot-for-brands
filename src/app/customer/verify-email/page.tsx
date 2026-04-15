@@ -1,4 +1,3 @@
-export const dynamic = 'force-dynamic'; // skip static generation — auth/user-specific page
 /**
  * Email Verification Handler Page
  * Handles Firebase email verification action links

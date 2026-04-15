@@ -1,4 +1,3 @@
-export const dynamic = 'force-dynamic'; // skip static generation — auth/user-specific page
 import { createServerClient } from '@/firebase/server-client';
 import { notFound } from 'next/navigation';
 import ProductFinderClient from './page-client';
