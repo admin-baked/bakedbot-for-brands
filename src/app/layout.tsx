@@ -1,7 +1,9 @@
 // src/app/layout.tsx
-// Force-dynamic at root: layout uses cookies()+headers() and propagates dynamic rendering
-// to all child segments, preventing any page from attempting Firestore calls at build time.
+// revalidate=0 propagates to all child segments (unlike force-dynamic which is segment-only).
+// This prevents any page without its own revalidate from being statically generated at build time.
+// Pages with explicit revalidate values (e.g. terpenes=86400) will still use their own setting.
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 import type { Metadata, Viewport } from 'next';
 import React from 'react';
