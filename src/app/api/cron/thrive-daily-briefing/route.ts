@@ -175,7 +175,7 @@ async function loadStaleOrders(orgId: string): Promise<StaleOrder[]> {
             stale.push({
                 orderId: doc.id,
                 customerName: data.customerName || data.customer?.name || 'Customer',
-                totalPrice: data.totalPrice || data.subtotal || 0,
+                totalPrice: data.totalPrice || data.subtotal || data.totals?.total || data.totals?.subtotal || 0,
                 status: data.status || 'pending',
                 waitMinutes,
                 createdAt,

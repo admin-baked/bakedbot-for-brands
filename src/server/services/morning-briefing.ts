@@ -82,9 +82,12 @@ interface OrderRow {
     id: string;
     orgId?: string;
     brandId?: string;
+    // Top-level fields (some order sources)
     totalPrice?: number;
     subtotal?: number;
     discountAmount?: number;
+    // Nested totals (Alleaves POS sync writes here)
+    totals?: { total?: number; subtotal?: number; discount?: number; tax?: number };
     itemCount?: number;
     type?: string;
     status?: string;
@@ -227,11 +230,13 @@ async function loadLast7DaysOrders(orgId: string): Promise<OrderRow[]> {
 // ============ Metric builders ============
 
 function orderRevenue(o: OrderRow): number {
-    return toNonNegativeNumber(o.totalPrice ?? o.subtotal);
+    // Alleaves POS sync writes revenue under totals.total; other sources use top-level totalPrice/subtotal
+    return toNonNegativeNumber(o.totalPrice ?? o.subtotal ?? o.totals?.total ?? o.totals?.subtotal);
 }
 
 function orderDiscount(o: OrderRow): number {
-    return toNonNegativeNumber(o.discountAmount);
+    // Alleaves POS sync writes discount under totals.discount
+    return toNonNegativeNumber(o.discountAmount ?? o.totals?.discount);
 }
 
 interface GreenLedgerSummaryRow {
