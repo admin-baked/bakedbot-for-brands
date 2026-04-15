@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'; // live Firestore brand data — never cache at build time
 
 import { fetchBrandAvailabilitySummary } from '@/lib/brand-availability-data';
 import { Metadata } from 'next';

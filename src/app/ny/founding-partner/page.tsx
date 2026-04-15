@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'; // live Firestore spot count — never cache
+
 import { getFoundingPartnerSpotsRemaining } from '@/server/actions/ny-lead-capture';
 import { FoundingPartnerForm } from './form';
 

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'; // blog data is live Firestore — never cache at build time
+
 /**
  * Platform Blog Index
  *

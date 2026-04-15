@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { fetchStrainStats } from '@/lib/strain-data';
 import { TERPENES } from '@/lib/terpene-data';
 
-export const revalidate = 3600; // Revalidate hourly — strain count updates infrequently
+export const dynamic = 'force-dynamic'; // data hub — avoid build-time Supabase hangs
 
 export const metadata: Metadata = {
     title: 'Cannabis Data Library — Strains, Terpenes, Lab Results | BakedBot',
