@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { requireCronSecret } from '@/server/auth/cron';
-import { requireAPIKey, APIKeyError } from '@/server/auth/api-key-auth';
+import { requireAPIKey } from '@/server/auth/api-key-auth';
+import { requireUser } from '@/server/auth/auth';
 import { z } from 'zod';
 
 const clockInSchema = z.object({
@@ -93,10 +94,11 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST - Clock in a budtender
+ * POST - Clock in a budtender (dashboard users only)
  */
 export async function POST(request: NextRequest) {
     try {
+        await requireUser();
         const body = await request.json();
         const validated = clockInSchema.parse(body);
         const { orgId, userId, firstName, role } = validated;
@@ -154,10 +156,11 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * PUT - Clock out a budtender
+ * PUT - Clock out a budtender (dashboard users only)
  */
 export async function PUT(request: NextRequest) {
     try {
+        await requireUser();
         const body = await request.json();
         const validated = clockOutSchema.parse(body);
         const { orgId, shiftId } = validated;
