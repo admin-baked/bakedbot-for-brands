@@ -9,6 +9,7 @@ import { getPlanLimits } from '@/lib/plan-limits';
 import { UsageService } from '@/server/services/usage';
 import { CANNMENUS_CONFIG } from '@/lib/config';
 import { runMenuSyncGuard } from '@/server/services/deliberative-pipeline';
+import { normalizeCategoryName } from '@/lib/utils/product-image';
 
 const CANNMENUS_BASE_URL = CANNMENUS_CONFIG.API_BASE;
 const CANNMENUS_API_KEY = CANNMENUS_CONFIG.API_KEY;
@@ -544,7 +545,7 @@ export class CannMenusService {
                                     sku_id: p.cann_sku_id,
                                     canonical_name: p.product_name,
                                     name: p.product_name,
-                                    category: p.category,
+                                    category: normalizeCategoryName(p.category),
                                     imageUrl: p.image_url,
                                     price: p.latest_price,
                                     thcPercent: p.percentage_thc,
@@ -644,7 +645,7 @@ export class CannMenusService {
                         id: product.id,
                         name: product.name || product.canonical_name,
                         brand: product.brand_id,
-                        category: product.category,
+                        category: normalizeCategoryName(product.category),
                         price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
                         thc: product.thcPercent ? `${product.thcPercent}%` : undefined,
                         cbd: product.cbdPercent ? `${product.cbdPercent}%` : undefined

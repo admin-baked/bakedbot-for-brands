@@ -9,6 +9,7 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { createHash } from 'crypto';
 import { lookupCOA, coaToFirestoreLabResult } from '@/server/services/coa/coa-parser';
 import type { POSProduct } from '@/lib/pos/types';
+import { normalizeCategoryName } from '@/lib/utils/product-image';
 
 /**
  * Syncs products from a configured POS system for a specific location.
@@ -19,7 +20,7 @@ import type { POSProduct } from '@/lib/pos/types';
  */
 export async function syncPOSProducts(locationId: string, orgId: string) {
     const { firestore } = await createServerClient();
-    
+
     logger.info('[POS_SYNC] Starting sync for location', { locationId, orgId });
 
     // 1. Fetch Location POS Config
@@ -28,10 +29,10 @@ export async function syncPOSProducts(locationId: string, orgId: string) {
         logger.error('[POS_SYNC] Location not found', { locationId });
         throw new Error('Location not found');
     }
-    
+
     const data = locationDoc.data();
     const posConfig = data?.posConfig;
-    
+
     if (!posConfig || posConfig.provider === 'none' || posConfig.status !== 'active') {
         logger.warn('[POS_SYNC] No active POS configuration found', { locationId });
         return 0;
@@ -76,7 +77,7 @@ export async function syncPOSProducts(locationId: string, orgId: string) {
     try {
         // 3. Fetch Menu from POS
         const posProducts = await client.fetchMenu();
-        
+
         if (posProducts.length === 0) {
             logger.info('[POS_SYNC] No products found in POS', { locationId });
             return 0;
@@ -87,7 +88,7 @@ export async function syncPOSProducts(locationId: string, orgId: string) {
             externalId: p.externalId,
             name: p.name,
             brandName: p.brand,
-            category: p.category,
+            category: normalizeCategoryName(p.category),
             price: p.price,
             thc: p.thcPercent,
             cbd: p.cbdPercent,
@@ -346,8 +347,8 @@ export async function syncPOSDiscounts(orgId: string): Promise<{
                 // Generate badge text
                 const saleBadgeText = discount.badge_text ||
                     (discount.discount_type === 'percent' ? `${discount.discount_value}% OFF` :
-                     discount.discount_type === 'bogo' ? 'BOGO' :
-                     `$${discount.discount_value} OFF`);
+                        discount.discount_type === 'bogo' ? 'BOGO' :
+                            `$${discount.discount_value} OFF`);
 
                 // Update product
                 batch.update(productDoc.ref, {
@@ -648,106 +649,106 @@ export async function getCachedMetadata(orgId: string): Promise<{
  * Skips products that already have cached COA data.
  */
 async function autoLookupCOAs(
-  orgId: string,
-  products: POSProduct[],
-  firestore: FirebaseFirestore.Firestore
+    orgId: string,
+    products: POSProduct[],
+    firestore: FirebaseFirestore.Firestore
 ): Promise<void> {
-  let looked = 0;
-  let found = 0;
-  let cached = 0;
+    let looked = 0;
+    let found = 0;
+    let cached = 0;
 
-  // Process up to 20 products per sync to avoid timeout
-  const batch = products.slice(0, 20);
+    // Process up to 20 products per sync to avoid timeout
+    const batch = products.slice(0, 20);
 
-  for (const p of batch) {
-    const productDocId = `prod_${createHash('sha256').update(`${orgId}:${p.externalId}`).digest('hex').slice(0, 20)}`;
+    for (const p of batch) {
+        const productDocId = `prod_${createHash('sha256').update(`${orgId}:${p.externalId}`).digest('hex').slice(0, 20)}`;
 
-    // Check if we already have COA data cached
-    const labRef = firestore
-      .collection('tenants').doc(orgId)
-      .collection('publicViews').doc('products')
-      .collection('items').doc(productDocId)
-      .collection('labResults');
+        // Check if we already have COA data cached
+        const labRef = firestore
+            .collection('tenants').doc(orgId)
+            .collection('publicViews').doc('products')
+            .collection('items').doc(productDocId)
+            .collection('labResults');
 
-    const existing = await labRef.limit(1).get();
-    if (!existing.empty) {
-      cached++;
-      continue;
+        const existing = await labRef.limit(1).get();
+        if (!existing.empty) {
+            cached++;
+            continue;
+        }
+
+        // Try COA lookup
+        looked++;
+        const coa = await lookupCOA({
+            metrcTag: p.metrcTag,
+            batchId: p.batchId,
+            productName: p.name,
+        });
+
+        if (coa) {
+            found++;
+            const labData = coaToFirestoreLabResult(coa, productDocId);
+            await labRef.doc('latest').set(labData, { merge: true });
+
+            // Also write terpenes/potency to the product doc for Smokey's quick access
+            const productRef = firestore
+                .collection('tenants').doc(orgId)
+                .collection('publicViews').doc('products')
+                .collection('items').doc(productDocId);
+
+            const enrichment: Record<string, unknown> = {};
+            if (coa.terpenes?.length) enrichment.terpenes = coa.terpenes;
+            if (coa.totalThc != null) enrichment.thcPercent = coa.totalThc;
+            if (coa.totalCbd != null) enrichment.cbdPercent = coa.totalCbd;
+            if (coa.overallStatus) enrichment.labStatus = coa.overallStatus;
+            if (coa.sourceUrl) enrichment.coaUrl = coa.sourceUrl;
+
+            if (Object.keys(enrichment).length > 0) {
+                await productRef.set(enrichment, { merge: true });
+            }
+
+            logger.info('[POS_SYNC] COA data found and cached', {
+                orgId, product: p.name, source: coa.source,
+                thc: coa.totalThc, terpenes: coa.terpenes?.length || 0,
+            });
+
+            // Publish to public lab results directory (best-effort)
+            try {
+                const { publishLabResult } = await import('@/lib/lab-data');
+                const tenantDoc = await firestore.collection('tenants').doc(orgId).get();
+                const tenantData = tenantDoc.data();
+                await publishLabResult({
+                    orgId,
+                    brandName: tenantData?.businessName || tenantData?.name || '',
+                    strainName: coa.strainName || p.strainType || p.name,
+                    productName: p.name,
+                    category: p.strainType || undefined,
+                    state: tenantData?.state || undefined,
+                    labName: coa.labName || coa.source,
+                    testDate: coa.testDate || new Date().toISOString().split('T')[0],
+                    batchNumber: coa.batchNumber || p.batchId,
+                    totalThc: coa.totalThc ?? undefined,
+                    totalCbd: coa.totalCbd ?? undefined,
+                    totalTerpenes: coa.totalTerpenes ?? undefined,
+                    terpenes: coa.terpenes,
+                    safetyPassed: coa.overallStatus !== 'fail',
+                    pesticides: coa.pesticides || undefined,
+                    heavyMetals: coa.heavyMetals || undefined,
+                    microbials: coa.microbials || undefined,
+                    residualSolvents: coa.residualSolvents || undefined,
+                    coaUrl: coa.sourceUrl || undefined,
+                    metrcTag: p.metrcTag || undefined,
+                });
+            } catch (pubErr) {
+                // Non-blocking — public directory publish failure doesn't affect sync
+                logger.warn('[POS_SYNC] Public lab result publish failed', {
+                    product: p.name, error: pubErr instanceof Error ? pubErr.message : String(pubErr),
+                });
+            }
+        }
     }
 
-    // Try COA lookup
-    looked++;
-    const coa = await lookupCOA({
-      metrcTag: p.metrcTag,
-      batchId: p.batchId,
-      productName: p.name,
+    logger.info('[POS_SYNC] COA auto-lookup complete', {
+        orgId, total: batch.length, looked, found, cached,
+        remaining: products.length - batch.length,
     });
-
-    if (coa) {
-      found++;
-      const labData = coaToFirestoreLabResult(coa, productDocId);
-      await labRef.doc('latest').set(labData, { merge: true });
-
-      // Also write terpenes/potency to the product doc for Smokey's quick access
-      const productRef = firestore
-        .collection('tenants').doc(orgId)
-        .collection('publicViews').doc('products')
-        .collection('items').doc(productDocId);
-
-      const enrichment: Record<string, unknown> = {};
-      if (coa.terpenes?.length) enrichment.terpenes = coa.terpenes;
-      if (coa.totalThc != null) enrichment.thcPercent = coa.totalThc;
-      if (coa.totalCbd != null) enrichment.cbdPercent = coa.totalCbd;
-      if (coa.overallStatus) enrichment.labStatus = coa.overallStatus;
-      if (coa.sourceUrl) enrichment.coaUrl = coa.sourceUrl;
-
-      if (Object.keys(enrichment).length > 0) {
-        await productRef.set(enrichment, { merge: true });
-      }
-
-      logger.info('[POS_SYNC] COA data found and cached', {
-        orgId, product: p.name, source: coa.source,
-        thc: coa.totalThc, terpenes: coa.terpenes?.length || 0,
-      });
-
-      // Publish to public lab results directory (best-effort)
-      try {
-        const { publishLabResult } = await import('@/lib/lab-data');
-        const tenantDoc = await firestore.collection('tenants').doc(orgId).get();
-        const tenantData = tenantDoc.data();
-        await publishLabResult({
-          orgId,
-          brandName: tenantData?.businessName || tenantData?.name || '',
-          strainName: coa.strainName || p.strainType || p.name,
-          productName: p.name,
-          category: p.strainType || undefined,
-          state: tenantData?.state || undefined,
-          labName: coa.labName || coa.source,
-          testDate: coa.testDate || new Date().toISOString().split('T')[0],
-          batchNumber: coa.batchNumber || p.batchId,
-          totalThc: coa.totalThc ?? undefined,
-          totalCbd: coa.totalCbd ?? undefined,
-          totalTerpenes: coa.totalTerpenes ?? undefined,
-          terpenes: coa.terpenes,
-          safetyPassed: coa.overallStatus !== 'fail',
-          pesticides: coa.pesticides || undefined,
-          heavyMetals: coa.heavyMetals || undefined,
-          microbials: coa.microbials || undefined,
-          residualSolvents: coa.residualSolvents || undefined,
-          coaUrl: coa.sourceUrl || undefined,
-          metrcTag: p.metrcTag || undefined,
-        });
-      } catch (pubErr) {
-        // Non-blocking — public directory publish failure doesn't affect sync
-        logger.warn('[POS_SYNC] Public lab result publish failed', {
-          product: p.name, error: pubErr instanceof Error ? pubErr.message : String(pubErr),
-        });
-      }
-    }
-  }
-
-  logger.info('[POS_SYNC] COA auto-lookup complete', {
-    orgId, total: batch.length, looked, found, cached,
-    remaining: products.length - batch.length,
-  });
 }
