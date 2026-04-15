@@ -342,6 +342,12 @@ export class DriveStorageService {
     options: Omit<DriveUploadOptions, 'file'>
   ): Promise<DriveUploadResult> {
     try {
+      // SSRF protection: validate URL is not pointing to private/internal networks
+      if (!this.isUrlSafeForFetch(url)) {
+        logger.warn('SSRF attempt blocked in uploadFromUrl', { url });
+        return { success: false, error: 'URL not allowed - only public HTTP/HTTPS URLs are supported' };
+      }
+
       // Fetch the file
       const response = await fetch(url);
       if (!response.ok) {
@@ -454,6 +460,46 @@ export class DriveStorageService {
     }
 
     return { valid: true };
+  }
+
+  /**
+   * Validate URL to prevent SSRF attacks
+   */
+  private isUrlSafeForFetch(urlString: string): boolean {
+    try {
+      const url = new URL(urlString);
+      const hostname = url.hostname.toLowerCase();
+
+      // Only allow http/https
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        return false;
+      }
+
+      // Block localhost and internal IPs
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0') {
+        return false;
+      }
+
+      // Block private IP ranges
+      if (hostname.startsWith('10.')) return false;
+      if (hostname.startsWith('192.168.')) return false;
+      if (hostname.startsWith('172.')) {
+        const secondOctet = parseInt(hostname.split('.')[1], 10);
+        if (secondOctet >= 16 && secondOctet <= 31) return false;
+      }
+
+      // Block internal hostnames
+      if (hostname.endsWith('.local')) return false;
+      if (hostname.endsWith('.internal')) return false;
+      if (hostname.endsWith('.private')) return false;
+
+      // Block link-local addresses
+      if (hostname.startsWith('169.254.')) return false;
+
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
