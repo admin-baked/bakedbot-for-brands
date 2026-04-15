@@ -25,20 +25,22 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
     try {
-        // Try API key auth first (for loyalty tablet)
-        try {
-            await requireAPIKey(request, 'read' as any);
-        } catch {
-            // Fallback to cron secret for internal calls
-            const authError = await requireCronSecret(request, 'budtender-shift');
-            if (authError) {
-                return authError;
-            }
-        }
-
         const { searchParams } = new URL(request.url);
         const orgId = searchParams.get('orgId');
         const action = searchParams.get('action');
+
+        // The "active" action is public — loyalty tablets display on-shift budtender
+        // first names without any user session. All other actions require auth.
+        if (action !== 'active') {
+            try {
+                await requireAPIKey(request, 'read' as any);
+            } catch {
+                const authError = await requireCronSecret(request, 'budtender-shift');
+                if (authError) {
+                    return authError;
+                }
+            }
+        }
 
         if (!orgId) {
             return NextResponse.json({ success: false, error: 'orgId required' }, { status: 400 });
