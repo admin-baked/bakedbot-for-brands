@@ -36,6 +36,13 @@ const nextConfig = {
     optimizeServerReact: true,
     optimizePackageImports: ['lucide-react', 'framer-motion', '@radix-ui/react-icons', 'date-fns', 'recharts'],
   },
+  // Turbopack alias — mirrors the webpack config.resolve.alias below.
+  // Required because the webpack() function does not run under Turbopack.
+  turbopack: {
+    resolveAlias: {
+      'zod/v3': 'zod',
+    },
+  },
   serverExternalPackages: [
     // Remotion (video rendering — native deps)
     'remotion', '@remotion/renderer', '@remotion/bundler',

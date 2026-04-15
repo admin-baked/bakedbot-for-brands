@@ -698,4 +698,4 @@ runConfig:
 
 build:
   installCommand: npm install --legacy-peer-deps
-  buildCommand: npm run build:embed && node scripts/ci-remotion-bundle.mjs && npm run check:structure && npm run check:config && next build --webpack
+  buildCommand: npm run build:embed && node scripts/ci-remotion-bundle.mjs && npm run check:structure && npm run check:config && next build
