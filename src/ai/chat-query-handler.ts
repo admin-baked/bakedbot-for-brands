@@ -6,6 +6,7 @@
 import { ai } from './genkit';
 import { z, ZodInfer } from '@/ai/z3';
 import { getSmokeyConfig } from '@/config/super-admin-smokey-config';
+import { CHATBOT_GROUNDING_INSTRUCTION } from '@/server/services/deliberative-pipeline';
 
 // Schema for extracting search parameters from natural language queries
 export const QueryAnalysisSchema = z.object({
@@ -240,7 +241,7 @@ export async function generateChatResponse(
         productCount,
         hasProducts: productCount > 0,
         personaName: config.name,
-        personaSystemPrompt: config.systemPrompt,
+        personaSystemPrompt: config.systemPrompt + CHATBOT_GROUNDING_INSTRUCTION,
     });
     return output!;
 }

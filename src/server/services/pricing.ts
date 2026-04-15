@@ -2,6 +2,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { ProductDoc } from '@/types/cannmenus';
 import { PricingRecommendation } from '@/types/pricing';
 import { v4 as uuidv4 } from 'uuid';
+import { runPricingRecommendationDeliberation } from '@/server/services/deliberative-pipeline';
 
 export class PricingService {
 
@@ -67,6 +68,15 @@ export class PricingService {
             const marketStats = await this.getCompetitorPricing(brandId, product.category);
 
             if (marketStats.count < 3) continue; // Not enough data
+
+            // Phase 2: Run deliberative guard on market stats before generating recommendations
+            runPricingRecommendationDeliberation(brandId, product.category, marketStats)
+                .then(artifact => {
+                    if (artifact.status !== 'passed') {
+                        console.warn(`[PricingGuard] ${artifact.summary}`);
+                    }
+                })
+                .catch(() => { /* non-blocking */ });
 
             // Simple heuristic: If price is > 20% above average, suggest lowering
             // If price is < 20% below average, suggest raising (opportunity)

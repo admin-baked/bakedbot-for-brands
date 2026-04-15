@@ -8,6 +8,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { getPlanLimits } from '@/lib/plan-limits';
 import { UsageService } from '@/server/services/usage';
 import { CANNMENUS_CONFIG } from '@/lib/config';
+import { runMenuSyncGuard } from '@/server/services/deliberative-pipeline';
 
 const CANNMENUS_BASE_URL = CANNMENUS_CONFIG.API_BASE;
 const CANNMENUS_API_KEY = CANNMENUS_CONFIG.API_KEY;
@@ -562,7 +563,21 @@ export class CannMenusService {
                     products.length = maxProducts;
                 }
 
-                await this.storeProducts(products);
+                // Phase 3: Run menu sync guard before storing
+                const syncGuard = runMenuSyncGuard(products);
+                if (!syncGuard.safe) {
+                    logger.warn(`[MenuSyncGuard] Unsafe products detected`, {
+                        anomalies: syncGuard.anomalies.length,
+                        duplicates: syncGuard.duplicateSkus.length,
+                    });
+                }
+                if (syncGuard.anomalies.length > 0) {
+                    logger.warn(`[MenuSyncGuard] Price anomalies:`, syncGuard.anomalies);
+                }
+
+                // Use filtered products (negative prices removed)
+                const productsToStore = syncGuard.filteredProducts as ProductDoc[];
+                await this.storeProducts(productsToStore);
                 return products.length;
 
             } finally {
@@ -601,7 +616,7 @@ export class CannMenusService {
 
                 await batch.commit();
             }
-            
+
             // RAG: Index products for semantic search (async, non-blocking)
             this.indexProductsForRAG(products).catch(err => {
                 logger.warn('RAG indexing failed (non-fatal)', { error: err.message });
@@ -619,10 +634,10 @@ export class CannMenusService {
         try {
             const { ragService } = await import('@/server/services/vector-search/rag-service');
             const { chunkingService } = await import('@/server/services/vector-search/chunking-service');
-            
+
             // Index max 50 products per sync to control embedding costs
             const toIndex = products.slice(0, 50);
-            
+
             for (const product of toIndex) {
                 try {
                     const menuItem: MenuItem = {
@@ -642,8 +657,8 @@ export class CannMenusService {
                             'products',
                             product.id || `${product.brand_id}_${product.sku_id}`,
                             chunks[0].content,
-                            { 
-                                category: product.category, 
+                            {
+                                category: product.category,
                                 sku: product.sku_id,
                                 source: 'cannmenus'
                             },
@@ -656,7 +671,7 @@ export class CannMenusService {
                     logger.warn('Failed to index product', { productId: product.id });
                 }
             }
-            
+
             logger.info('RAG indexed products', { count: toIndex.length });
         } catch (err) {
             logger.error('RAG product indexing failed', { error: err });
