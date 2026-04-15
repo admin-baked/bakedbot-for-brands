@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'; // Supabase query — avoid build-time hangs
+
 import Link from 'next/link';
 import { Leaf, Search, FlaskConical, Star } from 'lucide-react';
 import { Navbar } from '@/components/landing/navbar';

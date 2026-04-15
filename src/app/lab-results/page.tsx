@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'; // Firestore query — never cache at build time
+
 import Link from 'next/link';
 import { FlaskConical, Search, ShieldCheck, ShieldX, Leaf } from 'lucide-react';
 import { Navbar } from '@/components/landing/navbar';
