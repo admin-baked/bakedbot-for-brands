@@ -1,4 +1,6 @@
 // app/debug/playbooks/page.tsx
+export const dynamic = 'force-dynamic'; // debug page — always fresh
+
 import React from 'react';
 import { createServerClient } from '@/firebase/server-client';
 import { Metadata } from 'next';

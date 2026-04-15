@@ -9,7 +9,7 @@ import { DEMO_BRAND_ID } from '@/lib/config';
 
 import { isFirestoreUnavailableError, isProductionBuildPhase } from '@/lib/firestore-runtime';
 import { logger } from '@/lib/logger';
-export const revalidate = 60; // Revalidate every 60 seconds
+export const dynamic = 'force-dynamic'; // checkout data is user/session-specific, never cache
 
 interface CheckoutLayoutProps {
     children: React.ReactNode;

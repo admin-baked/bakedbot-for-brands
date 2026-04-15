@@ -100,12 +100,6 @@ const nextConfig = {
   // in Next.js 16), so those packages get bundled. The externals function below
   // prevents that regardless of what the adapter does to the config.
   webpack: (config, { isServer, dev }) => {
-    // Firebase App Hosting build containers have 6GB RAM.
-    // Parallel webpack + Next.js bundling exhausts that budget and triggers OOM timeouts.
-    // We throttle only in production builds (Firebase). Local dev uses full parallelism.
-    if (!dev) {
-      config.parallelism = 1;
-    }
     // Remotion bundles reference zod/v3 which doesn't exist in zod@3.x
     // Alias to zod root to fix build errors
     config.resolve.alias = {

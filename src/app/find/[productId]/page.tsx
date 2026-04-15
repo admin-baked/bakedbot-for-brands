@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'; // product data is live Firestore — never cache
+
 import { createServerClient } from '@/firebase/server-client';
 import { notFound } from 'next/navigation';
 import ProductFinderClient from './page-client';

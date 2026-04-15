@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'; // help layout uses auth — never cache
+
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
