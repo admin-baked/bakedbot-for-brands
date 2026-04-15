@@ -1,6 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { trackQRCodeScan } from '@/server/actions/qr-code';
 import { headers } from 'next/headers';
+import { logger } from '@/lib/logger';
+
+const ALLOWED_QR_REDIRECT_DOMAINS = [
+    'bakedbot.ai',
+    'bakedbot.com',
+    'localhost',
+];
+
+function isAllowedQrUrl(url: string): boolean {
+    try {
+        const parsed = new URL(url);
+        return ALLOWED_QR_REDIRECT_DOMAINS.some(domain =>
+            parsed.hostname === domain || parsed.hostname.endsWith(`.${domain}`)
+        );
+    } catch {
+        return false;
+    }
+}
 
 /**
  * QR Code Redirect & Tracking Route
@@ -42,6 +60,15 @@ export async function GET(
     let targetUrl = result.targetUrl;
     if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
         targetUrl = `https://${targetUrl}`;
+    }
+
+    // Validate redirect URL to prevent open redirect attacks
+    if (!isAllowedQrUrl(targetUrl)) {
+        logger.error('[QR] Blocked redirect to disallowed domain', { targetUrl, shortCode });
+        return NextResponse.json(
+            { error: 'Invalid redirect URL' },
+            { status: 400 }
+        );
     }
 
     // Redirect to target URL

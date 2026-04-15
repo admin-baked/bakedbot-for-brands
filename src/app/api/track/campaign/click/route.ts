@@ -3,6 +3,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 
+const ALLOWED_REDIRECT_DOMAINS = [
+    'bakedbot.ai',
+    'bakedbot.com',
+    'localhost',
+];
+
+function isAllowedRedirectUrl(url: string): boolean {
+    try {
+        const parsed = new URL(url);
+        return ALLOWED_REDIRECT_DOMAINS.some(domain =>
+            parsed.hostname === domain || parsed.hostname.endsWith(`.${domain}`)
+        );
+    } catch {
+        return false;
+    }
+}
+
 /**
  * Campaign Click Tracking (Redirect)
  *
@@ -20,8 +37,8 @@ export async function GET(request: NextRequest) {
         trackClick(campaignId, recipientId).catch(() => {});
     }
 
-    // Redirect to destination
-    if (destination) {
+    // Redirect to destination only if it's an allowed domain
+    if (destination && isAllowedRedirectUrl(destination)) {
         return NextResponse.redirect(destination, 302);
     }
 
