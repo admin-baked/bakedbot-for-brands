@@ -34,12 +34,14 @@ export async function POST(request: NextRequest) {
     }
 }
 
+const DEBUG_BOOKING_SECRET = process.env.DEBUG_BOOKING_SECRET;
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const email = searchParams.get('email') || 'ceo@simplypuretrenton.com';
     const secret = searchParams.get('secret');
 
-    if (secret !== 'bakedbot-dev-secret') {
+    if (!DEBUG_BOOKING_SECRET || secret !== DEBUG_BOOKING_SECRET) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

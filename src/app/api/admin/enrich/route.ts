@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 /**
  * Batch enrichment API endpoint
  * Triggers GMaps enrichment for dispensary pages
+ * SECURITY: Requires CRON_SECRET header for authentication
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,9 +11,16 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { getGMapsPlacesNear } from '@/server/services/gmaps-connector';
 import { logger } from '@/lib/monitoring';
 
+const CRON_SECRET = process.env.CRON_SECRET;
+
 export const maxDuration = 60; // 60 second timeout
 
 export async function POST(request: NextRequest) {
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    if (!CRON_SECRET || token !== CRON_SECRET) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
         const body = await request.json();
         const { state, limit = 25 } = body;

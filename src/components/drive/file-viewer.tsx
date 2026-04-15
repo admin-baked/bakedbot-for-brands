@@ -88,7 +88,7 @@ function mimeLabel(file: DriveFile): string {
 /**
  * Minimal markdown → HTML renderer.
  * Handles: headings, bold, italic, inline code, hr, blockquote, lists, paragraphs.
- * Content originates from our own Firebase Storage — no XSS risk.
+ * Content is sanitized via HTML entity escaping before rendering.
  */
 function renderMarkdown(md: string): string {
   const lines = md.split('\n');
@@ -163,9 +163,19 @@ function renderMarkdown(md: string): string {
   return out.join('\n');
 }
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 /** Inline formatting: bold, italic, inline code, links */
 function fmt(s: string): string {
-  return s
+  const escaped = escapeHtml(s);
+  return escaped
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/`(.+?)`/g, '<code>$1</code>')
