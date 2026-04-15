@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; build fixed (20m 41s) — parallelism:1 + 4GB heap cap; zod shims (v3/v4) restored | **Last update:** 2026-04-15 (Build INTERNAL_ERROR fix — swap thrash from 8GB heap + parallel webpack)
+**Current Status:** 🟢 Production live; build fixed (20m 41s) — parallelism:1 + 4GB heap cap; BUILD-GUARD prevents recurrence | **Last update:** 2026-04-15 (Heap safeguard: check-next-config.mjs blocks >4096MB build scripts)
 
 ---
 

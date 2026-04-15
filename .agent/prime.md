@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; build memory optimized (8GB heap) for Next.js 16; zod shims (v3/v4) restored for tools; local rebase clean.
-**Recent work (2026-04-14):** Build memory fix + rebase sync; Updated package.json and ci-remotion-bundle.mjs
+**Current Status:** 🟢 Production live; build fixed 20m 41s — parallelism:1 + 4GB heap cap + BUILD-GUARD safeguard.
+**Recent work (2026-04-15):** `757334b18` BUILD-GUARD in check-next-config.mjs; `6b5f60cef` reverted 8GB heap + restored parallelism:1
 - `26b7d7ac1` Firebase API key moved to env var (resolved secret alert)
 - `106f5408d` Security fixes: admin routes auth, XSS sanitization, database tool permissions
 **Prior (2026-04-12):** `c05e091da` CHANNEL_MAP + roster training; `1fbc88b22` task board + inbound CTAs
