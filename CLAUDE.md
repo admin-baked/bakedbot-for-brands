@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; connection health cron + Marty check_connections + campaign monitoring + Thrive launch | **Last update:** 2026-04-16 (connection health daily check `23a4ef1b2`)
+**Current Status:** 🟢 Production live; Alleaves customer sync + data health cron + KE campaign bridge | **Last update:** 2026-04-16 (Alleaves sync + data health cron `cc8dc5cf2`)
 
 ---
 

@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; connection health daily cron + Marty check_connections + campaign monitoring + Thrive launch.
-**Recent work (2026-04-16):** `23a4ef1b2` connection health cron + check_connections tool; `7f39575bb` SES bounce webhook + monitor cron + Thrive branding; `c72fa3839` booking dark mode + GCal alert
+**Current Status:** 🟢 Production live; Alleaves customer sync + data health cron + KE campaign bridge.
+**Recent work (2026-04-16):** `cc8dc5cf2` data-health source fix; `1deedde50` data health cron + Alleaves sync cron + KE wiring; `4dcf88967` Alleaves customer roster sync; `2a3cdbb70` tablet budtender alleaves_id fix
 - `26b7d7ac1` Firebase API key moved to env var (resolved secret alert)
 - `106f5408d` Security fixes: admin routes auth, XSS sanitization, database tool permissions
 **Prior (2026-04-12):** `c05e091da` CHANNEL_MAP + roster training; `1fbc88b22` task board + inbound CTAs
