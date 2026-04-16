@@ -36,6 +36,7 @@
     "check:routes": "node scripts/check-routes.mjs",
     "check:all": "npm run check:structure && npm run check:types && npm run check:lint",
     "check:secrets": "node scripts/check-secrets.mjs",
+    "check:playbook-drift": "node scripts/check-playbook-drift.mjs",
     "check:env": "node -e \"import('./dist/config/env.js').catch(e => { console.error(e); process.exit(1) })\"",
     "push": "node scripts/safe-push.mjs",
     "setup:git-hooks": "node scripts/install-git-hooks.mjs",
