@@ -10,7 +10,7 @@
  *
  * Maintenance:
  *   - Update when a playbook graduates from template_only → partial_support → executable_now
- *   - Run `scripts/check-playbook-drift.ts` to verify all catalog IDs are classified
+ *   - Run `scripts/check-playbook-drift.mjs` to verify all catalog IDs are classified
  *   - Do not remove entries — downgrade to 'legacy' if a playbook is deprecated
  */
 
