@@ -22,6 +22,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { postLinusIncidentSlack } from '@/server/services/incident-notifications';
+import { ingestCampaignHistoryKnowledge } from '@/server/services/knowledge-engine/ingest-campaign-history';
 
 const BOUNCE_RATE_WARN    = 0.05;   // 5%
 const BOUNCE_RATE_CRIT    = 0.10;   // 10%
@@ -124,6 +125,22 @@ export async function GET(request: NextRequest) {
             digestLines.push(
                 `• *${campaign.name}* — Sent: ${perf.sent} | Opens: ${perf.opened} (${(openRate * 100).toFixed(0)}%) | Clicks: ${perf.clicked} (${(clickRate * 100).toFixed(0)}%) | Bounces: ${perf.bounced} (${(bounceRate * 100).toFixed(1)}%) | Unsubs: ${perf.unsubscribed}`
             );
+
+            // Ingest final results into Knowledge Engine once per campaign (24h+ = stable metrics)
+            // createSourceIfNew inside deduplicates by campaignId — safe to call every hour
+            const sentAt = campaign.sentAt ? new Date(campaign.sentAt).getTime() : 0;
+            const hoursElapsed = (now - sentAt) / 3_600_000;
+            if (hoursElapsed >= 24 && campaign.status === 'sent' && campaign.orgId) {
+                const summaryText = `Campaign "${campaign.name}" sent ${perf.sent} emails. Open rate: ${(openRate * 100).toFixed(1)}%, click rate: ${(clickRate * 100).toFixed(1)}%, bounce rate: ${(bounceRate * 100).toFixed(2)}%, unsubscribe rate: ${(complaintRate * 100).toFixed(2)}%.`;
+                ingestCampaignHistoryKnowledge({
+                    tenantId:     campaign.orgId,
+                    campaignId:   campaign.id,
+                    campaignName: campaign.name,
+                    metrics: { sent: perf.sent, delivered: perf.delivered, opened: perf.opened, clicked: perf.clicked, bounced: perf.bounced, unsubscribed: perf.unsubscribed, openRate, clickRate, bounceRate, complaintRate },
+                    summaryText,
+                    observedAt: new Date(campaign.sentAt!),
+                }).catch(e => logger.warn('[CAMPAIGN_MONITOR] KE ingestion failed', { id: campaign.id, error: String(e) }));
+            }
         }
 
         // Post alerts immediately
