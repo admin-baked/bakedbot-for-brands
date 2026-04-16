@@ -20,6 +20,11 @@ const BAKEDBOT_DOMAINS = [
   '0.0.0.0',
 ];
 
+/** Known BakedBot subdomains that map to specific app paths */
+const BAKEDBOT_SUBDOMAIN_ROUTES: Record<string, string> = {
+  'agency.bakedbot.ai': '/agency',
+};
+
 /** In-memory edge cache for domain resolutions */
 const domainResolveCache = new Map<string, { data: DomainResolveResult; expiry: number }>();
 const EDGE_CACHE_TTL = 60_000; // 1 minute
@@ -53,6 +58,18 @@ function setCachedResolve(domain: string, data: DomainResolveResult): void {
 
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host')?.replace(/:\d+$/, '') || '';
+
+  // Handle known BakedBot subdomain → path rewrites (e.g. agency.bakedbot.ai → /agency)
+  if (BAKEDBOT_SUBDOMAIN_ROUTES[hostname]) {
+    const targetPath = BAKEDBOT_SUBDOMAIN_ROUTES[hostname];
+    const pathname = request.nextUrl.pathname;
+    // Only rewrite root — let sub-paths pass through as-is (e.g. /book still works)
+    if (pathname === '/' || pathname === '') {
+      const rewriteUrl = new URL(targetPath, request.url);
+      return NextResponse.rewrite(rewriteUrl);
+    }
+    return NextResponse.next();
+  }
 
   // Skip BakedBot-owned domains and subdomains
   if (isBakedBotDomain(hostname)) {
