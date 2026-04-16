@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; Slack notification gate + digest mode + slack-post playbook handler + migration complete.
-**Recent work (2026-04-16):** `7ef403cf3` Slack notification gate + digest mode + slack-post handler; `cc8dc5cf2` data-health cron + Alleaves sync; `4dcf88967` Alleaves customer roster sync
+**Current Status:** 🟢 Production live; Dream mega cron (all 19 agents, 2+3 AM ET) + GSC/GA4 live for Day Day + Marty opus chain.
+**Recent work (2026-04-16):** `527385a15` Marty opus dream chain; `ec67ed967` GLM fallback hardening + super_users cron + Dreams tab; `189a97c22` Dream Loop mega cron + Super User dreams dashboard
 - `26b7d7ac1` Firebase API key moved to env var (resolved secret alert)
 - `106f5408d` Security fixes: admin routes auth, XSS sanitization, database tool permissions
 **Prior (2026-04-12):** `c05e091da` CHANNEL_MAP + roster training; `1fbc88b22` task board + inbound CTAs
