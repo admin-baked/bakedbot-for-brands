@@ -58,11 +58,11 @@ async function getFollowupCandidates(limit: number): Promise<FollowupCandidate[]
     const db = getAdminFirestore();
     const now = Date.now();
 
-    // Find leads contacted but not yet replied or converted, sorted oldest-first
+    // Find leads contacted but not yet replied or converted.
+    // Note: no orderBy to avoid composite index requirement; we sort in-memory below.
     const snap = await db.collection('ny_dispensary_leads')
         .where('status', '==', 'contacted')
         .where('outreachSent', '==', true)
-        .orderBy('sentAt', 'asc')
         .limit(limit * 10) // over-fetch to filter by timing
         .get();
 
@@ -100,6 +100,8 @@ async function getFollowupCandidates(limit: number): Promise<FollowupCandidate[]
         });
     }
 
+    // Sort oldest-first (matching the original orderBy sentAt ASC intent)
+    candidates.sort((a, b) => a.sentAt - b.sentAt);
     return candidates;
 }
 
