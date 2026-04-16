@@ -411,7 +411,7 @@ export function useTabletFlow(orgId: string) {
         let timeoutId: ReturnType<typeof setTimeout> | null = null;
         try {
             const timeoutPromise = new Promise<never>((_, reject) => {
-                timeoutId = setTimeout(() => reject(new Error('timeout')), 15_000);
+                timeoutId = setTimeout(() => reject(new Error('timeout')), 30_000);
             });
             const response = await Promise.race([getMoodRecommendations(orgId, moodId), timeoutPromise]);
             if (response.success && response.products) {
