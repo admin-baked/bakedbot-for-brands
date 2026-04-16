@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
         const submissionRef = await db.collection('contact_submissions').add({
             ...data,
             source: 'contact_page',
-            submittedAt: cutoff,  // intentional — used for rate limit query
+            submittedAt: new Date(),
             createdAt: now,
             status: 'new',
         });

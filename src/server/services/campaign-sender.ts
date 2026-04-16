@@ -434,6 +434,8 @@ export async function executeCampaign(campaignId: string): Promise<{
     const tierCheckDoc = await firestore.collection('tenants').doc(campaign.orgId).get();
     const tierCheckData = tierCheckDoc.data();
     const tierId = tierCheckData?.subscriptionTier || 'scout'; // Default to scout (most restrictive)
+    // Cache org name from this doc — reused for proof sends and personalization below
+    const orgName = tierCheckData?.name || tierCheckData?.businessName || '';
 
     const usage = await getUsageWithLimits(campaign.orgId, tierId);
     const campaignLimit = usage.metrics.customCampaigns;
@@ -479,8 +481,7 @@ export async function executeCampaign(campaignId: string): Promise<{
     // Proof recipients see the email before (or alongside) the main audience.
     // They are NOT counted in performance metrics and bypass dedup.
     if (campaign.proofRecipients?.length) {
-        const tenantDocForProof = await firestore.collection('tenants').doc(campaign.orgId).get();
-        const orgNameForProof = tenantDocForProof.data()?.name || tenantDocForProof.data()?.businessName || '';
+        const orgNameForProof = orgName;
 
         for (const proof of campaign.proofRecipients) {
             for (const channel of campaign.channels) {
@@ -546,9 +547,7 @@ export async function executeCampaign(campaignId: string): Promise<{
         return { success: true, sent: 0, failed: 0 };
     }
 
-    // Load org name for personalization
-    const tenantDoc = await firestore.collection('tenants').doc(campaign.orgId).get();
-    const orgName = tenantDoc.data()?.name || tenantDoc.data()?.businessName || '';
+    // orgName already loaded from tierCheckDoc above
 
     let sentCount = 0;
     let failedCount = 0;
