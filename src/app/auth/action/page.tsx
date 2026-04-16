@@ -9,7 +9,7 @@
  * Supported modes: resetPassword | verifyEmail | recoverEmail
  */
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
     confirmPasswordReset,
@@ -17,6 +17,20 @@ import {
     verifyPasswordResetCode,
 } from 'firebase/auth';
 import { auth } from '@/firebase/client';
+
+const TRUSTED_CONTINUE_HOSTS = ['bakedbot.ai'];
+
+/** Restrict continueUrl to relative paths or trusted domains to prevent open redirects. */
+function safeContinueUrl(raw: string): string {
+    try {
+        const url = new URL(raw);
+        if (TRUSTED_CONTINUE_HOSTS.includes(url.hostname)) return raw;
+    } catch {
+        // Not an absolute URL — must be a relative path
+        if (raw.startsWith('/')) return raw;
+    }
+    return '/dashboard';
+}
 
 type ActionMode = 'resetPassword' | 'verifyEmail' | 'recoverEmail' | null;
 type PageState = 'loading' | 'form' | 'success' | 'error';
@@ -27,7 +41,7 @@ function AuthActionContent() {
 
     const mode = searchParams.get('mode') as ActionMode;
     const oobCode = searchParams.get('oobCode') ?? '';
-    const continueUrl = searchParams.get('continueUrl') ?? '/dashboard';
+    const continueUrl = safeContinueUrl(searchParams.get('continueUrl') ?? '/dashboard');
 
     const [pageState, setPageState] = useState<PageState>('loading');
     const [error, setError] = useState('');
@@ -36,12 +50,20 @@ function AuthActionContent() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
+    // Guard against double-invoke (React Strict Mode dev, Suspense hydration flush)
+    const hasRun = useRef(false);
+
     useEffect(() => {
+        if (hasRun.current) return;
+        hasRun.current = true;
+
         if (!oobCode || !mode) {
             setError('Invalid or missing action code. Please request a new link.');
             setPageState('error');
             return;
         }
+
+        let timeoutId: ReturnType<typeof setTimeout>;
 
         async function init() {
             try {
@@ -52,7 +74,7 @@ function AuthActionContent() {
                 } else if (mode === 'verifyEmail' || mode === 'recoverEmail') {
                     await applyActionCode(auth, oobCode);
                     setPageState('success');
-                    setTimeout(() => router.push(continueUrl), 2500);
+                    timeoutId = setTimeout(() => router.push(continueUrl), 2500);
                 } else {
                     setError('Unrecognized action. Please request a new link.');
                     setPageState('error');
@@ -69,7 +91,9 @@ function AuthActionContent() {
         }
 
         init();
-    }, [mode, oobCode, continueUrl, router]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        return () => clearTimeout(timeoutId);
+    }, [mode, oobCode, continueUrl]); // router excluded — router.push is a stable imperative API
 
     async function handlePasswordReset(e: React.FormEvent) {
         e.preventDefault();

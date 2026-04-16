@@ -8,7 +8,6 @@
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
-
     signInWithPopup,
     sendEmailVerification,
     sendPasswordResetEmail,
@@ -16,6 +15,7 @@ import {
     User,
     UserCredential
 } from 'firebase/auth';
+import { ACTION_CODE_SETTINGS } from './action-code-settings';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
 
@@ -118,11 +118,7 @@ export async function registerWithEmail(data: CustomerRegistrationData): Promise
             phone: data.phone,
         });
 
-        // Send verification email — routes to bakedbot.ai/auth/action (not firebaseapp.com)
-        await sendEmailVerification(userCredential.user, {
-            url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/auth/action`,
-            handleCodeInApp: true,
-        });
+        await sendEmailVerification(userCredential.user, ACTION_CODE_SETTINGS);
 
         // Establish secure session cookie for server actions
         await createServerSession(userCredential.user);
@@ -180,18 +176,11 @@ export async function loginWithEmail(email: string, password: string): Promise<U
  */
 export async function loginWithGoogle(): Promise<UserCredential> {
     try {
-        console.error('[CustomerAuth] Starting Google login popup...');
-        const authInstance = getAuthInstance();
-        console.error('[CustomerAuth] Auth instance obtained:', !!authInstance);
-
-        const credential = await signInWithPopup(authInstance, googleProvider);
-        console.error('[CustomerAuth] signInWithPopup success');
-
+        const credential = await signInWithPopup(getAuthInstance(), googleProvider);
         await createServerSession(credential.user);
         return credential;
     } catch (error: any) {
         logger.error('[CustomerAuth] Google login error:', error);
-        console.error('[CustomerAuth] Google login detailed error:', error);
         throw error;
     }
 }
@@ -203,10 +192,7 @@ export async function loginWithGoogle(): Promise<UserCredential> {
  */
 export async function sendPasswordReset(email: string): Promise<void> {
     try {
-        await sendPasswordResetEmail(getAuthInstance(), email, {
-            url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/auth/action`,
-            handleCodeInApp: true,
-        });
+        await sendPasswordResetEmail(getAuthInstance(), email, ACTION_CODE_SETTINGS);
     } catch (error: any) {
         logger.error('[CustomerAuth] Password reset error:', error);
         throw error;
@@ -218,10 +204,7 @@ export async function sendPasswordReset(email: string): Promise<void> {
  */
 export async function resendVerificationEmail(user: User): Promise<void> {
     try {
-        await sendEmailVerification(user, {
-            url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/auth/action`,
-            handleCodeInApp: true,
-        });
+        await sendEmailVerification(user, ACTION_CODE_SETTINGS);
     } catch (error: any) {
         logger.error('[CustomerAuth] Verification email error:', error);
         throw error;

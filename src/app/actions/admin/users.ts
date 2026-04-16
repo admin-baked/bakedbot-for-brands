@@ -2,6 +2,7 @@
 
 import { getAdminAuth, getAdminFirestore } from '@/firebase/admin';
 import { emailService } from '@/lib/notifications/email-service';
+import { ACTION_CODE_SETTINGS } from '@/lib/auth/action-code-settings';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
@@ -120,12 +121,7 @@ export async function inviteUser(data: InviteUserData): Promise<{ success: boole
         await auth.setCustomUserClaims(uid, claims);
 
         // 5. Generate Password Reset Link (Invite Link)
-        // handleCodeInApp: true routes the link to bakedbot.ai/auth/action
-        // instead of the Firebase project domain (studio-567050101-bc6e8.firebaseapp.com)
-        const link = await auth.generatePasswordResetLink(email, {
-            url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/auth/action`,
-            handleCodeInApp: true,
-        });
+        const link = await auth.generatePasswordResetLink(email, ACTION_CODE_SETTINGS);
 
         // 6. Send invitation email (if enabled)
         if (sendEmail) {
@@ -154,11 +150,7 @@ export async function resendInvitation(email: string): Promise<{ success: boolea
         const userDoc = await db.collection('users').doc(userRecord.uid).get();
         const userData = userDoc.data();
 
-        // Generate new reset link — routes to bakedbot.ai/auth/action (not firebaseapp.com)
-        const link = await auth.generatePasswordResetLink(email, {
-            url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/auth/action`,
-            handleCodeInApp: true,
-        });
+        const link = await auth.generatePasswordResetLink(email, ACTION_CODE_SETTINGS);
 
         // Send email
         await emailService.sendInvitationEmail(
