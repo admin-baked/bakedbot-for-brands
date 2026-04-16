@@ -252,7 +252,9 @@ export async function resolveAudience(campaign: Campaign): Promise<ResolvedRecip
         }
 
         // Must have email for email campaigns
-        const email = data.email as string | undefined;
+        const rawEmail = data.email as string | undefined;
+        // Skip POS placeholder emails — Alleaves in-store transactions use 'no-email@alleaves.local'
+        const email = rawEmail && !rawEmail.endsWith('@alleaves.local') ? rawEmail : undefined;
         const phone = data.phone as string | undefined;
 
         const hasEmail = !!email && campaign.channels.includes('email');
