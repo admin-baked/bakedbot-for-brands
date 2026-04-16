@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved × $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** Production live; NY outreach auto-send running — confidence scoring, 3-touch follow-up, form cron, Gmail reply detection
-**Recent work (2026-04-16):** `5f766e711` NY outreach auto-send + learning loop + book founder page; `3314e20cf` Repo Cleanup PRD complete
+**Current Status:** Production live; repo audit 10/10 closed
+**Recent work (2026-04-16):** `7e4c16442` agent contract + source-derived drift check (6/6) + readiness UI + arch doc; `a219d90db` audit gaps round 1
 
 ---
 
