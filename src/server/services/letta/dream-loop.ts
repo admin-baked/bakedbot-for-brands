@@ -198,10 +198,26 @@ function formatDreamModelPlan(model: DreamModel): string {
     return `${DREAM_MODEL_LABELS[chain[0]]} (fallback: ${chain.slice(1).map(candidate => DREAM_MODEL_LABELS[candidate]).join(' → ')})`;
 }
 
+// Brief pause between fallback tiers to avoid cascading 429s (e.g. Claude rate-limit → immediate Gemini burst).
+const INTER_TIER_SLEEP_MS = 2_000;
+
 async function dreamInfer(prompt: string, model: DreamModel, maxTokens: number = 2000): Promise<string> {
     let lastError: unknown = null;
+    const chain = getDreamModelChain(model);
 
-    for (const candidate of getDreamModelChain(model)) {
+    // Guarantee GLM is always the last resort, even if not in the built chain.
+    const safeChain: DreamModel[] = chain.includes('glm') ? chain : [...chain, 'glm'];
+
+    for (let i = 0; i < safeChain.length; i++) {
+        const candidate = safeChain[i];
+        if (i > 0) {
+            logger.warn('[DreamLoop] Falling back to next tier', {
+                requestedModel: model,
+                failedTier: safeChain[i - 1],
+                nextTier: candidate,
+            });
+            await new Promise(resolve => setTimeout(resolve, INTER_TIER_SLEEP_MS));
+        }
         try {
             switch (candidate) {
                 case 'glm':
@@ -238,7 +254,7 @@ async function dreamInfer(prompt: string, model: DreamModel, maxTokens: number =
         }
     }
 
-    throw lastError instanceof Error ? lastError : new Error(String(lastError || 'Dream inference failed'));
+    throw lastError instanceof Error ? lastError : new Error(String(lastError || 'Dream inference failed — all tiers exhausted including GLM safety net'));
 }
 
 export interface DreamHypothesis {

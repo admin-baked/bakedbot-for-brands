@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronRight, Brain, CheckCircle, XCircle, HelpCircle, AlertTriangle } from 'lucide-react';
-import type { DreamSessionRow } from './page';
+import type { DreamSessionRow } from '@/lib/dream-sessions';
 
 const AGENT_COLORS: Record<string, string> = {
     linus:       'bg-blue-100 text-blue-800',
