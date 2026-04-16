@@ -189,7 +189,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const authError = await requireCronSecret(request, 'ny-outreach-runner');
     if (authError) return authError;
 
-    logger.info('[NYOutreachRunner] Starting auto-send run', { limit: DAILY_SEND_LIMIT });
+    // ?limit=N overrides daily cap for controlled smoke-test runs
+    const limitOverride = request.nextUrl.searchParams.get('limit');
+    const effectiveLimit = limitOverride ? Math.min(parseInt(limitOverride, 10), DAILY_SEND_LIMIT) : DAILY_SEND_LIMIT;
+
+    logger.info('[NYOutreachRunner] Starting auto-send run', { limit: effectiveLimit, daily: DAILY_SEND_LIMIT });
 
     try {
         const db = getAdminFirestore();
@@ -226,7 +230,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }
 
         // Get next batch (only leads with emails)
-        let leads = await getNextLeadBatch(DAILY_SEND_LIMIT);
+        let leads = await getNextLeadBatch(effectiveLimit);
 
         // If still empty after seeding, try legacy research
         if (leads.length === 0 && !crmSeedAttempted) {
@@ -251,7 +255,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             } catch (err) {
                 logger.warn('[NYOutreachRunner] Enrich (retry) failed', { error: String(err) });
             }
-            leads = await getNextLeadBatch(DAILY_SEND_LIMIT);
+            leads = await getNextLeadBatch(effectiveLimit);
         }
 
         if (leads.length === 0) {
