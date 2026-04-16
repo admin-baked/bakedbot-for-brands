@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; 4/20 email sequence (3 campaigns) + unsubscribe system + proof recipients + campaign preview modal + Alleaves filter.
-**Recent work (2026-04-16):** `4f423717f` simplify: submittedAt bug + tenant doc dedup; `1d6e797e5` 4/20 sequence + unsubscribe + proof recipients; `79565d365` super_user org switcher + NY outreach playbook
+**Current Status:** 🟢 Production live; booking dark mode fix + GCal sync alert + Marty email triage + 4/20 sequence + unsubscribe.
+**Recent work (2026-04-16):** `c72fa3839` booking UI dark mode + GCal sync alert + Marty gmail_triage; `4f423717f` simplify: submittedAt + tenant dedup; `1d6e797e5` 4/20 sequence + unsubscribe
 - `26b7d7ac1` Firebase API key moved to env var (resolved secret alert)
 - `106f5408d` Security fixes: admin routes auth, XSS sanitization, database tool permissions
 **Prior (2026-04-12):** `c05e091da` CHANNEL_MAP + roster training; `1fbc88b22` task board + inbound CTAs

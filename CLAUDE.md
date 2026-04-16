@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; 4/20 email sequence (3 campaigns) + unsubscribe system + proof recipients + campaign preview modal + Alleaves filter | **Last update:** 2026-04-16 (campaigns 420 sequence + contact form submittedAt bug fix `4f423717f`)
+**Current Status:** 🟢 Production live; booking dark mode fix + GCal sync alert + Marty gmail_triage + 4/20 email sequence | **Last update:** 2026-04-16 (booking UI dark mode + GCal alert + email triage `c72fa3839`)
 
 ---
 
