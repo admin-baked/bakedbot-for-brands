@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Grok training loop + Agent Training audit page + Slack notification gate | **Last update:** 2026-04-16 (agent training dashboard `fe7fd4238`)
+**Current Status:** 🟢 Production live; Auth emails now route to bakedbot.ai (not firebaseapp.com) + Grok training loop + Agent Training audit page | **Last update:** 2026-04-16 (auth domain fix `7abe42ba8`)
 
 ---
 
