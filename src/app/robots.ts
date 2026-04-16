@@ -15,9 +15,11 @@ export default function robots(): MetadataRoute.Robots {
           '/debug/',
           '/dev/',
           '/login/',
+          '/signin',
           '/brand-login/',
           '/dispensary-login/',
           '/customer-login/',
+          '/baked-crm/',
           // WordPress proxy pages — crawl the customer's own domain, not ours
           '/andrewsdevelopments/',
           '/api/andrewsdevelopments/',

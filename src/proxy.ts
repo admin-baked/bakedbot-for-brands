@@ -237,6 +237,13 @@ export async function proxy(request: NextRequest) {
                 return response;
             }
 
+            // agency.bakedbot.ai → /agency (agency partner program)
+            if (subdomain === 'agency') {
+                const url = request.nextUrl.clone();
+                url.pathname = `/agency${pathname === '/' ? '' : pathname}`;
+                return NextResponse.rewrite(url);
+            }
+
             // meet.bakedbot.ai/{roomId} → /meet/{roomId}  (executive video rooms)
             if (subdomain === 'meet') {
                 if (pathname !== '/') {
@@ -382,6 +389,27 @@ export async function proxy(request: NextRequest) {
         pathname.startsWith('/dispensary-login') ||
         pathname.startsWith('/customer-login') ||
         pathname.startsWith('/super-admin');
+    // B2B acquisition pages — never age-gate these. Operators should reach pricing
+    // and landing pages without a cannabis age wall.
+    const isB2BRoute =
+        pathname === '/pricing' ||
+        pathname === '/about' ||
+        pathname === '/ai-retention-audit' ||
+        pathname === '/get-started' ||
+        pathname === '/demo' ||
+        pathname === '/book' ||
+        pathname === '/contact' ||
+        pathname === '/social-equity' ||
+        pathname === '/dispensary-crm' ||
+        pathname === '/dispensary-software' ||
+        pathname === '/dispensary-marketing-automation' ||
+        pathname === '/dispensary-retention' ||
+        pathname === '/dispensary-loyalty-software' ||
+        pathname === '/cannabis-customer-data-platform' ||
+        pathname.startsWith('/book/') ||
+        pathname.startsWith('/ny/') ||
+        pathname.startsWith('/agency') ||
+        pathname.startsWith('/integrations/');
     const isMenuRoute =
         !isProtectedRoute &&
         !isMetaPath &&
@@ -390,6 +418,7 @@ export async function proxy(request: NextRequest) {
         !isTabletRoute &&
         !isBlogRoute &&
         !isAuthRoute &&
+        !isB2BRoute &&
         !pathname.startsWith('/api/') &&
         !pathname.startsWith('/verify-age') &&
         !pathname.startsWith('/_next/') &&

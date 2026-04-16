@@ -39,11 +39,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       '/get-started',
       '/claim',
       '/demo',
+      '/about',
+      '/book',
     ].map((route) => ({
       url: `${BASE_URL}${route}`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.9,
+    }));
+
+    // 2c. Bottom-funnel operator acquisition pages (exact-match B2B intent)
+    const operatorLandingPages = [
+      '/dispensary-crm',
+      '/dispensary-software',
+      '/dispensary-marketing-automation',
+      '/dispensary-retention',
+      '/dispensary-loyalty-software',
+      '/cannabis-customer-data-platform',
+      '/integrations/dutchie',
+      '/integrations/treez',
+      '/integrations/alleaves',
+      '/agency',
+      '/social-equity',
+    ].map((route) => ({
+      url: `${BASE_URL}${route}`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.85,
     }));
 
     // 2b. Cannabis Data Hub (High Priority - SEO moat / organic authority)
@@ -477,6 +499,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [
       ...homepage,
       ...conversionPages,
+      ...operatorLandingPages,
       ...dataHubPages,
       ...productPages,
       ...trustPages,
