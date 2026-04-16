@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved × $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 Production live; Smokey timeout fix (AbortSignal on embedQuery + Supabase RPC) + Agent Training audit page.
-**Recent work (2026-04-16):** `07e5e476e` Smokey AbortSignal timeouts; `fe7fd4238` Agent Training dashboard + Grok loop; `ae46b7338` Agent Board Kanban all 3 phases
+**Current Status:** 🟢 GTM live — 16 T1 emails sent, Agent Board Kanban confirmed live, T2/T3 Firestore fix deployed
+**Recent work (2026-04-16):** `5f67a0fd3` T2/T3 cron fix (Firestore index); `ae46b7338` Agent Board all 3 phases (Kanban + Slack cards + learning loop)
 
 ---
 
