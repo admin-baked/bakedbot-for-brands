@@ -118,8 +118,11 @@ export async function registerWithEmail(data: CustomerRegistrationData): Promise
             phone: data.phone,
         });
 
-        // Send verification email
-        await sendEmailVerification(userCredential.user);
+        // Send verification email — routes to bakedbot.ai/auth/action (not firebaseapp.com)
+        await sendEmailVerification(userCredential.user, {
+            url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/auth/action`,
+            handleCodeInApp: true,
+        });
 
         // Establish secure session cookie for server actions
         await createServerSession(userCredential.user);
@@ -200,7 +203,10 @@ export async function loginWithGoogle(): Promise<UserCredential> {
  */
 export async function sendPasswordReset(email: string): Promise<void> {
     try {
-        await sendPasswordResetEmail(getAuthInstance(), email);
+        await sendPasswordResetEmail(getAuthInstance(), email, {
+            url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/auth/action`,
+            handleCodeInApp: true,
+        });
     } catch (error: any) {
         logger.error('[CustomerAuth] Password reset error:', error);
         throw error;
@@ -212,7 +218,10 @@ export async function sendPasswordReset(email: string): Promise<void> {
  */
 export async function resendVerificationEmail(user: User): Promise<void> {
     try {
-        await sendEmailVerification(user);
+        await sendEmailVerification(user, {
+            url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/auth/action`,
+            handleCodeInApp: true,
+        });
     } catch (error: any) {
         logger.error('[CustomerAuth] Verification email error:', error);
         throw error;

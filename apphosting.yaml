@@ -477,9 +477,10 @@ env:
     availability:
       - RUNTIME
   - variable: NEXT_PUBLIC_APP_URL
-    value: "https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app"
+    value: "https://bakedbot.ai"
     availability:
       - RUNTIME
+      - BUILD
   # Booking CTA — Martez's appointment page (synced with Google Calendar)
   - variable: NEXT_PUBLIC_BOOKING_URL
     value: "https://bakedbot.ai/martez"

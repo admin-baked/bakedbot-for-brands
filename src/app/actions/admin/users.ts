@@ -120,7 +120,12 @@ export async function inviteUser(data: InviteUserData): Promise<{ success: boole
         await auth.setCustomUserClaims(uid, claims);
 
         // 5. Generate Password Reset Link (Invite Link)
-        const link = await auth.generatePasswordResetLink(email);
+        // handleCodeInApp: true routes the link to bakedbot.ai/auth/action
+        // instead of the Firebase project domain (studio-567050101-bc6e8.firebaseapp.com)
+        const link = await auth.generatePasswordResetLink(email, {
+            url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/auth/action`,
+            handleCodeInApp: true,
+        });
 
         // 6. Send invitation email (if enabled)
         if (sendEmail) {
@@ -149,8 +154,11 @@ export async function resendInvitation(email: string): Promise<{ success: boolea
         const userDoc = await db.collection('users').doc(userRecord.uid).get();
         const userData = userDoc.data();
 
-        // Generate new reset link
-        const link = await auth.generatePasswordResetLink(email);
+        // Generate new reset link — routes to bakedbot.ai/auth/action (not firebaseapp.com)
+        const link = await auth.generatePasswordResetLink(email, {
+            url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/auth/action`,
+            handleCodeInApp: true,
+        });
 
         // Send email
         await emailService.sendInvitationEmail(
