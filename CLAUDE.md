@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Alleaves customer sync + data health cron + KE campaign bridge | **Last update:** 2026-04-16 (Alleaves sync + data health cron `cc8dc5cf2`)
+**Current Status:** 🟢 Production live; Slack notification gate + digest mode + slack-post handler + migration | **Last update:** 2026-04-16 (slack notification gate `7ef403cf3`)
 
 ---
 
