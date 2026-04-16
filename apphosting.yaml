@@ -689,6 +689,16 @@ env:
   - variable: GA4_PROPERTY_ID
     secret: GA4_PROPERTY_ID@1
     availability: [ RUNTIME ]
+  # NY Outreach pipeline — daily send caps (override defaults in cron code)
+  - variable: NY_OUTREACH_DAILY_LIMIT
+    value: "25"
+    availability: [ RUNTIME ]
+  - variable: NY_FOLLOWUP_DAILY_LIMIT
+    value: "25"
+    availability: [ RUNTIME ]
+  - variable: NY_FORM_OUTREACH_DAILY_LIMIT
+    value: "10"
+    availability: [ RUNTIME ]
 
 runConfig:
   minInstances: 1
