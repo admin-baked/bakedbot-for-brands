@@ -56,6 +56,12 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
     // Fetch real data
     const { brand, products, retailers, featuredBrands = [], carousels = [] } = await fetchBrandPageData(brandParam);
 
+    // Enforce canonical slug — if the brand has a slug and the URL doesn't match it, 404.
+    // This prevents /brand_ecstatic_edibles from serving when /ecstaticedibles is canonical.
+    if (brand?.slug && brand.slug !== brandParam) {
+        notFound();
+    }
+
     // If brand not found, show helpful page or demo
     if (!brand) {
         // Fallback for "demo" slug to show the placeholder experience

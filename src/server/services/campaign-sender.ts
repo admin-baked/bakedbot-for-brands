@@ -67,6 +67,10 @@ const DEDUP_LOOKBACK_DAYS = 30;
 const DEDUP_FALLBACK_BATCH_SIZE = 20;
 const DEDUP_FALLBACK_QUERY_LIMIT = 25;
 
+// Throttle between individual email sends — keeps SES reputation healthy
+// on early campaigns. 2 s/email = ~30/min. Raise to 500 once warmed up.
+const SEND_THROTTLE_MS = 2000;
+
 function normalizeTargetCustomerIds(customFilter?: Record<string, unknown>): Set<string> | null {
     if (!customFilter) {
         return null;
@@ -597,6 +601,11 @@ export async function executeCampaign(campaignId: string): Promise<{
             }
 
             batch.set(recipientDocRef, recipientData);
+
+            // Throttle between sends to protect SES reputation on early campaigns
+            if (SEND_THROTTLE_MS > 0) {
+                await new Promise(r => setTimeout(r, SEND_THROTTLE_MS));
+            }
         }
     }
 
