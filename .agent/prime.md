@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved × $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** Production live; Agent Board Kanban (stoplight + Slack cards + learning loop) + SEO/org-context work
-**Recent work (2026-04-16):** `ae46b7338` Agent Board all 3 phases — Kanban, Slack Block Kit cards, getAgentFeedbackSummary; `8972a7949` org-context/slow-mover refactor
+**Current Status:** 🟢 Production live; Smokey timeout fix (AbortSignal on embedQuery + Supabase RPC) + Agent Training audit page.
+**Recent work (2026-04-16):** `07e5e476e` Smokey AbortSignal timeouts; `fe7fd4238` Agent Training dashboard + Grok loop; `ae46b7338` Agent Board Kanban all 3 phases
 
 ---
 

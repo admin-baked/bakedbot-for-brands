@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Agent Board live — Kanban stoplight + Slack Block Kit cards + learning loop close (all 3 phases) | **Last update:** 2026-04-16 (`ae46b7338`)
+**Current Status:** 🟢 Smokey timeout fix live + Agent Training audit page + Grok training loop | **Last update:** 2026-04-16 (`07e5e476e`)
 
 ---
 
