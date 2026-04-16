@@ -252,7 +252,7 @@ export async function GET(req: NextRequest) {
         );
 
         await postLinusIncidentSlack({
-            source: 'connection-health-cron',
+            source: 'data-health',
             channelName: 'ops',
             fallbackText: `Data Health Report — ${today}`,
             blocks: [
