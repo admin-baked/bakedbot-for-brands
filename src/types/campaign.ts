@@ -162,6 +162,13 @@ export interface Campaign {
     // Performance
     performance?: CampaignPerformance;
 
+    /**
+     * Proof recipients — receive the campaign email before (or alongside) the main audience.
+     * Used for owner previews and QA. These are NOT counted in campaign performance metrics.
+     * Format: [{ email, name, role }]
+     */
+    proofRecipients?: Array<{ email: string; name?: string; role?: string }>;
+
     // Metadata
     tags?: string[];
     createdAt: Date;

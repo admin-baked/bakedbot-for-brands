@@ -12,8 +12,37 @@ import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { BlackleafService } from '@/lib/notifications/blackleaf-service';
 import { getUsageWithLimits, incrementUsage } from '@/lib/metering/usage-service';
 import { recordProactiveRuntimeDiagnostic } from '@/server/services/proactive-runtime-diagnostics';
+import { encodeUnsubscribeToken } from '@/app/api/email/unsubscribe/route';
 import type { Campaign, CampaignRecipient, CampaignPerformance, CampaignChannel } from '@/types/campaign';
 import type { CustomerSegment } from '@/types/customers';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai';
+
+/** Append CAN-SPAM / AWS SES required unsubscribe footer to campaign emails */
+function appendUnsubscribeFooter(
+    html: string,
+    text: string,
+    recipientEmail: string,
+    orgId: string,
+): { html: string; text: string } {
+    const token = encodeUnsubscribeToken(recipientEmail, orgId);
+    const unsubUrl = `${APP_URL}/api/email/unsubscribe?token=${token}`;
+
+    const footerHtml = `
+<div style="margin-top:32px;padding-top:20px;border-top:1px solid #e2e8f0;text-align:center;font-size:12px;color:#94a3b8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <p style="margin:0 0 6px;">You're receiving this because you're a valued customer.</p>
+  <p style="margin:0;"><a href="${unsubUrl}" style="color:#94a3b8;text-decoration:underline;">Unsubscribe</a></p>
+</div>`;
+
+    const footerText = `\n\n---\nTo unsubscribe from marketing emails: ${unsubUrl}`;
+
+    return {
+        html: html.includes('</body>')
+            ? html.replace('</body>', `${footerHtml}</body>`)
+            : html + footerHtml,
+        text: text + footerText,
+    };
+}
 
 const blackleaf = new BlackleafService();
 
@@ -446,6 +475,59 @@ export async function executeCampaign(campaignId: string): Promise<{
         updatedAt: new Date(),
     });
 
+    // ── Send proof copies to owner/preview recipients first ───────────────────
+    // Proof recipients see the email before (or alongside) the main audience.
+    // They are NOT counted in performance metrics and bypass dedup.
+    if (campaign.proofRecipients?.length) {
+        const tenantDocForProof = await firestore.collection('tenants').doc(campaign.orgId).get();
+        const orgNameForProof = tenantDocForProof.data()?.name || tenantDocForProof.data()?.businessName || '';
+
+        for (const proof of campaign.proofRecipients) {
+            for (const channel of campaign.channels) {
+                const content = campaign.content[channel];
+                if (!content || channel !== 'email') continue;
+
+                const dummyRecipient: ResolvedRecipient = {
+                    customerId: 'proof',
+                    email: proof.email,
+                    firstName: proof.name?.split(' ')[0] || 'there',
+                    segment: 'regular',
+                    totalSpent: 0,
+                    orderCount: 0,
+                };
+
+                const subject = `[PROOF] ${personalize(content.subject || campaign.name, dummyRecipient, orgNameForProof)}`;
+                const body = personalize(content.body, dummyRecipient, orgNameForProof);
+                const html = content.htmlBody ? personalize(content.htmlBody, dummyRecipient, orgNameForProof) : undefined;
+                const withFooter = appendUnsubscribeFooter(
+                    html || `<p>${body.replace(/\n/g, '<br>')}</p>`,
+                    body,
+                    proof.email,
+                    campaign.orgId,
+                );
+
+                await sendGenericEmail({
+                    to: proof.email,
+                    name: proof.name,
+                    subject,
+                    htmlBody: withFooter.html,
+                    textBody: withFooter.text,
+                    orgId: campaign.orgId,
+                    communicationType: 'campaign',
+                    agentName: 'craig',
+                    campaignId: campaign.id,
+                }).catch(e => logger.warn('[CAMPAIGN_SENDER] Proof send failed', {
+                    to: proof.email, campaignId, error: String(e),
+                }));
+            }
+        }
+
+        logger.info('[CAMPAIGN_SENDER] Proof emails sent', {
+            campaignId,
+            proofRecipients: campaign.proofRecipients.map(p => p.email),
+        });
+    }
+
     // Resolve audience
     const recipients = await resolveAudience(campaign);
 
@@ -579,12 +661,20 @@ async function sendToRecipient(
             ? personalize(content.htmlBody, recipient, orgName)
             : undefined;
 
+        // Append CAN-SPAM / SES required unsubscribe footer to all campaign emails
+        const withFooter = appendUnsubscribeFooter(
+            personalizedHtml || `<p>${personalizedBody.replace(/\n/g, '<br>')}</p>`,
+            personalizedBody,
+            recipient.email,
+            campaign.orgId,
+        );
+
         const result = await sendGenericEmail({
             to: recipient.email,
             name: recipient.firstName,
             subject: personalizedSubject,
-            htmlBody: personalizedHtml || `<p>${personalizedBody.replace(/\n/g, '<br>')}</p>`,
-            textBody: personalizedBody,
+            htmlBody: withFooter.html,
+            textBody: withFooter.text,
             orgId: campaign.orgId,
             communicationType: 'campaign',
             agentName: campaign.createdByAgent || 'craig',

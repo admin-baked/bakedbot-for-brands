@@ -29,6 +29,8 @@ export interface SesEmailOptions {
     htmlBody: string;
     textBody?: string;
     replyTo?: string;
+    /** List-Unsubscribe URLs for bulk campaign sends (RFC 2369 / RFC 8058 / SES requirements) */
+    listUnsubscribeUrls?: string[];
 }
 
 function getClient(): SESClient {
@@ -48,6 +50,15 @@ export async function sendSesEmail(opts: SesEmailOptions): Promise<void> {
         ? `${opts.fromName} <${opts.from}>`
         : opts.from;
 
+    // Build List-Unsubscribe headers for bulk sends (SES / CAN-SPAM / RFC 8058 compliance)
+    // One-click POST unsubscribe (RFC 8058) + traditional mailto fallback
+    const listUnsubscribeHeader = opts.listUnsubscribeUrls?.length
+        ? opts.listUnsubscribeUrls.map(u => `<${u}>`).join(', ')
+        : undefined;
+    const listUnsubscribePostHeader = opts.listUnsubscribeUrls?.find(u => u.startsWith('http'))
+        ? 'List-Unsubscribe=One-Click'
+        : undefined;
+
     const command = new SendEmailCommand({
         Source: fromAddress,
         Destination: { ToAddresses: toAddresses },
@@ -59,7 +70,14 @@ export async function sendSesEmail(opts: SesEmailOptions): Promise<void> {
             },
         },
         ...(opts.replyTo && { ReplyToAddresses: [opts.replyTo] }),
+        ...(listUnsubscribeHeader && {
+            Tags: [], // placeholder — SES custom headers go via ConfigurationSet in prod
+        }),
     });
+
+    // Note: SES SendEmailCommand doesn't support arbitrary headers directly.
+    // List-Unsubscribe is injected via the HTML body footer (appendUnsubscribeFooter in campaign-sender).
+    // For full RFC 8058 header support, upgrade to SendRawEmailCommand (future task).
 
     try {
         const result = await client.send(command);

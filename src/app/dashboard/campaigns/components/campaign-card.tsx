@@ -1,15 +1,17 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
     DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
     Mail, MessageSquare, Users, MoreHorizontal, Play, Pause,
-    Trash2, Eye, Clock, CheckCircle, Shield, Send,
+    Trash2, Eye, Clock, CheckCircle, Shield, Send, Sparkles,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { Campaign } from '@/types/campaign';
@@ -26,8 +28,10 @@ interface CampaignCardProps {
 
 export function CampaignCard({ campaign, onRefresh }: CampaignCardProps) {
     const router = useRouter();
+    const [showPreview, setShowPreview] = useState(false);
     const statusInfo = CAMPAIGN_STATUS_INFO[campaign.status];
     const goalInfo = CAMPAIGN_GOALS.find(g => g.id === campaign.goal);
+    const emailContent = campaign.content?.email;
 
     const handleAction = async (action: string) => {
         switch (action) {
@@ -160,6 +164,16 @@ export function CampaignCard({ campaign, onRefresh }: CampaignCardProps) {
                                 </DropdownMenuItem>
                             )}
 
+                            {emailContent?.htmlBody && (
+                                <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => setShowPreview(true)}>
+                                        <Sparkles className="h-4 w-4 mr-2" />
+                                        Preview Email
+                                    </DropdownMenuItem>
+                                </>
+                            )}
+
                             {!['sent', 'cancelled', 'failed', 'sending'].includes(campaign.status) && (
                                 <>
                                     <DropdownMenuSeparator />
@@ -176,6 +190,42 @@ export function CampaignCard({ campaign, onRefresh }: CampaignCardProps) {
                     </DropdownMenu>
                 </div>
             </CardContent>
+
+            {/* Email Preview Modal */}
+            {showPreview && emailContent && (
+                <Dialog open={showPreview} onOpenChange={setShowPreview}>
+                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Mail className="h-4 w-4" />
+                                Email Preview — {campaign.name}
+                            </DialogTitle>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                <strong>Subject:</strong> {emailContent.subject}
+                            </p>
+                            {campaign.proofRecipients?.length && (
+                                <p className="text-xs text-muted-foreground">
+                                    Proof recipients: {campaign.proofRecipients.map(p => p.name || p.email).join(', ')}
+                                </p>
+                            )}
+                        </DialogHeader>
+                        <div className="flex-1 overflow-auto rounded border bg-white">
+                            {emailContent.htmlBody ? (
+                                <iframe
+                                    srcDoc={emailContent.htmlBody}
+                                    title="Email preview"
+                                    className="w-full min-h-[500px] border-0"
+                                    sandbox="allow-same-origin"
+                                />
+                            ) : (
+                                <pre className="p-4 text-sm whitespace-pre-wrap font-sans">
+                                    {emailContent.body}
+                                </pre>
+                            )}
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            )}
         </Card>
     );
 }
