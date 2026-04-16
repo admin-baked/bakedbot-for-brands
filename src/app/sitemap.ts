@@ -59,6 +59,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       '/integrations/dutchie',
       '/integrations/treez',
       '/integrations/alleaves',
+      '/integrations/cannmenus',
       '/agency',
       '/social-equity',
     ].map((route) => ({
