@@ -27,6 +27,22 @@
 import { readFileSync, readdirSync, writeFileSync, existsSync } from 'fs';
 import { join, basename } from 'path';
 
+// Load .env if present (dotenv-style, no dependency required)
+try {
+  const envPath = join(process.cwd(), '.env');
+  if (existsSync(envPath)) {
+    readFileSync(envPath, 'utf8').split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return;
+      const eq = trimmed.indexOf('=');
+      if (eq === -1) return;
+      const key = trimmed.slice(0, eq).trim();
+      const val = trimmed.slice(eq + 1).trim().replace(/^['"]|['"]$/g, '');
+      if (key && !(key in process.env)) process.env[key] = val;
+    });
+  }
+} catch { /* ignore */ }
+
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
@@ -135,19 +151,15 @@ async function heygenFetch(path, options = {}) {
  */
 const STEP_SCREENSHOTS_DIR = join(process.cwd(), 'scripts', 'heygen', 'screenshots');
 
-function getScreenshotUrl(stepId) {
-  // Check for local screenshot file first
-  const localPath = join(STEP_SCREENSHOTS_DIR, `${stepId}.png`);
-  if (existsSync(localPath)) {
-    // HeyGen needs a public URL — local files need to be uploaded first
-    // For now, return null and fall back to color background
-    console.log(`  ℹ️  Local screenshot found at ${localPath} — upload to S3 for background`);
-    return null;
-  }
+const GCS_SCREENSHOTS_BASE = 'https://storage.googleapis.com/bakedbot-global-assets/onboarding/screenshots';
 
+function getScreenshotUrl(stepId) {
   // Check for public URL in env (e.g., HEYGEN_BG_brand_guide=https://...)
   const envKey = `HEYGEN_BG_${stepId.replace(/-/g, '_')}`;
-  return process.env[envKey] || null;
+  if (process.env[envKey]) return process.env[envKey];
+
+  // Fall back to GCS public screenshots (uploaded at onboarding/screenshots/{stepId}.png)
+  return `${GCS_SCREENSHOTS_BASE}/${stepId}.png`;
 }
 
 /**

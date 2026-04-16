@@ -57,6 +57,7 @@ import {
     Search,
     Code,
     Database,
+    Youtube,
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
@@ -263,6 +264,14 @@ export function SuperAdminSidebar() {
                                 <Link href="/dashboard/settings/brand-guide">
                                     <BookMarked />
                                     <span>Brand Guide</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/admin/content-strategy')}>
+                                <Link href="/dashboard/admin/content-strategy">
+                                    <Youtube />
+                                    <span>YouTube Strategy</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
