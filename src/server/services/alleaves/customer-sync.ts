@@ -72,25 +72,33 @@ export async function syncAlleavesCustomersForOrg(orgId: string): Promise<Alleav
         return { orgId, alleavesFetched: 0, phonesMatched: 0, matched: 0, updated: 0, durationMs: Date.now() - startTime };
     }
 
-    // ── Phone → Alleaves data map ─────────────────────────────────────────────
-    const phoneMap = new Map<string, {
+    // ── Build two lookup maps from Alleaves roster ────────────────────────────
+    // Primary: id_customer → LTV (covers all 3700+ customers, even those without phone)
+    // Secondary: normalized phone → LTV+id (covers ~150 customers with phone in bulk response)
+    interface AlleavesEntry {
         alleaves_id:   string;
         totalSpent:    number;
         orderCount:    number;
         lastOrderDate: string | null;
-    }>();
+    }
+    const byId    = new Map<string, AlleavesEntry>();
+    const phoneMap = new Map<string, AlleavesEntry>();
 
     for (const ac of alleavesCustomers) {
-        const norm = normalizePhone(ac.phone || ac.phone_number || ac.cell_phone || '');
-        if (!norm || norm.length < 4) continue;
-        const alleaves_id = String(ac.id || ac.id_customer || '');
+        const alleaves_id = String(ac.id_customer || ac.id || '');
         if (!alleaves_id) continue;
-        phoneMap.set(norm, {
+
+        const entry: AlleavesEntry = {
             alleaves_id,
             totalSpent:    parseFloat(ac.total_spent    || ac.totalSpent    || 0),
             orderCount:    parseInt(ac.order_count      || ac.orderCount    || 0, 10),
             lastOrderDate: ac.last_order_date || ac.lastOrderDate || ac.last_purchase || null,
-        });
+        };
+
+        byId.set(alleaves_id, entry);
+
+        const norm = normalizePhone(ac.phone || ac.phone_number || ac.cell_phone || '');
+        if (norm && norm.length >= 4) phoneMap.set(norm, entry);
     }
 
     // ── Walk BakedBot customers, match, write ────────────────────────────────
@@ -110,10 +118,23 @@ export async function syncAlleavesCustomersForOrg(orgId: string): Promise<Alleav
     while (!snap.empty) {
         for (const doc of snap.docs) {
             const data = doc.data();
-            const norm = normalizePhone(data.phone as string | undefined);
-            if (!norm) continue;
 
-            const alleaves = phoneMap.get(norm);
+            // Primary match: alleavesCustomerId field (set by persistCustomerProfiles)
+            // Format: 'cid_1338' → alleaves_id '1338'
+            let alleaves: AlleavesEntry | undefined;
+            const existingCid = data.alleavesCustomerId as string | undefined;
+            if (existingCid?.startsWith('cid_')) {
+                alleaves = byId.get(existingCid.slice(4));
+                // If not in LTV map, at least set the ID so tablet history works
+                if (!alleaves) alleaves = { alleaves_id: existingCid.slice(4), totalSpent: 0, orderCount: 0, lastOrderDate: null };
+            }
+
+            // Fallback: phone matching (for tablet check-in customers without alleavesCustomerId)
+            if (!alleaves) {
+                const norm = normalizePhone(data.phone as string | undefined);
+                if (norm) alleaves = phoneMap.get(norm);
+            }
+
             if (!alleaves) continue;
 
             matched++;
@@ -174,7 +195,7 @@ export async function syncAlleavesCustomersForOrg(orgId: string): Promise<Alleav
     const result: AlleavesSyncResult = {
         orgId,
         alleavesFetched: alleavesCustomers.length,
-        phonesMatched:   phoneMap.size,
+        phonesMatched:   byId.size,
         matched,
         updated,
         durationMs: Date.now() - startTime,
