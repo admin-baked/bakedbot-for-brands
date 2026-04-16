@@ -1,12 +1,66 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useTransition } from 'react';
+import { useUserRole } from '@/hooks/use-user-role';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Bell, Clock, Mail, MessageSquare, LayoutDashboard, CheckCircle2, Loader2 } from 'lucide-react';
+import {
+    getNotificationPreferences,
+    updateNotificationPreferences,
+    listOrgSlackChannels,
+} from '@/server/actions/notification-preferences';
+import type {
+    OrgSlackPreferences,
+    SlackNotificationConfig,
+    SlackChannelInfo,
+    SystemNotificationKey,
+} from '@/types/notification-preferences';
+
+// ---------------------------------------------------------------------------
+// Slack section types
+// ---------------------------------------------------------------------------
+
+interface SystemNotifDef {
+    key: SystemNotificationKey;
+    label: string;
+    description: string;
+    defaultSchedule: string;
+    realtimeOnly?: boolean;
+}
+
+const SYSTEM_NOTIFICATIONS: SystemNotifDef[] = [
+    {
+        key: 'thrive_daily_briefing',
+        label: 'Morning Briefing',
+        description: 'At-risk customers, slow movers, competitor intel, stale orders',
+        defaultSchedule: 'Daily 8:30 AM ET',
+    },
+    {
+        key: 'thrive_sales_summary',
+        label: 'Daily Sales Recap',
+        description: 'Revenue, top products, new vs returning customers',
+        defaultSchedule: 'Daily 8 PM ET',
+    },
+    {
+        key: 'thrive_competitive_intel',
+        label: 'Competitive Intel',
+        description: 'FlnnStoned pricing analysis and opportunity gaps',
+        defaultSchedule: 'Weekly Monday 9 AM ET',
+    },
+    {
+        key: 'revenue_pace_alert',
+        label: 'Revenue Pace Alert',
+        description: 'Fires when hourly revenue drops below your threshold — always real-time',
+        defaultSchedule: 'Real-time (15-min check)',
+        realtimeOnly: true,
+    },
+];
 
 interface NotificationChannel {
     email: boolean;
@@ -125,6 +179,61 @@ export default function NotificationsPage() {
     const [briefingPrefs, setBriefingPrefs] = useState<BriefingDeliveryPrefs>(DEFAULT_BRIEFING_PREFS);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+
+    // Slack notification preferences
+    const [slackPrefs, setSlackPrefs] = useState<OrgSlackPreferences | null>(null);
+    const [slackChannels, setSlackChannels] = useState<SlackChannelInfo[]>([]);
+    const [slackLoading, setSlackLoading] = useState(true);
+    const [slackDirty, setSlackDirty] = useState(false);
+    const [slackSaved, setSlackSaved] = useState(false);
+    const [slackError, setSlackError] = useState<string | null>(null);
+    const [, startSlackTransition] = useTransition();
+
+    const { orgId } = useUserRole();
+
+    useEffect(() => {
+        if (!orgId) return;
+        Promise.all([
+            getNotificationPreferences(orgId),
+            listOrgSlackChannels(orgId),
+        ]).then(([p, ch]) => {
+            setSlackPrefs(p.slack);
+            setSlackChannels(ch);
+            setSlackLoading(false);
+        }).catch(() => setSlackLoading(false));
+    }, [orgId]);
+
+    function updateSlack(patch: Partial<OrgSlackPreferences>) {
+        setSlackPrefs(prev => prev ? { ...prev, ...patch } : prev);
+        setSlackDirty(true);
+    }
+
+    function updateSlackNotif(key: SystemNotificationKey, patch: Partial<SlackNotificationConfig>) {
+        setSlackPrefs(prev => {
+            if (!prev) return prev;
+            const existing = prev.notifications[key] ?? { enabled: true };
+            return {
+                ...prev,
+                notifications: { ...prev.notifications, [key]: { ...existing, ...patch } },
+            };
+        });
+        setSlackDirty(true);
+    }
+
+    function saveSlack() {
+        if (!orgId || !slackPrefs) return;
+        setSlackError(null);
+        startSlackTransition(async () => {
+            const result = await updateNotificationPreferences(orgId, slackPrefs);
+            if (result.success) {
+                setSlackDirty(false);
+                setSlackSaved(true);
+                setTimeout(() => setSlackSaved(false), 3000);
+            } else {
+                setSlackError(result.error ?? 'Failed to save settings');
+            }
+        });
+    }
 
     function toggle(type: NotificationType, channel: keyof NotificationChannel) {
         setPrefs((prev) => ({
@@ -387,6 +496,175 @@ export default function NotificationsPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* ── Slack Notifications ── */}
+            {orgId && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <MessageSquare className="w-4 h-4" />
+                            Slack Notifications
+                        </CardTitle>
+                        <CardDescription>
+                            Control which automated messages your team receives in Slack and how they're delivered.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-5">
+                        {slackLoading || !slackPrefs ? (
+                            <div className="space-y-3">
+                                <Skeleton className="h-8 w-full" />
+                                <Skeleton className="h-8 w-full" />
+                                <Skeleton className="h-8 w-2/3" />
+                            </div>
+                        ) : (
+                            <>
+                                {/* Master toggle */}
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <Label className="text-sm font-medium">Enable Slack notifications</Label>
+                                        <p className="text-xs text-muted-foreground">Master on/off for all automated Slack messages</p>
+                                    </div>
+                                    <Switch
+                                        checked={slackPrefs.enabled}
+                                        onCheckedChange={v => updateSlack({ enabled: v })}
+                                    />
+                                </div>
+
+                                {slackPrefs.enabled && (
+                                    <>
+                                        {/* Default channel */}
+                                        <div className="flex items-center gap-3">
+                                            <Label className="w-32 shrink-0 text-sm">Default channel</Label>
+                                            <Select
+                                                value={slackPrefs.defaultChannel}
+                                                onValueChange={v => updateSlack({ defaultChannel: v })}
+                                            >
+                                                <SelectTrigger className="w-52 text-sm h-9">
+                                                    <SelectValue placeholder="#channel" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {slackChannels.map(ch => (
+                                                        <SelectItem key={ch.id} value={`#${ch.name}`}>
+                                                            #{ch.name}{ch.is_private ? ' 🔒' : ''}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        {/* Digest mode */}
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <Label className="text-sm font-medium">Digest mode</Label>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Bundle all daily notifications into one message at{' '}
+                                                    <strong>{slackPrefs.digestTime}</strong>
+                                                </p>
+                                            </div>
+                                            <Switch
+                                                checked={slackPrefs.digestMode}
+                                                onCheckedChange={v => updateSlack({ digestMode: v })}
+                                            />
+                                        </div>
+
+                                        {/* Digest time */}
+                                        {slackPrefs.digestMode && (
+                                            <div className="flex items-center gap-3">
+                                                <Label className="w-32 shrink-0 text-sm">Digest time</Label>
+                                                <Select
+                                                    value={slackPrefs.digestTime}
+                                                    onValueChange={v => updateSlack({ digestTime: v })}
+                                                >
+                                                    <SelectTrigger className="w-36 text-sm h-9">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {['07:00', '08:00', '09:00', '10:00', '11:00', '12:00'].map(t => (
+                                                            <SelectItem key={t} value={t}>
+                                                                {new Date(`2000-01-01T${t}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} ET
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )}
+
+                                        {/* Per-notification toggles */}
+                                        <div className="space-y-2 pt-2">
+                                            <h4 className="text-sm font-medium">System Notifications</h4>
+                                            {SYSTEM_NOTIFICATIONS.map(def => {
+                                                const config = slackPrefs.notifications[def.key] ?? { enabled: true };
+                                                const enabled = config.enabled !== false;
+                                                return (
+                                                    <div key={def.key} className="flex items-center justify-between py-2 border-b last:border-0">
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <span className="text-sm font-medium">{def.label}</span>
+                                                                {def.realtimeOnly && (
+                                                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Real-time</Badge>
+                                                                )}
+                                                                {slackPrefs.digestMode && !def.realtimeOnly && enabled && (
+                                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">Digest</Badge>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs text-muted-foreground">{def.description} · {def.defaultSchedule}</p>
+                                                        </div>
+                                                        <div className="flex items-center gap-3 ml-4">
+                                                            {/* Per-notification channel override */}
+                                                            {enabled && slackChannels.length > 0 && (
+                                                                <Select
+                                                                    value={config.channel ?? '__default__'}
+                                                                    onValueChange={v => updateSlackNotif(def.key, { channel: v === '__default__' ? undefined : v })}
+                                                                >
+                                                                    <SelectTrigger className="w-40 h-8 text-xs">
+                                                                        <SelectValue placeholder="default channel" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="__default__">
+                                                                            <span className="text-muted-foreground text-xs">Org default</span>
+                                                                        </SelectItem>
+                                                                        {slackChannels.map(ch => (
+                                                                            <SelectItem key={ch.id} value={`#${ch.name}`} className="text-xs">
+                                                                                #{ch.name}
+                                                                            </SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            )}
+                                                            <Switch
+                                                                checked={enabled}
+                                                                onCheckedChange={v => updateSlackNotif(def.key, { enabled: v })}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                )}
+
+                                {slackError && (
+                                    <p className="text-xs text-destructive">{slackError}</p>
+                                )}
+                                {(slackDirty || slackSaved) && (
+                                    <div className="flex items-center justify-end gap-3 pt-2">
+                                        {slackSaved && (
+                                            <span className="text-xs text-emerald-600 flex items-center gap-1">
+                                                <CheckCircle2 className="w-3.5 h-3.5" /> Saved
+                                            </span>
+                                        )}
+                                        {slackDirty && (
+                                            <Button size="sm" onClick={saveSlack}>
+                                                Save Slack settings
+                                            </Button>
+                                        )}
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Save button */}
             <div className="flex items-center justify-between">

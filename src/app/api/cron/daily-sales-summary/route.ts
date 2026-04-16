@@ -36,6 +36,8 @@ import { sendPlaybookEmail } from '@/lib/playbooks/mailjet';
 import { requireCronSecret } from '@/server/auth/cron';
 import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { logger } from '@/lib/logger';
+import { checkNotificationGate, loadOrgSlackPrefs, resolveNotificationChannel } from '@/server/services/slack-notification-gate';
+import { bufferDigestSection } from '@/server/services/slack-digest';
 
 export const maxDuration = 180;
 
@@ -48,6 +50,15 @@ export async function POST(request: NextRequest) {
     if (authError) return authError;
 
     try {
+        const firestore = getAdminFirestore();
+
+        // Gate check — respects org preferences (toggle, quiet hours, digest mode)
+        const gate = await checkNotificationGate(ORG_ID, 'thrive_sales_summary', firestore);
+        if (!gate.allowed) {
+            logger.info('[DailySalesSummary] Suppressed by gate', { reason: gate.reason });
+            return NextResponse.json({ success: true, skipped: true, reason: gate.reason });
+        }
+
         const [todayData, yesterdayData] = await Promise.all([
             fetchDaySalesData(ORG_ID, 0),
             fetchDaySalesData(ORG_ID, 1),
@@ -55,9 +66,20 @@ export async function POST(request: NextRequest) {
 
         const highlights = await synthesizeHighlights(todayData, yesterdayData);
 
+        // Digest mode — buffer Slack section, still send email + dashboard artifact
+        const slackTask = gate.digestMode
+            ? (async () => {
+                const prefs = await loadOrgSlackPrefs(ORG_ID, firestore);
+                const channel = resolveNotificationChannel(prefs, 'thrive_sales_summary', SLACK_CHANNEL);
+                const blocks = buildSalesSummaryBlocks(highlights, todayData);
+                await bufferDigestSection(ORG_ID, 'thrive_sales_summary', '📊 Sales Recap', blocks, channel, firestore);
+                logger.info('[DailySalesSummary] Slack section buffered for digest');
+            })()
+            : postSlackSummary(highlights, todayData);
+
         await Promise.allSettled([
             sendSummaryEmail(highlights, todayData),
-            postSlackSummary(highlights, todayData),
+            slackTask,
             saveDashboardArtifact(highlights, todayData),
         ]);
 
@@ -340,41 +362,43 @@ async function sendSummaryEmail(
     });
 }
 
+function buildSalesSummaryBlocks(highlights: SalesHighlights, today: DaySalesData): Record<string, unknown>[] {
+    const emoji = SENTIMENT_EMOJI[highlights.sentiment];
+    return [
+        {
+            type: 'header',
+            text: { type: 'plain_text', text: `${emoji} Daily Sales Summary`, emoji: true },
+        },
+        {
+            type: 'section',
+            fields: [
+                { type: 'mrkdwn', text: `*Revenue*\n$${today.totalRevenue.toFixed(0)}` },
+                { type: 'mrkdwn', text: `*Orders*\n${today.orderCount}` },
+                { type: 'mrkdwn', text: `*Avg Transaction*\n$${today.avgTransactionValue.toFixed(0)}` },
+                { type: 'mrkdwn', text: `*Peak Hour*\n${today.peakHour}` },
+            ],
+        },
+        { type: 'divider' },
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `*Highlights*\n${highlights.keyHighlights.map(h => `• ${h}`).join('\n')}\n\n*Tomorrow*\n${highlights.tomorrowRecommendations.map((r, i) => `${i + 1}. ${r}`).join('\n')}`,
+            },
+        },
+        {
+            type: 'context',
+            elements: [{ type: 'mrkdwn', text: '_BakedBot AI · Pops Analytics · Full report emailed to martez@bakedbot.ai_' }],
+        },
+    ];
+}
+
 async function postSlackSummary(highlights: SalesHighlights, today: DaySalesData): Promise<void> {
     try {
         const channelName = SLACK_CHANNEL.replace(/^#/, '');
         const channel = await slackService.findChannelByName(channelName);
         if (!channel) return;
-
-        const emoji = SENTIMENT_EMOJI[highlights.sentiment];
-        const blocks = [
-            {
-                type: 'header',
-                text: { type: 'plain_text', text: `${emoji} Daily Sales Summary`, emoji: true },
-            },
-            {
-                type: 'section',
-                fields: [
-                    { type: 'mrkdwn', text: `*Revenue*\n$${today.totalRevenue.toFixed(0)}` },
-                    { type: 'mrkdwn', text: `*Orders*\n${today.orderCount}` },
-                    { type: 'mrkdwn', text: `*Avg Transaction*\n$${today.avgTransactionValue.toFixed(0)}` },
-                    { type: 'mrkdwn', text: `*Peak Hour*\n${today.peakHour}` },
-                ],
-            },
-            { type: 'divider' },
-            {
-                type: 'section',
-                text: {
-                    type: 'mrkdwn',
-                    text: `*Highlights*\n${highlights.keyHighlights.map(h => `• ${h}`).join('\n')}\n\n*Tomorrow*\n${highlights.tomorrowRecommendations.map((r, i) => `${i + 1}. ${r}`).join('\n')}`,
-                },
-            },
-            {
-                type: 'context',
-                elements: [{ type: 'mrkdwn', text: '_BakedBot AI · Pops Analytics · Full report emailed to martez@bakedbot.ai_' }],
-            },
-        ];
-
+        const blocks = buildSalesSummaryBlocks(highlights, today);
         await slackService.postMessage(channel.id, highlights.headlineStat, blocks);
     } catch (err) {
         logger.warn('[DailySalesSummary] Slack post failed', { error: err });

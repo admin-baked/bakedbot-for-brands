@@ -36,6 +36,8 @@ import { requireCronSecret } from '@/server/auth/cron';
 import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { logger } from '@/lib/logger';
 import { fetchMenuProducts } from '@/server/agents/adapters/consumer-adapter';
+import { checkNotificationGate, loadOrgSlackPrefs, resolveNotificationChannel } from '@/server/services/slack-notification-gate';
+import { bufferDigestSection } from '@/server/services/slack-digest';
 
 export const maxDuration = 300;
 
@@ -48,6 +50,15 @@ export async function POST(request: NextRequest) {
     if (authError) return authError;
 
     try {
+        const firestore = getAdminFirestore();
+
+        // Gate check — respects org preferences (toggle, quiet hours, digest mode)
+        const gate = await checkNotificationGate(ORG_ID, 'thrive_competitive_intel', firestore);
+        if (!gate.allowed) {
+            logger.info('[FlnnStonedAnalysis] Slack suppressed by gate', { reason: gate.reason });
+            // Still run the analysis + email — only Slack is gated
+        }
+
         // 1. Fetch data in parallel
         const [thriveProducts, flnnStonedIntel, latestCiReport] = await Promise.allSettled([
             fetchMenuProducts(ORG_ID),
@@ -66,9 +77,25 @@ export async function POST(request: NextRequest) {
         const report = await synthesizeReport(analysisContext);
 
         // 4–6. Email, Slack, and Firestore in parallel
+        // Slack is gated: suppressed, buffered for digest, or posted immediately
+        let slackTask: Promise<void>;
+        if (!gate.allowed) {
+            slackTask = Promise.resolve();
+        } else if (gate.digestMode) {
+            slackTask = (async () => {
+                const prefs = await loadOrgSlackPrefs(ORG_ID, firestore);
+                const channel = resolveNotificationChannel(prefs, 'thrive_competitive_intel', SLACK_CHANNEL);
+                const blocks = buildCompetitiveSlackBlocks(report);
+                await bufferDigestSection(ORG_ID, 'thrive_competitive_intel', '🕵️ Competitive Intel', blocks, channel, firestore);
+                logger.info('[FlnnStonedAnalysis] Slack section buffered for digest');
+            })();
+        } else {
+            slackTask = postSlackSummary(report);
+        }
+
         await Promise.allSettled([
             sendReportEmail(report),
-            postSlackSummary(report),
+            slackTask,
             saveReportToFirestore(report),
         ]);
 
@@ -313,37 +340,39 @@ async function sendReportEmail(report: CompetitiveReport): Promise<void> {
 // Slack summary
 // ---------------------------------------------------------------------------
 
+function buildCompetitiveSlackBlocks(report: CompetitiveReport): Record<string, unknown>[] {
+    const actionList = report.actionItems.map((a, i) => `${i + 1}. ${a}`).join('\n');
+    return [
+        {
+            type: 'header',
+            text: { type: 'plain_text', text: '🕵️ FlnnStoned Competitive Deep Dive', emoji: true },
+        },
+        {
+            type: 'section',
+            text: { type: 'mrkdwn', text: report.executiveSummary },
+        },
+        { type: 'divider' },
+        {
+            type: 'section',
+            text: { type: 'mrkdwn', text: `*✅ This Week's Action Items*\n${actionList}` },
+        },
+        {
+            type: 'context',
+            elements: [{ type: 'mrkdwn', text: '_BakedBot AI · Ezal · Full report sent to martez@bakedbot.ai_' }],
+        },
+    ];
+}
+
 async function postSlackSummary(report: CompetitiveReport): Promise<void> {
     try {
         const channelName = SLACK_CHANNEL.replace(/^#/, '');
         const channel = await slackService.findChannelByName(channelName);
         if (!channel) return;
-
-        const actionList = report.actionItems.map((a, i) => `${i + 1}. ${a}`).join('\n');
-        const blocks = [
-            {
-                type: 'header',
-                text: { type: 'plain_text', text: '🕵️ FlnnStoned Competitive Deep Dive', emoji: true },
-            },
-            {
-                type: 'section',
-                text: { type: 'mrkdwn', text: report.executiveSummary },
-            },
-            { type: 'divider' },
-            {
-                type: 'section',
-                text: { type: 'mrkdwn', text: `*✅ This Week's Action Items*\n${actionList}` },
-            },
-            {
-                type: 'context',
-                elements: [{ type: 'mrkdwn', text: '_BakedBot AI · Ezal · Full report sent to martez@bakedbot.ai_' }],
-            },
-        ];
-
+        const blocks = buildCompetitiveSlackBlocks(report);
         await slackService.postMessage(
             channel.id,
             `🕵️ FlnnStoned Competitive Deep Dive — ${report.executiveSummary}`,
-            blocks
+            blocks,
         );
     } catch (err) {
         logger.warn('[FlnnStonedAnalysis] Slack post failed', { error: err });

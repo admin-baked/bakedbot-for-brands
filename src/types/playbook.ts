@@ -144,6 +144,20 @@ export interface Playbook {
 
     /** Legacy compatibility fields */
     playbookTemplateId?: string;
+
+    // --- Slack Notification Control ---
+
+    /**
+     * true = pre-installed system playbook owned by BakedBot.
+     * Cannot be deleted by dispensary users; can be toggled/configured.
+     */
+    isSystem?: boolean;
+
+    /**
+     * Stable key matching OrgNotificationPreferences.slack.notifications.
+     * e.g. 'thrive_daily_briefing' | 'thrive_competitive_intel'
+     */
+    systemKey?: string;
 }
 
 // ---------------------------------------------------------------------------

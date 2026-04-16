@@ -22,6 +22,9 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { runScheduledPlaybooks, isQuarterlyTriggerDay } from '@/lib/playbooks/trigger-engine';
 import { logger } from '@/lib/logger';
+import { getAdminFirestore } from '@/firebase/admin';
+import { flushAllPendingDigests } from '@/server/services/slack-digest';
+import { elroySlackService } from '@/server/services/communications/slack';
 
 export async function POST(req: NextRequest) {
     const authHeader = req.headers.get('Authorization') ?? '';
@@ -45,10 +48,16 @@ export async function POST(req: NextRequest) {
             quarterlyResult = await runScheduledPlaybooks('quarterly');
         }
 
+        // Flush any buffered Slack digest sections for today across all orgs
+        const firestore = getAdminFirestore();
+        const digestResult = await flushAllPendingDigests(firestore, elroySlackService);
+        logger.info('[Cron/Playbooks/Daily] Digest flush complete', digestResult);
+
         return NextResponse.json({
             success: true,
             daily: dailyResult,
             quarterly: quarterlyResult,
+            digest: digestResult,
         });
     } catch (err) {
         logger.error('[Cron/Playbooks/Daily] Error', err as Record<string, unknown>);

@@ -48,6 +48,7 @@ async function getRegistry(): Promise<HandlerMap> {
         { handleCompetitiveSnapshot },
         { handleWeeklyLoyaltyHealth },
         { handleCustomReport },
+        { handleSlackPost },
     ] = await Promise.all([
         import('./handlers/daily-recap'),
         import('./handlers/revenue-pace-alert'),
@@ -55,6 +56,7 @@ async function getRegistry(): Promise<HandlerMap> {
         import('./handlers/competitive-snapshot'),
         import('./handlers/weekly-loyalty-health'),
         import('./handlers/custom-report'),
+        import('./handlers/slack-post'),
     ]);
 
     _registry = {
@@ -64,6 +66,7 @@ async function getRegistry(): Promise<HandlerMap> {
         'competitive-snapshot':  handleCompetitiveSnapshot,
         'weekly-loyalty-health': handleWeeklyLoyaltyHealth,
         'custom-report':         handleCustomReport,
+        'slack-post':            handleSlackPost,
     };
 
     return _registry;

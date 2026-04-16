@@ -1,6 +1,14 @@
 {
     "indexes": [
         {
+            "collectionGroup": "slack_digest_buffer",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "flushed", "order": "ASCENDING" },
+                { "fieldPath": "date", "order": "ASCENDING" }
+            ]
+        },
+        {
             "collectionGroup": "playbooks",
             "queryScope": "COLLECTION",
             "fields": [

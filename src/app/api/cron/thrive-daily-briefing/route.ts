@@ -25,6 +25,8 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { callGroqOrClaude } from '@/ai/glm';
 import { requireCronSecret } from '@/server/auth/cron';
 import { logger } from '@/lib/logger';
+import { checkNotificationGate, loadOrgSlackPrefs, resolveNotificationChannel } from '@/server/services/slack-notification-gate';
+import { bufferDigestSection } from '@/server/services/slack-digest';
 import {
     getUpcomingHolidays,
     fetchCompetitorHolidayHours,
@@ -45,6 +47,15 @@ export async function POST(request: NextRequest) {
     if (authError) return authError;
 
     try {
+        const firestore = getAdminFirestore();
+
+        // Gate check — respects org preferences (toggle, quiet hours, digest mode)
+        const gate = await checkNotificationGate(ORG_ID, 'thrive_daily_briefing', firestore);
+        if (!gate.allowed) {
+            logger.info('[ThriveDailyBriefing] Suppressed by gate', { reason: gate.reason });
+            return NextResponse.json({ success: true, skipped: true, reason: gate.reason });
+        }
+
         // Detect upcoming holidays first — drives whether we fetch competitor hours
         const upcomingHolidays = getUpcomingHolidays(7);
         const nearestHoliday = upcomingHolidays[0] ?? null;
@@ -99,7 +110,18 @@ export async function POST(request: NextRequest) {
             slowMovers,
         });
 
-        // Ensure channel exists and bot is a member before posting
+        const fallbackText = `🌿 Thrive Syracuse Daily Briefing — ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`;
+
+        // Digest mode — buffer section instead of posting directly
+        if (gate.digestMode) {
+            const prefs = await loadOrgSlackPrefs(ORG_ID, firestore);
+            const channel = resolveNotificationChannel(prefs, 'thrive_daily_briefing', SLACK_CHANNEL);
+            await bufferDigestSection(ORG_ID, 'thrive_daily_briefing', '🌿 Morning Briefing', blocks, channel, firestore);
+            logger.info('[ThriveDailyBriefing] Buffered for digest');
+            return NextResponse.json({ success: true, buffered: true });
+        }
+
+        // Immediate post — ensure channel exists and bot is a member
         const channelName = SLACK_CHANNEL.replace(/^#/, '');
         let channelId: string | undefined;
         const existing = await elroySlackService.findChannelByName(channelName);
@@ -113,7 +135,6 @@ export async function POST(request: NextRequest) {
             await elroySlackService.joinChannel(channelId);
         }
 
-        const fallbackText = `🌿 Thrive Syracuse Daily Briefing — ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`;
         const postResult = await elroySlackService.postMessage(channelId ?? SLACK_CHANNEL, fallbackText, blocks);
 
         if (!postResult.sent) {
