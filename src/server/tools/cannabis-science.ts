@@ -447,7 +447,7 @@ export async function searchSalesConversations(
       query_embedding: JSON.stringify(embedding),
       match_count: maxResults,
       match_threshold: 0.4,
-    });
+    }).abortSignal(AbortSignal.timeout(SEARCH_TIMEOUT_MS));
 
     if (error) {
       logger.error('[SalesConversations] Search failed:', { error: error.message });
@@ -534,7 +534,7 @@ export async function searchB2BSalesConversations(
       query_embedding: JSON.stringify(embedding),
       match_count: outcome != null ? maxResults * 2 : maxResults,
       match_threshold: 0.4,
-    });
+    }).abortSignal(AbortSignal.timeout(SEARCH_TIMEOUT_MS));
 
     if (error) {
       logger.error('[B2BSales] Search failed:', { error: error.message });
@@ -627,7 +627,7 @@ export async function searchBudtenderConversations(
       query_embedding: JSON.stringify(embedding),
       match_count: maxResults,
       match_threshold: 0.45,
-    });
+    }).abortSignal(AbortSignal.timeout(SEARCH_TIMEOUT_MS));
 
     if (error) {
       logger.error('[BudtenderConversations] Search failed:', { error: error.message });
