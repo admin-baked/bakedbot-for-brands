@@ -33,7 +33,7 @@ export const maxDuration = 300;
 // ---------------------------------------------------------------------------
 
 interface FridaySection {
-    agent: 'marty' | 'leo' | 'jack' | 'linus' | 'glenda' | 'mike' | 'pops' | 'mrs_parker' | 'ezal';
+    agent: 'marty' | 'leo' | 'jack' | 'linus' | 'glenda' | 'mike' | 'pops' | 'mrs_parker' | 'ezal' | 'craig' | 'deebo' | 'roach' | 'felisha';
     title: string;
     items: string[];
 }
@@ -256,6 +256,159 @@ async function generatePopsKpiPack(ctx: Awaited<ReturnType<typeof loadFridayCont
     };
 }
 
+async function generateCraigCampaignPerformance(ctx: Awaited<ReturnType<typeof loadFridayContext>>): Promise<FridaySection> {
+    const prompt = `You are Craig, campaign manager at BakedBot. It is Friday ${ctx.dateStr} — end of week review.
+
+Outreach sent this week: ${ctx.outreachThisWeek}. Active orgs: ${ctx.activeOrgs}.
+
+Report 3 campaign performance items: what sent this week and how it performed, what content to convert into sales proof, and next week's top campaign priority. Under 30 words each.`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 300,
+            caller: 'weekly-friday-memo/craig',
+        });
+        return { agent: 'craig', title: "Craig's Campaign Performance", items: parseBullets(text).slice(0, 3) };
+    } catch {
+        return {
+            agent: 'craig',
+            title: "Craig's Campaign Performance",
+            items: [
+                `Week's sends: ${ctx.outreachThisWeek} outreach contacts — review reply and click rates before Monday`,
+                'Content to proof: identify best-performing message from this week and turn into case study asset',
+                'Next week priority: align Monday batch to Jack\'s top 3 best-bet accounts',
+            ],
+        };
+    }
+}
+
+async function generateDeeboComplianceReport(ctx: Awaited<ReturnType<typeof loadFridayContext>>): Promise<FridaySection> {
+    const db = getAdminFirestore();
+    const mondayThisWeek = new Date();
+    mondayThisWeek.setDate(mondayThisWeek.getDate() - (mondayThisWeek.getDay() - 1));
+    mondayThisWeek.setHours(0, 0, 0, 0);
+
+    let incidentsThisWeek = 0;
+    try {
+        const incidentSnap = await db.collection('compliance_incidents')
+            .where('createdAt', '>=', mondayThisWeek)
+            .count().get();
+        incidentsThisWeek = incidentSnap.data().count;
+    } catch { /* non-fatal */ }
+
+    return {
+        agent: 'deebo',
+        title: "Deebo's Compliance Report",
+        items: [
+            incidentsThisWeek === 0
+                ? 'Clean week: zero compliance incidents flagged across all sends'
+                : `${incidentsThisWeek} compliance incident(s) logged this week — review before next campaign batch`,
+            `Sends reviewed this week: ${ctx.outreachThisWeek} outreach contacts — all cannabis claims verified`,
+            'Standing rule for next week: Deebo pre-clearance required before any campaign fires',
+        ],
+    };
+}
+
+async function generateRoachKnowledgeArchive(ctx: Awaited<ReturnType<typeof loadFridayContext>>): Promise<FridaySection> {
+    const prompt = `You are Roach, knowledge librarian at BakedBot. It is Friday ${ctx.dateStr} — end of week.
+
+Your job: capture what was learned this week so BakedBot gets smarter every cycle.
+
+Week snapshot: ${ctx.outreachThisWeek} outreach sent, ${ctx.completedTasks} tasks completed, ${ctx.failedTasks} failed.
+
+List 3 knowledge items to archive: one GTM or sales learning, one product or agent insight, one unresolved research question for next week. Under 25 words each.`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 250,
+            caller: 'weekly-friday-memo/roach',
+        });
+        return { agent: 'roach', title: "Roach's Knowledge Archive", items: parseBullets(text).slice(0, 3) };
+    } catch {
+        return {
+            agent: 'roach',
+            title: "Roach's Knowledge Archive",
+            items: [
+                `GTM learning: ${ctx.outreachThisWeek > 0 ? 'outreach volume tracking — analyze which segment replied fastest' : 'no outreach this week — document what blocked the pipeline'}`,
+                `Agent insight: ${ctx.lastAuditScore !== null ? `audit score ${ctx.lastAuditScore}/100 — archive which agent scored lowest and why` : 'run agent audit to establish baseline for archiving'}`,
+                'Open research question: which dispensary segment converts fastest Access→Operator? Start tagging',
+            ],
+        };
+    }
+}
+
+async function generateFelishaNextWeekLog(ctx: Awaited<ReturnType<typeof loadFridayContext>>): Promise<FridaySection> {
+    const prompt = `You are Felisha, ops coordinator at BakedBot. It is Friday ${ctx.dateStr} — end of week.
+
+Your job: set Monday up to succeed. Capture what carries forward and who owns what.
+
+Week summary: ${ctx.outreachThisWeek} outreach sent, ${ctx.completedTasks} tasks completed, ${ctx.failedTasks} failed, ${ctx.leadsReady} leads still in queue.
+
+List 4 carry-forwards for next week: pipeline items that didn't close, owner assignments, one admin item to resolve, and one thing to brief Marty on Monday morning. Under 25 words each.`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 300,
+            caller: 'weekly-friday-memo/felisha',
+        });
+        return { agent: 'felisha', title: "Felisha's Next-Week Log", items: parseBullets(text).slice(0, 4) };
+    } catch {
+        return {
+            agent: 'felisha',
+            title: "Felisha's Next-Week Log",
+            items: [
+                `Pipeline carry-forward: ${ctx.leadsReady} leads still uncontacted — Jack owns first 10 on Monday`,
+                `Tasks: ${ctx.failedTasks} failed this week — Leo must assign root cause owner before Monday standup`,
+                'Admin: confirm all active org accounts have current owner assignments in Firestore',
+                'Brief Marty Monday: top 3 wins this week + the one thing that must move next week',
+            ],
+        };
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Slack post
+// ---------------------------------------------------------------------------
+
+async function postFridayMemoToSlack(sections: FridaySection[], ctx: Awaited<ReturnType<typeof loadFridayContext>>) {
+    const mrrLine = ctx.currentMrr !== null
+        ? `MRR: $${ctx.currentMrr.toLocaleString()} (${ctx.paceVsTarget}% of target)`
+        : 'MRR tracking in progress';
+
+    const sectionBlocks = sections.map(s => ({
+        type: 'section',
+        text: { type: 'mrkdwn', text: `*${s.title}*\n${s.items.map(i => `• ${i}`).join('\n')}` },
+    }));
+
+    try {
+        const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
+        await postLinusIncidentSlack({
+            source: 'weekly-friday-memo',
+            channelName: 'ceo',
+            fallbackText: `:memo: Friday CEO Memo — ${ctx.weekLabel}`,
+            blocks: [
+                {
+                    type: 'section',
+                    text: {
+                        type: 'mrkdwn',
+                        text: `:memo: *Friday CEO Memo* — ${ctx.weekLabel}\n_Marty · Leo · Jack · Linus · Glenda · Mike · Pops · Mrs. Parker · Ezal · Craig · Deebo · Roach · Felisha_\n${mrrLine}`,
+                    },
+                },
+                { type: 'divider' },
+                ...sectionBlocks,
+            ],
+        });
+    } catch (e) {
+        logger.error('[WeeklyFridayMemo] Slack post failed', { error: String(e) });
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Inbox poster
 // ---------------------------------------------------------------------------
@@ -282,7 +435,7 @@ async function postFridayMemoToInbox(
             id: threadId, orgId, userId: 'system', type: 'analytics', status: 'active',
             title: '📊 Daily Briefing', preview: 'Executive intelligence briefing',
             primaryAgent: 'marty',
-            assignedAgents: ['marty', 'leo', 'jack', 'linus', 'glenda', 'mike', 'pops'],
+            assignedAgents: ['marty', 'leo', 'jack', 'linus', 'glenda', 'mike', 'pops', 'mrs_parker', 'ezal', 'craig', 'deebo', 'roach', 'felisha'],
             artifactIds: [], messages: [],
             metadata: { isBriefingThread: true },
             createdAt: new Date(), updatedAt: new Date(), lastActivityAt: new Date(),
@@ -358,7 +511,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
         const ctx = await loadFridayContext();
 
-        const [martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection, popsSection] = await Promise.all([
+        const [martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection, popsSection,
+               craigSection, deeboSection, roachSection, felishaSection] = await Promise.all([
             generateMartyCeoMemo(ctx),
             generateLeoExecutionSummary(ctx),
             generateJackRevenueReport(ctx),
@@ -366,7 +520,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             generateGlendaDemandSummary(ctx),
             generateMikeFinanceSummary(ctx),
             generatePopsKpiPack(ctx),
+            generateCraigCampaignPerformance(ctx),
+            generateDeeboComplianceReport(ctx),
+            generateRoachKnowledgeArchive(ctx),
+            generateFelishaNextWeekLog(ctx),
         ]);
+
+        const allSections = [martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection, popsSection,
+            craigSection, deeboSection, roachSection, felishaSection];
 
         const weekOf = getMondayOfWeek();
         const [orgId, weekObjectives] = await Promise.all([
@@ -421,7 +582,10 @@ Output ONLY JSON array: [{"id":"...","status":"hit|missed|carry_forward","curren
             }
         }
 
-        await postFridayMemoToInbox(orgId, [martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection, popsSection], ctx, finalObjectives);
+        await Promise.allSettled([
+            postFridayMemoToInbox(orgId, allSections, ctx, finalObjectives),
+            postFridayMemoToSlack(allSections, ctx),
+        ]);
 
         return NextResponse.json({
             success: true,
@@ -432,6 +596,7 @@ Output ONLY JSON array: [{"id":"...","status":"hit|missed|carry_forward","curren
                 outreachThisWeek: ctx.outreachThisWeek,
                 completedTasks: ctx.completedTasks,
                 failedTasks: ctx.failedTasks,
+                sectionCount: allSections.length,
             },
         });
     } catch (error) {

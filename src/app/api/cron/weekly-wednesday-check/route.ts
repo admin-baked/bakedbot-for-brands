@@ -31,7 +31,7 @@ export const maxDuration = 240;
 // ---------------------------------------------------------------------------
 
 interface InspectionSection {
-    agent: 'marty' | 'leo' | 'jack' | 'pops' | 'deebo';
+    agent: 'marty' | 'leo' | 'jack' | 'pops' | 'deebo' | 'mrs_parker' | 'ezal' | 'craig' | 'felisha';
     title: string;
     items: string[];
     verdict: 'on_track' | 'at_risk' | 'off_track';
@@ -258,6 +258,159 @@ async function generateDeeboMidweekScan(): Promise<InspectionSection> {
     };
 }
 
+async function generateMrsParkerChurnCheck(ctx: Awaited<ReturnType<typeof loadWednesdayContext>>): Promise<InspectionSection> {
+    const prompt = `You are Mrs. Parker, account health manager at BakedBot. It is Wednesday ${ctx.dateStr} — midweek inspection.
+
+Active customer orgs: ${ctx.activeOrgs}.
+
+List 3 churn-risk signals to check and act on today: which account types are at risk, what health signals to pull, and one expansion signal to surface to Jack before Friday. Under 25 words each.`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 250,
+            caller: 'weekly-wednesday-check/mrs_parker',
+        });
+        return { agent: 'mrs_parker', title: "Mrs. Parker's Churn Check", items: parseBullets(text).slice(0, 3), verdict: 'on_track' };
+    } catch {
+        return {
+            agent: 'mrs_parker',
+            title: "Mrs. Parker's Churn Check",
+            items: [
+                `Health pass: check engagement frequency for all ${ctx.activeOrgs} active orgs — flag < 2 sessions/week`,
+                'Churn signal: any org that hasn\'t opened the app since Monday needs a same-day touch',
+                'Expansion flag: identify one active org ready to discuss Operator upgrade — brief Jack today',
+            ],
+            verdict: 'on_track',
+        };
+    }
+}
+
+async function generateEzalCompetitorCheck(ctx: Awaited<ReturnType<typeof loadWednesdayContext>>): Promise<InspectionSection> {
+    const prompt = `You are Ezal, competitive intelligence lookout at BakedBot. It is Wednesday ${ctx.dateStr}.
+
+BakedBot serves NY cannabis dispensaries. This week's outreach: ${ctx.outreachThisWeek} contacts sent.
+
+List 2 competitor or market intelligence checks: any pricing moves, new entrants, or campaign activity that should shift our positioning or urgency this week. Under 25 words each.`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 200,
+            caller: 'weekly-wednesday-check/ezal',
+        });
+        return { agent: 'ezal', title: "Ezal's Competitor Pulse", items: parseBullets(text).slice(0, 2), verdict: 'on_track' };
+    } catch {
+        return {
+            agent: 'ezal',
+            title: "Ezal's Competitor Pulse",
+            items: [
+                'Scan competitor SMS/loyalty platforms for NY cannabis — flag any price cuts or new pilots',
+                'Check OCM announcements this week — regulatory updates affect campaign timing and copy',
+            ],
+            verdict: 'on_track',
+        };
+    }
+}
+
+async function generateCraigCampaignOptimization(ctx: Awaited<ReturnType<typeof loadWednesdayContext>>): Promise<InspectionSection> {
+    const prompt = `You are Craig, campaign manager at BakedBot. It is Wednesday ${ctx.dateStr} — midweek check.
+
+Outreach sent this week: ${ctx.outreachThisWeek}. Open tasks: ${ctx.openTasks}.
+
+List 2 campaign optimization items: what to adjust, accelerate, or pause before Friday based on midweek signals. Include one content item that Deebo should pre-clear for the end of week. Under 25 words each.`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 200,
+            caller: 'weekly-wednesday-check/craig',
+        });
+        return { agent: 'craig', title: "Craig's Campaign Check", items: parseBullets(text).slice(0, 2), verdict: 'on_track' };
+    } catch {
+        return {
+            agent: 'craig',
+            title: "Craig's Campaign Check",
+            items: [
+                `Campaign velocity: ${ctx.outreachThisWeek} sent so far — adjust Friday batch based on reply signals`,
+                'Submit end-of-week content to Deebo for compliance pre-clearance by Thursday noon',
+            ],
+            verdict: 'on_track',
+        };
+    }
+}
+
+async function generateFelishaOpenLoops(ctx: Awaited<ReturnType<typeof loadWednesdayContext>>): Promise<InspectionSection> {
+    const prompt = `You are Felisha, ops coordinator at BakedBot. It is Wednesday ${ctx.dateStr}.
+
+Open tasks: ${ctx.openTasks}. Outreach this week: ${ctx.outreachThisWeek}. Active orgs: ${ctx.activeOrgs}.
+
+List 3 open loops to close before Friday: commitments made Monday that haven't moved, handoffs that need a nudge, and one admin item to confirm. Under 25 words each.`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 250,
+            caller: 'weekly-wednesday-check/felisha',
+        });
+        return { agent: 'felisha', title: "Felisha's Open Loops", items: parseBullets(text).slice(0, 3), verdict: 'on_track' };
+    } catch {
+        return {
+            agent: 'felisha',
+            title: "Felisha's Open Loops",
+            items: [
+                `Task board: ${ctx.openTasks} open — confirm each has a named owner and expected close date`,
+                'Check-in: did Jack send this week\'s pipeline outreach? Confirm ${ctx.outreachThisWeek > 0 ? "yes" : "[MISSING] — escalate to Leo"}',
+                'Admin: confirm Friday review packet owner assigned (Felisha builds, Marty reviews)',
+            ],
+            verdict: ctx.openTasks > 15 ? 'at_risk' : 'on_track',
+        };
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Slack post
+// ---------------------------------------------------------------------------
+
+async function postWednesdayCheckToSlack(sections: InspectionSection[], ctx: Awaited<ReturnType<typeof loadWednesdayContext>>) {
+    const verdicts = sections.map(s => s.verdict);
+    const worstVerdict = verdicts.includes('off_track') ? 'off_track'
+        : verdicts.includes('at_risk') ? 'at_risk' : 'on_track';
+    const statusEmoji = worstVerdict === 'off_track' ? ':red_circle:' : worstVerdict === 'at_risk' ? ':large_yellow_circle:' : ':large_green_circle:';
+    const mrrLine = ctx.currentMrr !== null ? `MRR pace: ${ctx.paceVsTarget}%` : '';
+
+    const sectionBlocks = sections.map(s => ({
+        type: 'section',
+        text: { type: 'mrkdwn', text: `*${s.title}*\n${s.items.map(i => `• ${i}`).join('\n')}` },
+    }));
+
+    try {
+        const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
+        await postLinusIncidentSlack({
+            source: 'weekly-wednesday-check',
+            channelName: 'ceo',
+            fallbackText: `:mag_right: Wednesday Inspection — ${ctx.dateStr}`,
+            blocks: [
+                {
+                    type: 'section',
+                    text: {
+                        type: 'mrkdwn',
+                        text: `${statusEmoji} :mag_right: *Wednesday Inspection* — ${ctx.dateStr}\n_Marty · Leo · Jack · Pops · Deebo · Mrs. Parker · Ezal · Craig · Felisha_${mrrLine ? ` | ${mrrLine}` : ''}`,
+                    },
+                },
+                { type: 'divider' },
+                ...sectionBlocks,
+            ],
+        });
+    } catch (e) {
+        logger.error('[WeeklyWednesdayCheck] Slack post failed', { error: String(e) });
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Inbox poster
 // ---------------------------------------------------------------------------
@@ -284,7 +437,7 @@ async function postWednesdayCheckToInbox(
             id: threadId, orgId, userId: 'system', type: 'analytics', status: 'active',
             title: '📊 Daily Briefing', preview: 'Executive intelligence briefing',
             primaryAgent: 'marty',
-            assignedAgents: ['marty', 'leo', 'jack', 'pops', 'deebo'],
+            assignedAgents: ['marty', 'leo', 'jack', 'pops', 'deebo', 'mrs_parker', 'ezal', 'craig', 'felisha'],
             artifactIds: [], messages: [],
             metadata: { isBriefingThread: true },
             createdAt: new Date(), updatedAt: new Date(), lastActivityAt: new Date(),
@@ -362,19 +515,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
         const ctx = await loadWednesdayContext();
 
-        const [martySection, leoSection, jackSection, popsSection, deeboSection] = await Promise.all([
+        const [martySection, leoSection, jackSection, popsSection, deeboSection,
+               mrsParkerSection, ezalSection, craigSection, felishaSection] = await Promise.all([
             generateMartyInspection(ctx),
             generateLeoBlockerReview(ctx),
             generateJackStuckDeals(ctx),
             generatePopsKpiCheckpoint(ctx),
             generateDeeboMidweekScan(),
+            generateMrsParkerChurnCheck(ctx),
+            generateEzalCompetitorCheck(ctx),
+            generateCraigCampaignOptimization(ctx),
+            generateFelishaOpenLoops(ctx),
         ]);
+
+        const allSections = [martySection, leoSection, jackSection, popsSection, deeboSection,
+            mrsParkerSection, ezalSection, craigSection, felishaSection];
 
         const [orgId, weekObjectives] = await Promise.all([
             getSuperUserOrgId(),
             getWeekObjectives(getMondayOfWeek()),
         ]);
-        await postWednesdayCheckToInbox(orgId, [martySection, leoSection, jackSection, popsSection, deeboSection], ctx, weekObjectives);
+
+        await Promise.allSettled([
+            postWednesdayCheckToInbox(orgId, allSections, ctx, weekObjectives),
+            postWednesdayCheckToSlack(allSections, ctx),
+        ]);
 
         return NextResponse.json({
             success: true,
@@ -384,6 +549,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 openTasks: ctx.openTasks,
                 paceVsTarget: ctx.paceVsTarget,
                 objectives: weekObjectives.length,
+                sectionCount: allSections.length,
             },
         });
     } catch (error) {

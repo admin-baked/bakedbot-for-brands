@@ -1044,6 +1044,37 @@ if (authHeader !== `Bearer ${cronSecret}`) {
 
 ---
 
+## Megacron Pattern (MANDATORY -- read before creating any cron endpoint)
+
+Before creating a new cron route, **always check if an existing cron can handle it via time-of-day or day-of-week routing.**
+
+Each cron endpoint carries real overhead: Cloud Scheduler job, auth check, Firestore writes, Claude calls, Slack posts. Proliferating cron files makes the platform harder to audit and harder to cancel when something goes wrong.
+
+### Rule: Extend existing crons first
+
+| New need | Preferred approach |
+|----------|-------------------|
+| Same day, different agents | Add a section to the existing day's cron |
+| New weekday (Tue or Thu) | Add day routing inside `weekly-executive-cadence` |
+| New daily window | Add window routing inside `daily-executive-cadence` |
+| Truly new independent schedule | Create a new cron file -- but justify why existing crons cannot serve it |
+
+### Current megacrons
+
+| File | Schedule | Routing |
+|------|----------|---------|
+| `weekly-monday-command` | Mon 7 AM EST | Full Monday Command Day (all agents) |
+| `weekly-wednesday-check` | Wed 2 PM EST | Full Wednesday Inspection Day (all agents) |
+| `weekly-friday-memo` | Fri 4 PM EST | Full Friday Truth Day (all agents) |
+| `weekly-executive-cadence` | Tue 9 AM + Thu 1 PM EST | getDay() routes to Build Day or Proof Day |
+| `daily-executive-cadence` | 8 AM / 12 PM / 6 PM / 10 PM EST | getHours() routes to Morning Scan / Midday / Closeout / Overnight |
+
+### Cloud Scheduler registration (run once per job)
+
+See `.agent/prime.md` Megacron section comments in each route file for the exact gcloud commands.
+
+---
+
 ## ðŸ› ï¸ DevOps & Operational Awareness
 
 > Every agent should understand the production infrastructure they operate within.

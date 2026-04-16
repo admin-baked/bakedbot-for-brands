@@ -31,7 +31,7 @@ export const maxDuration = 300;
 // ---------------------------------------------------------------------------
 
 interface CommandSection {
-    agent: 'marty' | 'leo' | 'jack' | 'linus' | 'glenda' | 'mike';
+    agent: 'marty' | 'leo' | 'jack' | 'linus' | 'glenda' | 'mike' | 'pops' | 'ezal' | 'mrs_parker' | 'craig' | 'deebo' | 'felisha';
     title: string;
     items: string[];
     priority: 'high' | 'medium' | 'low';
@@ -268,6 +268,184 @@ async function generateMikeEconomicsReview(ctx: Awaited<ReturnType<typeof loadWe
     };
 }
 
+async function generatePopsScorecard(ctx: Awaited<ReturnType<typeof loadWeeklyCommandContext>>): Promise<CommandSection> {
+    const prompt = `You are Pops, analytics lead at BakedBot. It is Monday ${ctx.dateStr} — Command Day.
+
+METRICS SNAPSHOT:
+- Active orgs: ${ctx.activeOrgs}
+- Last audit score: ${ctx.lastAuditScore !== null ? `${ctx.lastAuditScore}/100` : 'N/A'}
+- MRR pace: ${ctx.paceVsTarget !== null ? `${ctx.paceVsTarget}%` : 'N/A'} of target
+
+List 3 KPI checks to run this week: one conversion metric, one retention/health metric, one GTM signal. For each: what to measure, where to pull it from, what a healthy number looks like. Under 25 words each.`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 300,
+            caller: 'weekly-monday-command/pops',
+        });
+        return { agent: 'pops', title: "Pops' Weekly Scorecard", items: parseBullets(text).slice(0, 3), priority: 'medium' };
+    } catch {
+        return {
+            agent: 'pops',
+            title: "Pops' Weekly Scorecard",
+            items: [
+                `Conversion: track outreach-to-reply rate across ${ctx.totalOutreachSent} sent — target >5%`,
+                `Retention: pull usage frequency for all ${ctx.activeOrgs} active orgs — flag any < 2 sessions/week`,
+                'GTM signal: review which lead segment converted last week and replicate targeting',
+            ],
+            priority: 'medium',
+        };
+    }
+}
+
+async function generateEzalMarketNote(ctx: Awaited<ReturnType<typeof loadWeeklyCommandContext>>): Promise<CommandSection> {
+    const prompt = `You are Ezal, competitive intelligence lookout at BakedBot. It is Monday ${ctx.dateStr}.
+
+BakedBot serves NY cannabis dispensaries with AI-powered marketing and retention (Access $149-$899/mo, Operator $2,500-$4,000 MRR).
+
+List 3 market intelligence tasks for this week: competitor pricing moves, NY cannabis market trends, or outreach timing signals. Flag anything that should shift our positioning or timing. Under 25 words each.`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 300,
+            caller: 'weekly-monday-command/ezal',
+        });
+        return { agent: 'ezal', title: "Ezal's Market Note", items: parseBullets(text).slice(0, 3), priority: 'low' };
+    } catch {
+        return {
+            agent: 'ezal',
+            title: "Ezal's Market Note",
+            items: [
+                'Scan competitor SMS/email tools targeting NY cannabis — note any new pricing or pilots',
+                'Monitor NY cannabis license approvals this week — new dispensaries = new targets',
+                'Check any regulatory updates (OCM) that could affect campaign content or timing',
+            ],
+            priority: 'low',
+        };
+    }
+}
+
+async function generateMrsParkerAccountHealth(ctx: Awaited<ReturnType<typeof loadWeeklyCommandContext>>): Promise<CommandSection> {
+    const prompt = `You are Mrs. Parker, account health manager at BakedBot. It is Monday ${ctx.dateStr}.
+
+Active customer orgs: ${ctx.activeOrgs}. Your job: protect revenue by flagging churn risk early and surfacing expansion signals.
+
+List 3 account health priorities this week: which accounts to call, what health signals to check, and one expansion opportunity to surface to Jack. Under 25 words each.`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 300,
+            caller: 'weekly-monday-command/mrs_parker',
+        });
+        return { agent: 'mrs_parker', title: "Mrs. Parker's Account Health", items: parseBullets(text).slice(0, 3), priority: 'medium' };
+    } catch {
+        return {
+            agent: 'mrs_parker',
+            title: "Mrs. Parker's Account Health",
+            items: [
+                `Health pass: review login/engagement frequency for all ${ctx.activeOrgs} active orgs — flag < 2x/week`,
+                'Churn risk: identify any org that missed last week\'s check-in or has an open complaint',
+                'Expansion: flag one Access org ready to upgrade to Operator — brief Jack by Wednesday',
+            ],
+            priority: 'medium',
+        };
+    }
+}
+
+async function generateCraigCampaignQueue(ctx: Awaited<ReturnType<typeof loadWeeklyCommandContext>>): Promise<CommandSection> {
+    const prompt = `You are Craig, campaign manager at BakedBot. It is Monday ${ctx.dateStr}.
+
+This week's outreach pipeline: ${ctx.queuedLeads} leads queued, ${ctx.totalOutreachSent} total sent to date. Active customer orgs: ${ctx.activeOrgs}.
+
+List 3 campaign actions for this week: what to queue for Puff to send, what content to brief Deebo on for clearance, and one campaign asset to build or optimize. Under 25 words each.`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 300,
+            caller: 'weekly-monday-command/craig',
+        });
+        return { agent: 'craig', title: "Craig's Campaign Queue", items: parseBullets(text).slice(0, 3), priority: 'medium' };
+    } catch {
+        return {
+            agent: 'craig',
+            title: "Craig's Campaign Queue",
+            items: [
+                `Queue ${Math.min(ctx.queuedLeads, 20)} outreach sends for this week — brief Puff on send schedule today`,
+                'Content to Deebo: submit this week\'s campaign copy for compliance pre-clearance by Tuesday',
+                'Build one case study asset from last week\'s strongest customer result — Day Day amplifies',
+            ],
+            priority: 'medium',
+        };
+    }
+}
+
+async function generateDeeboCompliancePreflight(ctx: Awaited<ReturnType<typeof loadWeeklyCommandContext>>): Promise<CommandSection> {
+    const prompt = `You are Deebo, compliance enforcer at BakedBot serving NY cannabis dispensaries. It is Monday ${ctx.dateStr}.
+
+Your job: pre-clear all outbound content before it ships. ${ctx.queuedLeads} leads in pipeline, campaigns queued for the week.
+
+List 3 compliance preflight items: what content to review before sending, any NY cannabis marketing rules to flag, and one standing rule to remind the team of. Under 25 words each.`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 300,
+            caller: 'weekly-monday-command/deebo',
+        });
+        return { agent: 'deebo', title: "Deebo's Compliance Preflight", items: parseBullets(text).slice(0, 3), priority: 'high' };
+    } catch {
+        return {
+            agent: 'deebo',
+            title: "Deebo's Compliance Preflight",
+            items: [
+                'Pre-clear all outreach copy before Puff sends — no cannabis health claims, no price-per-gram',
+                'Flag any campaign with age-gating missing — NY OCM requires 21+ messaging on all channels',
+                'Standing rule: opt-out language required in every SMS and email send — Puff checks before fire',
+            ],
+            priority: 'high',
+        };
+    }
+}
+
+async function generateFelishaWeeklyTracker(ctx: Awaited<ReturnType<typeof loadWeeklyCommandContext>>): Promise<CommandSection> {
+    const prompt = `You are Felisha, ops coordinator at BakedBot. It is Monday ${ctx.dateStr} — Command Day.
+
+Your job: make sure commitments made today actually get tracked and followed up. Active orgs: ${ctx.activeOrgs}, pipeline leads: ${ctx.queuedLeads}.
+
+List 4 tracker items: what to log from today's Command session, who to follow up with mid-week, what Friday review needs to include, and one administrative gap to close this week. Under 25 words each.`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 350,
+            caller: 'weekly-monday-command/felisha',
+        });
+        return { agent: 'felisha', title: "Felisha's Weekly Tracker", items: parseBullets(text).slice(0, 4), priority: 'medium' };
+    } catch {
+        return {
+            agent: 'felisha',
+            title: "Felisha's Weekly Tracker",
+            items: [
+                "Log today's top 3 priorities and owners in the weekly objectives board — Marty confirms",
+                'Mid-week check: follow up with Jack (pipeline) and Mrs. Parker (health) by Wednesday',
+                'Friday review packet: capture wins, open loops, and carry-forwards from each agent owner',
+                'Admin gap: confirm all active orgs have a named account owner in Firestore',
+            ],
+            priority: 'medium',
+        };
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Weekly Objectives Generator — Marty sets the week's task board
 // ---------------------------------------------------------------------------
@@ -362,7 +540,7 @@ async function postMondayCommandToInbox(
             id: threadId, orgId, userId: 'system', type: 'analytics', status: 'active',
             title: '📊 Daily Briefing', preview: 'Executive intelligence briefing',
             primaryAgent: 'marty',
-            assignedAgents: ['marty', 'leo', 'jack', 'linus', 'glenda', 'mike'],
+            assignedAgents: ['marty', 'leo', 'jack', 'linus', 'glenda', 'mike', 'pops', 'ezal', 'mrs_parker', 'craig', 'deebo', 'felisha'],
             artifactIds: [], messages: [],
             metadata: { isBriefingThread: true },
             createdAt: new Date(), updatedAt: new Date(), lastActivityAt: new Date(),
@@ -386,7 +564,7 @@ async function postMondayCommandToInbox(
         ? `MRR: $${ctx.currentMrr.toLocaleString()} (${ctx.paceVsTarget}% of target)`
         : 'MRR: Tracking in progress';
 
-    const body = `**Monday Command Day — ${ctx.dateStr}**\n\n📊 ${mrrLine}\n\n**Top 3 Priorities This Week:**\n${prioritySummary}\n\n**Executive Assignments:**\n${allBullets}\n\n_Marty, Leo, Jack, Linus, Glenda, and Mike have set this week's operating board._`;
+    const body = `**Monday Command Day — ${ctx.dateStr}**\n\n📊 ${mrrLine}\n\n**Top 3 Priorities This Week:**\n${prioritySummary}\n\n**Executive Assignments:**\n${allBullets}\n\n_Marty, Leo, Jack, Linus, Glenda, Mike, Pops, Ezal, Mrs. Parker, Craig, Deebo, and Felisha have set this week's operating board._`;
 
     const artifact = {
         type: 'weekly_monday_command',
@@ -421,6 +599,46 @@ async function postMondayCommandToInbox(
 }
 
 // ---------------------------------------------------------------------------
+// Slack post
+// ---------------------------------------------------------------------------
+
+async function postMondayCommandToSlack(sections: CommandSection[], ctx: Awaited<ReturnType<typeof loadWeeklyCommandContext>>) {
+    const mrrLine = ctx.currentMrr !== null
+        ? `MRR: $${ctx.currentMrr.toLocaleString()} (${ctx.paceVsTarget}% of $${TARGET_MRR.toLocaleString()} target)`
+        : 'MRR: Tracking in progress';
+
+    const sectionBlocks = sections.map(s => ({
+        type: 'section',
+        text: {
+            type: 'mrkdwn',
+            text: `*${s.title}*\n${s.items.map(i => `• ${i}`).join('\n')}`,
+        },
+    }));
+
+    try {
+        const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
+        await postLinusIncidentSlack({
+            source: 'weekly-monday-command',
+            channelName: 'ceo',
+            fallbackText: `:hammer: Monday Command Day — ${ctx.dateStr}`,
+            blocks: [
+                {
+                    type: 'section',
+                    text: {
+                        type: 'mrkdwn',
+                        text: `:hammer: *Monday Command Day* — ${ctx.dateStr}\n_Marty · Leo · Jack · Linus · Glenda · Mike · Pops · Ezal · Mrs. Parker · Craig · Deebo · Felisha_\n${mrrLine}`,
+                    },
+                },
+                { type: 'divider' },
+                ...sectionBlocks,
+            ],
+        });
+    } catch (e) {
+        logger.error('[WeeklyMondayCommand] Slack post failed', { error: String(e) });
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Route handler
 // ---------------------------------------------------------------------------
 
@@ -433,22 +651,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
         const ctx = await loadWeeklyCommandContext();
 
-        const [martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection] = await Promise.all([
+        const [martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection,
+               popsSection, ezalSection, mrsParkerSection, craigSection, deeboSection, felishaSection] = await Promise.all([
             generateMartyCommand(ctx),
             generateLeoExecutionMap(ctx),
             generateJackPipelineReview(ctx),
             generateLinusTechReadiness(),
             generateGlendaNarrativePlan(),
             generateMikeEconomicsReview(ctx),
+            generatePopsScorecard(ctx),
+            generateEzalMarketNote(ctx),
+            generateMrsParkerAccountHealth(ctx),
+            generateCraigCampaignQueue(ctx),
+            generateDeeboCompliancePreflight(ctx),
+            generateFelishaWeeklyTracker(ctx),
         ]);
 
+        const allSections = [
+            martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection,
+            popsSection, ezalSection, mrsParkerSection, craigSection, deeboSection, felishaSection,
+        ];
+
         const orgId = await getSuperUserOrgId();
-        await Promise.all([
-            postMondayCommandToInbox(
-                orgId,
-                [martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection],
-                ctx
-            ),
+        await Promise.allSettled([
+            postMondayCommandToInbox(orgId, allSections, ctx),
+            postMondayCommandToSlack(allSections, ctx),
             generateWeeklyObjectives(ctx),
         ]);
 
@@ -461,6 +688,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 priorities: martySection.items.length,
                 activeOrgs: ctx.activeOrgs,
                 queuedLeads: ctx.queuedLeads,
+                sectionCount: allSections.length,
             },
         });
     } catch (error) {
