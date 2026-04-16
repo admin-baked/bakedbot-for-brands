@@ -1,28 +1,72 @@
-# Playbook Architecture - Dynamic Scheduling & Execution
+# Playbook Architecture
 
-## Overview
+> **Runtime status:** V2 stage-based is **canonical**. V1 step-based is **legacy — maintenance only**.
+> See also: `src/config/workflow-runtime.ts` (constants), `.agent/refs/workflow-runtime-decision.md` (ADR).
 
-BakedBot Playbooks support **zero-touch scheduling** - users create playbooks via natural language in chat, and the system automatically handles scheduling without manual Cloud Scheduler setup.
+## Two Execution Models
 
-## Update 2026-03-12: This repo now has two playbook execution models
+| | V2 Stage-Based | V1 Step-Based |
+|-|---------------|--------------|
+| **Status** | Canonical — all new development | Legacy — bug fixes only |
+| **File** | `src/server/services/playbook-stage-runner.ts` | `src/server/services/playbook-executor.ts` |
+| **Run state** | Deterministic stages in `playbook_runs` | Sequential steps, no persistent state |
+| **Artifact persistence** | Blob storage + Firestore + Git artifact repo | None |
+| **Compile step** | Natural-language → structured spec | Prompt → dynamic steps |
+| **Stage API** | `/api/jobs/agent` with `isPlaybookStage` | `/api/playbooks/{id}/execute` |
+| **Scheduling** | Megacron pattern (see `prime.md`) | Per-playbook Cloud Scheduler jobs |
+| **New action types?** | YES — add here | NO — freeze, maintain only |
 
-This document still captures the original scheduling-oriented playbook architecture, but it is no longer the full picture.
-
-There is now a compiled Playbook V2 runtime for doctrine-aligned workflows:
-
-- natural-language compile to structured spec
-- deterministic run states in `playbook_runs`
-- stage execution through `/api/jobs/agent` with `isPlaybookStage`
-- artifact persistence to blob storage + Firestore + dedicated Git artifact repo
-- run inspector endpoints for artifacts, validation, and `summary_for_ai_engineers`
-
-Read `.agent/refs/playbook-artifact-repo.md` alongside this file when working on compiled playbooks or artifact persistence.
+**If you're adding a new playbook or action type: use V2.**
+Read `.agent/refs/playbook-artifact-repo.md` when working on compiled playbooks or artifact persistence.
 
 ---
 
-## 🔄 Execution Flow
+## Tier-Aware Playbook Engine (`src/lib/playbooks/`)
 
-### User Creates Playbook via Chat
+The playbook engine assigns and executes catalog playbooks per org based on their subscription tier.
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/playbooks/assignment-service.ts` | Maps tier → playbooks, idempotent per-org assignment |
+| `src/lib/playbooks/execution-service.ts` | 3× exponential backoff executor (5s→30s→5m), email/dashboard/SMS delivery |
+| `src/lib/playbooks/mailjet.ts` | Branded HTML email template for playbook deliverables |
+| `src/lib/playbooks/trigger-engine.ts` | Scheduled frequency dispatcher (daily/weekly cadence) |
+
+### Playbook Catalog
+**File**: `src/config/playbooks.ts` — 29 playbooks; `src/config/tier-playbook-templates.ts` — 7 tier templates
+**Readiness labels**: `src/config/playbook-readiness.ts` — each playbook classified as `executable_now`, `partial_support`, `template_only`, `experimental`, or `legacy`
+
+### Cron Endpoints
+- `POST /api/cron/playbooks/daily` — Runs all daily-frequency playbooks (9 AM EST)
+- `POST /api/cron/playbooks/weekly` — Runs all weekly-frequency playbooks (Mon 8 AM EST)
+
+### Execution Flow
+```
+Cloud Scheduler → /api/cron/playbooks/daily
+  → trigger-engine.ts: getOrgsWithActivePlans()
+  → assignment-service.ts: getAssignedPlaybooks(orgId, tierId)
+  → execution-service.ts: executePlaybook(orgId, playbookId)
+      → Step execution (3× backoff on failure: immediate → 5s → 30s)
+      → On success: deliverEmail() + deliverDashboard() + deliverSMS()
+      → On final failure: writeFailureNotification() → inbox_notifications
+  → usage-service.ts: incrementUsage(orgId, 'aiSessionsUsed', 1)
+```
+
+---
+
+## Overview
+
+---
+
+## V1 Legacy Execution (maintenance only — do not add new playbooks here)
+
+> The sections below document the original V1 step-based execution model.
+> All new development uses V2 stage-based (`playbook-stage-runner.ts`).
+> V1 is maintained for existing playbooks only.
+
+### V1 User-Created Playbook Flow
 
 ```mermaid
 User Chat → Agent (Craig/Ezal/Pops) → Parse Intent → Create Playbook → Auto-Schedule
@@ -453,56 +497,6 @@ curl -X POST https://bakedbot.ai/api/playbooks/{playbookId}/execute \
 
 ---
 
-## 🏗️ Phase 4 Playbook Engine (src/lib/playbooks/) ✅ DEPLOYED
-
-### Overview
-A tier-aware playbook engine that automatically assigns, executes, and tracks playbooks per org. Lives in `src/lib/playbooks/` (separate from older `src/server/services/playbook-executor.ts`).
-
-### Files
-
-| File | Purpose |
-|------|---------|
-| `src/lib/playbooks/assignment-service.ts` | Maps tier → playbooks, idempotent per-org assignment |
-| `src/lib/playbooks/execution-service.ts` | 3× exponential backoff executor (5s→30s→5m), email/dashboard/SMS delivery |
-| `src/lib/playbooks/mailjet.ts` | Branded HTML email template for playbook deliverables |
-| `src/lib/playbooks/trigger-engine.ts` | Scheduled frequency dispatcher (daily/weekly cadence) |
-
-### Playbook Registry
-**File**: `src/config/playbooks.ts` — 23 pre-built playbooks across tiers
-
-```typescript
-// Tier assignments
-starter:    3 playbooks  (basic daily intel, weekly summary, onboarding)
-growth:     7 playbooks  (+ competitive alerts, segment campaigns)
-pro:       10 playbooks  (+ price intelligence, multi-channel)
-enterprise: 23 playbooks (all — real-time intel, exec reports, partner ecosystem)
-```
-
-### Cron Endpoints
-- `POST /api/cron/playbooks/daily` — Runs all daily-frequency playbooks (9 AM EST)
-- `POST /api/cron/playbooks/weekly` — Runs all weekly-frequency playbooks (Mon 8 AM EST)
-
-### Execution Flow
-```
-Cloud Scheduler → /api/cron/playbooks/daily
-  → trigger-engine.ts: getOrgsWithActivePlans()
-  → assignment-service.ts: getAssignedPlaybooks(orgId, tierId)
-  → execution-service.ts: executePlaybook(orgId, playbookId)
-      → Step execution (3× backoff on failure)
-      → On success: deliverEmail() + deliverDashboard() + deliverSMS()
-      → On final failure: writeFailureNotification() → inbox_notifications
-  → usage-service.ts: incrementUsage(orgId, 'aiSessionsUsed', 1)
-```
-
-### Retry Logic
-```typescript
-// 3-attempt exponential backoff
-attempt 1: immediate
-attempt 2: 5 second delay
-attempt 3: 30 second delay
-// If all 3 fail: DLQ entry + inbox_notifications alert
-```
-
 ---
 
 ## 📊 Usage Metering (src/lib/metering/)
@@ -569,17 +563,15 @@ Routes through `BlackleafService.sendCustomMessage()` — unlimited on paid tier
 
 ---
 
-## ✅ Summary
+## Summary
 
-**Key Points:**
-
-1. **Zero-Touch Scheduling** - Users create playbooks via chat, system handles scheduling
-2. **Multiple Trigger Types** - Schedule (CRON), Event (Firestore), Manual (API)
-3. **Auto-Created Jobs** - Cloud Scheduler jobs created programmatically via Google Cloud API
-4. **Secure Execution** - CRON_SECRET protects all endpoints
-5. **Cost Optimized** - Smart caching, model selection, batching
-6. **Agent Integration** - Competitive actions trigger Money Mike, Craig, Pops automatically
-7. **Phase 4 Engine** - `src/lib/playbooks/` tier-aware engine with 23 playbooks, 3× backoff, usage metering
-8. **Production Ready** - All code deployed and tested
-
-**No manual CRON setup required!** 🎉
+| Topic | Answer |
+|-------|--------|
+| Canonical runtime | V2 stage-based (`playbook-stage-runner.ts`) |
+| Legacy runtime | V1 step-based (`playbook-executor.ts`) — maintenance only |
+| Catalog | `src/config/playbooks.ts` (29) + `src/config/tier-playbook-templates.ts` (7) |
+| Readiness labels | `src/config/playbook-readiness.ts` — drives UI badges and drift checks |
+| Scheduling | Megacron pattern (see `prime.md`) — no per-playbook Cloud Scheduler jobs for new work |
+| Security | `CRON_SECRET` required on all cron endpoints |
+| Execution infra | `src/lib/playbooks/` — 3× backoff, tier-aware assignment, usage metering |
+| Monitoring | `playbook_executions/{executionId}` collection + Cloud Scheduler logs |

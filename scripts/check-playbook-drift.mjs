@@ -74,6 +74,16 @@ function readTierPlaybookIds(filePath) {
 }
 
 /**
+ * Read agent IDs declared in the canonical agent contract markdown table.
+ * Matches backtick-wrapped IDs in the first column: | `agent_id` | ...
+ */
+function readContractAgentIds(filePath) {
+    const src = fs.readFileSync(filePath, 'utf-8');
+    // Match table rows where the first cell contains a backtick-wrapped identifier
+    return [...src.matchAll(/^\|\s*`([a-z][a-z0-9_]+)`\s*\|/gm)].map(m => m[1]);
+}
+
+/**
  * Read keys from PLAYBOOK_READINESS record.
  * Matches `'playbook-id':` at the start of an entry.
  */
@@ -110,6 +120,10 @@ const CATALOG_PLAYBOOK_IDS = [
 
 const READINESS_KEYS = readReadinessKeys(
     path.join(repoRoot, 'src/config/playbook-readiness.ts')
+);
+
+const CONTRACT_AGENT_IDS = readContractAgentIds(
+    path.join(repoRoot, '.agent/refs/agent-contract.md')
 );
 
 // ---------------------------------------------------------------------------
@@ -178,6 +192,28 @@ function checkServerAgentsInRegistry() {
     };
 }
 
+function checkAgentContractCoverage() {
+    const allTsAgents = new Set([...SERVER_AGENT_IDS, ...REGISTRY_AGENT_IDS]);
+    const contractSet = new Set(CONTRACT_AGENT_IDS);
+
+    // Agents in TypeScript but missing from the contract doc
+    const missingFromContract = [...allTsAgents]
+        .filter(id => !contractSet.has(id) && !KNOWN_REGISTRY_GAPS.has(id))
+        .map(id => `  UNDOCUMENTED: "${id}" is in TypeScript but missing from agent-contract.md`);
+
+    // Agents in the contract but not in any TypeScript file
+    const contractOrphans = CONTRACT_AGENT_IDS
+        .filter(id => !allTsAgents.has(id))
+        .map(id => `  GHOST: "${id}" is in agent-contract.md but not in any TypeScript file`);
+
+    const issues = [...missingFromContract, ...contractOrphans];
+    return {
+        name: 'Agent contract covers all TypeScript agents (and vice versa)',
+        passed: issues.length === 0,
+        issues,
+    };
+}
+
 function checkExecutablePlaybooksHaveCronRoutes() {
     const cronDir = path.join(repoRoot, 'src/app/api/cron');
     if (!fs.existsSync(cronDir)) {
@@ -199,7 +235,7 @@ function checkExecutablePlaybooksHaveCronRoutes() {
 // ---------------------------------------------------------------------------
 
 console.log('\n🔍 Playbook Drift Check\n');
-console.log(`  Source: ${SERVER_AGENT_IDS.length} server agents, ${REGISTRY_AGENT_IDS.length} registry agents`);
+console.log(`  Source: ${SERVER_AGENT_IDS.length} server agents, ${REGISTRY_AGENT_IDS.length} registry agents, ${CONTRACT_AGENT_IDS.length} contract agents`);
 console.log(`  Source: ${CATALOG_PLAYBOOK_IDS.length} catalog playbooks, ${READINESS_KEYS.length} readiness keys\n`);
 
 const results = [
@@ -207,6 +243,7 @@ const results = [
     checkNoGhostReadinessEntries(),
     checkRegistryAgentsInServerDefinitions(),
     checkServerAgentsInRegistry(),
+    checkAgentContractCoverage(),
     checkExecutablePlaybooksHaveCronRoutes(),
 ];
 

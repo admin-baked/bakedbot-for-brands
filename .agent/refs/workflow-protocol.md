@@ -169,7 +169,7 @@ Write to Firestore `qa_bugs` collection. P0/P1 bugs trigger Slack via `qa-notifi
 | Situation | Action |
 |-----------|--------|
 | Simple bug fix in one file | Read the file, fix it, test |
-| Touching agent code | Read `refs/agents/README.md` first |
+| Touching agent code | Read `refs/agents.md` first |
 | Touching auth/session | Read `refs/authentication.md` + `refs/roles.md` |
 | Adding new integration | Read `refs/integrations.md` |
 | Multi-file feature | Read relevant refs + `query_work_history` |
