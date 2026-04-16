@@ -15,6 +15,7 @@ import {
     GoogleAuthProvider,
     signInWithPopup,
     signInWithRedirect,
+    getRedirectResult,
     getAdditionalUserInfo,
     type UserCredential
 } from 'firebase/auth';
@@ -34,9 +35,40 @@ export function UnifiedLoginForm() {
     const [mode, setMode] = useState<'signin' | 'signup'>('signin');
     const [isLoading, setIsLoading] = useState(false);
 
+    // Stable ref so the redirect-result effect can call the latest handleAuthSuccess
+    // without needing it in the dep array (it changes every render).
+    const handleAuthSuccessRef = React.useRef<((cred: UserCredential) => Promise<void>) | null>(null);
+
     React.useEffect(() => {
         setMounted(true);
     }, []);
+
+    // Handle Google redirect result — fires when the user returns from a
+    // signInWithRedirect flow (mobile browsers that block popups).
+    React.useEffect(() => {
+        if (!auth) return;
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result && handleAuthSuccessRef.current) {
+                    setIsLoading(true);
+                    handleAuthSuccessRef.current(result).catch(() => setIsLoading(false));
+                }
+            })
+            .catch((error: unknown) => {
+                const code = (error as { code?: string })?.code;
+                // 'auth/no-current-user' just means no redirect was in progress — ignore.
+                if (code && code !== 'auth/no-current-user') {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Google Sign-In Failed',
+                        description: mapFirebaseError(error),
+                    });
+                }
+            });
+        // auth is stable (Firebase singleton). mapFirebaseError is pure (no state deps)
+        // so stale-closure risk is zero. toast ref from useToast is also stable.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [auth]);
 
     const toggleMode = () => setMode(mode === 'signin' ? 'signup' : 'signin');
     const mapFirebaseError = (error: any): string => {
@@ -184,6 +216,10 @@ export function UnifiedLoginForm() {
         }
     };
 
+    // Keep ref current on every render so the redirect-result effect always
+    // calls the latest handleAuthSuccess closure without stale deps.
+    handleAuthSuccessRef.current = handleAuthSuccess;
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!auth || isLoading) return;
@@ -227,6 +263,16 @@ export function UnifiedLoginForm() {
         setIsLoading(true);
         const provider = new GoogleAuthProvider();
 
+        // Mobile browsers (iOS Safari, Android Chrome) handle popups unreliably.
+        // Use redirect flow directly on mobile — getRedirectResult handles the return.
+        const isMobile = /Mobi|Android|iPhone|iPad/i.test(
+            typeof navigator !== 'undefined' ? navigator.userAgent : ''
+        );
+        if (isMobile) {
+            await signInWithRedirect(auth, provider);
+            return;
+        }
+
         try {
             const result = await signInWithPopup(auth, provider);
             await handleAuthSuccess(result);
@@ -237,10 +283,7 @@ export function UnifiedLoginForm() {
             }
 
             if (error?.code === 'auth/popup-blocked') {
-                toast({
-                    title: "Continuing with Google",
-                    description: "Popup was blocked, switching to redirect sign-in."
-                });
+                // Popup blocked on desktop — fall back to redirect.
                 await signInWithRedirect(auth, provider);
                 return;
             }
@@ -311,8 +354,9 @@ export function UnifiedLoginForm() {
                         <Input
                             id="email"
                             type="email"
+                            autoComplete="email"
                             placeholder="name@company.com"
-                            className="bg-white/5 border-white/10"
+                            className="bg-white/5 border-white/10 text-base"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
@@ -323,7 +367,8 @@ export function UnifiedLoginForm() {
                         <Input
                             id="password"
                             type="password"
-                            className="bg-white/5 border-white/10"
+                            autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                            className="bg-white/5 border-white/10 text-base"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required

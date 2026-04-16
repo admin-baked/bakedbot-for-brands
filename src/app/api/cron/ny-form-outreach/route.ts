@@ -132,8 +132,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             return NextResponse.json({ success: true, summary: { submitted: 0, failed: 0, message: 'No form leads ready' } });
         }
 
-        let submitted = 0, failed = 0, skipped = 0;
-        const results: Array<{ dispensary: string; action: 'submitted' | 'failed' | 'skipped'; reason?: string }> = [];
+        let submitted = 0, failed = 0;
+        const results: Array<{ dispensary: string; action: 'submitted' | 'failed'; reason?: string }> = [];
 
         for (const lead of leads) {
             const message = buildFormMessage(lead.dispensaryName, lead.contactName, lead.city);
@@ -230,7 +230,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             await new Promise(resolve => setTimeout(resolve, 3000));
         }
 
-        logger.info('[NYFormOutreach] Run complete', { submitted, failed, skipped });
+        logger.info('[NYFormOutreach] Run complete', { submitted, failed });
 
         return NextResponse.json({
             success: true,
@@ -238,7 +238,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 candidates: leads.length,
                 submitted,
                 failed,
-                skipped,
                 message: submitted > 0 ? `Submitted ${submitted} contact forms` : 'No forms submitted',
             },
             results,

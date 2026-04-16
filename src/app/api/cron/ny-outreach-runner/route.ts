@@ -193,7 +193,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const limitOverride = request.nextUrl.searchParams.get('limit');
     const effectiveLimit = limitOverride ? Math.min(parseInt(limitOverride, 10), DAILY_SEND_LIMIT) : DAILY_SEND_LIMIT;
 
-    logger.info('[NYOutreachRunner] Starting auto-send run', { limit: effectiveLimit, daily: DAILY_SEND_LIMIT });
+    logger.info('[NYOutreachRunner] v2 auto-send run', { limit: effectiveLimit, daily: DAILY_SEND_LIMIT });
 
     try {
         const db = getAdminFirestore();

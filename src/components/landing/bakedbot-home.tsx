@@ -85,7 +85,7 @@ function AuthButtons() {
         <a href="/signin">Login</a>
       </Button>
       <Button asChild className="rounded-xl shadow-sm" size="sm">
-        <a href="/book/martez">Book Martez</a>
+        <a href="/book">Book a Founder: Martez or Jack</a>
       </Button>
     </div>
   );
@@ -317,15 +317,15 @@ export function BakedBotHome() {
           Start with proof or book the operating layer.
         </h2>
         <p className="mt-4 text-lg text-muted-foreground">
-          Use the audit if you need to prove the wedge. Book Martez if you already know the real issue is weak capture, weak welcome, and weak follow-up.
+          Use the audit if you need to prove the wedge. Book a founder if you already know the real issue is weak capture, weak welcome, and weak follow-up.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Button asChild size="lg" className="h-12 rounded-xl px-8 text-base font-semibold">
             <a href="/ai-retention-audit">Run the AI Retention Audit</a>
           </Button>
           <Button asChild size="lg" variant="outline" className="h-12 rounded-xl px-8 text-base font-semibold">
-            <a href="/book/martez">
-              Book a Strategy Call
+            <a href="/book">
+              Book a Founder: Martez or Jack
               <ArrowRight className="ml-2 h-4 w-4" />
             </a>
           </Button>
@@ -342,7 +342,7 @@ export function BakedBotHome() {
             <a href="/pricing" className="hover:text-foreground">Pricing</a>
             <a href="/ai-retention-audit" className="hover:text-foreground">AI Retention Audit</a>
             <a href="/explore" className="hover:text-foreground">Cannabis Data</a>
-            <a href="/book/martez" className="hover:text-foreground">Book Martez</a>
+            <a href="/book" className="hover:text-foreground">Book a Founder</a>
             <a href="/blog" className="hover:text-foreground">Blog</a>
           </div>
           <p className="text-sm text-muted-foreground">© {year} BakedBot AI</p>

@@ -14,8 +14,8 @@ export default function SignInPage() {
         <div className="min-h-screen flex flex-col bg-background relative overflow-hidden">
             {/* Background Effects */}
             <div className="absolute inset-0 z-0">
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] opacity-40" />
-                <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] opacity-40" />
+                <div className="absolute top-0 right-0 w-[80vw] max-w-[500px] h-[80vw] max-h-[500px] bg-purple-500/10 rounded-full blur-[100px] opacity-40" />
+                <div className="absolute bottom-0 left-0 w-[80vw] max-w-[500px] h-[80vw] max-h-[500px] bg-emerald-500/10 rounded-full blur-[100px] opacity-40" />
             </div>
 
             {/* Simple Header */}
