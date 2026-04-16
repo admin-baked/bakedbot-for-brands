@@ -108,6 +108,11 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
         }
     }, [initialData, brandId, loadData, loadSuggestions]);
 
+    // Auto-load visit retention cohort on mount
+    useEffect(() => {
+        loadCohortData();
+    }, [loadCohortData]);
+
     // Async spending enrichment: after customer list loads, fetch spending data
     useEffect(() => {
         if (!data || data.customers.length === 0 || spendingFetchedRef.current) return;

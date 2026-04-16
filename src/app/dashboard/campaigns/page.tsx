@@ -1,5 +1,5 @@
 import { requireUser } from '@/server/auth/auth';
-import { redirect } from 'next/navigation';
+import { isBrandRole, isDispensaryRole } from '@/types/roles';
 import { Suspense } from 'react';
 import { CampaignsDashboard } from './components/campaigns-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -8,12 +8,26 @@ import { AgentOwnerBadge } from '@/components/dashboard/agent-owner-badge';
 export const dynamic = 'force-dynamic';
 
 export default async function CampaignsPage() {
-    let user;
-    try {
-        user = await requireUser(['dispensary', 'brand', 'super_user']);
-    } catch {
-        redirect('/dispensary-login');
+    const user = await requireUser([
+        'dispensary',
+        'dispensary_admin',
+        'dispensary_staff',
+        'brand',
+        'brand_admin',
+        'brand_member',
+        'super_user',
+    ]);
+
+    const userRole = (user as { role?: string }).role ?? '';
+    let orgId: string | undefined;
+    if (isBrandRole(userRole)) {
+        orgId = (user as { brandId?: string }).brandId;
+    } else if (isDispensaryRole(userRole)) {
+        orgId = (user as { orgId?: string; currentOrgId?: string; locationId?: string }).orgId
+            || (user as { currentOrgId?: string }).currentOrgId
+            || (user as { locationId?: string }).locationId;
     }
+    orgId = orgId || user.uid;
 
     return (
         <div className="flex flex-col gap-6 p-6">
@@ -30,7 +44,8 @@ export default async function CampaignsPage() {
             <Suspense fallback={<CampaignsSkeleton />}>
                 <CampaignsDashboard
                     userId={user.uid}
-                    isSuperUser={user.role === 'super_user' || user.role === 'super_admin'}
+                    orgId={orgId}
+                    isSuperUser={userRole === 'super_user' || userRole === 'super_admin'}
                 />
             </Suspense>
         </div>

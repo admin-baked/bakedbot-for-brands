@@ -7,12 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-    Plus, Megaphone, Send, Clock, FileText, BarChart3,
-    Mail, MessageSquare, Users, Loader2, TrendingUp, Building2,
+    Plus, Megaphone, Send, BarChart3,
+    Loader2, TrendingUp, Building2, Package, AlertTriangle,
 } from 'lucide-react';
 import { getCampaigns, getCampaignStats, type CampaignStats } from '@/server/actions/campaigns';
-import type { Campaign, CampaignStatus } from '@/types/campaign';
-import { CAMPAIGN_STATUS_INFO } from '@/types/campaign';
+import { getMenuAnalytics } from '@/server/actions/dispensary-analytics';
+import type { Campaign } from '@/types/campaign';
 import { CampaignWizardV2 } from './campaign-wizard-v2';
 import { CampaignCard } from './campaign-card';
 
@@ -23,38 +23,55 @@ const SUPER_USER_ORGS = [
     { id: 'org_ecstatic_edibles', label: 'Ecstatic Edibles' },
 ] as const;
 
+type SlowMover = {
+    productId: string;
+    name: string;
+    category: string;
+    daysSinceLastSale: number;
+    velocity: number;
+    action: 'markdown' | 'liquidate';
+    estimatedAtRisk: number;
+};
+
 interface CampaignsDashboardProps {
     userId: string;
+    orgId?: string;
     isSuperUser?: boolean;
 }
 
-export function CampaignsDashboard({ userId, isSuperUser }: CampaignsDashboardProps) {
+export function CampaignsDashboard({ userId, orgId: defaultOrgId, isSuperUser }: CampaignsDashboardProps) {
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [stats, setStats] = useState<CampaignStats | null>(null);
+    const [slowMovers, setSlowMovers] = useState<SlowMover[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showWizard, setShowWizard] = useState(false);
     const [activeTab, setActiveTab] = useState('all');
     // Super user org switcher — defaults to platform org
     const [selectedOrgId, setSelectedOrgId] = useState(
-        isSuperUser ? 'org_bakedbot_platform' : ''
+        isSuperUser ? 'org_bakedbot_platform' : (defaultOrgId ?? '')
     );
 
     useEffect(() => {
         fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedOrgId]);
 
     async function fetchData() {
         setLoading(true);
         setError(null);
         try {
-            const orgArg = isSuperUser ? selectedOrgId : '';
-            const [campaignsResult, statsResult] = await Promise.all([
+            const orgArg = isSuperUser ? selectedOrgId : (defaultOrgId ?? '');
+            const [campaignsResult, statsResult, menuResult] = await Promise.all([
                 getCampaigns(orgArg),
                 getCampaignStats(orgArg),
+                orgArg ? getMenuAnalytics(orgArg) : Promise.resolve({ success: false as const }),
             ]);
             setCampaigns(campaignsResult);
             setStats(statsResult);
+            if (menuResult.success && menuResult.data) {
+                setSlowMovers(menuResult.data.skuRationalizationFlags);
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load campaigns');
         } finally {
@@ -114,6 +131,14 @@ export function CampaignsDashboard({ userId, isSuperUser }: CampaignsDashboardPr
                         icon={<TrendingUp className="h-4 w-4" />}
                     />
                 </div>
+            )}
+
+            {/* Slow-Moving Inventory Audit */}
+            {slowMovers.length > 0 && (
+                <SlowInventoryPanel
+                    items={slowMovers}
+                    onCreateCampaign={() => setShowWizard(true)}
+                />
             )}
 
             {/* Super User Org Switcher */}
@@ -184,6 +209,86 @@ export function CampaignsDashboard({ userId, isSuperUser }: CampaignsDashboardPr
                 />
             )}
         </div>
+    );
+}
+
+// =============================================================================
+// SLOW INVENTORY PANEL
+// =============================================================================
+
+function SlowInventoryPanel({ items, onCreateCampaign }: {
+    items: SlowMover[];
+    onCreateCampaign: () => void;
+}) {
+    const totalAtRisk = items.reduce((s, i) => s + i.estimatedAtRisk, 0);
+    const liquidateCount = items.filter(i => i.action === 'liquidate').length;
+
+    return (
+        <Card className="border-amber-200 bg-amber-50/40">
+            <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-600" />
+                        <CardTitle className="text-base text-amber-900">
+                            Slow-Moving Inventory — ${totalAtRisk.toLocaleString()} at risk
+                        </CardTitle>
+                    </div>
+                    <Button size="sm" onClick={onCreateCampaign}>
+                        <Plus className="h-3 w-3 mr-1" />
+                        Move It Campaign
+                    </Button>
+                </div>
+                <CardDescription className="text-amber-700">
+                    {items.length} SKU{items.length !== 1 ? 's' : ''} haven't sold in 21+ days.
+                    {liquidateCount > 0 && ` ${liquidateCount} flagged for liquidation (60+ days stagnant).`}
+                    {' '}Create a flash sale or promo campaign to clear stock.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-2">
+                    {items.slice(0, 8).map(item => (
+                        <div
+                            key={item.productId}
+                            className="flex items-center justify-between rounded-md border border-amber-100 bg-white px-3 py-2 text-sm"
+                        >
+                            <div className="flex items-center gap-2 min-w-0">
+                                <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span className="font-medium truncate">{item.name}</span>
+                                <Badge
+                                    variant="outline"
+                                    className="text-xs shrink-0 border-muted text-muted-foreground"
+                                >
+                                    {item.category}
+                                </Badge>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0 ml-2">
+                                <span className="text-muted-foreground text-xs">
+                                    {item.daysSinceLastSale}d ago
+                                </span>
+                                <Badge
+                                    className={`text-xs ${
+                                        item.action === 'liquidate'
+                                            ? 'bg-red-100 text-red-800 border-red-200'
+                                            : 'bg-amber-100 text-amber-800 border-amber-200'
+                                    }`}
+                                    variant="outline"
+                                >
+                                    {item.action}
+                                </Badge>
+                                <span className="font-semibold text-amber-800 w-16 text-right">
+                                    ${item.estimatedAtRisk.toLocaleString()}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                    {items.length > 8 && (
+                        <p className="text-xs text-muted-foreground text-center pt-1">
+                            + {items.length - 8} more slow-moving SKUs
+                        </p>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
     );
 }
 
