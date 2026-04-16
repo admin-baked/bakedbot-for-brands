@@ -156,7 +156,7 @@ src/config/            Runtime constants + playbook classification
 | Mrs. Parker (Retention) | CRM, loyalty, churn |
 | Pops (Analyst) | Revenue analysis |
 
-Full roster + engineering agents: `.agent/refs/agents/README.md`
+Full roster + engineering agents: `.agent/refs/agents.md`
 
 ---
 
@@ -168,6 +168,7 @@ Full roster + engineering agents: `.agent/refs/agents/README.md`
 | Post-deploy protocol | `.agent/refs/post-deploy.md` |
 | Workflow runtime (V1 vs V2 ADR) | `.agent/refs/workflow-runtime-decision.md` |
 | PR governance | CLAUDE.md → PR Governance section |
+| **Agent contract (canonical)** | `.agent/refs/agent-contract.md` |
 | Agents & architecture | `.agent/refs/agents.md` |
 | Slack operations | `.agent/refs/slack-operations.md` |
 | Infrastructure gotchas | `.agent/refs/infrastructure-gotchas.md` |
@@ -188,8 +189,8 @@ Full roster + engineering agents: `.agent/refs/agents/README.md`
 
 | System | Status | Key Ref |
 |--------|--------|---------|
-| Campaign System (Craig) | SMS+Email+Deebo gate | `refs/agents/behavioral-agents.md` |
-| Compliance (Deebo) | NY/CA/IL rules + monitor | `refs/agents/behavioral-agents.md` |
+| Campaign System (Craig) | SMS+Email+Deebo gate | `refs/agents.md` |
+| Compliance (Deebo) | NY/CA/IL rules + monitor | `refs/agents.md` |
 | Public Menu Pages | Brand + Dispensary + ISR | `refs/pages-brand.md` |
 | Thrive Syracuse | Production pilot | `memory/customers.md` |
 | Herbalist Samui | International (Thailand) | `HERBALIST_SAMUI_SETUP.md` |

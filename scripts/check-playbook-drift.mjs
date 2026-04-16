@@ -17,6 +17,11 @@
  *   5. executable_now playbooks have a corresponding cron route
  *
  * Exit codes: 0 = all pass, 1 = failures
+ *
+ * Source derivation:
+ *   IDs are read directly from source files rather than maintained as mirrored
+ *   arrays. The only manual data here is KNOWN_REGISTRY_GAPS (intentional gaps)
+ *   and EXECUTABLE_CRON_MAP (cross-file join: readiness → cron route name).
  */
 
 import * as fs from 'node:fs';
@@ -27,74 +32,99 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, '..');
 
 // ---------------------------------------------------------------------------
-// Catalog data — mirrors src/config/playbooks.ts and src/config/playbook-readiness.ts
-// Update these lists when adding/removing playbooks.
+// Source readers — parse IDs directly from TypeScript source files
 // ---------------------------------------------------------------------------
 
-const CATALOG_PLAYBOOK_IDS = [
-    // Onboarding
-    'welcome-sequence', 'owner-quickstart-guide', 'menu-health-scan', 'white-glove-onboarding',
-    // Engagement
-    'post-purchase-thank-you', 'birthday-loyalty-reminder', 'win-back-sequence',
-    'new-product-launch', 'vip-customer-identification',
-    // Competitive intel
-    'weekly-competitive-snapshot', 'pro-competitive-brief', 'daily-competitive-intel', 'real-time-price-alerts',
-    // Compliance
-    'weekly-compliance-digest', 'pre-send-campaign-check', 'jurisdiction-change-alert', 'audit-prep-automation',
-    // Analytics
-    'weekly-performance-snapshot', 'campaign-roi-report', 'executive-daily-digest', 'multi-location-rollup',
-    // Seasonal
-    'seasonal-template-pack',
-    // System
-    'usage-alert', 'tier-upgrade-nudge',
-    // NLP playbooks
-    'flnnstoned-competitive-deep-dive', 'daily-sales-highlights', 'revenue-pace-alert',
-    'weekly-loyalty-health', 'daily-checkin-digest',
-    // Tier playbook templates
-    'pro-daily-competitive-intel', 'pro-campaign-analyzer', 'pro-revenue-optimizer',
-    'enterprise-realtime-intel', 'enterprise-account-summary',
-    'enterprise-integration-health', 'enterprise-custom-integrations',
-];
+/**
+ * Extract all quoted string literals from a TypeScript union type declaration.
+ * Handles both single-line (`type X = 'a' | 'b';`) and multi-line formats.
+ *
+ * @param {string} src - Full file content
+ * @param {string} typeName - e.g. 'AgentId'
+ * @returns {string[]}
+ */
+function extractUnionMembers(src, typeName) {
+    // Match from `export type <name> =` to the first `;` that ends the declaration
+    const pattern = new RegExp(`export type ${typeName}\\s*=[\\s\\S]*?;`, 'g');
+    const match = src.match(pattern);
+    if (!match) return [];
+    return [...match[0].matchAll(/'([^']+)'/g)].map(m => m[1]);
+}
 
-const READINESS_KEYS = [
-    'welcome-sequence', 'owner-quickstart-guide', 'menu-health-scan', 'white-glove-onboarding',
-    'post-purchase-thank-you', 'birthday-loyalty-reminder', 'win-back-sequence',
-    'new-product-launch', 'vip-customer-identification',
-    'weekly-competitive-snapshot', 'pro-competitive-brief', 'daily-competitive-intel', 'real-time-price-alerts',
-    'weekly-compliance-digest', 'pre-send-campaign-check', 'jurisdiction-change-alert', 'audit-prep-automation',
-    'weekly-performance-snapshot', 'campaign-roi-report', 'executive-daily-digest', 'multi-location-rollup',
-    'seasonal-template-pack',
-    'usage-alert', 'tier-upgrade-nudge',
-    'flnnstoned-competitive-deep-dive', 'daily-sales-highlights', 'revenue-pace-alert',
-    'weekly-loyalty-health', 'daily-checkin-digest',
-    'pro-daily-competitive-intel', 'pro-campaign-analyzer', 'pro-revenue-optimizer',
-    'enterprise-realtime-intel', 'enterprise-account-summary',
-    'enterprise-integration-health', 'enterprise-custom-integrations',
-];
+/**
+ * Read all playbook IDs that appear as `id: 'some-id'` in a TypeScript file.
+ * Used for src/config/playbooks.ts (the main catalog).
+ */
+function readIdProperties(filePath) {
+    const src = fs.readFileSync(filePath, 'utf-8');
+    return [...src.matchAll(/\bid:\s*'([^']+)'/g)].map(m => m[1]);
+}
 
-// Agent IDs from src/server/agents/agent-definitions.ts (AgentId union)
-const SERVER_AGENT_IDS = [
-    'craig', 'pops', 'ezal', 'smokey', 'money_mike', 'mike_exec', 'mrs_parker',
-    'day_day', 'felisha', 'general', 'puff', 'deebo', 'leo', 'linus', 'roach',
-    'big_worm', 'jack', 'glenda', 'openclaw', 'marty', 'uncle_elroy',
-];
+/**
+ * Read tier playbook template IDs from TIER_PLAYBOOK_TEMPLATES arrays.
+ * Matches string literals that follow a `[` or `,` and precede `,` or `]`.
+ * Filters to known tier prefixes to avoid matching other string literals.
+ */
+function readTierPlaybookIds(filePath) {
+    const src = fs.readFileSync(filePath, 'utf-8');
+    // Extract the TIER_PLAYBOOK_TEMPLATES object body (from `{` to `} as const`)
+    const blockMatch = src.match(/TIER_PLAYBOOK_TEMPLATES\s*=\s*\{([\s\S]*?)\}\s*as const/);
+    if (!blockMatch) return [];
+    return [...blockMatch[1].matchAll(/'([a-z][a-z0-9-]+)'/g)].map(m => m[1]);
+}
 
-// Agent IDs from src/lib/agents/registry.ts (AgentId | ExecutiveAgentId)
+/**
+ * Read keys from PLAYBOOK_READINESS record.
+ * Matches `'playbook-id':` at the start of an entry.
+ */
+function readReadinessKeys(filePath) {
+    const src = fs.readFileSync(filePath, 'utf-8');
+    // Extract the PLAYBOOK_READINESS object body
+    const blockMatch = src.match(/PLAYBOOK_READINESS[^=]*=\s*\{([\s\S]*?)\};/);
+    if (!blockMatch) return [];
+    return [...blockMatch[1].matchAll(/^\s+'([a-z][a-z0-9-]+)':/gm)].map(m => m[1]);
+}
+
+// ---------------------------------------------------------------------------
+// Load source data
+// ---------------------------------------------------------------------------
+
+const serverAgentIdsSrc = fs.readFileSync(
+    path.join(repoRoot, 'src/server/agents/agent-definitions.ts'), 'utf-8'
+);
+const registrySrc = fs.readFileSync(
+    path.join(repoRoot, 'src/lib/agents/registry.ts'), 'utf-8'
+);
+
+const SERVER_AGENT_IDS = extractUnionMembers(serverAgentIdsSrc, 'AgentId');
+
 const REGISTRY_AGENT_IDS = [
-    // Field agents
-    'smokey', 'craig', 'pops', 'ezal', 'money_mike', 'mrs_parker', 'deebo', 'day_day', 'puff', 'general',
-    // Executive agents
-    'leo', 'jack', 'linus', 'glenda', 'mike_exec', 'roach',
-    'marty', 'felisha', 'uncle_elroy', 'openclaw',
+    ...extractUnionMembers(registrySrc, 'AgentId'),
+    ...extractUnionMembers(registrySrc, 'ExecutiveAgentId'),
 ];
 
-// Agents in server AgentId type but intentionally not yet in registry
-// (add here with justification rather than silently failing)
+const CATALOG_PLAYBOOK_IDS = [
+    ...readIdProperties(path.join(repoRoot, 'src/config/playbooks.ts')),
+    ...readTierPlaybookIds(path.join(repoRoot, 'src/config/tier-playbook-templates.ts')),
+];
+
+const READINESS_KEYS = readReadinessKeys(
+    path.join(repoRoot, 'src/config/playbook-readiness.ts')
+);
+
+// ---------------------------------------------------------------------------
+// Manual mappings (cross-file joins — cannot be source-derived without TS)
+// ---------------------------------------------------------------------------
+
+// Agents in server AgentId type but intentionally not yet in registry.
+// Add here with justification rather than silently failing.
 const KNOWN_REGISTRY_GAPS = new Set([
     'big_worm', // In AgentId type, no AGENT_CAPABILITY entry yet — orphaned type
 ]);
 
-// executable_now playbooks → expected cron route directory name
+// executable_now playbooks → expected cron route directory name.
+// This is a cross-file join (readiness label + cron filesystem path) that
+// cannot be derived from a single source file without a TypeScript compiler.
 const EXECUTABLE_CRON_MAP = {
     'weekly-competitive-snapshot':       'competitive-intel',
     'pro-competitive-brief':             'competitive-intel',
@@ -169,6 +199,8 @@ function checkExecutablePlaybooksHaveCronRoutes() {
 // ---------------------------------------------------------------------------
 
 console.log('\n🔍 Playbook Drift Check\n');
+console.log(`  Source: ${SERVER_AGENT_IDS.length} server agents, ${REGISTRY_AGENT_IDS.length} registry agents`);
+console.log(`  Source: ${CATALOG_PLAYBOOK_IDS.length} catalog playbooks, ${READINESS_KEYS.length} readiness keys\n`);
 
 const results = [
     checkAllPlaybooksClassified(),

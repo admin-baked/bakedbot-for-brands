@@ -48,6 +48,8 @@ import {
 } from 'recharts';
 import { Loader2, RefreshCw, Download } from 'lucide-react';
 import { getPlaybookTemplateStats } from '@/server/actions/playbook-template-admin';
+import { getPlaybookReadiness } from '@/config/playbook-readiness';
+import type { PlaybookReadiness } from '@/config/workflow-runtime';
 
 interface TemplateStats {
   templateId: string;
@@ -178,6 +180,29 @@ export default function PlaybookTemplatesPage() {
       <div className="flex items-center justify-center h-96">
         <Loader2 className="w-8 h-8 animate-spin" />
       </div>
+    );
+  }
+
+  function readinessBadge(templateId: string) {
+    const readiness: PlaybookReadiness = getPlaybookReadiness(templateId);
+    const styles: Record<PlaybookReadiness, string> = {
+      executable_now:  'bg-green-100 text-green-800 border-green-200',
+      partial_support: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      template_only:   'bg-gray-100 text-gray-600 border-gray-200',
+      experimental:    'bg-purple-100 text-purple-800 border-purple-200',
+      legacy:          'bg-red-100 text-red-700 border-red-200',
+    };
+    const labels: Record<PlaybookReadiness, string> = {
+      executable_now:  'Live',
+      partial_support: 'Partial',
+      template_only:   'Template',
+      experimental:    'Experimental',
+      legacy:          'Legacy',
+    };
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${styles[readiness]}`}>
+        {labels[readiness]}
+      </span>
     );
   }
 
@@ -340,6 +365,7 @@ export default function PlaybookTemplatesPage() {
                     <TableHead>Template ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Tier</TableHead>
+                    <TableHead>Readiness</TableHead>
                     <TableHead className="text-right">Assigned</TableHead>
                     <TableHead className="text-right">Executed</TableHead>
                     <TableHead className="text-right">Success Rate</TableHead>
@@ -373,6 +399,7 @@ export default function PlaybookTemplatesPage() {
                           {template.tier}
                         </Badge>
                       </TableCell>
+                      <TableCell>{readinessBadge(template.templateId)}</TableCell>
                       <TableCell className="text-right">{template.assignedCount}</TableCell>
                       <TableCell className="text-right">{template.executedCount}</TableCell>
                       <TableCell className="text-right">
