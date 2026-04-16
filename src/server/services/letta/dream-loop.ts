@@ -103,7 +103,7 @@ interface DreamAgentProfile {
 const DEFAULT_REVIEW_CHANNELS = ['linus-cto', 'ceo'];
 
 const DREAM_AGENT_PROFILES: Record<DreamAgentId, DreamAgentProfile> = {
-    marty: { agentId: 'marty', displayName: 'Marty', roleLabel: 'CEO AI agent', defaultModel: 'glm', reviewChannels: DEFAULT_REVIEW_CHANNELS, legacyLearningCollections: ['marty_learning_log'] },
+    marty: { agentId: 'marty', displayName: 'Marty', roleLabel: 'CEO AI agent', defaultModel: 'opus', reviewChannels: DEFAULT_REVIEW_CHANNELS, legacyLearningCollections: ['marty_learning_log'] },
     linus: { agentId: 'linus', displayName: 'Linus', roleLabel: 'CTO AI agent', defaultModel: 'glm', reviewChannels: DEFAULT_REVIEW_CHANNELS, lettaBlock: { blockId: 'linus_internal', blockLabel: BLOCK_LABELS.AGENT_LINUS, owner: 'Linus' } },
     elroy: { agentId: 'elroy', displayName: 'Uncle Elroy', roleLabel: 'Store operations advisor', defaultModel: 'glm', defaultOrgId: 'org_thrive_syracuse', reviewChannels: DEFAULT_REVIEW_CHANNELS },
     leo: { agentId: 'leo', displayName: 'Leo', roleLabel: 'COO AI agent', defaultModel: 'glm', reviewChannels: DEFAULT_REVIEW_CHANNELS },
