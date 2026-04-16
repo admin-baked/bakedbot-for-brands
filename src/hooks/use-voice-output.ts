@@ -39,7 +39,9 @@ export function useVoiceOutput() {
             audioRef.current.pause();
             try {
                 audioRef.current.src = "";
-            } catch (e) {}
+            } catch (e) {
+                console.debug('[VoiceOutput] Failed to clear audio src:', e);
+            }
             audioRef.current = null;
         }
 
@@ -81,7 +83,9 @@ export function useVoiceOutput() {
             audioRef.current.pause();
             try {
                 audioRef.current.src = "";
-            } catch (e) {}
+            } catch (e) {
+                console.debug('[VoiceOutput] Failed to clear audio src:', e);
+            }
             audioRef.current = null;
             setIsSpeaking(false);
         }

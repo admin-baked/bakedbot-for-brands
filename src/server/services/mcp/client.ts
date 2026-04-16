@@ -29,6 +29,9 @@ export class McpClient extends EventEmitter {
     private serverId: string;
     private messageId = 0;
     private pendingRequests = new Map<number, { resolve: (val: any) => void, reject: (err: any) => void }>();
+    private stdoutHandler: ((data: Buffer) => void) | null = null;
+    private stderrHandler: ((data: Buffer) => void) | null = null;
+    private closeHandler: ((code: number | null, signal: NodeJS.Signals | null) => void) | null = null;
 
     constructor(private config: McpServerConfig) {
         super();
@@ -43,15 +46,17 @@ export class McpClient extends EventEmitter {
             stdio: ['pipe', 'pipe', 'pipe'] // stdin, stdout, stderr
         });
 
-        this.process.stdout?.on('data', (data) => this.handleData(data));
-        this.process.stderr?.on('data', (data) => logger.warn(`[MCP:${this.serverId}:STDERR] ${data}`));
-
-        this.process.on('close', (code) => {
+        this.stdoutHandler = (data: Buffer) => this.handleData(data);
+        this.stderrHandler = (data: Buffer) => logger.warn(`[MCP:${this.serverId}:STDERR] ${data}`);
+        this.closeHandler = (code) => {
             logger.warn(`[MCP:${this.serverId}] Process exited with code ${code}`);
             this.process = null;
-        });
+        };
 
-        // Initial handshake could go here if required by specific MCP version
+        this.process.stdout?.on('data', this.stdoutHandler);
+        this.process.stderr?.on('data', this.stderrHandler);
+        this.process.on('close', this.closeHandler);
+
         logger.info(`[MCP:${this.serverId}] Connected.`);
     }
 
@@ -100,9 +105,22 @@ export class McpClient extends EventEmitter {
 
     async disconnect() {
         if (this.process) {
+            if (this.stdoutHandler) {
+                this.process.stdout?.off('data', this.stdoutHandler);
+            }
+            if (this.stderrHandler) {
+                this.process.stderr?.off('data', this.stderrHandler);
+            }
+            if (this.closeHandler) {
+                this.process.off('close', this.closeHandler);
+            }
             this.process.kill();
             this.process = null;
+            this.stdoutHandler = null;
+            this.stderrHandler = null;
+            this.closeHandler = null;
         }
+        logger.info(`[MCP:${this.serverId}] Disconnected.`);
     }
 }
 

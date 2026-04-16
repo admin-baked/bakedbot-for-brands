@@ -221,7 +221,7 @@ export function useTabletFlow(orgId: string) {
                     setBudtenderName(data.budtenders[0].firstName);
                 }
             })
-            .catch(() => { /* silently ignore */ });
+            .catch((err) => { console.warn('[TabletFlow] Failed to fetch budtender shift:', err); });
         return () => { mounted = false; };
     }, [orgId]);
 

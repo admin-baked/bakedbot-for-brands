@@ -76,7 +76,9 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     if (rawData.features && typeof rawData.features === 'string') {
       try {
         features = JSON.parse(rawData.features);
-      } catch (e) { }
+      } catch (e) {
+        logger.warn('Failed to parse features JSON', { error: e instanceof Error ? e.message : String(e), rawData });
+      }
     }
 
     const validatedFields = OnboardingSchema.safeParse(rawData);

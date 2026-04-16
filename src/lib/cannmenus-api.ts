@@ -247,11 +247,12 @@ export async function getRetailerProducts(
         );
 
         if (!response.ok) {
-            // Log the error body for debugging if it fails again
             try {
                 const text = await response.text();
                 console.error(`[CannMenus] API Error Body: ${text}`);
-            } catch (e) { }
+            } catch (e) {
+                console.warn('[CannMenus] Failed to read error body:', e);
+            }
             throw new Error(`CannMenus API error: ${response.statusText}`);
         }
 

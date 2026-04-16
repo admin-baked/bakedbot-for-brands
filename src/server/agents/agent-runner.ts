@@ -423,7 +423,11 @@ const PLAYBOOK_REGISTRY: Record<string, () => Promise<PlaybookResult>> = {
         try {
             const user = await requireUser();
             if (user.email) userEmail = user.email;
-        } catch (e) { }
+        } catch (e) {
+            logger.warn('[AgentRunner] Could not get user email for report, using default', {
+                error: e instanceof Error ? e.message : String(e)
+            });
+        }
 
         const emailResult = await sendGenericEmail({
             to: userEmail,

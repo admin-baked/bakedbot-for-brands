@@ -10,6 +10,42 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getPublishedSiteByProject } from '@/server/actions/vibe-publish';
 
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function sanitizeCss(css: string): string {
+  const dangerousPatterns = [
+    /url\s*\(/gi,
+    /@import/gi,
+    /expression\s*\(/gi,
+    /javascript:/gi,
+    /behavior:/gi,
+    /-moz-binding:/gi,
+  ];
+
+  let sanitized = css;
+  for (const pattern of dangerousPatterns) {
+    sanitized = sanitized.replace(pattern, ' /* blocked */ ');
+  }
+
+  return sanitized;
+}
+
+function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    .replace(/\bon\w+\s*=/gi, 'data-blocked-')
+    .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '');
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ projectId: string }> }
@@ -71,11 +107,12 @@ export async function GET(
     }
 
     const site = siteData as Record<string, unknown>;
-    const siteName = (site.name as string) || 'Untitled';
-    const siteDescription = (site.description as string) || siteName;
-    const siteCSS = (site.css as string) || '';
-    const siteHTML = (site.html as string) || '';
-    const subdomain = (site.subdomain as string) || projectId;
+    const siteName = escapeHtml((site.name as string) || 'Untitled');
+    const siteDescription = escapeHtml((site.description as string) || siteName);
+    const siteCSS = sanitizeCss((site.css as string) || '');
+    const siteHTML = sanitizeHtml((site.html as string) || '');
+    const subdomain = escapeHtml((site.subdomain as string) || projectId);
+    const safeProjectId = escapeHtml(projectId);
 
     // Build complete HTML
     const html = `<!DOCTYPE html>
@@ -139,11 +176,11 @@ export async function GET(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           site: '${subdomain}',
-          projectId: '${projectId}',
+          projectId: '${safeProjectId}',
           page: window.location.pathname,
           referrer: document.referrer,
         })
-      }).catch(function() {});
+      }).catch(function(err) { console.warn('[VIBE-ANALYTICS] Failed to track:', err); });
     })();
   </script>
 </body>
