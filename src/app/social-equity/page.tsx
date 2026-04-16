@@ -138,11 +138,16 @@ export default function SocialEquityPage() {
                         Licensed social equity dispensaries get <strong>25% off any plan — forever.</strong>{' '}
                         Same tools. Same support. Built for equitable access.
                     </p>
-                    <div className="grid grid-cols-3 gap-4 pt-2 text-sm text-muted-foreground">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 text-sm text-muted-foreground">
                         <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-center">
                             <div className="font-semibold text-foreground">Access Retention</div>
                             <div className="line-through opacity-60">$499/mo</div>
                             <div className="text-emerald-600 font-bold">$374/mo</div>
+                        </div>
+                        <div className="rounded-lg border border-border/50 bg-purple-500/10 border-purple-500/30 p-3 text-center">
+                            <div className="font-semibold text-foreground">Access Complete ⭐</div>
+                            <div className="line-through opacity-60">$750/mo</div>
+                            <div className="text-emerald-600 font-bold">$562/mo</div>
                         </div>
                         <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-center">
                             <div className="font-semibold text-foreground">Operator Core</div>

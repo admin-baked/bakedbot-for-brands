@@ -83,6 +83,81 @@ function KpiCard({
     );
 }
 
+// --- $1M ARR Goal Card ---
+
+const ARR_TARGET = 83333; // $1M ARR / 12 months
+
+function ArrGoalCard({ mrr }: { mrr: number }) {
+    const pct = Math.min(Math.round((mrr / ARR_TARGET) * 100), 100);
+    const remaining = Math.max(ARR_TARGET - mrr, 0);
+
+    // Milestone markers (MRR equivalents)
+    const milestones = [
+        { label: '1st Operator', mrr: 2500 },
+        { label: '3 Operators', mrr: 7500 },
+        { label: '10 Operators', mrr: 25000 },
+        { label: '$1M ARR', mrr: 83333 },
+    ];
+
+    return (
+        <Card className="border-border/60">
+            <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                    <div>
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">North Star Progress</p>
+                        <p className="text-sm font-semibold mt-0.5">
+                            ${mrr.toLocaleString()} MRR <span className="text-muted-foreground font-normal">of ${ARR_TARGET.toLocaleString()} target</span>
+                        </p>
+                    </div>
+                    <div className="text-right">
+                        <span className="text-2xl font-bold tracking-tight">{pct}%</span>
+                        <p className="text-[11px] text-muted-foreground">${remaining.toLocaleString()} to $1M ARR</p>
+                    </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="relative h-3 rounded-full bg-muted overflow-hidden">
+                    <div
+                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
+                        style={{ width: `${Math.max(pct, 1)}%` }}
+                    />
+                    {/* Milestone ticks */}
+                    {milestones.slice(0, -1).map((m) => {
+                        const tickPct = Math.round((m.mrr / ARR_TARGET) * 100);
+                        return (
+                            <div
+                                key={m.label}
+                                className="absolute top-0 h-full w-px bg-background/60"
+                                style={{ left: `${tickPct}%` }}
+                            />
+                        );
+                    })}
+                </div>
+
+                {/* Milestone labels */}
+                <div className="relative mt-2 h-5">
+                    {milestones.map((m) => {
+                        const tickPct = Math.round((m.mrr / ARR_TARGET) * 100);
+                        const reached = mrr >= m.mrr;
+                        return (
+                            <span
+                                key={m.label}
+                                className={cn(
+                                    'absolute text-[10px] -translate-x-1/2 font-medium',
+                                    reached ? 'text-emerald-600' : 'text-muted-foreground'
+                                )}
+                                style={{ left: `${tickPct}%` }}
+                            >
+                                {m.label}
+                            </span>
+                        );
+                    })}
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
 // --- Action Card ---
 
 type ActionCardVariant = 'warning' | 'info' | 'success' | 'danger';
@@ -309,6 +384,9 @@ export default function MissionControlTab() {
                     trendUp={analytics?.signups.trendUp}
                 />
             </div>
+
+            {/* $1M ARR Goal Progress */}
+            <ArrGoalCard mrr={mrr} />
 
             {/* Section 2 + 3: Two-column — Actions + Agent Pulse */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">

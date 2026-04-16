@@ -171,6 +171,7 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
                 'Free Check-In: $0/mo — tablet/QR capture, welcome email, basic loyalty. Wedge product.',
                 'Access Intel: $149/mo — competitor tracking, weekly intel digest, limited analytics.',
                 'Access Retention: $499-$899/mo + $500-$1,000 setup — welcome playbook, QR capture, segmentation, lifecycle campaigns, compliance pre-checks.',
+                'Access Complete ⭐ SWEET SPOT: $750/mo + $500 setup — INCLUDES tablet Check-In hardware setup + fully managed Welcome Playbook. Best entry point. What Thrive Syracuse is on.',
                 '--- TRACK 2: OPERATOR (primary revenue engine) ---',
                 'Operator Core: $2,500-$3,000 MRR + $1,500-$3,000 setup — welcome flow, 2-4 retention playbooks, campaign calendar, weekly reporting, 30-day activation, 45-60 day proof review.',
                 'Operator Growth: $3,500-$4,000 MRR + $3,000-$5,000 setup — everything in Core + advanced segmentation, exec KPI reviews, competitor watch, expansion campaigns.',

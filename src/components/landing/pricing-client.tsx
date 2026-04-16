@@ -234,6 +234,7 @@ export function PricingClient() {
                                     <div className="mt-2 grid gap-2 text-muted-foreground">
                                         <p>Access Intel: {row.accessIntel}</p>
                                         <p>Access Retention: {row.accessRetention}</p>
+                                        <p>Access Complete: {row.accessComplete}</p>
                                         <p>Operator Core: {row.operatorCore}</p>
                                         <p>Operator Growth: {row.operatorGrowth}</p>
                                     </div>

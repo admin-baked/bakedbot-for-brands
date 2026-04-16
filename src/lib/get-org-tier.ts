@@ -34,6 +34,7 @@ export function normalizePlanIdToTierId(planId: string | undefined | null): Tier
         case 'signal':
             return 'scout';
         case 'access_retention':
+        case 'access_complete':
         case 'operator_core':
         case 'convert':
         case 'retain':

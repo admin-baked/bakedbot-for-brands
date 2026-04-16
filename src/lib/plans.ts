@@ -2,6 +2,7 @@ export type PlanId =
   | 'free'
   | 'access_intel'
   | 'access_retention'
+  | 'access_complete'
   | 'operator_core'
   | 'operator_growth'
   | 'enterprise'
@@ -79,6 +80,14 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     name: 'Access Retention',
     description: 'Narrow welcome and retention proof of value.',
     baseAmount: 499,
+    includedLocations: 1,
+    extraPerLocation: null,
+  },
+  access_complete: {
+    id: 'access_complete',
+    name: 'Access Complete',
+    description: 'Tablet Check-In setup + managed Welcome Playbook. Sweet spot for Access Track.',
+    baseAmount: 750,
     includedLocations: 1,
     extraPerLocation: null,
   },
