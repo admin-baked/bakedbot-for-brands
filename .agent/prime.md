@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved × $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** Production live; 11 SEO landing pages + agency subdomain + org-context refactor + slow-mover audit
-**Recent work (2026-04-16):** `8972a7949` org-context/slow-mover/dispatcher refactor; `ba2828b65` CannMenus integration page; `ccd03ca46` Day Day retool + 9 landing pages + agency subdomain
+**Current Status:** Production live; Agent Board Kanban (stoplight + Slack cards + learning loop) + SEO/org-context work
+**Recent work (2026-04-16):** `ae46b7338` Agent Board all 3 phases — Kanban, Slack Block Kit cards, getAgentFeedbackSummary; `8972a7949` org-context/slow-mover refactor
 
 ---
 
