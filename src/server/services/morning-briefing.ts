@@ -143,6 +143,7 @@ async function queryOrdersByField(
             .collection('orders')
             .where(field, '==', orgId)
             .where('status', 'in', [...ANALYTICS_ORDER_STATUSES])
+            .orderBy('createdAt', 'desc')
             .limit(500)
             .get();
         return snap.docs.map(d => ({ id: d.id, ...d.data() } as OrderRow));
@@ -157,6 +158,7 @@ async function queryOrdersByField(
             const snap = await db
                 .collection('orders')
                 .where(field, '==', orgId)
+                .orderBy('createdAt', 'desc')
                 .limit(500)
                 .get();
             return snap.docs
