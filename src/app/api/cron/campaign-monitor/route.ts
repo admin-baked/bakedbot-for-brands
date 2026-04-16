@@ -58,11 +58,12 @@ export async function GET(request: NextRequest) {
 
         const windowStart = new Date();
         windowStart.setDate(windowStart.getDate() - MONITOR_WINDOW_DAYS);
+        const windowStartIso = windowStart.toISOString();
 
         const [sentSnap, sendingSnap] = await Promise.all([
             firestore.collection('campaigns')
                 .where('status', '==', 'sent')
-                .where('sentAt', '>=', windowStart)
+                .where('sentAt', '>=', windowStartIso)
                 .orderBy('sentAt', 'desc')
                 .limit(50)
                 .get(),
