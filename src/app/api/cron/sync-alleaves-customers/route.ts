@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
 
         const summary = results.map((r, i) =>
             r.status === 'fulfilled'
-                ? { orgId: orgIds[i], ...r.value }
+                ? { ...r.value }
                 : { orgId: orgIds[i], error: (r.reason as Error).message }
         );
 

@@ -128,8 +128,6 @@ export async function GET(request: NextRequest) {
 
             // Ingest final results into Knowledge Engine once per campaign (24h+ = stable metrics)
             // createSourceIfNew inside deduplicates by campaignId — safe to call every hour
-            const sentAt = campaign.sentAt ? new Date(campaign.sentAt).getTime() : 0;
-            const hoursElapsed = (now - sentAt) / 3_600_000;
             if (hoursElapsed >= 24 && campaign.status === 'sent' && campaign.orgId) {
                 const summaryText = `Campaign "${campaign.name}" sent ${perf.sent} emails. Open rate: ${(openRate * 100).toFixed(1)}%, click rate: ${(clickRate * 100).toFixed(1)}%, bounce rate: ${(bounceRate * 100).toFixed(2)}%, unsubscribe rate: ${(complaintRate * 100).toFixed(2)}%.`;
                 ingestCampaignHistoryKnowledge({

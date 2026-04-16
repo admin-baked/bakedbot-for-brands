@@ -16,6 +16,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
 import { calculateSegment } from '@/types/customers';
 import { logger } from '@/lib/logger';
+import { FieldPath } from 'firebase-admin/firestore';
 
 const BATCH_SIZE = 400;
 
@@ -108,9 +109,11 @@ export async function syncAlleavesCustomersForOrg(orgId: string): Promise<Alleav
     let batchCount = 0;
     const syncedAt = new Date().toISOString();
 
+    // Use document ID ordering — every doc has it, unlike createdAt which
+    // alleaves_sync docs (written by persistCustomerProfiles) don't set.
     const baseQuery = firestore.collection('customers')
         .where('orgId', '==', orgId)
-        .orderBy('createdAt', 'desc')
+        .orderBy(FieldPath.documentId())
         .limit(1000);
 
     let snap = await baseQuery.get();
@@ -142,11 +145,12 @@ export async function syncAlleavesCustomersForOrg(orgId: string): Promise<Alleav
 
             const totalSpent  = alleaves.totalSpent  > 0 ? alleaves.totalSpent  : ((data.totalSpent  as number) || 0);
             const orderCount  = alleaves.orderCount  > 0 ? alleaves.orderCount  : ((data.orderCount  as number) || 0);
-            const lastOrderDate = alleaves.lastOrderDate ?? (data.lastOrderDate as string | undefined) ?? undefined;
+            const lastOrderDateStr = alleaves.lastOrderDate ?? (data.lastOrderDate as string | undefined) ?? null;
+            const lastOrderDate = lastOrderDateStr ? new Date(lastOrderDateStr) : undefined;
             const avgOrderValue = orderCount > 0 ? totalSpent / orderCount : 0;
 
             const daysSinceLastOrder = lastOrderDate
-                ? Math.floor((Date.now() - new Date(lastOrderDate).getTime()) / 86_400_000)
+                ? Math.floor((Date.now() - lastOrderDate.getTime()) / 86_400_000)
                 : undefined;
 
             const newSegment = calculateSegment({
