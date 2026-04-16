@@ -104,7 +104,7 @@ export async function getCategoryBenchmarks(brandId: string): Promise<BenchmarkD
             const leaflyAvg = leaflyCat?.avg || 0;
 
             // Get CannMenus Data
-            // @ts-ignore
+            // @ts-ignore Promise.allSettled result type narrowing after .find()
             const cmSample = cannMenusSamples.find(r => r.status === 'fulfilled' && r.value.category === category)?.value;
             const cannMenusAvg = cmSample?.avg || 0;
 

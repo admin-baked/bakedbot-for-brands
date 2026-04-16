@@ -87,8 +87,8 @@ describe('Firecrawl MCP Tools', () => {
                 { type: 'click', selector: '.btn' }
             ];
 
-            // @ts-ignore
-            const result = await firecrawlScrapeWithActions({ 
+            // @ts-ignore test stub passes partial options shape
+            const result = await firecrawlScrapeWithActions({
                 url: 'https://example.com', 
                 actions: actions as any 
             });

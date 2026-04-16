@@ -82,7 +82,7 @@ export class TreasuryPolicyEngine {
         }
         if (!venueRule) {
             // check virtual
-            // @ts-ignore
+            // @ts-ignore dynamic index on venueLimits.virtual record shape
             venueRule = venueLimits.virtual ? venueLimits.virtual[request.venue] : undefined;
         }
 
