@@ -1068,6 +1068,8 @@ Each cron endpoint carries real overhead: Cloud Scheduler job, auth check, Fires
 | `weekly-friday-memo` | Fri 4 PM EST | Full Friday Truth Day (all agents) |
 | `weekly-executive-cadence` | Tue 9 AM + Thu 1 PM EST | getDay() routes to Build Day or Proof Day |
 | `daily-executive-cadence` | 8 AM / 12 PM / 6 PM / 10 PM EST | getHours() routes to Morning Scan / Midday / Closeout / Overnight |
+| `generate-insights` | various (hourly/daily) | ?type= routes to customer/velocity/regulatory/competitive-pricing/dynamic/goal-progress |
+| `dayday` | 6/7/8 AM daily + Mon 8 AM | ?type= routes to discovery/international/seo-report/review |
 
 ### Cloud Scheduler registration (run once per job)
 
