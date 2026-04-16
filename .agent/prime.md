@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved × $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** Production live; repo audit 10/10 closed
-**Recent work (2026-04-16):** `7e4c16442` agent contract + source-derived drift check (6/6) + readiness UI + arch doc; `a219d90db` audit gaps round 1
+**Current Status:** Production live; 11 SEO landing pages + agency subdomain + org-context refactor + slow-mover audit
+**Recent work (2026-04-16):** `8972a7949` org-context/slow-mover/dispatcher refactor; `ba2828b65` CannMenus integration page; `ccd03ca46` Day Day retool + 9 landing pages + agency subdomain
 
 ---
 
