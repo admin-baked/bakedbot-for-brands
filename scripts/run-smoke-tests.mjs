@@ -228,11 +228,11 @@ const SMOKE_TESTS = [
         id: null,
         name: 'Competitive pricing insights cron rejects unauthenticated request',
         area: 'competitive_intel',
-        url: '/api/cron/generate-insights-competitive-pricing',
+        url: '/api/cron/generate-insights',
         method: 'POST',
         expectedStatus: 401,
         headers: { 'Content-Type': 'application/json' },
-        body: {},
+        body: { type: 'competitive-pricing' },
         priority: 'P1',
     },
 
@@ -265,13 +265,15 @@ const SMOKE_TESTS = [
     // ── DASHBOARD ──────────────────────────────────────────────────────────
     {
         id: null,
-        name: 'Dashboard home redirects unauthenticated user',
+        // Dashboard uses client-side auth (useAuth hook) — middleware is custom-domain
+        // routing only. The page loads (200) and JS redirects to login if unauthenticated.
+        name: 'Dashboard home loads (client-side auth)',
         area: 'auth',
         url: '/dashboard',
         method: 'GET',
-        expectedStatus: 307,
+        expectedStatus: 200,
         priority: 'P0',
-        validate: (_, status) => status === 307 || status === 302 || status === 401,
+        validate: (_, status) => status === 200 || status === 307 || status === 302,
     },
 
     // ── CAMPAIGNS ──────────────────────────────────────────────────────────
