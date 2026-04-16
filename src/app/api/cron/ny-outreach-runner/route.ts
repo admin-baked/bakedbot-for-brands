@@ -31,7 +31,7 @@ import { logAgentLearning } from '@/server/services/agent-learning-loop';
 
 export const dynamic = 'force-dynamic';
 
-/** Daily send cap — default 25, override via env */
+/** Daily send cap — 25/day production default */
 const DAILY_SEND_LIMIT = parseInt(process.env.NY_OUTREACH_DAILY_LIMIT || '25', 10);
 
 const MIN_LEAD_QUEUE = 10;
