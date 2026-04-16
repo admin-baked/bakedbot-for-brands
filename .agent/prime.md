@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; campaign monitoring (SES webhook + cron) + Thrive launch + send throttle + slug guard.
-**Recent work (2026-04-16):** `7f39575bb` SES bounce webhook + monitor cron + Thrive branding + send throttle + slug guard; `c72fa3839` booking dark mode + GCal alert + Marty gmail_triage
+**Current Status:** 🟢 Production live; connection health daily cron + Marty check_connections + campaign monitoring + Thrive launch.
+**Recent work (2026-04-16):** `23a4ef1b2` connection health cron + check_connections tool; `7f39575bb` SES bounce webhook + monitor cron + Thrive branding; `c72fa3839` booking dark mode + GCal alert
 - `26b7d7ac1` Firebase API key moved to env var (resolved secret alert)
 - `106f5408d` Security fixes: admin routes auth, XSS sanitization, database tool permissions
 **Prior (2026-04-12):** `c05e091da` CHANNEL_MAP + roster training; `1fbc88b22` task board + inbound CTAs

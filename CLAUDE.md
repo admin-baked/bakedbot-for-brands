@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; campaign monitoring (SES webhook + monitor cron) + Thrive launch + send throttle + canonical slug guard | **Last update:** 2026-04-16 (campaign monitoring + Thrive branding fix `7f39575bb`)
+**Current Status:** 🟢 Production live; connection health cron + Marty check_connections + campaign monitoring + Thrive launch | **Last update:** 2026-04-16 (connection health daily check `23a4ef1b2`)
 
 ---
 
