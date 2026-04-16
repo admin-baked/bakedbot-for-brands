@@ -702,6 +702,7 @@ const MARTY_SLACK_TOOLS = [
     { name: 'gmail_label', description: 'Add or remove a label from a thread. Use list_labels first to discover label IDs.', input_schema: { type: 'object' as const, properties: { threadId: { type: 'string', description: 'Gmail thread ID' }, labelId: { type: 'string', description: 'Label ID to add' }, action: { type: 'string', enum: ['add', 'remove'], description: 'Whether to add or remove the label' } }, required: ['threadId', 'labelId', 'action'] } },
     { name: 'gmail_list_labels', description: 'List all Gmail labels and their IDs. Use to discover label IDs before labeling threads.', input_schema: { type: 'object' as const, properties: {} } },
     { name: 'gmail_triage', description: 'Scan the CEO inbox for emails that need a response. Searches for recent unread threads from real people (excluding promotions, social, and no-reply senders). Posts a formatted digest to Slack #ceo with each thread and a prompt for the CEO to request a reply. Use proactively every morning or when asked to "check email" or "remind me about emails".', input_schema: { type: 'object' as const, properties: { daysBack: { type: 'number', description: 'How many days back to scan (default 3)' }, postToSlack: { type: 'boolean', description: 'Post digest to Slack #ceo (default true)' } } } },
+    { name: 'check_connections', description: 'Check the health of all key integrations: Gmail, Google Calendar, Blackleaf SMS, Mailjet Email, and Letta Memory. Posts a Slack alert to #ceo for any that are broken or not yet configured, with a specific reconnect URL for each. Run every morning and whenever a connection issue is suspected.', input_schema: { type: 'object' as const, properties: { postToSlack: { type: 'boolean', description: 'Post digest to Slack #ceo (default true)' } } } },
 
     // Google Calendar — CEO schedule (martez@bakedbot.ai)
     { name: 'calendar_list_events', description: 'List events on the CEO Google Calendar for a date range. Defaults to today + 7 days.', input_schema: { type: 'object' as const, properties: { startDate: { type: 'string', description: 'ISO date string for range start (default: now)' }, endDate: { type: 'string', description: 'ISO date string for range end (default: 7 days from now)' } } } },
@@ -1283,6 +1284,38 @@ async function martyToolExecutor(
             } catch (e: any) {
                 logger.error('[Marty:Gmail] Triage failed', { error: e.message });
                 return { error: `Gmail triage failed: ${e.message}` };
+            }
+        }
+        case 'check_connections': {
+            const shouldPostToSlack = args.postToSlack !== false;
+            try {
+                const { checkAllConnections, filterBrokenConnections, buildConnectionAlertSlackText } = await import('@/server/services/connection-health');
+                const checks = await checkAllConnections();
+                const broken = filterBrokenConnections(checks);
+
+                if (shouldPostToSlack) {
+                    const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
+                    await postLinusIncidentSlack({
+                        source: 'marty-connection-check',
+                        channelName: 'ceo',
+                        fallbackText: broken.length > 0
+                            ? `⚠️ ${broken.length} connection(s) need attention`
+                            : '✅ All connections healthy',
+                        blocks: [{
+                            type: 'section',
+                            text: { type: 'mrkdwn', text: buildConnectionAlertSlackText(broken) },
+                        }],
+                    });
+                }
+
+                return {
+                    total: checks.length,
+                    broken: broken.length,
+                    checks: checks.map(c => ({ id: c.id, name: c.name, status: c.status, detail: c.detail, reconnectUrl: c.reconnectUrl })),
+                };
+            } catch (e: any) {
+                logger.error('[Marty:Connections] check_connections failed', { error: e.message });
+                return { error: `Connection check failed: ${e.message}` };
             }
         }
         // Google Calendar — CEO schedule
@@ -2493,6 +2526,8 @@ function buildMartyProgressMessage(toolName: string, input: Record<string, unkno
             return '_Marty Benjamins is searching the inbox..._';
         case 'gmail_triage':
             return '_Marty Benjamins is triaging the inbox for emails needing a response..._';
+        case 'check_connections':
+            return '_Marty Benjamins is checking all integration connections..._';
         case 'gmail_read_thread':
             return '_Marty Benjamins is reading an email thread..._';
         case 'gmail_draft_reply':
@@ -2676,7 +2711,9 @@ You have direct access to the CEO inbox. Use it to:
 - Draft replies on behalf of the CEO — saved as drafts, NOT sent (gmail_draft_reply)
 - Organize with labels (gmail_label, gmail_list_labels)
 When drafting replies, write as Martez — professional, warm, decisive. Always save as draft so the CEO can review before sending.
-EMAIL MONITORING WORKFLOW: When Martez says "check my emails", "what do I need to respond to", or similar, run gmail_triage first. When they say "respond to email from [person]" or "draft a reply to [subject]", use gmail_search to find the thread, gmail_read_thread to understand context, then gmail_draft_reply to write a response. Confirm the draft was saved and remind Martez to review and send it from Gmail.
+EMAIL MONITORING WORKFLOW: When Martez says "check my emails", "what do I need to respond to", or similar, run gmail_triage first.
+
+DAILY MORNING ROUTINE: Every morning, run both check_connections and gmail_triage. If any connections are broken, report them first before the email digest. If Martez says "check connections", "are all integrations working", or "is anything broken", run check_connections immediately. When they say "respond to email from [person]" or "draft a reply to [subject]", use gmail_search to find the thread, gmail_read_thread to understand context, then gmail_draft_reply to write a response. Confirm the draft was saved and remind Martez to review and send it from Gmail.
 GMAIL AUTH: If Gmail tools return a "Login Required" or auth error, tell the CEO clearly: "Gmail needs to be re-connected. Go to Dashboard → Settings → Integrations tab → Gmail / Google Workspace → click Connect. This usually means the OAuth session expired." Do NOT say "blocked" or "I notified the CEO" — the CEO IS you, and you should tell them directly what action is needed.
 
 GOOGLE CALENDAR — CEO SCHEDULE:
