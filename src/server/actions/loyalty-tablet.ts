@@ -1054,12 +1054,13 @@ export async function getCustomerBudtenderContext(
     }
 
     try {
-        const [history, customerSnap] = await Promise.all([
-            getCustomerHistory(customerId, orgId, 5).catch(() => null),
-            getAdminFirestore().collection('customers').doc(customerId).get().catch(() => null),
-        ]);
-
+        // Load customer doc first so we can resolve alleaves_id for POS history lookup
+        const customerSnap = await getAdminFirestore().collection('customers').doc(customerId).get().catch(() => null);
         const d = customerSnap?.data() ?? {};
+
+        // Use alleaves_id when available — getCustomerHistory strips the prefix to get the numeric POS ID
+        const historyId = d.alleaves_id ? `alleaves_${d.alleaves_id}` : customerId;
+        const history = await getCustomerHistory(historyId, orgId, 5).catch(() => null);
         const loyaltyPoints = (d.loyaltyPoints as number) || 0;
         const visitCount = (d.visitCount as number) || (d.totalVisits as number) || 0;
         const badges: string[] = (d.badges as string[]) ?? [];

@@ -130,27 +130,17 @@ export async function POST(req: NextRequest) {
         let batch = firestore.batch();
         let batchCount = 0;
 
-        const customersRef = firestore.collection('customers');
-        let query = customersRef
+        const baseQuery = firestore.collection('customers')
             .where('orgId', '==', orgId)
             .orderBy('createdAt', 'desc')
             .limit(1000);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let lastDoc: any = null;
+        let snap = await baseQuery.get();
 
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-            const snap = lastDoc
-                ? await query.startAfter(lastDoc).get()
-                : await query.get();
-
-            if (snap.empty) break;
-            lastDoc = snap.docs[snap.docs.length - 1];
-
+        while (!snap.empty) {
             for (const doc of snap.docs) {
                 const data = doc.data();
-                const custPhone = normalizePhone(data.phone);
+                const custPhone = normalizePhone(data.phone as string | undefined);
                 if (!custPhone) continue;
 
                 const alleaves = phoneMap.get(custPhone);
@@ -162,8 +152,8 @@ export async function POST(req: NextRequest) {
                 if (data.alleaves_id === alleaves.alleaves_id && data.alleaves_synced) continue;
 
                 const update: Record<string, unknown> = {
-                    alleaves_id:    alleaves.alleaves_id,
-                    alleaves_synced: true,
+                    alleaves_id:        alleaves.alleaves_id,
+                    alleaves_synced:    true,
                     alleaves_synced_at: new Date().toISOString(),
                 };
 
@@ -192,6 +182,7 @@ export async function POST(req: NextRequest) {
             }
 
             if (snap.docs.length < 1000) break;
+            snap = await baseQuery.startAfter(snap.docs[snap.docs.length - 1]).get();
         }
 
         if (batchCount > 0) {
