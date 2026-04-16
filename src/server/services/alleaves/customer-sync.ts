@@ -160,7 +160,7 @@ export async function syncAlleavesCustomersForOrg(orgId: string): Promise<Alleav
                 lifetimeValue: totalSpent,
                 lastOrderDate,
                 daysSinceLastOrder,
-                firstOrderDate: data.firstOrderDate as string | undefined,
+                firstOrderDate: data.firstOrderDate ? new Date(data.firstOrderDate as string) : undefined,
             });
 
             const update: Record<string, unknown> = {

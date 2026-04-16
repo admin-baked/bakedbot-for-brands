@@ -417,6 +417,14 @@ export function SuperAdminSidebar() {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                                 <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/admin/agent-training'}>
+                                        <Link href="/dashboard/admin/agent-training">
+                                            <GraduationCap />
+                                            <span>Agent Training</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isTab("ground-truth")}>
                                         <Link href="/dashboard/ceo?tab=ground-truth">
                                             <BookOpen />
