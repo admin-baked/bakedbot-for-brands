@@ -10,6 +10,7 @@ Detailed documentation for AI agents working in this codebase.
 
 | If You're Working On... | Read This First |
 |-------------------------|-----------------|
+| **GTM, pricing, outreach, positioning, $1M ARR** | **`gtm.md`** |
 | Agent logic (any agent) | `agents.md` |
 | Ground truth, Smokey grounding | `ground-truth.md` |
 | Memory/Letta integration | `bakedbot-intelligence.md` |
