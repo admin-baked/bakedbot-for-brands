@@ -18,8 +18,12 @@ import { logger } from '@/lib/logger';
 import type {
     AgentTask,
     AgentTaskStatus,
+    AgentTaskStoplight,
+    TaskStep,
+    TaskHumanFeedback,
     CreateAgentTaskInput,
 } from '@/types/agent-task';
+import { statusToStoplight } from '@/types/agent-task';
 
 const COLLECTION = 'agent_tasks';
 
@@ -38,13 +42,17 @@ export async function createTaskInternal(
             title: input.title,
             body: input.body,
             status: 'open',
+            stoplight: 'gray',
             priority: input.priority || 'normal',
             category: input.category || 'other',
             reportedBy: input.reportedBy,
             assignedTo: input.assignedTo || null,
+            triggeredBy: input.triggeredBy,
+            orgId: input.orgId,
             filePath: input.filePath,
             errorSnippet: input.errorSnippet,
             relatedCommit: input.relatedCommit,
+            steps: [],
             createdAt: now,
             updatedAt: now,
         };
@@ -161,8 +169,14 @@ export async function updateTaskStatus(
         const now = new Date().toISOString();
         const update: Record<string, unknown> = {
             status,
+            stoplight: statusToStoplight(status),
             updatedAt: now,
         };
+
+        if (status === 'in_progress') {
+            const current = doc.data() as AgentTask;
+            if (!current.startedAt) update.startedAt = now;
+        }
 
         if (status === 'done' || status === 'wont_fix') {
             update.resolvedAt = now;
@@ -185,6 +199,165 @@ export async function updateTaskStatus(
             taskId,
         });
         return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+}
+
+// ============================================================================
+// STOPLIGHT + STEP + FEEDBACK (server-only, no auth — for crons/agents)
+// ============================================================================
+
+/** Fetch a single task by ID */
+export async function getTaskById(taskId: string): Promise<{ success: boolean; task?: AgentTask; error?: string }> {
+    try {
+        const db = getAdminFirestore();
+        const doc = await db.collection(COLLECTION).doc(taskId).get();
+        if (!doc.exists) return { success: false, error: 'Task not found' };
+        return { success: true, task: { id: doc.id, ...doc.data() } as AgentTask };
+    } catch (err) {
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+}
+
+/** Append a step to the task's step log and update the Slack card */
+export async function logTaskStep(
+    taskId: string,
+    step: Omit<TaskStep, 'completedAt'> & { completedAt?: string },
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const db = getAdminFirestore();
+        const ref = db.collection(COLLECTION).doc(taskId);
+        const doc = await ref.get();
+        if (!doc.exists) return { success: false, error: 'Task not found' };
+
+        const task = { id: doc.id, ...doc.data() } as AgentTask;
+        const now = new Date().toISOString();
+        const newStep: TaskStep = { ...step, completedAt: step.completedAt || now };
+        const steps = [...(task.steps || []), newStep];
+
+        await ref.update({ steps, updatedAt: now });
+
+        // Fire-and-forget card update
+        import('@/server/services/agent-task-notifications').then(({ updateTaskCard }) =>
+            updateTaskCard({ ...task, steps })
+        ).catch(() => undefined);
+
+        return { success: true };
+    } catch (err) {
+        logger.error('[AgentTasks] Failed to log step', { taskId, error: err instanceof Error ? err.message : String(err) });
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+}
+
+/** Override the stoplight independently of status (e.g. agent signals blocking) */
+export async function updateTaskStoplight(
+    taskId: string,
+    stoplight: AgentTaskStoplight,
+    note?: string,
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const db = getAdminFirestore();
+        const update: Record<string, unknown> = { stoplight, updatedAt: new Date().toISOString() };
+        if (note) update.resolutionNote = note;
+        await db.collection(COLLECTION).doc(taskId).update(update);
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+}
+
+/** Submit human feedback and log it to agent_learning_log */
+export async function submitTaskFeedback(
+    taskId: string,
+    feedback: TaskHumanFeedback,
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const db = getAdminFirestore();
+        const ref = db.collection(COLLECTION).doc(taskId);
+        const doc = await ref.get();
+        if (!doc.exists) return { success: false, error: 'Task not found' };
+
+        const task = { id: doc.id, ...doc.data() } as AgentTask;
+        const now = new Date().toISOString();
+
+        await ref.update({ humanFeedback: feedback, updatedAt: now });
+
+        // Write to learning log
+        import('@/server/services/agent-learning-loop').then(({ logAgentLearning }) =>
+            logAgentLearning({
+                agentId: task.assignedTo || task.reportedBy,
+                action: task.title,
+                result: feedback.rating === 'approved' ? 'success' :
+                        feedback.rating === 'rejected' ? 'failure' : 'partial',
+                category: task.category,
+                reason: feedback.note || feedback.rating,
+                orgId: task.orgId || null,
+                metadata: { taskId, reviewedBy: feedback.reviewedBy, stoplight: task.stoplight },
+            })
+        ).catch(() => undefined);
+
+        // Update Slack card to show feedback (no more buttons)
+        import('@/server/services/agent-task-notifications').then(({ updateTaskCard }) =>
+            updateTaskCard({ ...task, humanFeedback: feedback })
+        ).catch(() => undefined);
+
+        logger.info('[AgentTasks] Feedback submitted', { taskId, rating: feedback.rating });
+        return { success: true };
+    } catch (err) {
+        logger.error('[AgentTasks] Failed to submit feedback', { taskId, error: err instanceof Error ? err.message : String(err) });
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+}
+
+/** Get all tasks grouped for the board, keyed by stoplight column */
+export async function getAgentBoardTasks(): Promise<{
+    success: boolean;
+    columns: {
+        gray: AgentTask[];
+        yellow: AgentTask[];
+        orange: AgentTask[];
+        green: AgentTask[];
+        red: AgentTask[];
+    };
+    total: number;
+    error?: string;
+}> {
+    const empty: { gray: AgentTask[]; yellow: AgentTask[]; orange: AgentTask[]; green: AgentTask[]; red: AgentTask[] } = {
+        gray: [], yellow: [], orange: [], green: [], red: [],
+    };
+    try {
+        const db = getAdminFirestore();
+        // Active tasks — all non-terminal + recent terminal
+        const [active, recent] = await Promise.all([
+            db.collection(COLLECTION)
+                .where('status', 'in', ['open', 'claimed', 'in_progress', 'escalated'])
+                .orderBy('createdAt', 'desc')
+                .limit(100)
+                .get(),
+            db.collection(COLLECTION)
+                .where('status', 'in', ['done', 'wont_fix'])
+                .orderBy('updatedAt', 'desc')
+                .limit(30)
+                .get(),
+        ]);
+
+        const columns = { ...empty };
+        const pushTask = (doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+            const task = { id: doc.id, ...doc.data() } as AgentTask;
+            const col = task.stoplight || statusToStoplight(task.status);
+            if      (col === 'gray')   columns.gray.push(task);
+            else if (col === 'yellow') columns.yellow.push(task);
+            else if (col === 'orange') columns.orange.push(task);
+            else if (col === 'green')  columns.green.push(task);
+            else if (col === 'red')    columns.red.push(task);
+        };
+
+        active.docs.forEach(pushTask);
+        recent.docs.forEach(pushTask);
+
+        return { success: true, columns, total: active.size + recent.size };
+    } catch (err) {
+        logger.error('[AgentTasks] Failed to get board tasks', { error: err instanceof Error ? err.message : String(err) });
+        return { success: false, columns: empty, total: 0, error: err instanceof Error ? err.message : String(err) };
     }
 }
 

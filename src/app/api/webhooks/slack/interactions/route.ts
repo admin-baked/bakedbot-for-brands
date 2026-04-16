@@ -147,6 +147,16 @@ async function handleBlockActions(payload: any): Promise<void> {
             continue;
         }
 
+        // ---- Agent Task Feedback (board stoplight cards) ----
+        if (
+            actionId === 'task_feedback_approve' ||
+            actionId === 'task_feedback_flag' ||
+            actionId === 'task_feedback_reject'
+        ) {
+            await handleTaskFeedback(actionId, value, userId, responseUrl);
+            continue;
+        }
+
         // ---- Legacy agent action approval ----
         const approval = await getApprovalRequest(value);
         if (!approval) {
@@ -299,6 +309,52 @@ async function sendErrorResponse(responseUrl: string, text: string): Promise<voi
         logger.error('[Slack/Interactions] Failed to send error response', {
             error: error.message,
         });
+    }
+}
+
+// ============================================================================
+// Agent Task Feedback Handler
+// ============================================================================
+
+/**
+ * Handle 👍 / 🚩 / 👎 button clicks on agent task stoplight cards.
+ * Value is a JSON string: { taskId, rating }
+ */
+async function handleTaskFeedback(
+    actionId: string,
+    value: string,
+    slackUserId: string,
+    responseUrl: string,
+): Promise<void> {
+    let parsed: { taskId: string; rating: string };
+    try {
+        parsed = JSON.parse(value);
+    } catch {
+        await sendErrorResponse(responseUrl, 'Invalid task feedback payload');
+        return;
+    }
+
+    const { taskId, rating } = parsed;
+
+    try {
+        const { submitTaskFeedback } = await import('@/server/actions/agent-tasks');
+        const result = await submitTaskFeedback(taskId, {
+            rating: rating as 'approved' | 'needs_improvement' | 'rejected',
+            reviewedBy: slackUserId,
+            reviewedAt: new Date().toISOString(),
+        });
+
+        if (result.success) {
+            const label = rating === 'approved'          ? '👍 Approved'   :
+                          rating === 'needs_improvement' ? '🚩 Needs Work' : '👎 Rejected';
+            await sendSuccessResponse(responseUrl, `${label} — feedback saved and logged to learning loop.`);
+        } else {
+            await sendErrorResponse(responseUrl, result.error || 'Failed to save feedback');
+        }
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.error('[Slack/Interactions] Task feedback failed', { taskId, error: msg });
+        await sendErrorResponse(responseUrl, `Feedback failed: ${msg}`);
     }
 }
 

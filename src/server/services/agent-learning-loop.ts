@@ -292,6 +292,79 @@ export interface LearningLoopToolContext {
     legacyCollection?: string;
 }
 
+// ============================================================================
+// Feedback Summary (Phase 3 — board learning loop close)
+// ============================================================================
+
+export interface AgentFeedbackSummary {
+    agentId: string;
+    total: number;
+    approved: number;
+    needsImprovement: number;
+    rejected: number;
+    approvalRate: number; // 0–100
+    recentNotes: string[];
+}
+
+/**
+ * Aggregate human feedback from agent_tasks over the last N days.
+ * Used by the board API and the Friday memo digest.
+ */
+export async function getAgentFeedbackSummary(
+    agentId: string,
+    days = 7,
+): Promise<Omit<AgentFeedbackSummary, 'agentId'>> {
+    const empty = { total: 0, approved: 0, needsImprovement: 0, rejected: 0, approvalRate: 0, recentNotes: [] };
+    try {
+        const db = getAdminFirestore();
+        const since = Date.now() - days * 24 * 60 * 60 * 1000;
+
+        // Query tasks assigned to or reported by this agent that have humanFeedback
+        const snap = await db.collection('agent_tasks')
+            .where('assignedTo', '==', agentId)
+            .orderBy('updatedAt', 'desc')
+            .limit(50)
+            .get();
+
+        let approved = 0, needsImprovement = 0, rejected = 0;
+        const recentNotes: string[] = [];
+
+        for (const doc of snap.docs) {
+            const data = doc.data();
+            if (!data.humanFeedback) continue;
+            const updatedMs = new Date(data.updatedAt || 0).getTime();
+            if (updatedMs < since) continue;
+
+            const rating = data.humanFeedback.rating as string;
+            if (rating === 'approved')          approved++;
+            else if (rating === 'needs_improvement') needsImprovement++;
+            else if (rating === 'rejected')     rejected++;
+
+            if (data.humanFeedback.note) {
+                recentNotes.push(data.humanFeedback.note);
+            }
+        }
+
+        const total = approved + needsImprovement + rejected;
+        const approvalRate = total > 0 ? Math.round((approved / total) * 100) : 0;
+
+        return {
+            total,
+            approved,
+            needsImprovement,
+            rejected,
+            approvalRate,
+            recentNotes: recentNotes.slice(0, 5),
+        };
+    } catch (error) {
+        logger.warn('[AgentLearningLoop] getAgentFeedbackSummary failed', {
+            agentId,
+            error: safeErrorMessage(error),
+        });
+        return empty;
+    }
+}
+
 export function makeLearningLoopToolsImpl(context: LearningLoopToolContext) {
     return {
         async learning_log(

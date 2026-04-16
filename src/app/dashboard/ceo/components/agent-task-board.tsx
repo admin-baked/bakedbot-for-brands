@@ -31,6 +31,7 @@ const statusConfig: Record<AgentTaskStatus, { icon: typeof Circle; color: string
     open: { icon: Circle, color: 'text-blue-500', label: 'Open' },
     claimed: { icon: Clock, color: 'text-amber-500', label: 'Claimed' },
     in_progress: { icon: Clock, color: 'text-amber-500', label: 'In Progress' },
+    escalated: { icon: Clock, color: 'text-orange-500', label: 'Escalated' },
     done: { icon: CheckCircle2, color: 'text-green-500', label: 'Done' },
     wont_fix: { icon: XCircle, color: 'text-muted-foreground', label: "Won't Fix" },
 };

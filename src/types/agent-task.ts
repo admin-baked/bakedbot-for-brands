@@ -11,7 +11,49 @@
 
 // --- Status ---
 
-export type AgentTaskStatus = 'open' | 'claimed' | 'in_progress' | 'done' | 'wont_fix';
+export type AgentTaskStatus = 'open' | 'claimed' | 'in_progress' | 'escalated' | 'done' | 'wont_fix';
+
+// --- Stoplight ---
+
+/** Visual status for the board. Derived from status but can be overridden by agents. */
+export type AgentTaskStoplight = 'gray' | 'yellow' | 'orange' | 'green' | 'red';
+
+export function statusToStoplight(status: AgentTaskStatus): AgentTaskStoplight {
+    switch (status) {
+        case 'open':        return 'gray';
+        case 'claimed':
+        case 'in_progress': return 'yellow';
+        case 'escalated':   return 'orange';
+        case 'done':        return 'green';
+        case 'wont_fix':    return 'red';
+    }
+}
+
+export const STOPLIGHT_EMOJI: Record<AgentTaskStoplight, string> = {
+    gray:   '⚪',
+    yellow: '🟡',
+    orange: '🟠',
+    green:  '🟢',
+    red:    '🔴',
+};
+
+// --- Step log ---
+
+export interface TaskStep {
+    label: string;
+    status: 'pending' | 'running' | 'complete' | 'failed';
+    completedAt?: string; // ISO string
+    notes?: string;
+}
+
+// --- Human feedback ---
+
+export interface TaskHumanFeedback {
+    rating: 'approved' | 'needs_improvement' | 'rejected';
+    note?: string;
+    reviewedBy: string;  // Slack user ID or email
+    reviewedAt: string;  // ISO string
+}
 
 // --- Priority ---
 
@@ -44,11 +86,29 @@ export interface AgentTask {
     priority: AgentTaskPriority;
     category: AgentTaskCategory;
 
+    /** Visual stoplight derived from status; agents may override */
+    stoplight: AgentTaskStoplight;
+
     /** Who filed it: agent name, cron job name, or 'manual' */
     reportedBy: string;
 
     /** Who's working on it: 'linus', 'opencode', 'claude-code', or null */
     assignedTo: string | null;
+
+    /** What triggered this task */
+    triggeredBy?: 'cron' | 'slack' | 'user' | 'agent';
+
+    /** Org context (for multi-tenant filtering on the board) */
+    orgId?: string;
+
+    /** Step-by-step execution log written by the agent as it works */
+    steps?: TaskStep[];
+
+    /** Human review/feedback written from the board or Slack */
+    humanFeedback?: TaskHumanFeedback;
+
+    /** Slack message ts for in-place card updates */
+    slackTs?: string;
 
     /** Optional: file path most relevant to the task */
     filePath?: string;
@@ -68,6 +128,7 @@ export interface AgentTask {
     /** Timestamps */
     createdAt: string;   // ISO string
     updatedAt: string;   // ISO string
+    startedAt?: string;  // ISO string — when agent first sets in_progress
     claimedAt?: string;  // ISO string
     resolvedAt?: string; // ISO string
 }
@@ -81,6 +142,8 @@ export interface CreateAgentTaskInput {
     category?: AgentTaskCategory;
     reportedBy: string;
     assignedTo?: string;
+    triggeredBy?: AgentTask['triggeredBy'];
+    orgId?: string;
     filePath?: string;
     errorSnippet?: string;
     relatedCommit?: string;
@@ -93,6 +156,7 @@ export function renderTaskMarkdown(task: AgentTask): string {
         open: '[ ]',
         claimed: '[~]',
         in_progress: '[>]',
+        escalated: '[!]',
         done: '[x]',
         wont_fix: '[-]',
     };
