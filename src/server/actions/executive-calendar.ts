@@ -39,6 +39,42 @@ import {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+/**
+ * Posts a Slack alert to #ceo when a new booking fails to sync to Google Calendar.
+ * Non-blocking — caller should .catch(() => undefined).
+ */
+async function notifyCalendarSyncFailed(
+    profileSlug: string,
+    guestName: string,
+    startAt: Date,
+    bookingId: string,
+    reason: string,
+): Promise<void> {
+    try {
+        const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
+        const dateStr = new Intl.DateTimeFormat('en-US', {
+            weekday: 'short', month: 'short', day: 'numeric',
+            hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago',
+        }).format(startAt);
+        await postLinusIncidentSlack({
+            source: 'executive-calendar-gcal-sync',
+            channelName: 'ceo',
+            fallbackText: `⚠️ New booking not synced to Google Calendar: ${guestName} at ${dateStr}`,
+            blocks: [
+                {
+                    type: 'section',
+                    text: {
+                        type: 'mrkdwn',
+                        text: `:calendar: *New booking — NOT synced to Google Calendar*\n\n*Guest:* ${guestName}\n*When:* ${dateStr} (CT)\n*Profile:* ${profileSlug}\n*Reason:* ${reason}\n\n_Add this manually or reconnect Google Calendar at bakedbot.ai/dashboard/ceo?tab=calendar_`,
+                    },
+                },
+            ],
+        });
+    } catch (err) {
+        logger.warn(`[ExecCalendar] Failed to post GCal sync alert: ${String(err)}`);
+    }
+}
+
 function firestoreToProfile(data: Record<string, unknown>): ExecutiveProfile {
     return {
         profileSlug: data.profileSlug as ExecProfileSlug,
@@ -349,10 +385,19 @@ export async function createBooking(
             if (eventId) {
                 await bookingRef.update({ calendarEventId: eventId, updatedAt: Timestamp.now() });
                 logger.info(`[ExecCalendar] Google Calendar event linked: ${eventId} → ${bookingId}`);
+            } else {
+                // Event creation returned null — notify via Slack so booking is never silently missed
+                logger.warn(`[ExecCalendar] GCal event returned null for ${bookingId} — notifying CEO`);
+                notifyCalendarSyncFailed(profileSlug, input.externalName, startAt, bookingId, 'event_create_returned_null').catch(() => undefined);
             }
         } catch (err) {
             logger.error(`[ExecCalendar] Google Calendar event creation failed for ${bookingId}: ${String(err)}`);
+            notifyCalendarSyncFailed(profileSlug, input.externalName, startAt, bookingId, String(err)).catch(() => undefined);
         }
+    } else {
+        // No tokens configured — alert so the CEO doesn't miss the meeting
+        logger.warn(`[ExecCalendar] No Google Calendar tokens for ${profileSlug} — booking ${bookingId} not synced`);
+        notifyCalendarSyncFailed(profileSlug, input.externalName, startAt, bookingId, 'Google Calendar not connected').catch(() => undefined);
     }
 
     return {

@@ -72,11 +72,11 @@ export function SlotPicker({ profileSlug, meetingType, timezone, availableDows, 
     }, [selectedDate, fetchSlots]);
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-100">
+        <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-white/10">
             {/* Calendar picker */}
             <div className="p-6 flex justify-center">
                 <div className="w-fit">
-                    <h3 className="text-sm font-medium text-gray-700 mb-4">Select a date</h3>
+                    <h3 className="text-sm font-medium text-white/80 mb-4">Select a date</h3>
                     <Calendar
                         mode="single"
                         selected={selectedDate}
@@ -88,6 +88,17 @@ export function SlotPicker({ profileSlug, meetingType, timezone, availableDows, 
                             return !availableDows.includes(date.getDay());
                         }}
                         className="rounded-lg border-0"
+                        classNames={{
+                            caption_label: "text-sm font-medium text-white/80",
+                            weekday: "text-white/30 rounded-md w-9 font-normal text-[0.8rem] text-center",
+                            day_button: "h-9 w-9 p-0 font-normal text-white hover:bg-white/10 hover:text-white rounded-md transition-colors aria-selected:opacity-100",
+                            selected: "!bg-emerald-500 !text-black",
+                            today: "bg-white/10 text-white",
+                            outside: "text-white/20 opacity-50",
+                            disabled: "text-white/20 opacity-30",
+                            button_previous: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 border border-white/20 text-white rounded-md",
+                            button_next: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 border border-white/20 text-white rounded-md",
+                        }}
                     />
                 </div>
             </div>
@@ -95,20 +106,20 @@ export function SlotPicker({ profileSlug, meetingType, timezone, availableDows, 
             {/* Time slots */}
             <div className="p-6">
                 {!selectedDate && (
-                    <div className="flex flex-col items-center justify-center h-48 text-gray-400">
+                    <div className="flex flex-col items-center justify-center h-48 text-white/40">
                         <p className="text-sm">Select a date to see available times</p>
                     </div>
                 )}
 
                 {selectedDate && loading && (
                     <div className="flex flex-col items-center justify-center h-48">
-                        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                        <p className="text-sm text-gray-400 mt-2">Loading times...</p>
+                        <Loader2 className="h-6 w-6 animate-spin text-white/40" />
+                        <p className="text-sm text-white/40 mt-2">Loading times...</p>
                     </div>
                 )}
 
                 {selectedDate && !loading && slots.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-48 text-gray-400">
+                    <div className="flex flex-col items-center justify-center h-48 text-white/40">
                         <p className="text-sm">No availability on this date.</p>
                         <p className="text-xs mt-1">Try another day</p>
                     </div>
@@ -116,14 +127,14 @@ export function SlotPicker({ profileSlug, meetingType, timezone, availableDows, 
 
                 {selectedDate && !loading && slots.length > 0 && (
                     <div>
-                        <h3 className="text-sm font-medium text-gray-700 mb-4">
+                        <h3 className="text-sm font-medium text-white/80 mb-4">
                             {new Intl.DateTimeFormat('en-US', {
                                 weekday: 'long',
                                 month: 'long',
                                 day: 'numeric',
                                 timeZone: timezone,
                             }).format(selectedDate)}
-                            <span className="text-gray-400 font-normal ml-1 text-xs">({timezone.split('/').pop()?.replace('_', ' ')})</span>
+                            <span className="text-white/30 font-normal ml-1 text-xs">({timezone.split('/').pop()?.replace('_', ' ')})</span>
                         </h3>
                         <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
                             {slots.map((slot, i) => (
@@ -131,7 +142,7 @@ export function SlotPicker({ profileSlug, meetingType, timezone, availableDows, 
                                     key={i}
                                     variant="outline"
                                     onClick={() => onSlotSelect(slot)}
-                                    className="text-sm border-gray-200 hover:border-black hover:bg-black hover:text-white transition-all"
+                                    className="text-sm bg-white/5 border-white/10 text-white hover:bg-emerald-500 hover:border-emerald-500 hover:text-black transition-all"
                                 >
                                     {formatSlotTime(slot.startAt, timezone)}
                                 </Button>

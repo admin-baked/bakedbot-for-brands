@@ -60,9 +60,9 @@ export function BookingForm({ profileSlug, meetingType, slot, onComplete }: Prop
     return (
         <div className="p-6">
             {/* Meeting summary */}
-            <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-2">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="h-4 w-4 text-gray-400" />
+            <div className="bg-white/10 rounded-xl p-4 mb-6 space-y-2">
+                <div className="flex items-center gap-2 text-sm text-white/70">
+                    <Calendar className="h-4 w-4 text-white/40" />
                     <span>
                         {new Intl.DateTimeFormat('en-US', {
                             weekday: 'long',
@@ -73,19 +73,19 @@ export function BookingForm({ profileSlug, meetingType, slot, onComplete }: Prop
                         }).format(new Date(slot.startAt))}
                     </span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Clock className="h-4 w-4 text-gray-400" />
+                <div className="flex items-center gap-2 text-sm text-white/70">
+                    <Clock className="h-4 w-4 text-white/40" />
                     <span>{meetingType.durationMinutes} minutes · {meetingType.name}</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Video className="h-4 w-4 text-gray-400" />
+                <div className="flex items-center gap-2 text-sm text-white/70">
+                    <Video className="h-4 w-4 text-white/40" />
                     <span>Video meeting (link sent via email)</span>
                 </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-1.5">
-                    <Label htmlFor="name" className="text-sm font-medium">Your name</Label>
+                    <Label htmlFor="name" className="text-sm font-medium text-white/80">Your name</Label>
                     <Input
                         id="name"
                         placeholder="Jane Smith"
@@ -93,12 +93,12 @@ export function BookingForm({ profileSlug, meetingType, slot, onComplete }: Prop
                         onChange={e => setName(e.target.value)}
                         required
                         disabled={loading}
-                        className="h-10"
+                        className="h-10 bg-white/10 border-white/10 text-white placeholder:text-white/30 focus-visible:border-emerald-500 focus-visible:ring-0"
                     />
                 </div>
 
                 <div className="space-y-1.5">
-                    <Label htmlFor="email" className="text-sm font-medium">Email address</Label>
+                    <Label htmlFor="email" className="text-sm font-medium text-white/80">Email address</Label>
                     <Input
                         id="email"
                         type="email"
@@ -107,13 +107,13 @@ export function BookingForm({ profileSlug, meetingType, slot, onComplete }: Prop
                         onChange={e => setEmail(e.target.value)}
                         required
                         disabled={loading}
-                        className="h-10"
+                        className="h-10 bg-white/10 border-white/10 text-white placeholder:text-white/30 focus-visible:border-emerald-500 focus-visible:ring-0"
                     />
-                    <p className="text-xs text-gray-400">Confirmation + video link will be sent here</p>
+                    <p className="text-xs text-white/40">Confirmation + video link will be sent here</p>
                 </div>
 
                 <div className="space-y-1.5">
-                    <Label htmlFor="purpose" className="text-sm font-medium">What would you like to discuss?</Label>
+                    <Label htmlFor="purpose" className="text-sm font-medium text-white/80">What would you like to discuss?</Label>
                     <Textarea
                         id="purpose"
                         placeholder="e.g. I'd like to explore how BakedBot can help with our marketing automation..."
@@ -122,7 +122,7 @@ export function BookingForm({ profileSlug, meetingType, slot, onComplete }: Prop
                         required
                         disabled={loading}
                         rows={3}
-                        className="resize-none"
+                        className="resize-none bg-white/10 border-white/10 text-white placeholder:text-white/30 focus-visible:border-emerald-500 focus-visible:ring-0"
                     />
                 </div>
 
@@ -145,7 +145,7 @@ export function BookingForm({ profileSlug, meetingType, slot, onComplete }: Prop
                     )}
                 </Button>
 
-                <p className="text-xs text-center text-gray-400">
+                <p className="text-xs text-center text-white/40">
                     By booking, you agree that this meeting may be recorded and transcribed for notes.
                 </p>
             </form>

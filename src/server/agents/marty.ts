@@ -701,6 +701,7 @@ const MARTY_SLACK_TOOLS = [
     { name: 'gmail_draft_reply', description: 'Draft a reply email (saves as draft, does NOT send). The user reviews and sends manually.', input_schema: { type: 'object' as const, properties: { to: { type: 'string', description: 'Recipient email' }, subject: { type: 'string', description: 'Email subject line' }, body: { type: 'string', description: 'Plain text email body' }, htmlBody: { type: 'string', description: 'Optional HTML body for rich formatting' }, cc: { type: 'string', description: 'Optional CC recipients (comma-separated)' } }, required: ['to', 'subject', 'body'] } },
     { name: 'gmail_label', description: 'Add or remove a label from a thread. Use list_labels first to discover label IDs.', input_schema: { type: 'object' as const, properties: { threadId: { type: 'string', description: 'Gmail thread ID' }, labelId: { type: 'string', description: 'Label ID to add' }, action: { type: 'string', enum: ['add', 'remove'], description: 'Whether to add or remove the label' } }, required: ['threadId', 'labelId', 'action'] } },
     { name: 'gmail_list_labels', description: 'List all Gmail labels and their IDs. Use to discover label IDs before labeling threads.', input_schema: { type: 'object' as const, properties: {} } },
+    { name: 'gmail_triage', description: 'Scan the CEO inbox for emails that need a response. Searches for recent unread threads from real people (excluding promotions, social, and no-reply senders). Posts a formatted digest to Slack #ceo with each thread and a prompt for the CEO to request a reply. Use proactively every morning or when asked to "check email" or "remind me about emails".', input_schema: { type: 'object' as const, properties: { daysBack: { type: 'number', description: 'How many days back to scan (default 3)' }, postToSlack: { type: 'boolean', description: 'Post digest to Slack #ceo (default true)' } } } },
 
     // Google Calendar — CEO schedule (martez@bakedbot.ai)
     { name: 'calendar_list_events', description: 'List events on the CEO Google Calendar for a date range. Defaults to today + 7 days.', input_schema: { type: 'object' as const, properties: { startDate: { type: 'string', description: 'ISO date string for range start (default: now)' }, endDate: { type: 'string', description: 'ISO date string for range end (default: 7 days from now)' } } } },
@@ -1206,6 +1207,82 @@ async function martyToolExecutor(
                 return { labels: (res.data.labels || []).map((l: any) => ({ id: l.id, name: l.name, type: l.type })) };
             } catch (e: any) {
                 return { error: `Gmail list labels failed: ${e.message}` };
+            }
+        }
+        case 'gmail_triage': {
+            const daysBack = typeof args.daysBack === 'number' ? Math.min(args.daysBack, 14) : 3;
+            const shouldPostToSlack = args.postToSlack !== false;
+            try {
+                const gmail = await getCeoGmailClient();
+                if (!gmail) return { error: 'Gmail not connected for CEO account.' };
+
+                // Search for unread threads from real people — exclude promotions, social, automated senders
+                const query = `is:unread -from:me -category:promotions -category:social -from:noreply -from:no-reply -from:donotreply newer_than:${daysBack}d`;
+                const res = await gmail.users.threads.list({ userId: 'me', q: query, maxResults: 15 });
+                const threads = res.data.threads || [];
+
+                if (threads.length === 0) {
+                    if (shouldPostToSlack) {
+                        const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
+                        await postLinusIncidentSlack({
+                            source: 'marty-email-triage',
+                            channelName: 'ceo',
+                            fallbackText: '✅ Inbox clear — no emails need a response right now.',
+                            blocks: [{ type: 'section', text: { type: 'mrkdwn', text: ':white_check_mark: *Inbox clear* — no unread emails needing a response in the last ' + daysBack + ' days.' } }],
+                        });
+                    }
+                    return { threadsFound: 0, message: 'Inbox clear.' };
+                }
+
+                // Fetch subject + sender for each thread
+                const details = await Promise.all(threads.slice(0, 10).map(async (t: any) => {
+                    try {
+                        const thread = await gmail.users.threads.get({ userId: 'me', id: t.id!, format: 'metadata', metadataHeaders: ['Subject', 'From', 'Date'] });
+                        const firstMsg = thread.data.messages?.[0];
+                        const headers = firstMsg?.payload?.headers || [];
+                        const lastMsg = thread.data.messages?.[thread.data.messages.length - 1];
+                        const lastHeaders = lastMsg?.payload?.headers || [];
+                        return {
+                            threadId: t.id,
+                            subject: headers.find((h: any) => h.name === 'Subject')?.value ?? '(no subject)',
+                            from: lastHeaders.find((h: any) => h.name === 'From')?.value ?? headers.find((h: any) => h.name === 'From')?.value ?? '',
+                            date: lastHeaders.find((h: any) => h.name === 'Date')?.value ?? '',
+                            snippet: firstMsg?.snippet ?? '',
+                            messageCount: thread.data.messages?.length ?? 1,
+                        };
+                    } catch {
+                        return null;
+                    }
+                }));
+
+                const validThreads = details.filter(Boolean) as Array<{ threadId: string; subject: string; from: string; date: string; snippet: string; messageCount: number }>;
+
+                if (shouldPostToSlack && validThreads.length > 0) {
+                    const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
+                    const threadLines = validThreads.map((t, i) =>
+                        `*${i + 1}. ${t.subject}*\nFrom: ${t.from.replace(/<.*>/, '').trim() || t.from}\n_"${t.snippet.slice(0, 120)}${t.snippet.length > 120 ? '...' : ''}"_`
+                    ).join('\n\n');
+
+                    await postLinusIncidentSlack({
+                        source: 'marty-email-triage',
+                        channelName: 'ceo',
+                        fallbackText: `📬 ${validThreads.length} email${validThreads.length > 1 ? 's' : ''} need your attention`,
+                        blocks: [
+                            {
+                                type: 'section',
+                                text: {
+                                    type: 'mrkdwn',
+                                    text: `:email: *${validThreads.length} email${validThreads.length > 1 ? 's' : ''} need your attention* (last ${daysBack} days)\n\n${threadLines}\n\n_Reply here: "Marty, respond to email ${validThreads.length > 1 ? '#1' : 'from ' + (validThreads[0]?.from.replace(/<.*>/, '').trim() || 'them')}" and I'll draft a reply for you to review._`,
+                                },
+                            },
+                        ],
+                    });
+                }
+
+                return { threadsFound: validThreads.length, threads: validThreads };
+            } catch (e: any) {
+                logger.error('[Marty:Gmail] Triage failed', { error: e.message });
+                return { error: `Gmail triage failed: ${e.message}` };
             }
         }
         // Google Calendar — CEO schedule
@@ -2414,6 +2491,8 @@ function buildMartyProgressMessage(toolName: string, input: Record<string, unkno
             return '_Marty Benjamins is scraping a URL for intel..._';
         case 'gmail_search':
             return '_Marty Benjamins is searching the inbox..._';
+        case 'gmail_triage':
+            return '_Marty Benjamins is triaging the inbox for emails needing a response..._';
         case 'gmail_read_thread':
             return '_Marty Benjamins is reading an email thread..._';
         case 'gmail_draft_reply':
@@ -2591,11 +2670,13 @@ DECISION FRAMEWORK:
 
 GMAIL — CEO INBOX (martez@bakedbot.ai):
 You have direct access to the CEO inbox. Use it to:
+- Proactively triage for emails needing a response (gmail_triage) — use every morning and whenever asked to "check email" or "remind me about emails". Posts a Slack digest to #ceo so Martez never misses a reply.
 - Search and triage incoming emails (gmail_search)
 - Read full email threads for context (gmail_read_thread)
 - Draft replies on behalf of the CEO — saved as drafts, NOT sent (gmail_draft_reply)
 - Organize with labels (gmail_label, gmail_list_labels)
 When drafting replies, write as Martez — professional, warm, decisive. Always save as draft so the CEO can review before sending.
+EMAIL MONITORING WORKFLOW: When Martez says "check my emails", "what do I need to respond to", or similar, run gmail_triage first. When they say "respond to email from [person]" or "draft a reply to [subject]", use gmail_search to find the thread, gmail_read_thread to understand context, then gmail_draft_reply to write a response. Confirm the draft was saved and remind Martez to review and send it from Gmail.
 GMAIL AUTH: If Gmail tools return a "Login Required" or auth error, tell the CEO clearly: "Gmail needs to be re-connected. Go to Dashboard → Settings → Integrations tab → Gmail / Google Workspace → click Connect. This usually means the OAuth session expired." Do NOT say "blocked" or "I notified the CEO" — the CEO IS you, and you should tell them directly what action is needed.
 
 GOOGLE CALENDAR — CEO SCHEDULE:
