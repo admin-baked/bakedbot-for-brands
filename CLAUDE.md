@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 GTM live — 16 T1 emails sent, Agent Board Kanban fully live, T2/T3 Firestore index fix deployed | **Last update:** 2026-04-16 (`5f67a0fd3`)
+**Current Status:** 🟢 Smokey 3/3 100% passing — all pgvector RPC timeouts fixed, Agent Training dashboard live | **Last update:** 2026-04-16 (`6aedab1d1`)
 
 ---
 

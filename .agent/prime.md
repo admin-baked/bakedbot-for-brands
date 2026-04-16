@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved × $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 GTM live — 16 T1 emails sent, Agent Board Kanban confirmed live, T2/T3 Firestore fix deployed
-**Recent work (2026-04-16):** `5f67a0fd3` T2/T3 cron fix (Firestore index); `ae46b7338` Agent Board all 3 phases (Kanban + Slack cards + learning loop)
+**Current Status:** 🟢 Smokey 3/3 100% — all pgvector RPC timeouts fixed; Agent Training dashboard + Grok loop live
+**Recent work (2026-04-16):** `6aedab1d1` all Supabase RPC timeouts; `5eb4c1bec` Smokey prompt fix (no POS CTA on knowledge)
 
 ---
 
