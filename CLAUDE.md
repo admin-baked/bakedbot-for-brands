@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; NY outreach auto-send live — confidence scoring, 3-touch follow-up, contact form cron, Gmail reply detection, Marty learning loop | **Last update:** 2026-04-16 (`5f766e711`)
+**Current Status:** 🟢 Production live; Book a Founder flow + mobile signin fixes + NY outreach auto-send | **Last update:** 2026-04-16 (`5f766e711`)
 
 ---
 
