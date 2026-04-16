@@ -11,6 +11,7 @@
 
 import { AgentTrigger } from './agent-config';
 import type { CompiledPlaybookSpec } from './playbook-v2';
+import type { PlaybookReadiness } from '@/config/workflow-runtime';
 
 // ---------------------------------------------------------------------------
 // Status & Enums
@@ -146,6 +147,19 @@ export interface Playbook {
     playbookTemplateId?: string;
 
     // --- Slack Notification Control ---
+
+    /**
+     * Execution readiness classification for this playbook.
+     * Controls catalog display and gating in the playbook UI.
+     * See src/config/workflow-runtime.ts for label definitions.
+     *
+     * - executable_now:  fires, runs real logic, produces verified output
+     * - partial_support: some steps run; others are stubs or unverified end-to-end
+     * - template_only:   structure defined; logic is placeholder
+     * - experimental:    speculative; may not complete successfully
+     * - legacy:          runs on V1 executor; maintained for compatibility only
+     */
+    executionReadiness?: PlaybookReadiness;
 
     /**
      * true = pre-installed system playbook owned by BakedBot.

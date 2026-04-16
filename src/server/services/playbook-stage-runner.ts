@@ -1,3 +1,19 @@
+/**
+ * @canonical V2 Stage Runner — CANONICAL RUNTIME
+ *
+ * This is the canonical workflow runtime for all new playbook development.
+ * New action types, playbook templates, and workflow features must be built here.
+ *
+ * Canonical runtime declaration: src/config/workflow-runtime.ts
+ * ADR: .agent/refs/workflow-runtime-decision.md
+ *
+ * Execution model: deterministic 7-stage state machine
+ *   resolving_scope → extracting_questions → assembling_context
+ *   → generating_output → validating → awaiting_approval → delivering
+ *
+ * Stage executors live in: src/server/services/playbook-stages/
+ */
+
 import { randomUUID } from 'crypto';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';

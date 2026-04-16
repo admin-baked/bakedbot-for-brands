@@ -9,7 +9,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
     Bot, MessageCircle, LineChart, ShieldCheck, DollarSign,
     Radar, TrendingUp, Video, Briefcase, Rocket, Wrench,
-    Sparkles, Heart, BookOpen,
+    Sparkles, Heart, BookOpen, Crown, Calendar, Search, Zap,
 } from 'lucide-react';
 
 export type AgentId =
@@ -21,10 +21,28 @@ export type AgentId =
     | 'mrs_parker'
     | 'deebo'
     | 'day_day'
-    | 'puff';
+    | 'puff'
+    | 'general';   // General assistant — all roles, system-level
 
-/** Executive agent IDs — super_admin only */
-export type ExecutiveAgentId = 'leo' | 'jack' | 'linus' | 'glenda' | 'mike_exec' | 'roach';
+/**
+ * Executive agent IDs — super_admin only.
+ *
+ * Note on mike_exec vs money_mike:
+ *   money_mike = field agent (pricing & margin, customer-org context)
+ *   mike_exec  = CFO (corporate finance, BakedBot company context)
+ *   They are intentionally distinct — different scope, different prompts.
+ */
+export type ExecutiveAgentId =
+    | 'leo'
+    | 'jack'
+    | 'linus'
+    | 'glenda'
+    | 'mike_exec'
+    | 'roach'
+    | 'marty'        // CEO — top of the exec org chart
+    | 'felisha'      // Executive ops & meetings coordinator
+    | 'uncle_elroy'  // Adversarial data auditor
+    | 'openclaw';    // WhatsApp & task automation
 
 /** All known agent IDs (field + executive) */
 export type AnyAgentId = AgentId | ExecutiveAgentId;
@@ -235,6 +253,23 @@ export const AGENT_REGISTRY: Record<AnyAgentId, AgentDefinition> = {
         primaryMetricLabel: 'Status',
         primaryMetricValue: '—',
     },
+    general: {
+        id: 'general',
+        name: 'Assistant',
+        title: 'General Assistant',
+        domains: ['system'],
+        description: 'Handles greetings, general questions, store locations, and broad research tasks.',
+        image: 'https://i.pravatar.cc/150?u=General',
+        visual: { emoji: '💬', color: 'gray-400' },
+        icon: Search,
+        defaultStatus: 'online',
+        visibleInSquad: false,
+        supportedRoles: ['brand', 'dispensary', 'owner', 'admin', 'super_admin', 'customer', 'editor', 'concierge'],
+        href: '/dashboard/agents',
+        tag: 'System',
+        primaryMetricLabel: 'Status',
+        primaryMetricValue: '—',
+    },
 
     // ── Executive agents (super_admin only) ─────────────────────
     leo: {
@@ -339,6 +374,74 @@ export const AGENT_REGISTRY: Record<AnyAgentId, AgentDefinition> = {
         primaryMetricLabel: 'Docs indexed',
         primaryMetricValue: '—',
     },
+    marty: {
+        id: 'marty',
+        name: 'Marty Benjamins',
+        title: 'CEO — Growth, Strategy & Company Operations',
+        domains: ['operations', 'revenue'],
+        description: 'AI CEO of BakedBot AI. Manages the company toward $1M ARR. Oversees all executives, sets strategic direction, and ensures everything is working.',
+        image: 'https://i.pravatar.cc/150?u=Marty',
+        visual: { emoji: '👑', color: 'yellow-500' },
+        icon: Crown,
+        defaultStatus: 'online',
+        visibleInSquad: false,
+        supportedRoles: ['super_admin'],
+        href: '/dashboard/ceo?tab=boardroom&agent=marty',
+        tag: 'Executive',
+        primaryMetricLabel: 'ARR progress',
+        primaryMetricValue: '—',
+    },
+    felisha: {
+        id: 'felisha',
+        name: 'Felisha',
+        title: 'Meetings & Operations',
+        domains: ['operations'],
+        description: 'Coordinates meetings, takes structured notes, triages operational issues, and tracks weekly open loops.',
+        image: 'https://i.pravatar.cc/150?u=Felisha',
+        visual: { emoji: '📋', color: 'indigo-400' },
+        icon: Calendar,
+        defaultStatus: 'online',
+        visibleInSquad: false,
+        supportedRoles: ['super_admin'],
+        href: '/dashboard/ceo?tab=boardroom&agent=felisha',
+        tag: 'Executive',
+        primaryMetricLabel: 'Open loops',
+        primaryMetricValue: '—',
+    },
+    uncle_elroy: {
+        id: 'uncle_elroy',
+        name: 'Uncle Elroy',
+        title: 'Adversarial Data Auditor',
+        domains: ['analytics'],
+        description: 'Challenges every financial claim with raw data verification. Runs the deliberative pipeline to ensure inventory valuations, COGS, and revenue numbers are grounded in truth.',
+        image: 'https://i.pravatar.cc/150?u=UncleElroy',
+        visual: { emoji: '🔎', color: 'orange-700' },
+        icon: ShieldCheck,
+        defaultStatus: 'online',
+        visibleInSquad: false,
+        supportedRoles: ['super_admin'],
+        href: '/dashboard/ceo?tab=boardroom&agent=uncle_elroy',
+        tag: 'Executive',
+        primaryMetricLabel: 'Audits run',
+        primaryMetricValue: '—',
+    },
+    openclaw: {
+        id: 'openclaw',
+        name: 'OpenClaw',
+        title: 'WhatsApp & Task Automation',
+        domains: ['operations'],
+        description: 'Autonomous task execution for WhatsApp messaging, task management, personal memory, and web form automation.',
+        image: 'https://i.pravatar.cc/150?u=OpenClaw',
+        visual: { emoji: '⚡', color: 'green-600' },
+        icon: Zap,
+        defaultStatus: 'online',
+        visibleInSquad: false,
+        supportedRoles: ['super_admin'],
+        href: '/dashboard/ceo?tab=boardroom&agent=openclaw',
+        tag: 'Executive',
+        primaryMetricLabel: 'Tasks automated',
+        primaryMetricValue: '—',
+    },
 };
 
 /** Field agent IDs (business-facing, excludes puff + executives) */
@@ -355,7 +458,8 @@ export const BUSINESS_AGENT_IDS: AgentId[] = [
 
 /** Executive agent IDs */
 export const EXECUTIVE_AGENT_IDS: ExecutiveAgentId[] = [
-    'leo', 'jack', 'linus', 'glenda', 'mike_exec', 'roach',
+    'marty', 'leo', 'jack', 'linus', 'glenda', 'mike_exec', 'roach',
+    'felisha', 'uncle_elroy', 'openclaw',
 ];
 
 /** Agents that should appear in the dashboard squad panel */

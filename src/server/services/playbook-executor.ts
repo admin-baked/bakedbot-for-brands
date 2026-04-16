@@ -2,9 +2,27 @@
 
 // src/server/services/playbook-executor.ts
 /**
- * Playbook Executor
- * Runs playbook workflows by delegating to appropriate agents
- * 
+ * @legacy V1 Playbook Executor — MAINTENANCE ONLY
+ *
+ * This is the legacy step-based workflow runtime. It is NOT the canonical
+ * execution path for new features. All new playbook development must target
+ * the V2 stage-based runtime (playbook-stage-runner.ts).
+ *
+ * Canonical runtime: src/config/workflow-runtime.ts
+ * ADR: .agent/refs/workflow-runtime-decision.md
+ *
+ * Allowed changes on V1:
+ *   - Bug fixes for existing assigned playbooks
+ *   - Compatibility fixes (schema changes, renamed fields)
+ *   - Stability fixes (crashes, hangs, data corruption)
+ *
+ * NOT allowed on V1:
+ *   - New action types
+ *   - New workflow concepts
+ *   - New playbook templates
+ *   - New execution infrastructure
+ *
+ * Runs playbook workflows by delegating to appropriate agents.
  * Integrates with .claude/hooks/validators for self-validating agent pattern.
  */
 
