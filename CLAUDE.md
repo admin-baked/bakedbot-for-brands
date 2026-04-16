@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; booking dark mode fix + GCal sync alert + Marty gmail_triage + 4/20 email sequence | **Last update:** 2026-04-16 (booking UI dark mode + GCal alert + email triage `c72fa3839`)
+**Current Status:** 🟢 Production live; campaign monitoring (SES webhook + monitor cron) + Thrive launch + send throttle + canonical slug guard | **Last update:** 2026-04-16 (campaign monitoring + Thrive branding fix `7f39575bb`)
 
 ---
 
