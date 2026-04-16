@@ -528,3 +528,5 @@ function resolveFlowType(
   if (lower.includes('welcome')) return 'welcome';
   return null;
 }
+
+export async function GET(request: NextRequest) { return POST(request); }

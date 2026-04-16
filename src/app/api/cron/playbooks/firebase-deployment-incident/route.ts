@@ -46,3 +46,5 @@ export async function POST(req: NextRequest) {
     const result = await queueFirebaseDeploymentPlaybookEvent(body);
     return NextResponse.json(result, { status: 202 });
 }
+
+export async function GET(req: NextRequest) { return POST(req); }

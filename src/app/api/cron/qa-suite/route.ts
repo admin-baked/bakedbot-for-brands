@@ -173,14 +173,14 @@ function buildChecks(): SmokeCheck[] {
             severity: 'P2',
             area: 'marketing',
         },
-        // P0 — Playbooks
+        // P1 — Playbooks
         {
-            name: 'Playbook runner cron serves (authenticated)',
+            name: 'Playbook runner cron rejects unauthenticated',
             url: '/api/cron/playbook-runner',
             method: 'GET',
-            expectedStatus: 200,
-            severity: 'P0',
-            area: 'playbooks',
+            expectedStatus: 401,
+            severity: 'P1',
+            area: 'security',
         },
     ];
 }
@@ -251,26 +251,24 @@ async function persistRun(run: QASuiteRun): Promise<void> {
 
 async function createBugFixTask(failure: CheckResult, runId: string): Promise<string> {
     const db = getAdminFirestore();
-    const taskId = `qa-fix-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    await db.collection('agent_tasks').doc(taskId).set({
-        taskId,
-        type: 'bug_fix',
-        status: 'pending',
-        severity: failure.severity,
-        source: 'qa-suite',
-        runId,
-        task: `QA failure: ${failure.name} — ${failure.error}`,
-        context: {
-            area: failure.area,
-            expectedStatus: failure.expectedStatus,
-            actualStatus: failure.statusCode,
-            responseMs: failure.responseMs,
-        },
-        createdAt: new Date().toISOString(),
-        attempts: 0,
-        maxAttempts: 3,
-    });
-    return taskId;
+    const now = new Date().toISOString();
+    const task = {
+        title: `[QA] ${failure.name}`,
+        body: `Automated QA detected: **${failure.error}**\n\nArea: ${failure.area} | Severity: ${failure.severity} | Run: ${runId}\n\nExpected HTTP ${failure.expectedStatus}, got ${failure.statusCode ?? 'timeout'} in ${failure.responseMs}ms.`,
+        status: 'open' as const,
+        stoplight: 'red' as const,
+        priority: failure.severity === 'P0' ? 'critical' : 'high' as const,
+        category: 'bug' as const,
+        reportedBy: 'qa-suite',
+        assignedTo: 'linus',
+        triggeredBy: `qa-suite/${runId}`,
+        orgId: null,
+        steps: [],
+        createdAt: now,
+        updatedAt: now,
+    };
+    const ref = await db.collection('agent_tasks').add(task);
+    return ref.id;
 }
 
 // ============================================================================

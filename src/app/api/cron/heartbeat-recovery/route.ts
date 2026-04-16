@@ -76,6 +76,8 @@ export async function POST(req: NextRequest) {
     }
 }
 
+export async function GET(req: NextRequest) { return POST(req); }
+
 // Deployment instructions:
 // Create Cloud Scheduler job:
 // gcloud scheduler jobs create http heartbeat-recovery-cron \

@@ -36,3 +36,5 @@ export async function POST(req: NextRequest) {
   logger.info('[WeeklyInsights] Task enqueued', { taskId });
   return NextResponse.json({ success: true, taskId });
 }
+
+export async function GET(req: NextRequest) { return POST(req); }
