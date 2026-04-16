@@ -294,7 +294,7 @@ const KNOWN_STANDALONE_JUSTIFIED = new Set([
     'qa-tablet', 'qa-golden-eval',
     'marty-ceo-briefing', 'agent-dream',
     'security-scan',
-    'ny-outreach-digest', 'ny-outreach-pre-enrich', 'ny-outreach-runner',
+    'ny-outreach-digest', 'ny-outreach-pre-enrich', 'ny-outreach-runner', 'ny-lead-followup',
 ]);
 
 function ruleMegacronCandidates() {

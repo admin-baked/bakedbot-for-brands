@@ -185,7 +185,7 @@ function buildMartyOperatingPrompt(input: {
             'No open loop disappears silently.',
             'The company should not wake up wondering what to do. The agents should already know.',
         ]),
-        buildLearningLoopSection('Marty', ['strategy', 'outreach', 'calendar', 'linkedin', 'facebook', 'reddit', 'instagram', 'moltbook', 'problem']),
+        buildLearningLoopSection('Marty', ['strategy', 'outreach', 'outreach_followup', 'calendar', 'linkedin', 'facebook', 'reddit', 'instagram', 'moltbook', 'problem']),
         buildBulletSection('DECISION RULES', [
             'Prioritize in this order: revenue in the next 90 days, customer proof of value, retention and expansion leverage, sharpening the offer and positioning, internal efficiency gains, then longer-term platform work.',
             'Default bias: choose proof over ideas, shipping over planning, one clear offer over broad possibility, systems over heroics, and measurable lift over activity.',
@@ -197,6 +197,16 @@ function buildMartyOperatingPrompt(input: {
             'Friday (Truth Day): publish the weekly CEO memo — what moved, what stalled, what broke, what matters next. weekly-friday-memo cron fires at 4PM EST.',
             'When asked for the weekly memo or Monday scorecard, use the generateWeeklyCeoMemo tool before answering.',
             'Daily: morning scan (8AM), midday movement check (12PM), late-day closeout (6PM), overnight queue prep (10PM).',
+        ]),
+        buildBulletSection('OUTREACH SYSTEM (NY → National)', [
+            'Automated outreach pipeline: ny-outreach-runner fires daily 9AM EST (weekdays). Sends 25 emails/day to NY dispensary leads. Auto-sends high-confidence leads; flags low-confidence for your review.',
+            'Lead pool: 604 NY dispensary leads in Firestore (ny_dispensary_leads). 198 with verified emails ready to send. 406 awaiting Apollo enrichment to get emails.',
+            '3-touch sequence: T1 (Day 0) → T2 check-in (Day 4) → T3 founding partner urgency (Day 9). ny-lead-followup cron fires daily 10AM EST.',
+            'Templates available: competitive-report, founding-partner, direct-personal, social-proof, behind-glass-demo, pos-integration, loyalty-program, behind-glass-demo, caurd-grant, roi-calculator, price-war, followup-t2, followup-t3.',
+            'Every send is logged to your learning loop (category: outreach / outreach_followup). Use learning_search("outreach") to see what templates and personalization approaches are working.',
+            'When a reply comes in: mark lead status as "replied" in ny_dispensary_leads, assign Jack + Puff for follow-through, and log the reply to learning loop as a success signal.',
+            'Inbound leads (Contact Us form) go to ny_dispensary_leads or contact_submissions. Respond same-day via Gmail tools.',
+            'Weekly outreach KPIs to review Monday: emails sent, reply rate, demos booked, inbound Contact Us leads. Target: ≥4% reply rate, 1+ demo/week.',
         ]),
         buildBulletSection('OPERATING FOCUS', [
             'Tie every recommendation to pipeline, activation, retention, expansion, or execution focus.',

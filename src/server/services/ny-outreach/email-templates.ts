@@ -485,5 +485,83 @@ Martez
 Founder, BakedBot AI
 martez@bakedbot.ai`,
         },
+
+        // Template 12: Follow-up T2 (Day 4 — personal check-in)
+        {
+            id: 'followup-t2',
+            name: 'Follow-up Touch 2 — Personal Check-In',
+            angle: 'Persistent: light nudge, still relevant',
+            subject: `${name === 'there' ? dispensary : name} — just checking in`,
+            htmlBody: `${WRAPPER_START}
+<p>Hi ${name},</p>
+
+<p>I sent a note a few days ago about BakedBot — the AI platform built for cannabis operators in ${city}. I know things get busy, so I wanted to follow up once more.</p>
+
+<p>The short version: <strong>we automate the revenue work you don't have time for</strong> — competitor tracking, customer retention campaigns, compliance monitoring, weekly reporting.</p>
+
+<p>Thrive Syracuse has been running on it for a few months. Their follow-up open rate went from near zero to consistently converting first-time visitors into repeat customers.</p>
+
+<p>If there's a better time to talk — or if this isn't the right fit for ${dispensary} — just let me know either way. I'd rather know than guess.</p>
+
+<p>If you're curious, here's a quick read on how it works: <a href="https://bakedbot.ai/pricing" style="color: #059669;">bakedbot.ai/pricing</a></p>
+${WRAPPER_END}`,
+            textBody: `Hi ${name},
+
+Sent a note a few days ago about BakedBot — AI built for cannabis operators in ${city}.
+
+Short version: we automate the revenue work operators don't have time for — competitor tracking, customer retention, compliance monitoring, weekly reporting.
+
+Thrive Syracuse has been running on it. Their follow-up conversion rate is consistently up.
+
+If there's a better time to connect, or if this isn't the right fit for ${dispensary}, just let me know.
+
+More here: bakedbot.ai/pricing
+
+Martez
+Founder, BakedBot AI
+martez@bakedbot.ai`,
+        },
+
+        // Template 13: Follow-up T3 (Day 9 — urgency/last touch)
+        {
+            id: 'followup-t3',
+            name: 'Follow-up Touch 3 — Founding Partner Deadline',
+            angle: 'Urgency: founding partner slots filling, last contact',
+            subject: `Last note — ${dispensary}, Founding Partner spots almost gone`,
+            htmlBody: `${WRAPPER_START}
+<p>Hi ${name},</p>
+
+<p>I'll make this the last one.</p>
+
+<p>We're filling our <strong>NY Founding Partner</strong> cohort — 10 dispensaries at locked-in pricing before we raise rates in Q3. Two spots are left.</p>
+
+<p>Founding Partners get:</p>
+<ul>
+  <li>Operator Core at Access pricing (locked for 12 months)</li>
+  <li>Named in our NY case study rollout</li>
+  <li>Direct line to my team for onboarding, not a support queue</li>
+  <li>30-day activation guarantee — live and generating results in a month or we extend free</li>
+</ul>
+
+<p>If ${dispensary} is a fit, I'd love to save you a spot. Takes 15 minutes to confirm. If not, no hard feelings — I appreciate your time.</p>
+
+<p><a href="https://bakedbot.ai/ny/founding-partner" style="color: #059669; font-weight: 600;">Apply for Founding Partner →</a></p>
+${WRAPPER_END}`,
+            textBody: `Hi ${name},
+
+Last note from me.
+
+We're filling our NY Founding Partner cohort — 10 dispensaries at locked pricing before we raise rates in Q3. Two spots left.
+
+Founding Partners get: Operator Core at Access pricing (locked 12 months), named in our NY case study rollout, direct onboarding (not a support queue), 30-day activation guarantee.
+
+If ${dispensary} is a fit: bakedbot.ai/ny/founding-partner
+
+If not, no hard feelings — appreciate your time either way.
+
+Martez
+Founder, BakedBot AI
+martez@bakedbot.ai`,
+        },
     ];
 }
