@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; Auth emails → bakedbot.ai/auth/action; Grok training loop; Slack notification gate.
-**Recent work (2026-04-16):** `7abe42ba8` Auth domain fix (ACTION_CODE_SETTINGS + /auth/action page); `fe7fd4238` Agent Training dashboard; `7ef403cf3` Slack notification gate + digest mode
+**Current Status:** 🟢 Production live; Campaigns auth fix + slow-moving inventory panel + retention auto-load.
+**Recent work (2026-04-16):** `f7bbcb1e8` Campaigns try-catch fix + SlowInventoryPanel + retention useEffect; `7abe42ba8` Auth domain fix; `fe7fd4238` Agent Training dashboard
 - `26b7d7ac1` Firebase API key moved to env var (resolved secret alert)
 - `106f5408d` Security fixes: admin routes auth, XSS sanitization, database tool permissions
 **Prior (2026-04-12):** `c05e091da` CHANNEL_MAP + roster training; `1fbc88b22` task board + inbound CTAs

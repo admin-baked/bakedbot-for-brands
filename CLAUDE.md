@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Auth emails now route to bakedbot.ai (not firebaseapp.com) + Grok training loop + Agent Training audit page | **Last update:** 2026-04-16 (auth domain fix `7abe42ba8`)
+**Current Status:** 🟢 Production live; Campaigns page fixed (try-catch auth bug) + slow-moving inventory audit + retention auto-load | **Last update:** 2026-04-16 (campaigns fix `f7bbcb1e8`)
 
 ---
 
