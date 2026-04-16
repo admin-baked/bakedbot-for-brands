@@ -31,8 +31,6 @@ const ROOT = path.join(__dirname, '..');
 const CRON_DIR = path.join(ROOT, 'src/app/api/cron');
 const SRC_DIR = path.join(ROOT, 'src');
 
-const FIX_MODE = process.argv.includes('--fix');
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -51,6 +49,9 @@ function walkFiles(dir, ext = ['.ts', '.tsx']) {
     }
     return results;
 }
+
+// Walk src/ once — shared across all rules that scan file contents (R02, R05, R06)
+const ALL_SRC_FILES = walkFiles(SRC_DIR);
 
 function rel(p) {
     return path.relative(ROOT, p).replace(/\\/g, '/');
@@ -103,7 +104,7 @@ function ruleSupersededCronRoutes() {
 
 function ruleNoConsoleLogs() {
     const issues = [];
-    const files = walkFiles(SRC_DIR);
+    const files = ALL_SRC_FILES;
     for (const file of files) {
         const content = readFileSafe(file);
         const lines = content.split('\n');
@@ -188,7 +189,7 @@ function ruleCronRoutesHaveBothMethods() {
 
 function ruleTsIgnoreJustified() {
     const issues = [];
-    const files = walkFiles(SRC_DIR);
+    const files = ALL_SRC_FILES;
     for (const file of files) {
         const content = readFileSafe(file);
         const lines = content.split('\n');
@@ -226,7 +227,7 @@ const SECRET_PATTERNS = [
 
 function ruleNoHardcodedSecrets() {
     const issues = [];
-    const files = walkFiles(SRC_DIR);
+    const files = ALL_SRC_FILES;
     for (const file of files) {
         const content = readFileSafe(file);
         const lines = content.split('\n');
