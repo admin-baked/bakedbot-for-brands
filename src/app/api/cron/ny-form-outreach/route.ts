@@ -156,7 +156,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             try {
                 const result = await fillForm(lead.contactFormUrl, formData, 'Send');
 
-                const success = result.data?.success === true;
+                const success = result.success === true;
 
                 if (success) {
                     submitted++;
@@ -181,7 +181,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                         emailSent: false,
                         formSubmitted: true,
                         status: 'submitted',
-                        confirmation: result.data?.confirmation || null,
                         timestamp: Date.now(),
                         createdAt: Date.now(),
                     });
@@ -195,7 +194,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                         category: 'outreach_form',
                         reason: `Contact form submitted at ${lead.contactFormUrl}`,
                         nextStep: 'Monitor for email reply from dispensary. If no reply in 5 days, try email enrichment via Apollo.',
-                        metadata: { dispensary: lead.dispensaryName, city: lead.city, formUrl: lead.contactFormUrl, confirmation: result.data?.confirmation || null },
+                        metadata: { dispensary: lead.dispensaryName, city: lead.city, formUrl: lead.contactFormUrl },
                     });
 
                 } else {

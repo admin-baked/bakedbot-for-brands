@@ -4,6 +4,7 @@ export type PublicCommercialPlanId =
     | 'free'
     | 'access_intel'
     | 'access_retention'
+    | 'access_complete'
     | 'operator_core'
     | 'operator_growth'
     | 'enterprise';
@@ -144,6 +145,41 @@ export const PUBLIC_PLANS: PricingPlan[] = [
         includedCredits: 1500,
         creditRollover: false,
         creditTopUpRate: 4,
+    },
+    {
+        id: 'access_complete',
+        name: 'Access Complete',
+        badge: 'Sweet Spot',
+        tagline: 'The full Access stack — capture, welcome, and managed playbook.',
+        price: 750,
+        priceDisplay: '$750',
+        activationFee: 500,
+        period: '/ mo',
+        setup: 'Best for: Social Equity dispensaries and smaller operators ready for a complete managed entry point. This is the Thrive Syracuse plan.',
+        desc: 'Everything in Access Retention plus the physical Check-In tablet setup and a fully managed Welcome Playbook — the complete Access package at an accessible price point.',
+        features: [
+            'Tablet Check-In setup and hardware configuration',
+            'Welcome Playbook (fully managed)',
+            'QR + tablet customer capture',
+            'Basic segmentation',
+            'Simple campaign templates',
+            'Loyalty starter workflows',
+            'Compliance pre-checks (Deebo)',
+            'Monthly performance summary',
+            'Priority onboarding support',
+        ],
+        pill: 'Book a Founder',
+        pillHref: '/book',
+        highlight: 'Sweet Spot',
+        tier: 'platform',
+        track: 'access',
+        salesMotion: 'consultative',
+        ctaLabel: 'Book a Founder',
+        ctaHref: '/book',
+        kpiHighlights: ['Check-in capture rate', 'Welcome flow activation', 'List growth rate'],
+        includedCredits: 2000,
+        creditRollover: false,
+        creditTopUpRate: 3,
     },
     {
         id: 'operator_core',
@@ -541,15 +577,16 @@ export interface OverageRow {
     k: string;
     accessIntel: string;
     accessRetention: string;
+    accessComplete: string;
     operatorCore: string;
     operatorGrowth: string;
 }
 
 export const OVERAGES_TABLE: OverageRow[] = [
-    { k: 'SMS Messages', accessIntel: 'N/A', accessRetention: '$0.04/msg', operatorCore: '$0.03/msg', operatorGrowth: 'Included' },
-    { k: 'Emails', accessIntel: '$0.002/email', accessRetention: '$0.002/email', operatorCore: '$0.001/email', operatorGrowth: 'Included' },
-    { k: 'Additional Competitor Watchlists', accessIntel: '$10/mo each', accessRetention: '$8/mo each', operatorCore: 'Included', operatorGrowth: 'Included' },
-    { k: 'Additional Lifecycle Playbooks', accessIntel: 'N/A', accessRetention: '$99/mo each', operatorCore: '$149/mo each', operatorGrowth: 'Included' },
+    { k: 'SMS Messages', accessIntel: 'N/A', accessRetention: '$0.04/msg', accessComplete: '$0.04/msg', operatorCore: '$0.03/msg', operatorGrowth: 'Included' },
+    { k: 'Emails', accessIntel: '$0.002/email', accessRetention: '$0.002/email', accessComplete: '$0.002/email', operatorCore: '$0.001/email', operatorGrowth: 'Included' },
+    { k: 'Additional Competitor Watchlists', accessIntel: '$10/mo each', accessRetention: '$8/mo each', accessComplete: '$8/mo each', operatorCore: 'Included', operatorGrowth: 'Included' },
+    { k: 'Additional Lifecycle Playbooks', accessIntel: 'N/A', accessRetention: '$99/mo each', accessComplete: '$99/mo each', operatorCore: '$149/mo each', operatorGrowth: 'Included' },
 ];
 
 export const OVERAGES = [

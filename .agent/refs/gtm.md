@@ -10,7 +10,7 @@
 
 ## North Star
 
-**$1M ARR.** That requires ~21-24 Operator accounts ($3,500/mo avg) or a mix of Operator + Access tiers.
+**$1M ARR.** That requires ~21-24 Operator accounts ($3,500/mo avg), or a blend: 10 Operator Core + 20 Access Complete ($750) + remaining Access Retention ≈ $83K/mo. Access Complete meaningfully contributes to ARR while building proof for Operator upsell.
 
 The path: **NY dispensaries → national expansion.** NY is the proving ground. Every deal won here funds the playbook we replicate in IL, CA, CO, FL.
 
@@ -67,9 +67,12 @@ Conditional Adult-Use Retail Dispensaries — first movers in NY, often under-re
 ### Access Track — Wedge into proof
 | Plan | Price | What it delivers |
 |------|-------|-----------------|
-| **Free Competitive Report** | $0 | 1-time snapshot: their top 3 competitors, price gaps, estimated revenue leakage |
+| **Free Check-In** | $0 | Tablet/QR capture, basic welcome email, loyalty starter |
 | **Access Intel** | $149/mo | Weekly competitor tracking + market intel digest |
-| **Access Retention** | $499/mo + $500 setup | Welcome playbook, customer segmentation, automated campaigns |
+| **Access Retention** | $499/mo + $500 setup | Welcome playbook, QR capture, basic segmentation, campaigns |
+| **Access Complete** ⭐ Sweet Spot | **$750/mo + $500 setup** | Everything in Retention + **Tablet Check-In hardware setup + fully managed Welcome Playbook** |
+
+**Access Complete is the sweet spot for the Access Track.** It's what Thrive Syracuse is on (invoiced). It's the most complete entry point before Operator pricing — includes the physical tablet setup, managed onboarding, and the full welcome playbook executed by BakedBot. Target: social equity operators and single-location stores who want managed execution without Operator pricing.
 
 Access is the trust-builder. It's not the business. It's the door.
 
@@ -174,7 +177,7 @@ Expansion    →  Upsell to Growth tier / additional locations
 
 ## Proof Points (Current)
 
-- **Thrive Syracuse** — live since [2026 Q1]. Daily competitive tracking across 5+ NY markets. Automated welcome + retention campaigns. Alleaves POS integrated. AI budtender active at tablet.
+- **Thrive Syracuse** — live on **Access Complete ($750/mo, invoiced)**. Daily competitive tracking across 5+ NY markets. Automated welcome + retention campaigns. Alleaves POS integrated. AI budtender active at tablet. Check-In tablet deployed in-store.
 - **604 NY leads** in pipeline with enriched data
 - **13 email templates** tested and rotating
 - **Agent squad of 20+** running daily: briefings, competitive intel, compliance review, outreach automation
