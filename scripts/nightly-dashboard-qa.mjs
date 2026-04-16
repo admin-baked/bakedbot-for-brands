@@ -27,10 +27,12 @@ import { readdirSync, statSync, existsSync, readFileSync, writeFileSync } from '
 import { join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import 'dotenv/config'; // Load .env.local
+import dotenv from 'dotenv';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, '..');
+dotenv.config({ path: join(PROJECT_ROOT, '.env.local') });
+dotenv.config();
 const BASE_URL = process.env.BASE_URL || 'https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app';
 const RESULTS_DIR = join(PROJECT_ROOT, 'tmp', 'qa-results');
 
@@ -157,53 +159,49 @@ async function authenticatePersona(browser, persona) {
   const page = await context.newPage();
 
   try {
-    const firebaseConfig = {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'studio-567050101-bc6e8.firebaseapp.com',
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8',
-    };
+    const firebaseApiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '';
 
-    if (!firebaseConfig.apiKey) {
+    if (!firebaseApiKey) {
       throw new Error('NEXT_PUBLIC_FIREBASE_API_KEY missing from environment');
     }
 
-    // Load Firebase client SDK in browser and sign in with custom token
-    await page.goto(`${BASE_URL}/signin`, { waitUntil: 'domcontentloaded', timeout: PAGE_LOAD_TIMEOUT });
-
-    // Create custom token via Firebase Admin (server-side)
-    const adminToken = await createCustomToken(persona);
-    if (!adminToken) {
-      console.log(`  ⚠️ Could not create auth token for ${persona.label}`);
+    const qaToken = await createCustomToken(persona);
+    if (!qaToken) {
+      console.log(`  âš ï¸ Could not create auth token for ${persona.label}`);
       await context.close();
       return null;
     }
 
-    // Sign in via the auth API endpoint
-    const response = await page.evaluate(async ({ token, baseUrl, config }) => {
-      // Use Firebase client SDK to exchange custom token for ID token
-      const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
-      const { getAuth, signInWithCustomToken } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+    const qaIdToken = await exchangeCustomTokenForIdToken(qaToken, firebaseApiKey);
+    const qaSessionCookie = await createSessionCookie(qaIdToken);
+    await setSessionCookies(context, qaSessionCookie);
 
-      const app = initializeApp(config);
+    await page.goto(`${BASE_URL}/auth/auto-login?token=${encodeURIComponent(qaToken)}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: PAGE_LOAD_TIMEOUT,
+    });
+    await page.waitForLoadState('networkidle', { timeout: PAGE_LOAD_TIMEOUT }).catch(() => {});
+    await page.waitForTimeout(1500);
 
-      const auth = getAuth(app);
-      const cred = await signInWithCustomToken(auth, token);
-      const idToken = await cred.user.getIdToken();
+    const qaLoginUrl = page.url();
+    const qaLoginBody = await page.locator('body').textContent().catch(() => '');
+    if (
+      qaLoginUrl.includes('/signin')
+      || qaLoginUrl.includes('/login')
+      || /Authentication Failed/i.test(qaLoginBody || '')
+    ) {
+      throw new Error(`auto-login did not establish a usable session (${qaLoginUrl})`);
+    }
 
-      // Exchange for session cookie
-      const res = await fetch(`${baseUrl}/api/auth/session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
-      });
+    await page.goto(`${BASE_URL}${persona.startRoute}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: PAGE_LOAD_TIMEOUT,
+    });
+    await page.waitForLoadState('networkidle', { timeout: PAGE_LOAD_TIMEOUT }).catch(() => {});
 
-      return { ok: res.ok, status: res.status };
-    }, { token: adminToken, baseUrl: BASE_URL, config: firebaseConfig });
-
-    if (!response.ok) {
-      console.log(`  ⚠️ Session creation failed for ${persona.label}: ${response.status}`);
-      await context.close();
-      return null;
+    const qaCurrentUrl = page.url();
+    if (qaCurrentUrl.includes('/signin') || qaCurrentUrl.includes('/login')) {
+      throw new Error(`session verification redirected to auth (${qaCurrentUrl})`);
     }
 
     await page.close();
@@ -217,26 +215,11 @@ async function authenticatePersona(browser, persona) {
 
 async function createCustomToken(persona) {
   try {
-    const saPath = join(PROJECT_ROOT, 'service-account.json');
-    let sa;
-    if (existsSync(saPath)) {
-      sa = JSON.parse(readFileSync(saPath, 'utf-8'));
-    } else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-      sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-    } else {
-      console.log('  ⚠️ No service account found for Firebase Admin auth');
+    const auth = await getFirebaseAdminAuth().catch((e) => {
+      console.log(`  ⚠️ No service account found for Firebase Admin auth: ${e.message}`);
       return null;
-    }
-
-    // Dynamic import firebase-admin
-    const { initializeApp, getApps, cert } = await import('firebase-admin/app');
-    const { getAuth } = await import('firebase-admin/auth');
-
-    if (!getApps().length) {
-      initializeApp({ credential: cert(sa) });
-    }
-
-    const auth = getAuth();
+    });
+    if (!auth) return null;
 
     // Ensure user exists
     try {
@@ -263,6 +246,88 @@ async function createCustomToken(persona) {
     console.log(`  ⚠️ Token creation error: ${err.message}`);
     return null;
   }
+}
+
+async function getFirebaseAdminAuth() {
+  const saPath = join(PROJECT_ROOT, 'service-account.json');
+  let sa;
+  if (existsSync(saPath)) {
+    sa = JSON.parse(readFileSync(saPath, 'utf-8'));
+  } else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+  } else {
+    throw new Error('No service account found for Firebase Admin auth');
+  }
+
+  const { initializeApp, getApps, cert } = await import('firebase-admin/app');
+  const { getAuth } = await import('firebase-admin/auth');
+
+  if (!getApps().length) {
+    initializeApp({ credential: cert(sa) });
+  }
+
+  return getAuth();
+}
+
+async function exchangeCustomTokenForIdToken(customToken, apiKey) {
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${encodeURIComponent(apiKey)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: customToken,
+        returnSecureToken: true,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`custom-token exchange failed (${response.status}): ${details.slice(0, 200)}`);
+  }
+
+  const payload = await response.json();
+  if (!payload.idToken) {
+    throw new Error('custom-token exchange returned no idToken');
+  }
+
+  return payload.idToken;
+}
+
+async function createSessionCookie(idToken) {
+  const auth = await getFirebaseAdminAuth();
+  const expiresIn = 5 * 24 * 60 * 60 * 1000;
+  return auth.createSessionCookie(idToken, { expiresIn });
+}
+
+async function setSessionCookies(context, sessionCookie) {
+  const baseUrl = new URL(BASE_URL);
+  const expires = Math.floor(Date.now() / 1000) + (5 * 24 * 60 * 60);
+  const secure = baseUrl.protocol === 'https:';
+
+  await context.addCookies([
+    {
+      name: '__session',
+      value: sessionCookie,
+      domain: baseUrl.hostname,
+      path: '/',
+      httpOnly: true,
+      secure,
+      sameSite: 'Lax',
+      expires,
+    },
+    {
+      name: '__session_is_active',
+      value: 'true',
+      domain: baseUrl.hostname,
+      path: '/',
+      httpOnly: false,
+      secure,
+      sameSite: 'Lax',
+      expires,
+    },
+  ]);
 }
 
 // ============================================================================
