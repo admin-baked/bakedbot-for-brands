@@ -6,6 +6,20 @@
  *
  * Templates are designed to be personalized with dispensary-specific data
  * from Ezal competitive intelligence when available.
+ *
+ * === MARTY STRATEGY BRIEF (for Craig) ===
+ * Goal: Convert NY licensed dispensaries to BakedBot customers.
+ * Positioning: "The Operations OS for cannabis operators who want to compete."
+ * Primary angles (in priority order):
+ *   1. Competitive intelligence (free value, zero commitment)
+ *   2. Founding Partner program (urgency, exclusivity)
+ *   3. CAURD tech grant ($30K gov money — use it on us)
+ *   4. ROI / margin recovery (data-driven, show the money)
+ *   5. Live demo with their actual data (show don't tell)
+ * Tone: founder-to-founder. Direct, no fluff, no pitch deck vibes.
+ * Proof: Thrive Syracuse is live — mention early, mention often.
+ * Rotation: use round-robin across templates so no lead gets the same angle twice.
+ * =========================================
  */
 
 export interface OutreachEmailData {
@@ -398,7 +412,43 @@ Martez
 Founder, BakedBot AI`,
         },
 
-        // Template 10: Direct/Personal
+        // Template 10: Inbound Reply (contact form → Craig auto-drafts)
+        {
+            id: 'inbound-reply',
+            name: 'Inbound Contact Reply',
+            angle: 'Warm follow-up: they reached out to us',
+            subject: `Re: ${dispensary} — let's find a time`,
+            htmlBody: `${WRAPPER_START}
+<p>Hi ${name},</p>
+
+<p>Thanks for reaching out — I saw your message and wanted to respond personally.</p>
+
+<p>Based on what you shared, I think there&apos;s a real fit here. The most useful next step is a 30-minute live demo where I pull up your specific market — I can show you ${dispensary}&apos;s competitive position, a sample AI-generated campaign, and our AI budtender running on your menu.</p>
+
+<p>No slides, no pitch. Just your data and our AI.</p>
+
+<p><a href="https://bakedbot.ai/meet" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Pick a Time That Works</a></p>
+
+<p>If you have specific questions before then, just reply to this email and I&apos;ll get back to you same day.</p>
+${WRAPPER_END}`,
+            textBody: `Hi ${name},
+
+Thanks for reaching out — saw your message and wanted to respond personally.
+
+Best next step: a 30-minute live demo where I show you ${dispensary}'s competitive position, a sample AI-generated campaign, and our AI budtender running on your menu.
+
+No slides, no pitch. Your data + our AI.
+
+Pick a time: https://bakedbot.ai/meet
+
+Questions before then? Reply and I'll get back to you same day.
+
+Martez
+Founder, BakedBot AI
+martez@bakedbot.ai`,
+        },
+
+        // Template 11 (was 10): Direct/Personal
         {
             id: 'direct-personal',
             name: 'Direct Personal Outreach',

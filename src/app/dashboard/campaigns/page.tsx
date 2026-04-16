@@ -28,7 +28,10 @@ export default async function CampaignsPage() {
             </div>
 
             <Suspense fallback={<CampaignsSkeleton />}>
-                <CampaignsDashboard userId={user.uid} />
+                <CampaignsDashboard
+                    userId={user.uid}
+                    isSuperUser={user.role === 'super_user' || user.role === 'super_admin'}
+                />
             </Suspense>
         </div>
     );

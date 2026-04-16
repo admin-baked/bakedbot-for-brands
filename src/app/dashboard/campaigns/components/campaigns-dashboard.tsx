@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
     Plus, Megaphone, Send, Clock, FileText, BarChart3,
-    Mail, MessageSquare, Users, Loader2, TrendingUp,
+    Mail, MessageSquare, Users, Loader2, TrendingUp, Building2,
 } from 'lucide-react';
 import { getCampaigns, getCampaignStats, type CampaignStats } from '@/server/actions/campaigns';
 import type { Campaign, CampaignStatus } from '@/types/campaign';
@@ -16,29 +16,41 @@ import { CAMPAIGN_STATUS_INFO } from '@/types/campaign';
 import { CampaignWizardV2 } from './campaign-wizard-v2';
 import { CampaignCard } from './campaign-card';
 
+// Orgs super_user can switch between in the Campaigns view
+const SUPER_USER_ORGS = [
+    { id: 'org_bakedbot_platform', label: 'BakedBot Platform' },
+    { id: 'org_thrive_syracuse', label: 'Thrive Syracuse' },
+] as const;
+
 interface CampaignsDashboardProps {
     userId: string;
+    isSuperUser?: boolean;
 }
 
-export function CampaignsDashboard({ userId }: CampaignsDashboardProps) {
+export function CampaignsDashboard({ userId, isSuperUser }: CampaignsDashboardProps) {
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [stats, setStats] = useState<CampaignStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showWizard, setShowWizard] = useState(false);
     const [activeTab, setActiveTab] = useState('all');
+    // Super user org switcher — defaults to platform org
+    const [selectedOrgId, setSelectedOrgId] = useState(
+        isSuperUser ? 'org_bakedbot_platform' : ''
+    );
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [selectedOrgId]);
 
     async function fetchData() {
         setLoading(true);
         setError(null);
         try {
+            const orgArg = isSuperUser ? selectedOrgId : '';
             const [campaignsResult, statsResult] = await Promise.all([
-                getCampaigns(''), // orgId resolved server-side via requireUser
-                getCampaignStats(''),
+                getCampaigns(orgArg),
+                getCampaignStats(orgArg),
             ]);
             setCampaigns(campaignsResult);
             setStats(statsResult);
@@ -100,6 +112,26 @@ export function CampaignsDashboard({ userId }: CampaignsDashboardProps) {
                         value={`$${stats.totalRevenue.toLocaleString()}`}
                         icon={<TrendingUp className="h-4 w-4" />}
                     />
+                </div>
+            )}
+
+            {/* Super User Org Switcher */}
+            {isSuperUser && (
+                <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Viewing:</span>
+                    <div className="flex gap-1">
+                        {SUPER_USER_ORGS.map(org => (
+                            <Button
+                                key={org.id}
+                                variant={selectedOrgId === org.id ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setSelectedOrgId(org.id)}
+                            >
+                                {org.label}
+                            </Button>
+                        ))}
+                    </div>
                 </div>
             )}
 

@@ -22,12 +22,18 @@ type CampaignActionUser = {
     currentOrgId?: string;
 };
 
+// Platform org used for super_user campaigns (outreach, platform-level sends)
+const PLATFORM_ORG_ID = 'org_bakedbot_platform';
+
 function isSuperRole(role: unknown): boolean {
     return role === 'super_user' || role === 'super_admin';
 }
 
 function getOrgId(user: CampaignActionUser): string | null {
-    return user.currentOrgId || user.orgId || user.brandId || null;
+    const orgId = user.currentOrgId || user.orgId || user.brandId || null;
+    // Super users default to the platform org when they have no tenant org set
+    if (!orgId && isSuperRole(user.role)) return PLATFORM_ORG_ID;
+    return orgId;
 }
 
 function isValidDocId(id: string): boolean {
