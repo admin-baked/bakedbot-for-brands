@@ -20,6 +20,7 @@ import { CampaignCard } from './campaign-card';
 const SUPER_USER_ORGS = [
     { id: 'org_bakedbot_platform', label: 'BakedBot Platform' },
     { id: 'org_thrive_syracuse', label: 'Thrive Syracuse' },
+    { id: 'org_ecstatic_edibles', label: 'Ecstatic Edibles' },
 ] as const;
 
 interface CampaignsDashboardProps {
