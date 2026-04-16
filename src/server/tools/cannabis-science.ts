@@ -12,6 +12,9 @@ import { logger } from '@/lib/logger';
 // --- Gemini embedding for query ---
 const EMBED_MODEL = 'gemini-embedding-001';
 
+const EMBED_TIMEOUT_MS = 8_000;  // 8s — Gemini embedding should be <2s normally
+const SEARCH_TIMEOUT_MS = 10_000; // 10s — Supabase pgvector RPC budget
+
 async function embedQuery(text: string): Promise<number[]> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('Missing GEMINI_API_KEY');
@@ -26,6 +29,7 @@ async function embedQuery(text: string): Promise<number[]> {
       taskType: 'RETRIEVAL_QUERY',
       outputDimensionality: 768,
     }),
+    signal: AbortSignal.timeout(EMBED_TIMEOUT_MS),
   });
 
   if (!resp.ok) {
@@ -94,7 +98,7 @@ export async function searchCannabisScience(
       query_embedding: JSON.stringify(embedding),
       match_count: category ? maxResults * 2 : maxResults, // fetch extra if filtering
       match_threshold: 0.45,
-    });
+    }).abortSignal(AbortSignal.timeout(SEARCH_TIMEOUT_MS));
 
     if (error) {
       logger.error('[CannabisScience] Search failed:', { error: error.message });
@@ -179,7 +183,7 @@ export async function searchCannabisStrains(
       query_embedding: JSON.stringify(embedding),
       match_count: maxResults,
       match_threshold: 0.35,
-    });
+    }).abortSignal(AbortSignal.timeout(SEARCH_TIMEOUT_MS));
     if (error) {
       logger.error('[StrainSearch] Failed:', { error: error.message });
       return [];
