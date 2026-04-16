@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Repo Cleanup PRD complete — workflow runtime clarity, playbook classification, prime.md slimmed (1134→201 lines), agent registry aligned, drift-prevention script | **Last update:** 2026-04-16 (`3314e20cf`)
+**Current Status:** 🟢 Production live; NY outreach auto-send live — confidence scoring, 3-touch follow-up, contact form cron, Gmail reply detection, Marty learning loop | **Last update:** 2026-04-16 (`5f766e711`)
 
 ---
 

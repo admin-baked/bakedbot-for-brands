@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved × $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** Production live; Repo Cleanup PRD in progress (workflow-runtime.ts + playbook-readiness.ts created, prime.md slimmed)
-**Recent work (2026-04-16):** `15012e94e` Executive Operating Calendar megacrons; `7abe42ba8` Auth domain fix; `fe7fd4238` Agent Training dashboard
+**Current Status:** Production live; NY outreach auto-send running — confidence scoring, 3-touch follow-up, form cron, Gmail reply detection
+**Recent work (2026-04-16):** `5f766e711` NY outreach auto-send + learning loop + book founder page; `3314e20cf` Repo Cleanup PRD complete
 
 ---
 
