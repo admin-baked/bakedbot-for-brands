@@ -2,6 +2,7 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
+import { getActorOrgId, isSuperRole } from '@/server/auth/org-context';
 import { logger } from '@/lib/logger';
 import type {
     Campaign,
@@ -24,14 +25,19 @@ type CampaignActionUser = {
 
 // Platform org used for super_user campaigns (outreach, platform-level sends)
 const PLATFORM_ORG_ID = 'org_bakedbot_platform';
+const CAMPAIGN_ALLOWED_ROLES = [
+    'dispensary',
+    'dispensary_admin',
+    'dispensary_staff',
+    'brand',
+    'brand_admin',
+    'brand_member',
+    'super_user',
+    'super_admin',
+] as const;
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
-function getOrgId(user: CampaignActionUser): string | null {
-    const orgId = user.currentOrgId || user.orgId || user.brandId || null;
-    // Super users default to the platform org when they have no tenant org set
+function getCampaignOrgId(user: CampaignActionUser): string | null {
+    const orgId = getActorOrgId(user);
     if (!orgId && isSuperRole(user.role)) return PLATFORM_ORG_ID;
     return orgId;
 }
@@ -46,7 +52,7 @@ function isValidOrgId(orgId: string): boolean {
 
 function canAccessOrg(user: CampaignActionUser, targetOrgId: string): boolean {
     if (isSuperRole(user.role)) return true;
-    const actorOrgId = getOrgId(user);
+    const actorOrgId = getCampaignOrgId(user);
     return !!actorOrgId && actorOrgId === targetOrgId;
 }
 
@@ -81,8 +87,8 @@ export async function createCampaign(params: {
 }): Promise<Campaign | null> {
     try {
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
-        const userOrgId = getOrgId(user);
+        const user = await requireUser([...CAMPAIGN_ALLOWED_ROLES]);
+        const userOrgId = getCampaignOrgId(user);
         const orgId = params.orgId || userOrgId;
 
         if (!orgId || !isValidOrgId(orgId)) {
@@ -159,7 +165,7 @@ export async function updateCampaign(
     try {
         if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
+        const user = await requireUser([...CAMPAIGN_ALLOWED_ROLES]);
 
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
         if (!allowed) {
@@ -199,7 +205,7 @@ export async function getCampaign(campaignId: string): Promise<Campaign | null> 
     try {
         if (!isValidDocId(campaignId)) return null;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
+        const user = await requireUser([...CAMPAIGN_ALLOWED_ROLES]);
         const doc = await firestore.collection('campaigns').doc(campaignId).get();
 
         if (!doc.exists) return null;
@@ -252,8 +258,8 @@ export async function getCampaigns(
 ): Promise<Campaign[]> {
     try {
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
-        const userOrgId = getOrgId(user);
+        const user = await requireUser([...CAMPAIGN_ALLOWED_ROLES]);
+        const userOrgId = getCampaignOrgId(user);
         const orgId = orgIdParam || userOrgId;
 
         if (!orgId || !isValidOrgId(orgId)) {
@@ -372,7 +378,7 @@ export async function submitForComplianceReview(campaignId: string): Promise<boo
     try {
         if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
+        const user = await requireUser([...CAMPAIGN_ALLOWED_ROLES]);
 
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
         if (!allowed) {
@@ -422,7 +428,7 @@ export async function approveCampaign(
     try {
         if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
+        const user = await requireUser([...CAMPAIGN_ALLOWED_ROLES]);
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
         if (!allowed) {
             logger.warn('[CAMPAIGNS] Blocked unauthorized approve attempt', {
@@ -459,7 +465,7 @@ export async function scheduleCampaign(
     try {
         if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
+        const user = await requireUser([...CAMPAIGN_ALLOWED_ROLES]);
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
         if (!allowed) {
             logger.warn('[CAMPAIGNS] Blocked unauthorized schedule attempt', {
@@ -494,7 +500,7 @@ export async function cancelCampaign(campaignId: string): Promise<boolean> {
     try {
         if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
+        const user = await requireUser([...CAMPAIGN_ALLOWED_ROLES]);
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
         if (!allowed) {
             logger.warn('[CAMPAIGNS] Blocked unauthorized cancel attempt', {
@@ -525,7 +531,7 @@ export async function pauseCampaign(campaignId: string): Promise<boolean> {
     try {
         if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
+        const user = await requireUser([...CAMPAIGN_ALLOWED_ROLES]);
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
         if (!allowed) {
             logger.warn('[CAMPAIGNS] Blocked unauthorized pause attempt', {
@@ -563,7 +569,7 @@ export async function updateCampaignPerformance(
     try {
         if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
+        const user = await requireUser([...CAMPAIGN_ALLOWED_ROLES]);
 
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
         if (!allowed) {

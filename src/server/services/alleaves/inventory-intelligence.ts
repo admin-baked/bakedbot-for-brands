@@ -9,6 +9,12 @@ import type { ALLeavesInventoryItem } from '@/lib/pos/adapters/alleaves';
 import type { InventoryAgeData } from '@/types/dynamic-pricing';
 import { logger } from '@/lib/logger';
 import { getAlleavesClientForOrg } from '@/server/services/alleaves/client';
+import { loadCatalogAnalyticsProducts } from '@/server/services/catalog-analytics-source';
+import { getMarketBenchmarks } from '@/server/services/market-benchmarks';
+import {
+    buildSlowMoverAudit,
+    getSlowMoverThresholdsFromBenchmarks,
+} from '@/server/services/slow-mover-audit';
 
 // ============ Core Functions ============
 
@@ -96,6 +102,20 @@ export async function getInventoryAge(
     }
 }
 
+export interface SlowMovingInventoryItem {
+    productId: string;
+    productName: string;
+    category: string;
+    price: number;
+    daysInInventory: number;
+    daysSinceLastSale: number;
+    stockLevel: number;
+    salesVelocity: number;
+    estimatedAtRisk: number;
+    action: 'markdown' | 'liquidate';
+    expiryDate?: Date;
+}
+
 /**
  * Get slow-moving inventory for an organization
  *
@@ -106,50 +126,48 @@ export async function getInventoryAge(
 export async function getSlowMovingInventory(
     orgId: string,
     minDays: number = 30
-): Promise<{ productId: string; daysInInventory: number; stockLevel: number; expiryDate?: Date }[]> {
+): Promise<SlowMovingInventoryItem[]> {
     try {
-        const client = await getAlleavesClientForOrg(orgId);
-        if (!client) {
-            logger.warn('[INVENTORY_INTEL] Alleaves client unavailable', { orgId });
-            return [];
-        }
-
-        // Fetch all products
-        const products = await client.fetchMenu();
-
-        const slowMoving: { productId: string; daysInInventory: number; stockLevel: number; expiryDate?: Date }[] = [];
-
-        for (const product of products) {
-            const rawItem = product.rawData as ALLeavesInventoryItem | undefined;
-            if (!rawItem) continue;
-
-            // Calculate days in inventory
-            let daysInInventory = 30; // Default
-            if (rawItem.package_date) {
-                daysInInventory = Math.floor(
-                    (Date.now() - new Date(rawItem.package_date).getTime()) / (1000 * 60 * 60 * 24)
-                );
-            }
-
-            // Check if slow-moving
-            if (daysInInventory >= minDays && product.stock > 0) {
-                slowMoving.push({
-                    productId: product.externalId,
-                    daysInInventory,
-                    stockLevel: product.stock,
-                    expiryDate: product.expirationDate,
+        const [products, benchmarks] = await Promise.all([
+            loadCatalogAnalyticsProducts(orgId),
+            getMarketBenchmarks(orgId).catch((error) => {
+                logger.warn('[INVENTORY_INTEL] Failed to load market benchmarks for slow movers', {
+                    orgId,
+                    error: String(error),
                 });
-            }
-        }
+                return null;
+            }),
+        ]);
 
-        // Sort by days in inventory (oldest first)
-        slowMoving.sort((a, b) => b.daysInInventory - a.daysInInventory);
+        const baseThresholds = getSlowMoverThresholdsFromBenchmarks(benchmarks);
+        const actionDays = Math.max(minDays, baseThresholds.actionDays);
+        const thresholds = {
+            ...baseThresholds,
+            actionDays,
+            liquidateDays: Math.max(baseThresholds.liquidateDays, actionDays),
+        };
+        const slowMoverAudit = buildSlowMoverAudit(products, thresholds);
+        const slowMoving = slowMoverAudit.items.map((item) => ({
+            productId: item.productId,
+            productName: item.name,
+            category: item.category,
+            price: item.price,
+            daysInInventory: item.daysSinceLastSale,
+            daysSinceLastSale: item.daysSinceLastSale,
+            stockLevel: item.stockLevel,
+            salesVelocity: item.salesVelocity,
+            estimatedAtRisk: item.estimatedAtRisk,
+            action: item.action,
+        }));
 
         logger.info('[INVENTORY_INTEL] Found slow-moving inventory', {
             orgId,
             total: products.length,
             slowMoving: slowMoving.length,
             minDays,
+            actionDays: thresholds.actionDays,
+            liquidateDays: thresholds.liquidateDays,
+            skippedMissingLastSale: slowMoverAudit.skippedMissingLastSale,
         });
 
         return slowMoving;
@@ -428,15 +446,15 @@ export async function monitorInventoryAge(orgId: string): Promise<{
         for (const item of slowMoving) {
             if (!expiringIds.has(item.productId)) {
                 const urgency: 'low' | 'medium' | 'high' =
-                    item.daysInInventory > 90 ? 'high' :
-                    item.daysInInventory > 60 ? 'medium' : 'low';
+                    item.action === 'liquidate' ? 'high' :
+                    item.daysInInventory > 75 ? 'medium' : 'low';
 
                 recommendations.push({
                     productId: item.productId,
-                    productName: `Product ${item.productId}`, // Would need product name lookup
+                    productName: item.productName,
                     urgency,
-                    recommendedDiscount: urgency === 'high' ? 40 : urgency === 'medium' ? 25 : 15,
-                    reason: `${item.daysInInventory} days in inventory`,
+                    recommendedDiscount: item.action === 'liquidate' ? 40 : 25,
+                    reason: `${item.daysSinceLastSale} days since last sale`,
                 });
             }
         }

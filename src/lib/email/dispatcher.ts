@@ -254,8 +254,19 @@ export function deriveTenantSlug(brandId: string): string {
     if (TENANT_SLUG_MAP[brandId]) return TENANT_SLUG_MAP[brandId];
     // Strip common prefixes and clean
     return brandId
-        .replace(/^brand_/, '')
+        .toLowerCase()
+        .replace(/^(brand|org|dispensary)_/, '')
+        .replace(/_/g, '-')
         .replace(/[^a-z0-9-]/g, '')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+}
+
+function deriveTenantSlugFromName(name: string): string {
+    return name
+        .toLowerCase()
+        .replace(/&/g, ' and ')
+        .replace(/[^a-z0-9]+/g, '-')
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '');
 }
@@ -269,11 +280,21 @@ const NAKED_DOMAINS = new Set([
 
 const orgSesFromCache = new Map<string, { from: { email: string; name: string }; expiry: number }>();
 
-async function resolveOrgSesFrom(
+export async function resolveOrgSesFrom(
     orgId: string | undefined,
     explicitEmail?: string,
     explicitName?: string,
 ): Promise<{ email: string; name: string }> {
+    const prefersOrgSender = !explicitEmail || NAKED_DOMAINS.has(explicitEmail);
+    if (orgId && prefersOrgSender) {
+        const cached = orgSesFromCache.get(orgId);
+        if (cached && cached.expiry > Date.now()) {
+            return {
+                email: cached.from.email,
+                name: explicitName ?? cached.from.name,
+            };
+        }
+    }
     // Priority 1: Tenant subdomain (enforced migration) — hello@{slug}.bakedbot.ai
     // If we have an orgId, we ALWAYS prefer the subdomain over naked domains.
     if (orgId) {
@@ -281,17 +302,31 @@ async function resolveOrgSesFrom(
             const firestore = getAdminFirestore();
 
             // Check for verified custom sending domain first
-            const sesDoc = await firestore
-                .collection('organizations').doc(orgId)
-                .collection('integrations').doc('ses')
-                .get();
-            const sesData = sesDoc.data();
-            if (sesData?.status === 'verified' && sesData?.fromEmail) {
-                return { email: sesData.fromEmail, name: sesData.fromName ?? 'BakedBot' };
+            if (!orgId.startsWith('brand_')) {
+                const sesDoc = await firestore
+                    .collection('organizations').doc(orgId)
+                    .collection('integrations').doc('ses')
+                    .get();
+                const sesData = sesDoc.data();
+                if (sesData?.status === 'verified' && sesData?.fromEmail) {
+                    return { email: sesData.fromEmail, name: sesData.fromName ?? 'BakedBot' };
+                }
             }
 
             // Fallback to tenant subdomain if using a naked domain or no explicit email
-            if (!explicitEmail || NAKED_DOMAINS.has(explicitEmail)) {
+            if (prefersOrgSender) {
+                if (orgId.startsWith('brand_')) {
+                    const brandDoc = await firestore.collection('brands').doc(orgId).get();
+                    const brandData = brandDoc.data();
+                    const brandName = (brandData?.name as string) || orgId;
+                    const from = {
+                        email: `hello@${deriveTenantSlug(orgId)}.bakedbot.ai`,
+                        name: brandName,
+                    };
+                    orgSesFromCache.set(orgId, { from, expiry: Date.now() + 60_000 });
+                    return { email: from.email, name: explicitName ?? from.name };
+                }
+
                 const orgDoc = await firestore.collection('organizations').doc(orgId).get();
                 const orgData = orgDoc.data();
                 const brandId = orgData?.brandId as string | undefined;
@@ -301,8 +336,20 @@ async function resolveOrgSesFrom(
                     const brandData = brandDoc.data();
                     const brandName = (brandData?.name as string) || brandId;
                     const slug = deriveTenantSlug(brandId);
-                    return { email: `hello@${slug}.bakedbot.ai`, name: explicitName ?? brandName };
+                    const from = { email: `hello@${slug}.bakedbot.ai`, name: brandName };
+                    orgSesFromCache.set(orgId, { from, expiry: Date.now() + 60_000 });
+                    return { email: from.email, name: explicitName ?? from.name };
                 }
+
+                const orgName = typeof orgData?.name === 'string' && orgData.name.trim()
+                    ? orgData.name.trim()
+                    : orgId;
+                const from = {
+                    email: `hello@${deriveTenantSlugFromName(orgName)}.bakedbot.ai`,
+                    name: orgName,
+                };
+                orgSesFromCache.set(orgId, { from, expiry: Date.now() + 60_000 });
+                return { email: from.email, name: explicitName ?? from.name };
             }
         } catch (e) {
             logger.warn('[Dispatcher] Org subdomain resolution failed (non-fatal)', { orgId, error: e });

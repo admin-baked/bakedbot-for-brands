@@ -336,4 +336,90 @@ describe('dispensary analytics', () => {
     expect(result.data.basketSizeTrend.some((row) => row.avgBasket === 54)).toBe(true);
     expect(result.data.onlineVsInStoreSplit.find((row) => row.name === 'Online')?.value).toBe(1);
   });
+
+  it('uses benchmark-aligned slow-mover thresholds and ignores missing sale history', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-04-16T00:00:00Z').getTime());
+    (getMarketBenchmarks as jest.Mock).mockResolvedValue({
+      operations: {
+        skuAgingActionDays: { watch: 30, action: 60, liquidate: 90 },
+      },
+    });
+    (getAdminFirestore as jest.Mock).mockReturnValue(makeFirestoreMock({
+      orgProducts: [
+        {
+          id: 'prod-old',
+          data: {
+            name: 'Old Stock',
+            category: 'flower',
+            price: 30,
+            stock: 8,
+            salesLast7Days: 0,
+            salesLast30Days: 0,
+            salesVelocity: 0,
+            lastSaleAt: new Date('2026-01-20T00:00:00Z'),
+          },
+        },
+        {
+          id: 'prod-liquidate',
+          data: {
+            name: 'Very Old Stock',
+            category: 'edibles',
+            price: 50,
+            stock: 4,
+            salesLast7Days: 0,
+            salesLast30Days: 0,
+            salesVelocity: 0,
+            lastSaleAt: new Date('2025-12-31T00:00:00Z'),
+          },
+        },
+        {
+          id: 'prod-too-fresh',
+          data: {
+            name: 'Recent Stock',
+            category: 'vapes',
+            price: 25,
+            stock: 10,
+            salesLast7Days: 0,
+            salesLast30Days: 0,
+            salesVelocity: 0,
+            lastSaleAt: new Date('2026-03-25T00:00:00Z'),
+          },
+        },
+        {
+          id: 'prod-unknown',
+          data: {
+            name: 'Unknown History',
+            category: 'other',
+            price: 40,
+            stock: 6,
+            salesLast7Days: 0,
+            salesLast30Days: 0,
+            salesVelocity: 0,
+          },
+        },
+      ],
+    }));
+
+    const result = await getMenuAnalytics('org-1');
+
+    expect(result.success).toBe(true);
+    if (!result.success || !result.data) {
+      throw new Error('Expected menu analytics data');
+    }
+
+    expect(result.data.skuRationalizationFlags).toHaveLength(2);
+    expect(result.data.skuRationalizationFlags.map((item) => item.productId)).toEqual([
+      'prod-old',
+      'prod-liquidate',
+    ]);
+    expect(result.data.skuRationalizationFlags[0]).toMatchObject({
+      action: 'markdown',
+      estimatedAtRisk: 240,
+      daysSinceLastSale: 86,
+    });
+    expect(result.data.skuRationalizationFlags[1]).toMatchObject({
+      action: 'liquidate',
+      estimatedAtRisk: 200,
+    });
+  });
 });

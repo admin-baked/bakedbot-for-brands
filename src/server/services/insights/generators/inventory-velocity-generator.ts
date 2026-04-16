@@ -6,7 +6,11 @@
  */
 
 import { InsightGeneratorBase } from '../insight-generator-base';
-import { getExpiringInventory, getSlowMovingInventory } from '../../alleaves/inventory-intelligence';
+import {
+  getExpiringInventory,
+  getSlowMovingInventory,
+  type SlowMovingInventoryItem,
+} from '../../alleaves/inventory-intelligence';
 import { ALLeavesClient } from '@/lib/pos/adapters/alleaves';
 import { logger } from '@/lib/logger';
 import type { InsightCard } from '@/types/insight-cards';
@@ -66,7 +70,7 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
       }
 
       // 3. Slow Movers insight — enriched with product names, categories, prices
-      const slowMovers = await getSlowMovingInventory(this.orgId, 30);
+      const slowMovers = await getSlowMovingInventory(this.orgId, 60);
       if (slowMovers.length > 0) {
         // Build menu lookup for enrichment (reuse client if available)
         let menuLookup: Map<string, { name: string; category: string; price: number | null }> | undefined;
@@ -354,34 +358,30 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
    * prices, and category breakdown for actionable decision-making.
    */
   private createSlowMoverInsight(
-    products: Array<{
-      productId: string;
-      daysInInventory: number;
-      stockLevel: number;
-    }>,
+    products: SlowMovingInventoryItem[],
     menuLookup?: Map<string, { name: string; category: string; price: number | null }>,
   ): InsightCard {
     const totalStock = products.reduce((sum, p) => sum + p.stockLevel, 0);
 
-    // Enrich with product details for category breakdown + specific names
-    const enriched = products.map((p) => {
-      const info = menuLookup?.get(p.productId);
+    const normalizedProducts = products.map((product) => {
+      const fallback = menuLookup?.get(product.productId);
       return {
-        ...p,
-        name: info?.name ?? p.productId,
-        category: info?.category ?? 'Unknown',
-        price: info?.price ?? null,
+        ...product,
+        productName: product.productName || fallback?.name || product.productId,
+        name: product.productName || fallback?.name || product.productId,
+        category: product.category || fallback?.category || 'Other',
+        price: product.price ?? fallback?.price ?? 0,
+        daysInInventory: product.daysSinceLastSale,
       };
     });
 
-    // Category breakdown
     const byCategory = new Map<string, { count: number; stock: number; value: number }>();
-    for (const p of enriched) {
-      const cat = p.category || 'Other';
+    for (const product of normalizedProducts) {
+      const cat = product.category || 'Other';
       const existing = byCategory.get(cat) ?? { count: 0, stock: 0, value: 0 };
       existing.count += 1;
-      existing.stock += p.stockLevel;
-      existing.value += (p.price ?? 0) * p.stockLevel;
+      existing.stock += product.stockLevel;
+      existing.value += product.estimatedAtRisk;
       byCategory.set(cat, existing);
     }
 
@@ -392,16 +392,15 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
       .join(' | ');
 
     // Top 5 specific products by retail value at risk
-    const top5 = enriched
-      .filter((p) => p.price !== null && p.price > 0)
-      .sort((a, b) => (b.price! * b.stockLevel) - (a.price! * a.stockLevel))
+    const top5 = [...normalizedProducts]
+      .sort((a, b) => b.estimatedAtRisk - a.estimatedAtRisk || b.daysSinceLastSale - a.daysSinceLastSale)
       .slice(0, 5);
 
     const productLines = top5
       .map((p) => `${p.name} — $${p.price!.toFixed(0)} × ${p.stockLevel} units (${p.daysInInventory}d stale)`)
       .join('; ');
 
-    const totalValue = enriched.reduce((sum, p) => sum + ((p.price ?? 0) * p.stockLevel), 0);
+    const totalValue = normalizedProducts.reduce((sum, p) => sum + ((p.price ?? 0) * p.stockLevel), 0);
 
     const headline = totalValue > 0
       ? `$${Math.round(totalValue).toLocaleString()} in slow-moving inventory (${products.length} SKUs)`
@@ -414,7 +413,7 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
 
     return this.createInsight({
       title: 'SLOW MOVERS',
-      tooltipText: 'Products sitting in inventory 30+ days without selling, broken down by category. Prices and stock levels help prioritize discounts or bundles.',
+      tooltipText: 'Products with 60+ days since last sale and near-zero velocity, grouped by category to prioritize markdowns or liquidation.',
       headline,
       subtext: subtextParts.join('\n'),
       value: products.length,
@@ -428,6 +427,7 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
         : `I have ${products.length} slow-moving products taking up inventory (${totalStock} units). Help me create bundles or apply discounts to move them faster.`,
       dataSource: 'Inventory age + catalog (Alleaves)',
       metadata: {
+        totalSkus: products.length,
         categoryBreakdown: Object.fromEntries(byCategory),
         topProducts: top5.map((p) => ({
           productId: p.productId,

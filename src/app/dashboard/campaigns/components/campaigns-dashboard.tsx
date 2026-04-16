@@ -62,6 +62,13 @@ export function CampaignsDashboard({ userId, orgId: defaultOrgId, isSuperUser }:
         setError(null);
         try {
             const orgArg = isSuperUser ? selectedOrgId : (defaultOrgId ?? '');
+            if (!orgArg) {
+                setCampaigns([]);
+                setStats(null);
+                setSlowMovers([]);
+                setError('Missing organization context for Campaigns. Refresh the page or reselect your workspace.');
+                return;
+            }
             const [campaignsResult, statsResult, menuResult] = await Promise.all([
                 getCampaigns(orgArg),
                 getCampaignStats(orgArg),
@@ -239,8 +246,8 @@ function SlowInventoryPanel({ items, onCreateCampaign }: {
                     </Button>
                 </div>
                 <CardDescription className="text-amber-700">
-                    {items.length} SKU{items.length !== 1 ? 's' : ''} haven't sold in 21+ days.
-                    {liquidateCount > 0 && ` ${liquidateCount} flagged for liquidation (60+ days stagnant).`}
+                    {items.length} SKU{items.length !== 1 ? 's' : ''} have gone 60+ days without meaningful sell-through.
+                    {liquidateCount > 0 && ` ${liquidateCount} flagged for liquidation (90+ days stagnant).`}
                     {' '}Create a flash sale or promo campaign to clear stock.
                 </CardDescription>
             </CardHeader>

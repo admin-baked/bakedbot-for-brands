@@ -9,9 +9,11 @@
  */
 
 import { requireUser } from '@/server/auth/auth';
+import { getActorOrgId } from '@/server/auth/org-context';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getMarketBenchmarks } from '@/server/services/market-benchmarks';
 import { loadCatalogAnalyticsProducts, toAnalyticsDate, type CatalogAnalyticsProduct } from '@/server/services/catalog-analytics-source';
+import { buildSlowMoverAudit, getSlowMoverThresholdsFromBenchmarks } from '@/server/services/slow-mover-audit';
 import type { MarketBenchmarks } from '@/types/market-benchmarks';
 import { logger } from '@/lib/logger';
 import { getOrdersFromAlleaves } from '@/app/dashboard/orders/actions';
@@ -40,16 +42,13 @@ type AnalyticsActor = {
 const DISPENSARY_ANALYTICS_ALLOWED_ROLES = [
     'brand',
     'brand_admin',
+    'brand_member',
     'dispensary',
     'dispensary_admin',
     'dispensary_staff',
     'super_user',
     'super_admin',
 ] as const;
-
-function getActorOrgId(user: AnalyticsActor): string | null {
-    return user.currentOrgId || user.orgId || user.brandId || null;
-}
 
 function isValidOrgId(orgId: string): boolean {
     return !!orgId && !orgId.includes('/');
@@ -647,6 +646,16 @@ export async function getMenuAnalytics(
         await verifyOrgAccess(orgId);
 
         const products = await loadCatalogAnalyticsProducts(orgId);
+        let slowMoverThresholds = getSlowMoverThresholdsFromBenchmarks();
+        try {
+            const benchmarks = await getMarketBenchmarks(orgId);
+            slowMoverThresholds = getSlowMoverThresholdsFromBenchmarks(benchmarks);
+        } catch (error) {
+            logger.warn('[dispensary-analytics] Falling back to default slow-mover thresholds', {
+                orgId,
+                error: String(error),
+            });
+        }
 
         // Category performance
         interface CatAgg { revenue: number; gpSum: number; units: number; stock: number; skuCount: number; }
@@ -676,29 +685,24 @@ export async function getMenuAnalytics(
             .sort((a, b) => b.revenue - a.revenue);
 
         // SKU rationalization flags — slow-moving: no sale in 21+ days, velocity < 0.1
-        const skuRationalizationFlags = products
-            .filter(p => {
-                const days = daysSince(p.lastSaleAt);
-                const velocity = p.salesVelocity ?? (p.salesLast7Days != null ? p.salesLast7Days / 7 : 0);
-                return days > 21 && velocity < 0.1 && (p.stock ?? 0) > 0;
-            })
-            .map(p => {
-                const days = daysSince(p.lastSaleAt);
-                const velocity = p.salesVelocity ?? 0;
-                const action: 'markdown' | 'liquidate' = days > 60 ? 'liquidate' : 'markdown';
-                const estimatedAtRisk = p.price * (p.stock ?? 1);
-                return {
-                    productId: p.id,
-                    name: p.name,
-                    category: normalizeCat(p.category),
-                    daysSinceLastSale: days,
-                    velocity,
-                    action,
-                    estimatedAtRisk: Math.round(estimatedAtRisk),
-                };
-            })
-            .sort((a, b) => b.estimatedAtRisk - a.estimatedAtRisk)
-            .slice(0, 15);
+        const slowMoverAudit = buildSlowMoverAudit(products, slowMoverThresholds, { limit: 15 });
+        const skuRationalizationFlags = slowMoverAudit.items.map((item) => ({
+            productId: item.productId,
+            name: item.name,
+            category: normalizeCat(item.category),
+            daysSinceLastSale: item.daysSinceLastSale,
+            velocity: item.salesVelocity,
+            action: item.action,
+            estimatedAtRisk: item.estimatedAtRisk,
+        }));
+
+        logger.info('[dispensary-analytics] Slow-mover audit completed', {
+            orgId,
+            flagged: skuRationalizationFlags.length,
+            skippedMissingLastSale: slowMoverAudit.skippedMissingLastSale,
+            actionDays: slowMoverAudit.thresholds.actionDays,
+            liquidateDays: slowMoverAudit.thresholds.liquidateDays,
+        });
 
         // Price tier distribution
         const tierDefs = [

@@ -1,5 +1,5 @@
 import { requireUser } from '@/server/auth/auth';
-import { isBrandRole, isDispensaryRole } from '@/types/roles';
+import { getActorOrgId } from '@/server/auth/org-context';
 import { Suspense } from 'react';
 import { CampaignsDashboard } from './components/campaigns-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,15 +19,12 @@ export default async function CampaignsPage() {
     ]);
 
     const userRole = (user as { role?: string }).role ?? '';
-    let orgId: string | undefined;
-    if (isBrandRole(userRole)) {
-        orgId = (user as { brandId?: string }).brandId;
-    } else if (isDispensaryRole(userRole)) {
-        orgId = (user as { orgId?: string; currentOrgId?: string; locationId?: string }).orgId
-            || (user as { currentOrgId?: string }).currentOrgId
-            || (user as { locationId?: string }).locationId;
-    }
-    orgId = orgId || user.uid;
+    const orgId = getActorOrgId(user as {
+        uid?: string;
+        currentOrgId?: string;
+        orgId?: string;
+        brandId?: string;
+    }) ?? undefined;
 
     return (
         <div className="flex flex-col gap-6 p-6">

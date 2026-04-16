@@ -405,6 +405,16 @@ export interface SlowMoverInsight {
     dataFreshness: string;
 }
 
+function extractSlowMoverTotalSkus(headline: string): number {
+    const match = headline.match(/\((\d+)\s+SKUs?\)/i) ?? headline.match(/(\d+)\s+SKUs?/i);
+    if (!match) {
+        return 0;
+    }
+
+    const parsed = Number(match[1]);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
 /**
  * Load slow-mover inventory insight from the deliberative audit pipeline.
  * Written by InventoryVelocityGenerator into tenants/{orgId}/insights.
@@ -418,12 +428,14 @@ export async function loadSlowMoverInsight(orgId: string): Promise<SlowMoverInsi
         if (!snap.exists) return null;
         const d = snap.data()!;
         const meta = (d.metadata ?? {}) as Record<string, unknown>;
+        const headline = String(d.headline ?? '');
+        const totalSkus = Number(meta.totalSkus ?? 0) || extractSlowMoverTotalSkus(headline);
         const updatedAt = (d.updatedAt as { toDate?: () => Date } | null)?.toDate?.()?.toISOString() ?? d.updatedAt ?? null;
         const ageHours = updatedAt ? Math.round((Date.now() - new Date(String(updatedAt)).getTime()) / 3_600_000) : null;
         return {
-            headline: String(d.headline ?? ''),
+            headline,
             totalValueAtRisk: Number(meta.totalValueAtRisk ?? 0),
-            totalSkus: Number(meta.totalSkus ?? 0),
+            totalSkus,
             topProducts: ((meta.topProducts ?? []) as any[]).slice(0, 10).map((p: any) => ({
                 name: String(p.name ?? 'Unknown'),
                 category: String(p.category ?? ''),
