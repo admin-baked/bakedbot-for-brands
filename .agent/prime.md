@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; order revenue fix (totals.total) + 4/20 playbook activated + ErrorBoundary→Linus + Elroy dedup.
-**Recent work (2026-04-15):** `0b110bc9c` Elroy dedup + bare catches; `841d58acd` order revenue totals.total fix; `9fe4d08b8` ErrorBoundary→Linus /api/errors/client; `43bb637c4` inventory pipeline + campaign-card crash fix
+**Current Status:** 🟢 Production live; 4/20 email sequence (3 campaigns) + unsubscribe system + proof recipients + campaign preview modal + Alleaves filter.
+**Recent work (2026-04-16):** `4f423717f` simplify: submittedAt bug + tenant doc dedup; `1d6e797e5` 4/20 sequence + unsubscribe + proof recipients; `79565d365` super_user org switcher + NY outreach playbook
 - `26b7d7ac1` Firebase API key moved to env var (resolved secret alert)
 - `106f5408d` Security fixes: admin routes auth, XSS sanitization, database tool permissions
 **Prior (2026-04-12):** `c05e091da` CHANNEL_MAP + roster training; `1fbc88b22` task board + inbound CTAs

@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; order revenue fix (totals.total) + 4/20 playbook activated + ErrorBoundary→Linus + Elroy dedup | **Last update:** 2026-04-15 (inventory/sales fixes + 4/20 playbook `0b110bc9c`)
+**Current Status:** 🟢 Production live; 4/20 email sequence (3 campaigns) + unsubscribe system + proof recipients + campaign preview modal + Alleaves filter | **Last update:** 2026-04-16 (campaigns 420 sequence + contact form submittedAt bug fix `4f423717f`)
 
 ---
 
