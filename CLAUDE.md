@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Kiosk test infra fixed (21/21 pass); potency/kiosk-pick unit tests; Thrive kiosk UX: <2s, product detail, backoffice notify | **Last update:** 2026-04-17 (`6cd8127d2`)
+**Current Status:** 🟢 main green | Dispensary crash guard + tickets dedup index fix; Slack #ceo routing via Marty bot; 84 new dispensaries seeded (NY/MI/IL) | **Last update:** 2026-04-17 (`7cac4c71f`)
 
 ---
 

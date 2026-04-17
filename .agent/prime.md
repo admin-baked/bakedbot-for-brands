@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Kiosk test infra fixed (21/21 pass); potency/kiosk-pick tests; Thrive kiosk UX: <2s, detail panel, backoffice notify
-**Recent work (2026-04-17):** `6cd8127d2` kiosk test infra fix + potency/kiosk-pick tests; `100e4c7ab` Thrive kiosk UX overhaul
+**Current Status:** 🟢 main green | Dispensary crash guard + tickets dedup index; Slack #ceo via Marty bot; 84 new NY/MI/IL dispensaries seeded
+**Recent work (2026-04-17):** `7cac4c71f` simplify + Slack #ceo routing; `73209aa67` dispensary crash guard + tickets dedup index fix
 
 ---
 
