@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Dispensary crash guard + tickets dedup index fix; Slack #ceo routing via Marty bot; 84 new dispensaries seeded (NY/MI/IL) | **Last update:** 2026-04-17 (`7cac4c71f`)
+**Current Status:** 🟢 main green | Founder headshots on /book + blog_authors; martez.png + jack.png in /public/images; Firestore avatarUrl + headshot patched | **Last update:** 2026-04-17 (`a48647cdc`)
 
 ---
 

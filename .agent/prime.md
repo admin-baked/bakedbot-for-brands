@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Dispensary crash guard + tickets dedup index; Slack #ceo via Marty bot; 84 new NY/MI/IL dispensaries seeded
-**Recent work (2026-04-17):** `7cac4c71f` simplify + Slack #ceo routing; `73209aa67` dispensary crash guard + tickets dedup index fix
+**Current Status:** 🟢 main green | Founder headshots live on /book + blog_authors; martez.png + jack.png in /public/images
+**Recent work (2026-04-17):** `a48647cdc` founder headshots on /book + Firestore avatarUrl/headshot patched; `7cac4c71f` simplify + Slack #ceo routing
 
 ---
 
