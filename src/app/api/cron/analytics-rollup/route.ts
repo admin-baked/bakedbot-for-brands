@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { runAnalyticsRollup } from '@/server/services/order-analytics';
 import { logger } from '@/lib/logger';
+import { recordAgentRun } from '@/server/services/agent-performance';
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -68,6 +69,19 @@ export async function POST(request: NextRequest) {
       successful: successCount,
       failed: failureCount,
     });
+
+    // Agent learning loop — fire-and-forget, never block the happy path
+    recordAgentRun({
+      agentId: 'pops',
+      domain: 'analytics',
+      runAt: Date.now(),
+      periodLabel: 'run-' + new Date().toISOString().slice(0, 13),
+      metrics: {
+        orgsProcessed: orgList.length,
+        successful: successCount,
+        failed: failureCount,
+      },
+    }).catch(() => {});
 
     return NextResponse.json({
       success: true,

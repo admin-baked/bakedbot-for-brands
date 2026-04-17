@@ -24,6 +24,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { callClaude } from '@/ai/claude';
 import { buildMartyScoreboard, TARGET_MRR } from '@/server/services/marty-reporting';
 import { getWeekObjectives, getMondayOfWeek, scoreWeeklyObjectives, buildObjectivesScoreboard, type ObjectiveStatus, type WeekObjectivesList, type RawScoreInput } from '@/server/services/marty-objectives';
+import { getAllAgentLearningDocs } from '@/server/services/agent-performance';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -372,6 +373,40 @@ List 4 carry-forwards for next week: pipeline items that didn't close, owner ass
     }
 }
 
+async function generateAgentLearningDigest(): Promise<FridaySection> {
+    try {
+        const docs = await getAllAgentLearningDocs();
+        const items: string[] = [];
+
+        // One bullet per agent that has a weekSummary
+        for (const doc of docs) {
+            if (!doc.weekSummary) continue;
+            const trend =
+                doc.performanceTrend === 'improving' ? '🟢' :
+                doc.performanceTrend === 'declining' ? '🔴' :
+                doc.performanceTrend === 'stable'    ? '🟡' : '⚪';
+            items.push(`${trend} *${doc.agentId}* (${doc.domain}): ${doc.weekSummary}`);
+        }
+
+        // Flag agents with pending approvals
+        const needsAttention = docs
+            .filter(d => (d.pendingApprovals?.length ?? 0) > 0)
+            .map(d => `${d.agentId} (${d.pendingApprovals.length} pending)`);
+        if (needsAttention.length > 0) {
+            items.push(`⚠️ Needs Marty's attention: ${needsAttention.join(', ')}`);
+        }
+
+        if (items.length === 0) {
+            items.push('No agent learning activity recorded this week.');
+        }
+
+        return { agent: 'linus', title: 'Agent Learning Digest', items };
+    } catch (e) {
+        logger.warn('[WeeklyFridayMemo] Agent learning digest failed (non-fatal)', { error: String(e) });
+        return { agent: 'linus', title: 'Agent Learning Digest', items: ['Learning data unavailable this week.'] };
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Slack post
 // ---------------------------------------------------------------------------
@@ -512,7 +547,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const ctx = await loadFridayContext();
 
         const [martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection, popsSection,
-               craigSection, deeboSection, roachSection, felishaSection] = await Promise.all([
+               craigSection, deeboSection, roachSection, felishaSection, learningDigestSection] = await Promise.all([
             generateMartyCeoMemo(ctx),
             generateLeoExecutionSummary(ctx),
             generateJackRevenueReport(ctx),
@@ -524,10 +559,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             generateDeeboComplianceReport(ctx),
             generateRoachKnowledgeArchive(ctx),
             generateFelishaNextWeekLog(ctx),
+            generateAgentLearningDigest(),
         ]);
 
         const allSections = [martySection, leoSection, jackSection, linusSection, glendaSection, mikeSection, popsSection,
-            craigSection, deeboSection, roachSection, felishaSection];
+            craigSection, deeboSection, roachSection, felishaSection, learningDigestSection];
 
         const weekOf = getMondayOfWeek();
         const [orgId, weekObjectives] = await Promise.all([

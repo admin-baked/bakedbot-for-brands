@@ -26,6 +26,7 @@ import { postLinusIncidentSlack } from '@/server/services/incident-notifications
 import { listGoogleCalendarEvents, getGoogleCalendarBusyTimes } from '@/server/services/executive-calendar/google-calendar';
 import { getExecutiveProfile } from '@/server/actions/executive-calendar';
 import { getOutreachStats } from '@/server/services/ny-outreach/outreach-read-model';
+import { getAllAgentLearningDocs } from '@/server/services/agent-performance';
 
 export const maxDuration = 120;
 
@@ -104,17 +105,19 @@ async function runCeoBriefing(type: BriefingType) {
     });
 
     // Gather data in parallel
-    const [calendarData, meetingsData, outreachData, crmData] = await Promise.allSettled([
+    const [calendarData, meetingsData, outreachData, crmData, agentTrendData] = await Promise.allSettled([
         getCalendarSummary(),
         getUpcomingBookings(),
         getOutreachStats(),
         getCrmPipelineSummary(),
+        buildAgentTrendSummary(),
     ]);
 
     const calendar = calendarData.status === 'fulfilled' ? calendarData.value : null;
     const bookings = meetingsData.status === 'fulfilled' ? meetingsData.value : [];
     const outreach = outreachData.status === 'fulfilled' ? outreachData.value : null;
     const crm = crmData.status === 'fulfilled' ? crmData.value : null;
+    const agentTrend = agentTrendData.status === 'fulfilled' ? agentTrendData.value : null;
 
     // Build briefing blocks
     const greeting = type === 'morning' ? 'Good morning' : type === 'midday' ? 'Midday check-in' : 'End of day wrap-up';
@@ -187,6 +190,17 @@ async function runCeoBriefing(type: BriefingType) {
             text: {
                 type: 'mrkdwn',
                 text: `:busts_in_silhouette: *CRM Pipeline*\n• Prospects: *${crm.prospects}*\n• Contacted: *${crm.contacted}*\n• Demo scheduled: *${crm.demoScheduled}*\n• Customers: *${crm.customers}*`,
+            },
+        });
+    }
+
+    // Agent learning trend (morning only — not needed at every briefing)
+    if (agentTrend && type === 'morning') {
+        blocks.push({
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `:brain: *Agent Performance*\n${agentTrend.summary}${agentTrend.declingNotes ? `\n_${agentTrend.declingNotes}_` : ''}`,
             },
         });
     }
@@ -267,6 +281,27 @@ async function getUpcomingBookings() {
             endAt: data.endAt?.toDate?.()?.toISOString() ?? '',
         };
     });
+}
+
+async function buildAgentTrendSummary(): Promise<{ summary: string; declingNotes: string }> {
+    const docs = await getAllAgentLearningDocs();
+    let improving = 0, stable = 0, declining = 0;
+    const decliningNotes: string[] = [];
+
+    for (const doc of docs) {
+        if (doc.performanceTrend === 'improving') improving++;
+        else if (doc.performanceTrend === 'stable') stable++;
+        else if (doc.performanceTrend === 'declining') {
+            declining++;
+            if (doc.trendBasis) {
+                decliningNotes.push(`${doc.agentId}: ${doc.trendBasis}`);
+            }
+        }
+    }
+
+    const summary = `Agent performance this week: ${improving} improving, ${stable} stable, ${declining} declining.`;
+    const declingNotes = decliningNotes.slice(0, 2).join(' | ');
+    return { summary, declingNotes };
 }
 
 async function getCrmPipelineSummary() {

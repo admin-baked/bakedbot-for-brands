@@ -74,10 +74,12 @@ export function agencyNewsletterEmail(params: {
     featureUpdate: { title: string; description: string };
     newsItems: NewsletterItem[];
     tipOfWeek: string;
+    /** Optional override — A/B subject line injected by the learning loop */
+    subject?: string;
 }): { subject: string; htmlBody: string; body: string } {
     const { weekOf, featureUpdate, newsItems, tipOfWeek } = params;
 
-    const subject = `Cannabis Marketing Intel Brief — Week of ${weekOf}`;
+    const subject = params.subject ?? `Cannabis Marketing Intel Brief — Week of ${weekOf}`;
 
     const newsHtml = newsItems.map(item => `
     <div style="border-left:3px solid #10b981;padding:12px 16px;margin-bottom:16px;background:#f8fafc;border-radius:0 4px 4px 0;">

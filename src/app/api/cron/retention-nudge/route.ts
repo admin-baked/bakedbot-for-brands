@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { requireCronSecret } from '@/server/auth/cron';
+import { logAgentLearning } from '@/server/services/agent-learning-loop';
+import { recordAgentRun, upsertAgentLearningDoc, getAgentRunHistory, computeTrend } from '@/server/services/agent-performance';
 
 const THRIVE_ORG_ID = 'org_thrive_syracuse';
 
@@ -106,6 +108,44 @@ export async function POST(request: NextRequest) {
         }
 
         logger.info('[RetentionNudge] Processed nudge emails', { processed: results.length });
+
+        // ── Agent learning loop (fire-and-forget) ─────────────────────────────
+        const sentCount = results.filter(r => r.status === 'sent').length;
+        const periodLabel = 'run-' + now.toISOString().slice(0, 13); // YYYY-MM-DDTHH
+
+        recordAgentRun({
+            agentId: 'mrs-parker',
+            domain: 'retention-nudge',
+            runAt: now.getTime(),
+            periodLabel,
+            metrics: {
+                customersNudged: sentCount,
+                customersAttempted: results.length,
+                failedCount: results.filter(r => r.status !== 'sent').length,
+            },
+        }).catch(() => {});
+
+        logAgentLearning({
+            agentId: 'mrs-parker',
+            action: 'retention-nudge-batch',
+            result: 'success',
+            category: 'retention',
+            reason: `Sent ${sentCount} retention nudge emails`,
+            metadata: { sentCount, attempted: results.length, periodLabel },
+        }).catch(() => {});
+
+        getAgentRunHistory('mrs-parker', 'retention-nudge', 8).then(history => {
+            const trend = computeTrend(history, 'customersNudged');
+            return upsertAgentLearningDoc('mrs-parker', 'retention-nudge', {
+                recentMetrics: {
+                    totalNudged: sentCount,
+                    attempted: results.length,
+                },
+                performanceTrend: trend,
+                trendBasis: `${history.length} run(s) tracked; trend on customersNudged`,
+            });
+        }).catch(() => {});
+        // ─────────────────────────────────────────────────────────────────────
 
         return NextResponse.json({
             success: true,

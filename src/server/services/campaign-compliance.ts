@@ -9,6 +9,8 @@ import { deebo, type ComplianceResult } from '@/server/agents/deebo';
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import type { Campaign, CampaignChannel, CampaignContent } from '@/types/campaign';
+import { logAgentLearning } from '@/server/services/agent-learning-loop';
+import { recordAgentRun } from '@/server/services/agent-performance';
 
 // =============================================================================
 // RUN COMPLIANCE CHECK
@@ -71,6 +73,38 @@ export async function runComplianceCheck(campaign: Campaign): Promise<{
     }
 
     const overallStatus = hasFailure ? 'failed' : hasWarning ? 'warning' : 'passed';
+
+    // ── Agent learning loop (fire-and-forget) ─────────────────────────────────
+    const totalViolations = Object.values(results).reduce(
+        (sum, r) => sum + (r?.violations?.length ?? 0), 0,
+    );
+    const runResult = overallStatus === 'passed' ? 'pass' : 'fail';
+
+    recordAgentRun({
+        agentId: 'deebo',
+        domain: 'compliance-check',
+        runAt: Date.now(),
+        periodLabel: 'run-' + Date.now(),
+        metrics: {
+            orgId: campaign.id,
+            result: runResult,
+            violationCount: totalViolations,
+            channelsChecked: campaign.channels.length,
+            overallStatus,
+        },
+    }).catch(() => {});
+
+    logAgentLearning({
+        agentId: 'deebo',
+        action: 'campaign-compliance-check',
+        result: overallStatus === 'passed' ? 'success' : 'failure',
+        category: 'compliance',
+        reason: overallStatus === 'passed'
+            ? `Campaign ${campaign.id} passed compliance (${campaign.channels.length} channels)`
+            : `Campaign ${campaign.id} failed compliance — ${totalViolations} violation(s)`,
+        metadata: { campaignId: campaign.id, overallStatus, totalViolations, channelsChecked: campaign.channels.length },
+    }).catch(() => {});
+    // ──────────────────────────────────────────────────────────────────────────
 
     // Update campaign document
     try {

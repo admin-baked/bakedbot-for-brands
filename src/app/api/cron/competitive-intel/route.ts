@@ -24,6 +24,8 @@ import {
   generateKnowledgeAlerts,
   promoteRuntimeKnowledgeToLetta,
 } from '@/server/services/knowledge-engine';
+import { logAgentLearning } from '@/server/services/agent-learning-loop';
+import { recordAgentRun, upsertAgentLearningDoc } from '@/server/services/agent-performance';
 
 export const maxDuration = 300; // 5 minutes
 
@@ -139,6 +141,34 @@ export async function POST(request: NextRequest) {
                 orgId, error: (keErr as Error).message,
             });
         }
+
+        // Agent learning loop — fire-and-forget, never block the happy path
+        const runMetrics = {
+            orgsAnalyzed: 1,
+            sourcesQueried: result.sourcesRun ?? 0,
+            priceMatchOpportunities: priceMatchCount ?? 0,
+            knowledgeClaims,
+            knowledgeAlerts,
+            errors: 0,
+        };
+        recordAgentRun({
+            agentId: 'ezal',
+            domain: 'competitive-intel',
+            runAt: Date.now(),
+            periodLabel: 'week-' + new Date().toISOString().slice(0, 10),
+            metrics: runMetrics,
+        }).catch(() => {});
+        upsertAgentLearningDoc('ezal', 'competitive-intel', {
+            recentMetrics: { orgsAnalyzed: 1, sourcesQueried: result.sourcesRun ?? 0 },
+        }).catch(() => {});
+        logAgentLearning({
+            agentId: 'ezal',
+            action: 'competitive_intel_run',
+            result: 'success',
+            category: 'competitive-intel',
+            orgId,
+            metadata: runMetrics,
+        }).catch(() => {});
 
         return NextResponse.json({
             success: true,

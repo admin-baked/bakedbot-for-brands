@@ -25,6 +25,8 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { claimTask } from '@/server/actions/agent-tasks';
 import { dispatchLinusIncidentResponse } from '@/server/services/linus-incident-response';
+import { logAgentLearning } from '@/server/services/agent-learning-loop';
+import { recordAgentRun, upsertAgentLearningDoc } from '@/server/services/agent-performance';
 import type { AgentTask } from '@/types/agent-task';
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
@@ -99,6 +101,13 @@ async function run(): Promise<{ dispatched: number; tasks: string[] }> {
 
     if (!staleBugs.length) {
         logger.info('[LinusAutoFix] No stale bugs found — all clear');
+        recordAgentRun({
+            agentId: 'linus',
+            domain: 'auto-fix',
+            runAt: Date.now(),
+            periodLabel: 'run-' + new Date().toISOString().slice(0, 13),
+            metrics: { tasksDispatched: 0, tasksFailed: 0 },
+        }).catch(() => {});
         return { dispatched: 0, tasks: [] };
     }
 
@@ -108,6 +117,7 @@ async function run(): Promise<{ dispatched: number; tasks: string[] }> {
     });
 
     const dispatched: string[] = [];
+    let tasksFailed = 0;
 
     for (const task of staleBugs) {
         // Claim first — prevents concurrent runs from double-dispatching
@@ -122,12 +132,36 @@ async function run(): Promise<{ dispatched: number; tasks: string[] }> {
             dispatched.push(task.id);
             logger.info('[LinusAutoFix] Fix dispatched', { taskId: task.id, title: task.title });
         } catch (err) {
-            logger.error('[LinusAutoFix] Dispatch failed', {
-                taskId: task.id,
-                error: err instanceof Error ? err.message : String(err),
-            });
+            tasksFailed++;
+            const errMsg = err instanceof Error ? err.message : String(err);
+            logger.error('[LinusAutoFix] Dispatch failed', { taskId: task.id, error: errMsg });
+            logAgentLearning({
+                agentId: 'linus',
+                action: `auto-fix dispatch for task ${task.id}`,
+                result: 'failure',
+                category: 'bug',
+                reason: errMsg,
+                nextStep: 'Review task and retry dispatch manually',
+                metadata: { taskId: task.id, taskTitle: task.title, priority: task.priority },
+            }).catch(() => {});
         }
     }
+
+    const metrics = {
+        tasksDispatched: dispatched.length,
+        tasksFailed,
+        staleBugsFound: staleBugs.length,
+    };
+
+    recordAgentRun({
+        agentId: 'linus',
+        domain: 'auto-fix',
+        runAt: Date.now(),
+        periodLabel: 'run-' + new Date().toISOString().slice(0, 13),
+        metrics,
+    }).catch(() => {});
+
+    upsertAgentLearningDoc('linus', 'auto-fix', { recentMetrics: metrics }).catch(() => {});
 
     return { dispatched: dispatched.length, tasks: dispatched };
 }

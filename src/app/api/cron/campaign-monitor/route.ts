@@ -23,6 +23,12 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { postLinusIncidentSlack } from '@/server/services/incident-notifications';
 import { ingestCampaignHistoryKnowledge } from '@/server/services/knowledge-engine/ingest-campaign-history';
+import {
+    recordAgentRun,
+    upsertAgentLearningDoc,
+    computeTrend,
+    getAgentRunHistory,
+} from '@/server/services/agent-performance';
 
 const BOUNCE_RATE_WARN    = 0.05;   // 5%
 const BOUNCE_RATE_CRIT    = 0.10;   // 10%
@@ -36,6 +42,8 @@ interface CampaignPerf {
     orgId: string;
     status: string;
     sentAt?: string;
+    createdByAgent?: string;
+    tags?: string[];
     performance?: {
         sent: number;
         delivered: number;
@@ -138,6 +146,45 @@ export async function GET(request: NextRequest) {
                     summaryText,
                     observedAt: new Date(campaign.sentAt!),
                 }).catch(e => logger.warn('[CAMPAIGN_MONITOR] KE ingestion failed', { id: campaign.id, error: String(e) }));
+
+                // Craig learning loop write-back — record actual metrics when campaign is Craig-owned
+                const isCraigCampaign =
+                    campaign.createdByAgent === 'craig' ||
+                    (Array.isArray(campaign.tags) && campaign.tags.includes('craig'));
+
+                if (isCraigCampaign) {
+                    const periodLabel = `campaign-${campaign.id}`;
+
+                    recordAgentRun({
+                        agentId: 'craig',
+                        domain: 'newsletter',
+                        runAt: new Date(campaign.sentAt!).getTime(),
+                        periodLabel,
+                        metrics: {
+                            sent: perf.sent,
+                            delivered: perf.delivered,
+                            opened: perf.opened,
+                            clicked: perf.clicked,
+                            bounced: perf.bounced,
+                            unsubscribed: perf.unsubscribed,
+                            openRate,
+                            clickRate,
+                            bounceRate,
+                            complaintRate,
+                        },
+                        notes: `Actuals recorded by campaign-monitor at ${hoursElapsed.toFixed(0)}h after send.`,
+                    }).catch(e => logger.warn('[CAMPAIGN_MONITOR] Craig recordAgentRun failed', { id: campaign.id, error: String(e) }));
+
+                    // Compute trend from prior runs and upsert the learning doc
+                    getAgentRunHistory('craig', 'newsletter', 8).then(history => {
+                        const trend = computeTrend(history, 'openRate');
+                        return upsertAgentLearningDoc('craig', 'newsletter', {
+                            recentMetrics: { openRate, clickRate, bounceRate, sent: perf.sent, campaignId: campaign.id },
+                            performanceTrend: trend,
+                            trendBasis: `Open rate ${(openRate * 100).toFixed(1)}% vs prior avg; trend=${trend}`,
+                        });
+                    }).catch(e => logger.warn('[CAMPAIGN_MONITOR] Craig upsertAgentLearningDoc failed', { id: campaign.id, error: String(e) }));
+                }
             }
         }
 

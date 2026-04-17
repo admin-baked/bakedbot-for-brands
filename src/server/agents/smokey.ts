@@ -1,6 +1,7 @@
 import { AgentImplementation } from './harness';
 import { SmokeyMemory, RecPolicySchema, UXExperimentSchema } from './schemas';
 import { logger } from '@/lib/logger';
+import { recordAgentRun } from '@/server/services/agent-performance';
 import { computeSkuScore } from '../algorithms/smokey-algo';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl, learningLoopToolDefs } from './shared-tools';
@@ -426,6 +427,19 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                         }
                     }
                 });
+
+                // Agent learning loop — fire-and-forget, never block the happy path
+                recordAgentRun({
+                    agentId: 'smokey',
+                    domain: 'recommendation',
+                    runAt: Date.now(),
+                    periodLabel: 'run-' + Date.now(),
+                    metrics: {
+                        orgId,
+                        steps: result.steps?.length ?? 0,
+                        success: true,
+                    },
+                }).catch(() => {});
 
                 // Emit typed RecommendationSetArtifact for downstream agents (Craig, Pages)
                 try {
