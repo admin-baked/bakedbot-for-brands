@@ -69,17 +69,31 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
 
     // 301 redirect UUID slugs to human-readable slugs
     if (isUuidSlug(dispensarySlug)) {
-        const { retailer } = await fetchDispensaryPageData(dispensarySlug);
-        if (retailer) {
-            const properSlug = (retailer as any).slug && !isUuidSlug((retailer as any).slug)
-                ? (retailer as any).slug
-                : generateDispensarySlug(retailer.name ?? '', retailer.city ?? '');
-            redirect(`/dispensaries/${properSlug}`);
+        try {
+            const { retailer } = await fetchDispensaryPageData(dispensarySlug);
+            if (retailer) {
+                const properSlug = (retailer as any).slug && !isUuidSlug((retailer as any).slug)
+                    ? (retailer as any).slug
+                    : generateDispensarySlug(retailer.name ?? '', retailer.city ?? '');
+                redirect(`/dispensaries/${properSlug}`);
+            }
+        } catch (e: unknown) {
+            // Suppress errors: if the redirect lookup fails, just show 404
+            const isRedirect = e && typeof e === 'object' && 'digest' in e &&
+                typeof (e as { digest?: string }).digest === 'string' &&
+                ((e as { digest: string }).digest.startsWith('NEXT_REDIRECT') ||
+                 (e as { digest: string }).digest.startsWith('NEXT_NOT_FOUND'));
+            if (isRedirect) throw e;
         }
         notFound();
     }
 
-    const { retailer: dispensary, products, seoPage } = await fetchDispensaryPageData(dispensarySlug);
+    let dispensary, products, seoPage;
+    try {
+        ({ retailer: dispensary, products, seoPage } = await fetchDispensaryPageData(dispensarySlug));
+    } catch {
+        notFound();
+    }
 
     if (!dispensary) {
         notFound();

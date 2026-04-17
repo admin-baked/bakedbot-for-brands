@@ -1990,6 +1990,23 @@
                 { "fieldPath": "orgId", "order": "ASCENDING" },
                 { "fieldPath": "generatedAt", "order": "DESCENDING" }
             ]
+        },
+        {
+            "collectionGroup": "tickets",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "errorDigest", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "customer_communications",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "channel", "order": "ASCENDING" },
+                { "fieldPath": "sentAt", "order": "ASCENDING" }
+            ]
         }
     ],
     "fieldOverrides": []
