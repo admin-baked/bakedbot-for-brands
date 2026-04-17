@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Agent board polling fix live; MRR $925 in Firestore; Marty board tools in Slack
-**Recent work (2026-04-17):** `dd4905c27` agent board onSnapshot→polling fix + MRR seed ($925) + Marty createAgentBoardTask/getAgentBoardSummary tools
+**Current Status:** 🟢 main green | Gmail admin SDK fix; inbox super-user orgId fallback; test leads cleaned
+**Recent work (2026-04-17):** `694bae769` getGmailToken→admin SDK; inbox.ts/intelligence.ts getActorOrgId super-user fallback to bakedbot_super_admin
 
 ---
 

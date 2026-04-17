@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Agent board polling (no App Check); MRR $925 live; Marty board tools in Slack | **Last update:** 2026-04-17 (`dd4905c27`)
+**Current Status:** 🟢 main green | Gmail admin SDK fix; inbox super-user orgId fallback; test leads cleaned | **Last update:** 2026-04-17 (`694bae769`)
 
 ---
 
