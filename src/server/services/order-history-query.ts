@@ -1,5 +1,3 @@
-'use server';
-
 import { logger } from '@/lib/logger';
 import { toAnalyticsDate } from '@/server/services/catalog-analytics-source';
 import type { CatalogAnalyticsScope } from '@/server/services/catalog-analytics-scope';
