@@ -39,8 +39,14 @@ type IntelligenceActor = {
     currentOrgId?: string;
 };
 
+const PLATFORM_ORG_ID = 'bakedbot_super_admin';
+
 function getActorOrgId(user: IntelligenceActor): string | null {
-    return user.currentOrgId || user.orgId || user.brandId || null;
+    const orgId = user.currentOrgId || user.orgId || user.brandId || null;
+    if (!orgId && (user.role === 'super_user' || user.role === 'super_admin')) {
+        return PLATFORM_ORG_ID;
+    }
+    return orgId;
 }
 
 function isValidOrgId(orgId: string): boolean {

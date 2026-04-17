@@ -79,12 +79,20 @@ function isSuperRole(role: unknown): boolean {
     return role === 'super_user' || role === 'super_admin';
 }
 
+const PLATFORM_ORG_ID = 'bakedbot_super_admin';
+
 function getActorOrgId(user: {
     currentOrgId?: string | null;
     orgId?: string | null;
     brandId?: string | null;
+    role?: string | null;
 }): string | null {
-    return user.currentOrgId ?? user.orgId ?? user.brandId ?? null;
+    const orgId = user.currentOrgId ?? user.orgId ?? user.brandId ?? null;
+    // Super users without impersonation context operate under the platform org
+    if (!orgId && (user.role === 'super_user' || user.role === 'super_admin')) {
+        return PLATFORM_ORG_ID;
+    }
+    return orgId;
 }
 
 function isValidOrgId(orgId: string): boolean {
