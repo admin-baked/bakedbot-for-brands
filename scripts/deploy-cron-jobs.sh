@@ -5,7 +5,7 @@
 
 set -e  # Exit on error
 
-PROJECT_ID="studio-567050101"
+PROJECT_ID="studio-567050101-bc6e8"
 LOCATION="us-central1"
 TIMEZONE="America/New_York"
 BASE_URL="https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app"
@@ -54,8 +54,7 @@ create_or_update_job() {
       --schedule="$schedule" \
       --uri="$uri" \
       --http-method=POST \
-      --headers="Content-Type=application/json" \
-      --headers="Authorization=Bearer $CRON_SECRET" \
+      --update-headers="Content-Type=application/json,Authorization=Bearer $CRON_SECRET" \
       --time-zone="$TIMEZONE" \
       --description="$description" \
       --attempt-deadline="$timeout" \
@@ -70,8 +69,7 @@ create_or_update_job() {
       --schedule="$schedule" \
       --uri="$uri" \
       --http-method=POST \
-      --headers="Content-Type=application/json" \
-      --headers="Authorization=Bearer $CRON_SECRET" \
+      --headers="Content-Type=application/json,Authorization=Bearer $CRON_SECRET" \
       --time-zone="$TIMEZONE" \
       --description="$description" \
       --attempt-deadline="$timeout" \
