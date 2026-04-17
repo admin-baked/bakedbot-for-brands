@@ -14,20 +14,23 @@ import {
     Zap,
     MapPin,
     Star,
+    ChevronRight,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
     title: 'BakedBot Agency Partner Program — AI Tools for Cannabis Agencies',
     description:
-        'BakedBot partners with marketing agencies, SEO firms, and consultants serving cannabis dispensaries. White-label AI retention, competitive intelligence, and managed campaigns for your dispensary clients. Apply to become a launch partner.',
+        'BakedBot partners with marketing agencies, SEO firms, and consultants serving cannabis dispensaries. White-label AI retention, competitive intelligence, and managed campaigns for your dispensary clients.',
     openGraph: {
         title: 'BakedBot Agency Partner Program — AI Tools for Cannabis Agencies',
-        description: 'Power your dispensary clients with BakedBot\'s AI platform. Managed retention, competitive intel, and compliance-reviewed campaigns — white-labeled under your agency brand. Launch partners: Boosted Maps SEO and POSPosse.',
+        description: 'Power your dispensary clients with BakedBot\'s AI platform. Managed retention, competitive intel, and compliance-reviewed campaigns — white-labeled under your agency brand.',
         url: 'https://agency.bakedbot.ai',
         type: 'website',
     },
     alternates: { canonical: 'https://agency.bakedbot.ai' },
 };
+
+const LOGO_URL = 'https://storage.googleapis.com/bakedbot-global-assets/Bakedbot_2024_vertical_logo-PNG%20transparent.png';
 
 const partnerBenefits = [
     { icon: Zap, title: 'AI execution under your brand', description: 'Deliver BakedBot\'s managed retention, competitive intelligence, and campaign automation as part of your agency\'s service stack — white-labeled or co-branded.' },
@@ -44,7 +47,7 @@ const launchPartners = [
         company: 'Boosted Maps SEO',
         title: 'CEO',
         location: 'New York',
-        bio: 'Jeromie Rosa is the founder and CEO of Boosted Maps SEO, one of the leading local SEO agencies serving cannabis dispensaries across the Northeast. His firm specializes in Google Business Profile optimization, local pack rankings, and dispensary-specific SEO strategy that drives foot traffic and online-to-in-store conversion. Jeromie was among the first to recognize BakedBot\'s potential as the intelligence layer behind a complete dispensary growth stack — pairing his local visibility expertise with BakedBot\'s retention and competitive intelligence capabilities.',
+        bio: 'Jeromie Rosa is the founder and CEO of Boosted Maps SEO, one of the leading local SEO agencies serving cannabis dispensaries across the Northeast. His firm specializes in Google Business Profile optimization, local pack rankings, and dispensary-specific SEO strategy that drives foot traffic and online-to-in-store conversion.',
         image: '/partners/jeromie-rosa.png',
         logo: '/partners/boosted-maps.png',
         website: 'https://boostedmaps.com',
@@ -56,7 +59,7 @@ const launchPartners = [
         company: 'POSPosse',
         title: 'Cannabis POS & Retail Operations Consultants',
         location: 'Detroit, MI · New York City',
-        bio: 'POSPosse is a cannabis retail operations consultancy born in Detroit, Michigan — one of the most competitive cannabis markets in the country. Now expanding into New York City, POSPosse specializes in POS system selection, integration, staff training, and dispensary operational efficiency. As a BakedBot launch partner, POSPosse brings the retail operations expertise that ensures the data flowing from POS to BakedBot is clean, consistent, and ready to power retention campaigns from day one.',
+        bio: 'POSPosse is a cannabis retail operations consultancy born in Detroit, Michigan — one of the most competitive cannabis markets in the country. Now expanding into New York City, POSPosse specializes in POS system selection, integration, staff training, and dispensary operational efficiency.',
         image: null,
         logo: null,
         website: null,
@@ -66,35 +69,76 @@ const launchPartners = [
 ];
 
 const steps = [
-    { step: '1', title: 'Apply', detail: 'Tell us about your agency and the dispensary clients you serve. We review every application personally.' },
-    { step: '2', title: 'Onboard', detail: 'Direct access to Martez and Jack for a 30-minute positioning session. We help you understand where BakedBot fits in your service stack.' },
-    { step: '3', title: 'Co-sell', detail: 'We support your first two client pitches with a co-selling call. You own the relationship — we provide the technical proof.' },
-    { step: '4', title: 'Earn', detail: 'Revenue share on every client account you bring on. Reported monthly, paid quarterly.' },
+    { step: '01', title: 'Apply', detail: 'Tell us about your agency and the dispensary clients you serve. We review every application personally.' },
+    { step: '02', title: 'Onboard', detail: 'Direct access to Martez and Jack for a 30-minute positioning session. We help you understand where BakedBot fits in your service stack.' },
+    { step: '03', title: 'Co-sell', detail: 'We support your first two client pitches with a co-selling call. You own the relationship — we provide the technical proof.' },
+    { step: '04', title: 'Earn', detail: 'Revenue share on every client account you bring on. Reported monthly, paid quarterly.' },
+];
+
+const stats = [
+    { value: '100%', label: 'Compliance reviewed' },
+    { value: '24/7', label: 'AI automation' },
+    { value: '$925+', label: 'MRR live today' },
+    { value: '1', label: 'Active pilot dispensary' },
 ];
 
 export default function AgencyPage() {
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-white">
+
+            {/* Nav */}
+            <nav className="border-b border-slate-200 bg-white/95 backdrop-blur-sm sticky top-0 z-50">
+                <div className="container mx-auto px-6 max-w-6xl h-16 flex items-center justify-between">
+                    <Link href="https://bakedbot.ai" className="flex items-center gap-2">
+                        <Image
+                            src={LOGO_URL}
+                            alt="BakedBot AI"
+                            width={120}
+                            height={36}
+                            className="h-8 w-auto object-contain"
+                            unoptimized
+                        />
+                        <span className="text-xs font-semibold text-slate-400 tracking-wide uppercase hidden sm:block">Agency Partners</span>
+                    </Link>
+                    <div className="flex items-center gap-3">
+                        <Link href="#partners" className="text-sm text-slate-600 hover:text-slate-900 hidden sm:block">Partners</Link>
+                        <Link href="#how-it-works" className="text-sm text-slate-600 hover:text-slate-900 hidden sm:block">How it works</Link>
+                        <Button asChild size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                            <Link href="/book">Apply now <ChevronRight className="ml-1 h-3.5 w-3.5" /></Link>
+                        </Button>
+                    </div>
+                </div>
+            </nav>
+
             {/* Hero */}
-            <section className="border-b border-border/40 bg-gradient-to-b from-slate-900 to-slate-800 text-white">
-                <div className="container mx-auto px-4 py-20 max-w-5xl">
+            <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-white">
+                <div className="container mx-auto px-6 py-24 max-w-6xl">
                     <div className="max-w-3xl">
-                        <Badge className="mb-6 bg-white/10 text-white border-white/20 hover:bg-white/20">
-                            Agency Partner Program
-                        </Badge>
-                        <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6 leading-tight">
+                        <div className="flex items-center gap-3 mb-8">
+                            <Image
+                                src={LOGO_URL}
+                                alt="BakedBot AI"
+                                width={160}
+                                height={48}
+                                className="h-10 w-auto object-contain brightness-0 invert"
+                                unoptimized
+                            />
+                            <span className="h-6 w-px bg-white/20" />
+                            <span className="text-sm font-medium text-emerald-400 tracking-wide uppercase">Agency Partner Program</span>
+                        </div>
+                        <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 leading-[1.1]">
                             Power your dispensary clients with AI that runs their retention
                         </h1>
-                        <p className="text-xl text-slate-300 leading-relaxed mb-8">
-                            BakedBot partners with marketing agencies, SEO firms, and cannabis consultants who serve dispensary operators. Add managed AI retention, competitive intelligence, and compliance-reviewed campaigns to your service stack — and earn revenue share on every client you bring on.
+                        <p className="text-lg md:text-xl text-slate-300 leading-relaxed mb-10 max-w-2xl">
+                            BakedBot partners with marketing agencies, SEO firms, and cannabis consultants. Add managed AI retention, competitive intelligence, and compliance-reviewed campaigns to your stack — and earn revenue share on every client you bring on.
                         </p>
                         <div className="flex flex-wrap gap-4">
-                            <Button asChild size="lg" className="bg-emerald-500 hover:bg-emerald-600 text-white">
+                            <Button asChild size="lg" className="bg-emerald-500 hover:bg-emerald-400 text-white font-semibold px-8">
                                 <Link href="/book">
                                     Apply to become a partner <ArrowRight className="ml-2 h-4 w-4" />
                                 </Link>
                             </Button>
-                            <Button asChild variant="outline" size="lg" className="border-white/30 text-white hover:bg-white/10">
+                            <Button asChild size="lg" variant="outline" className="border-slate-500 text-slate-200 bg-transparent hover:bg-white/10 hover:text-white hover:border-slate-400">
                                 <Link href="#partners">Meet our launch partners</Link>
                             </Button>
                         </div>
@@ -102,17 +146,36 @@ export default function AgencyPage() {
                 </div>
             </section>
 
+            {/* Stats bar */}
+            <section className="bg-emerald-600">
+                <div className="container mx-auto px-6 max-w-6xl">
+                    <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-emerald-500">
+                        {stats.map((s) => (
+                            <div key={s.label} className="py-6 px-8 text-center text-white">
+                                <div className="text-2xl md:text-3xl font-bold">{s.value}</div>
+                                <div className="text-sm text-emerald-100 mt-1">{s.label}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
             {/* Partner benefits */}
-            <section className="container mx-auto px-4 py-16 max-w-5xl">
-                <h2 className="text-2xl md:text-3xl font-bold mb-3">What you get as a BakedBot agency partner</h2>
-                <p className="text-muted-foreground mb-10">Purpose-built for agencies that serve cannabis dispensaries — not a generic reseller program.</p>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <section className="container mx-auto px-6 py-20 max-w-6xl">
+                <div className="mb-12">
+                    <Badge className="mb-4 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50">Partner benefits</Badge>
+                    <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3">What you get as a BakedBot agency partner</h2>
+                    <p className="text-slate-500 text-lg max-w-xl">Purpose-built for agencies that serve cannabis dispensaries — not a generic reseller program.</p>
+                </div>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
                     {partnerBenefits.map((b) => (
-                        <div key={b.title} className="flex gap-3">
-                            <b.icon className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+                        <div key={b.title} className="flex gap-4 p-6 rounded-xl border border-slate-100 bg-slate-50 hover:border-emerald-200 hover:bg-emerald-50/30 transition-colors">
+                            <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                                <b.icon className="h-5 w-5 text-emerald-700" />
+                            </div>
                             <div>
-                                <h3 className="font-semibold mb-1">{b.title}</h3>
-                                <p className="text-sm text-muted-foreground leading-relaxed">{b.description}</p>
+                                <h3 className="font-semibold text-slate-900 mb-1.5">{b.title}</h3>
+                                <p className="text-sm text-slate-500 leading-relaxed">{b.description}</p>
                             </div>
                         </div>
                     ))}
@@ -120,75 +183,59 @@ export default function AgencyPage() {
             </section>
 
             {/* Launch Partners */}
-            <section id="partners" className="border-t border-border/40 bg-muted/20">
-                <div className="container mx-auto px-4 py-16 max-w-5xl">
-                    <div className="text-center mb-12">
-                        <Badge variant="outline" className="mb-4">Launch partners</Badge>
-                        <h2 className="text-2xl md:text-3xl font-bold mb-3">The agencies leading the way</h2>
-                        <p className="text-muted-foreground max-w-xl mx-auto">
-                            Our launch partners were selected for their deep dispensary expertise and their commitment to delivering real, measurable outcomes for cannabis operators.
+            <section id="partners" className="bg-slate-50 border-y border-slate-200">
+                <div className="container mx-auto px-6 py-20 max-w-6xl">
+                    <div className="text-center mb-14">
+                        <Badge className="mb-4 bg-white border-slate-200 text-slate-600 hover:bg-white">Launch partners</Badge>
+                        <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3">The agencies leading the way</h2>
+                        <p className="text-slate-500 max-w-xl mx-auto text-lg">
+                            Selected for their deep dispensary expertise and commitment to delivering measurable outcomes for cannabis operators.
                         </p>
                     </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         {launchPartners.map((p) => (
-                            <Card key={p.name} className="border-border/60 overflow-hidden">
+                            <Card key={p.name} className="border-slate-200 shadow-sm overflow-hidden bg-white">
                                 <CardContent className="p-0">
-                                    {/* Partner header */}
-                                    <div className={`p-6 ${p.color === 'blue' ? 'bg-blue-50' : 'bg-purple-50'} border-b border-border/40`}>
-                                        <div className="flex items-start gap-4">
+                                    <div className={`p-7 border-b border-slate-100 ${p.color === 'blue' ? 'bg-blue-50/60' : 'bg-purple-50/60'}`}>
+                                        <div className="flex items-start gap-5">
                                             {p.image ? (
-                                                <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0">
-                                                    <Image
-                                                        src={p.image}
-                                                        alt={`${p.name} headshot`}
-                                                        width={64}
-                                                        height={64}
-                                                        className="object-cover w-full h-full"
-                                                    />
+                                                <div className="h-16 w-16 rounded-xl overflow-hidden border-2 border-white shadow-md shrink-0">
+                                                    <Image src={p.image} alt={`${p.name} headshot`} width={64} height={64} className="object-cover w-full h-full" />
                                                 </div>
                                             ) : (
-                                                <div className={`h-16 w-16 rounded-full flex items-center justify-center text-white font-bold text-xl shrink-0 ${p.color === 'purple' ? 'bg-purple-600' : 'bg-blue-600'}`}>
+                                                <div className={`h-16 w-16 rounded-xl flex items-center justify-center text-white font-bold text-2xl shrink-0 shadow-md ${p.color === 'purple' ? 'bg-purple-600' : 'bg-blue-600'}`}>
                                                     {p.company.charAt(0)}
                                                 </div>
                                             )}
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    {p.logo && (
-                                                        <Image
-                                                            src={p.logo}
-                                                            alt={`${p.company} logo`}
-                                                            width={120}
-                                                            height={32}
-                                                            className="h-7 w-auto object-contain"
-                                                        />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                    {p.logo ? (
+                                                        <Image src={p.logo} alt={`${p.company} logo`} width={130} height={34} className="h-7 w-auto object-contain" />
+                                                    ) : (
+                                                        <h3 className="font-bold text-lg text-slate-900">{p.company}</h3>
                                                     )}
-                                                    {!p.logo && (
-                                                        <h3 className="font-bold text-lg">{p.company}</h3>
-                                                    )}
-                                                    <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                                                    <span className="text-xs font-medium text-muted-foreground">Launch Partner</span>
+                                                    <span className="flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                                                        <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> Launch Partner
+                                                    </span>
                                                 </div>
-                                                <p className="text-sm font-medium mt-1">{p.name} · {p.title}</p>
-                                                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                                                    <MapPin className="h-3 w-3" />
-                                                    {p.location}
+                                                <p className="text-sm font-medium text-slate-700">{p.name} · {p.title}</p>
+                                                <div className="flex items-center gap-1 text-xs text-slate-400 mt-1">
+                                                    <MapPin className="h-3 w-3" /> {p.location}
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Partner body */}
-                                    <div className="p-6">
-                                        <p className="text-sm text-muted-foreground leading-relaxed mb-4">{p.bio}</p>
-                                        <div className="flex flex-wrap gap-1.5 mb-4">
+                                    <div className="p-7">
+                                        <p className="text-sm text-slate-600 leading-relaxed mb-5">{p.bio}</p>
+                                        <div className="flex flex-wrap gap-1.5 mb-5">
                                             {p.specialty.split(' · ').map((s) => (
-                                                <Badge key={s} variant="outline" className="text-xs">{s}</Badge>
+                                                <span key={s} className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full border border-slate-200">{s}</span>
                                             ))}
                                         </div>
                                         {p.website && (
-                                            <Button asChild variant="outline" size="sm">
+                                            <Button asChild variant="outline" size="sm" className="border-slate-300 text-slate-700 hover:bg-slate-50">
                                                 <a href={p.website} target="_blank" rel="noopener noreferrer">
-                                                    Visit {p.company} <ArrowRight className="ml-1 h-3 w-3" />
+                                                    Visit {p.company} <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                                                 </a>
                                             </Button>
                                         )}
@@ -201,55 +248,80 @@ export default function AgencyPage() {
             </section>
 
             {/* How it works */}
-            <section className="container mx-auto px-4 py-16 max-w-4xl">
-                <h2 className="text-2xl font-bold mb-10 text-center">How the partner program works</h2>
+            <section id="how-it-works" className="container mx-auto px-6 py-20 max-w-6xl">
+                <div className="text-center mb-14">
+                    <Badge className="mb-4 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50">Process</Badge>
+                    <h2 className="text-3xl md:text-4xl font-bold text-slate-900">How the partner program works</h2>
+                </div>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {steps.map((s) => (
-                        <div key={s.step} className="text-center">
-                            <div className="h-10 w-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-lg mx-auto mb-3">{s.step}</div>
-                            <h3 className="font-semibold mb-1">{s.title}</h3>
-                            <p className="text-sm text-muted-foreground leading-relaxed">{s.detail}</p>
+                    {steps.map((s, i) => (
+                        <div key={s.step} className="relative">
+                            {i < steps.length - 1 && (
+                                <div className="hidden lg:block absolute top-8 left-full w-full h-px bg-slate-200 z-0" style={{ width: 'calc(100% - 2rem)', left: '3rem' }} />
+                            )}
+                            <div className="relative z-10">
+                                <div className="h-14 w-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg mb-5 shadow-lg shadow-emerald-200">{s.step}</div>
+                                <h3 className="font-bold text-slate-900 text-lg mb-2">{s.title}</h3>
+                                <p className="text-sm text-slate-500 leading-relaxed">{s.detail}</p>
+                            </div>
                         </div>
                     ))}
                 </div>
             </section>
 
             {/* Who should apply */}
-            <section className="border-t border-border/40 bg-muted/20">
-                <div className="container mx-auto px-4 py-12 max-w-4xl">
-                    <h2 className="text-xl font-bold mb-6 text-center">Who the partner program is for</h2>
-                    <div className="grid sm:grid-cols-3 gap-4 text-center">
+            <section className="bg-slate-50 border-y border-slate-200">
+                <div className="container mx-auto px-6 py-16 max-w-6xl">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-8 text-center">Who the partner program is for</h2>
+                    <div className="grid sm:grid-cols-3 gap-5">
                         {[
-                            { title: 'Cannabis SEO agencies', desc: 'You drive traffic. BakedBot converts and retains it. The combination is the complete growth stack.' },
-                            { title: 'POS + operations consultants', desc: 'You get operators set up. BakedBot runs the intelligence layer on top of what you installed.' },
-                            { title: 'Cannabis marketing agencies', desc: 'You handle campaigns. BakedBot provides the compliance review, segmentation, and attribution your clients need.' },
+                            { title: 'Cannabis SEO agencies', desc: 'You drive traffic. BakedBot converts and retains it. The combination is the complete dispensary growth stack.', icon: '🔍' },
+                            { title: 'POS + operations consultants', desc: 'You get operators set up. BakedBot runs the intelligence layer on top of what you installed.', icon: '🖥️' },
+                            { title: 'Cannabis marketing agencies', desc: 'You handle campaigns. BakedBot provides the compliance review, segmentation, and attribution your clients need.', icon: '📈' },
                         ].map((item) => (
-                            <Card key={item.title} className="border-border/60">
-                                <CardContent className="p-4">
-                                    <h3 className="font-semibold text-sm mb-2">{item.title}</h3>
-                                    <p className="text-xs text-muted-foreground">{item.desc}</p>
-                                </CardContent>
-                            </Card>
+                            <div key={item.title} className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all">
+                                <div className="text-3xl mb-3">{item.icon}</div>
+                                <h3 className="font-bold text-slate-900 mb-2">{item.title}</h3>
+                                <p className="text-sm text-slate-500 leading-relaxed">{item.desc}</p>
+                            </div>
                         ))}
                     </div>
                 </div>
             </section>
 
             {/* CTA */}
-            <section className="container mx-auto px-4 py-16 max-w-3xl text-center">
-                <h2 className="text-2xl font-bold mb-4">Apply to become a launch partner</h2>
-                <p className="text-muted-foreground mb-8">
-                    We&#39;re accepting a limited number of agency partners in the NY market before expanding nationally. Applications reviewed personally by Martez.
-                </p>
-                <Button asChild size="lg" className="bg-emerald-600 hover:bg-emerald-700">
-                    <Link href="/book">
-                        Apply now <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                </Button>
-                <p className="text-xs text-muted-foreground mt-4">
-                    Questions? Email <a href="mailto:martez@bakedbot.ai" className="underline">martez@bakedbot.ai</a>
-                </p>
+            <section className="bg-gradient-to-br from-slate-900 to-emerald-950 text-white">
+                <div className="container mx-auto px-6 py-24 max-w-4xl text-center">
+                    <Image src={LOGO_URL} alt="BakedBot AI" width={140} height={42} className="h-10 w-auto object-contain brightness-0 invert mx-auto mb-8" unoptimized />
+                    <h2 className="text-3xl md:text-4xl font-bold mb-5">Apply to become a launch partner</h2>
+                    <p className="text-slate-300 text-lg mb-10 max-w-xl mx-auto">
+                        We&#39;re accepting a limited number of agency partners in the NY market before expanding nationally. Applications reviewed personally by Martez.
+                    </p>
+                    <Button asChild size="lg" className="bg-emerald-500 hover:bg-emerald-400 text-white font-semibold px-10 py-6 text-base">
+                        <Link href="/book">
+                            Apply now <ArrowRight className="ml-2 h-5 w-5" />
+                        </Link>
+                    </Button>
+                    <p className="text-sm text-slate-400 mt-6">
+                        Questions? Email <a href="mailto:martez@bakedbot.ai" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">martez@bakedbot.ai</a>
+                    </p>
+                </div>
             </section>
+
+            {/* Footer */}
+            <footer className="border-t border-slate-800 bg-slate-900 text-slate-400">
+                <div className="container mx-auto px-6 py-8 max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                        <Image src={LOGO_URL} alt="BakedBot AI" width={100} height={30} className="h-6 w-auto object-contain brightness-0 invert opacity-60" unoptimized />
+                        <span className="text-xs">© 2026 BakedBot AI</span>
+                    </div>
+                    <div className="flex items-center gap-6 text-xs">
+                        <Link href="https://bakedbot.ai" className="hover:text-white transition-colors">bakedbot.ai</Link>
+                        <Link href="/book" className="hover:text-white transition-colors">Apply</Link>
+                        <a href="mailto:martez@bakedbot.ai" className="hover:text-white transition-colors">Contact</a>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 }
