@@ -758,6 +758,8 @@ const MARTY_SLACK_TOOLS = [
     { name: 'getActivePlaybooks', description: 'List all active playbooks and their status.', input_schema: { type: 'object' as const, properties: {} } },
     { name: 'generateWeeklyCeoMemo', description: 'Generate the current weekly CEO memo using Marty’s five-section format and scoreboard.', input_schema: { type: 'object' as const, properties: {} } },
     { name: 'executeSuperPower', description: 'Run a BakedBot super power script.', input_schema: { type: 'object' as const, properties: { script: { type: 'string' }, options: { type: 'string' } }, required: ['script'] } },
+    { name: 'createAgentBoardTask', description: 'Create a task on the agent board (Firestore agent_tasks) and assign it to a specific agent. Use this to spawn sub-agent work, delegate GTM tasks, or queue revenue-critical actions. The task appears immediately on /dashboard/admin/agent-board.', input_schema: { type: 'object' as const, properties: { title: { type: 'string', description: 'Short task title, format: [AgentName] What needs to happen' }, body: { type: 'string', description: 'Full task description in markdown — context, acceptance criteria, KPIs' }, assignedTo: { type: 'string', description: 'Agent ID: marty | leo | jack | glenda | linus | dayday | craig | pops | ezal | mrs_parker | deebo | mike' }, priority: { type: 'string', enum: ['critical', 'high', 'normal', 'low'], description: 'Task priority — use critical for revenue-blocking work' }, category: { type: 'string', enum: ['bug', 'feature', 'refactor', 'performance', 'security', 'compliance', 'infra', 'data', 'agent_quality', 'other'], description: 'Task category' } }, required: ['title', 'body', 'assignedTo'] } },
+    { name: 'getAgentBoardSummary', description: 'Get the current agent board state — open tasks by agent, in-progress tasks, and revenue gap summary. Use this before spawning tasks to avoid duplicates and to understand what the team is already working on.', input_schema: { type: 'object' as const, properties: {} } },
     { name: 'marty_dream', description: 'Run a Dream session — introspect on CEO-level performance (telemetry, feedback, learning deltas, Letta memory), generate improvement hypotheses, test them, and report results. Use this to self-improve or when asked to reflect.', input_schema: { type: 'object' as const, properties: { model: { type: 'string', description: 'AI model for dream: glm, gemini-flash, haiku, sonnet (default: glm)' } } } },
     { name: 'letta_save_fact', description: 'Save an important insight or decision to long-term CEO memory (Letta Hive Mind).', input_schema: { type: 'object' as const, properties: { fact: { type: 'string', description: 'The fact or insight to remember' }, category: { type: 'string', description: 'Category: strategy, revenue, team, customer, decision' } }, required: ['fact'] } },
     { name: 'letta_search_memory', description: 'Search CEO long-term memory for past decisions, strategies, or insights.', input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to search for' } }, required: ['query'] } },
@@ -1095,6 +1097,43 @@ async function martyToolExecutor(
         case 'executeSuperPower': {
             const { defaultExecutiveBoardTools } = await import('@/app/dashboard/ceo/agents/default-tools');
             return await (defaultExecutiveBoardTools as any).executeSuperPower(args.script, args.options);
+        }
+        case 'createAgentBoardTask': {
+            const { createTaskInternal } = await import('@/server/actions/agent-tasks');
+            const result = await createTaskInternal({
+                title: args.title as string,
+                body: args.body as string,
+                assignedTo: args.assignedTo as string,
+                priority: (args.priority as 'critical' | 'high' | 'normal' | 'low') ?? 'normal',
+                category: (args.category as 'bug' | 'feature' | 'refactor' | 'performance' | 'security' | 'compliance' | 'infra' | 'data' | 'agent_quality' | 'other') ?? 'other',
+                reportedBy: 'marty',
+                triggeredBy: 'agent',
+            });
+            return {
+                ...result,
+                boardUrl: 'https://bakedbot.ai/dashboard/admin/agent-board',
+                message: result.success
+                    ? `Task created (${result.taskId}) and assigned to ${args.assignedTo}. Visible on the agent board.`
+                    : `Failed to create task: ${result.error}`,
+            };
+        }
+        case 'getAgentBoardSummary': {
+            const { getAgentBoardTasks } = await import('@/server/actions/agent-tasks');
+            const board = await getAgentBoardTasks();
+            if (!board.success) return { error: board.error };
+
+            const summarizeColumn = (tasks: import('@/types/agent-task').AgentTask[]) =>
+                tasks.map(t => ({ id: t.id, title: t.title, assignedTo: t.assignedTo, priority: t.priority }));
+
+            return {
+                total: board.total,
+                queued: summarizeColumn(board.columns.gray),
+                running: summarizeColumn(board.columns.yellow),
+                escalated: summarizeColumn(board.columns.orange),
+                completed_recent: summarizeColumn(board.columns.green).slice(0, 5),
+                failed: summarizeColumn(board.columns.red),
+                boardUrl: 'https://bakedbot.ai/dashboard/admin/agent-board',
+            };
         }
         case 'marty_dream': {
             const { runDreamSession, notifyDreamReview, isDreamModel } = await import('@/server/services/letta/dream-loop');
@@ -2579,6 +2618,10 @@ function buildMartyProgressMessage(toolName: string, input: Record<string, unkno
             return '_Marty Benjamins is pulling CRM stats and MRR..._';
         case 'executeSuperPower':
             return `_Marty Benjamins is running super power: \`${String(input.script ?? '').slice(0, 40)}\`..._`;
+        case 'createAgentBoardTask':
+            return `_Marty Benjamins is creating a task for ${String(input.assignedTo ?? 'the team')} on the agent board..._`;
+        case 'getAgentBoardSummary':
+            return '_Marty Benjamins is reviewing the agent board — open tasks, blockers, revenue gaps..._';
         case 'marty_dream':
             return '_Marty Benjamins is dreaming — introspecting, hypothesizing, testing..._';
         case 'letta_save_fact':

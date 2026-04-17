@@ -327,15 +327,14 @@ export async function getAgentBoardTasks(): Promise<{
     try {
         const db = getAdminFirestore();
         // Active tasks — all non-terminal + recent terminal
+        // Note: no orderBy to avoid requiring composite index; sorted in-memory below
         const [active, recent] = await Promise.all([
             db.collection(COLLECTION)
                 .where('status', 'in', ['open', 'claimed', 'in_progress', 'escalated'])
-                .orderBy('createdAt', 'desc')
                 .limit(100)
                 .get(),
             db.collection(COLLECTION)
                 .where('status', 'in', ['done', 'wont_fix'])
-                .orderBy('updatedAt', 'desc')
                 .limit(30)
                 .get(),
         ]);
@@ -353,6 +352,13 @@ export async function getAgentBoardTasks(): Promise<{
 
         active.docs.forEach(pushTask);
         recent.docs.forEach(pushTask);
+
+        // Sort each column by createdAt desc in-memory
+        const byCreatedDesc = (a: AgentTask, b: AgentTask) =>
+            (b.createdAt ?? '').localeCompare(a.createdAt ?? '');
+        for (const col of Object.keys(columns) as (keyof typeof columns)[]) {
+            columns[col].sort(byCreatedDesc);
+        }
 
         return { success: true, columns, total: active.size + recent.size };
     } catch (err) {
