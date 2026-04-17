@@ -10,11 +10,11 @@ import {
   generateBlogDraft,
   runComplianceCheck,
 } from '../blog';
-import { requireUser } from '@/lib/auth-helpers';
+import { requireUser } from '@/server/auth/auth';
 import { createServerClient } from '@/firebase/server-client';
 import { generateBlogDraft as generateDraftService } from '@/server/services/blog-generator';
 
-jest.mock('@/lib/auth-helpers', () => ({
+jest.mock('@/server/auth/auth', () => ({
   requireUser: jest.fn(),
 }));
 

@@ -23,6 +23,10 @@ import {
 } from '@/types/blog';
 import { Timestamp } from '@google-cloud/firestore';
 import { requireUser } from '@/server/auth/auth';
+import {
+    isSuperRole,
+    resolveActorOrgId,
+} from '@/server/auth/actor-context';
 import { logger } from '@/lib/logger';
 import { getRuntimeErrorMessage, isFirestoreUnavailableError, isProductionBuildPhase } from '@/lib/firestore-runtime';
 import { generateBlogDraft as generateDraft, BlogGeneratorInput } from '@/server/services/blog-generator';
@@ -65,25 +69,12 @@ const SEO_SLUG_REGEX = /^[a-z0-9_-]{1,120}$/;
 
 type AuthenticatedUser = Awaited<ReturnType<typeof requireUser>>;
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
-function getActorOrgId(user: AuthenticatedUser): string | null {
-    const claims = user as {
-        orgId?: string;
-        currentOrgId?: string;
-        brandId?: string;
-    };
-    return claims.orgId || claims.currentOrgId || claims.brandId || null;
-}
-
 function assertOrgAccess(user: AuthenticatedUser, orgId: string): void {
     if (isSuperRole(user.role)) {
         return;
     }
 
-    const actorOrgId = getActorOrgId(user);
+    const actorOrgId = resolveActorOrgId(user);
     if (!actorOrgId || actorOrgId !== orgId) {
         throw new Error('Unauthorized');
     }

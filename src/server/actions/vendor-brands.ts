@@ -1,6 +1,11 @@
 'use server';
 
 import { requireUser } from '@/server/auth/auth';
+import {
+  type ActorContextLike,
+  isValidDocumentId,
+  requireActorOrgId,
+} from '@/server/auth/actor-context';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getBrandGuideExtractor } from '@/server/services/brand-guide-extractor';
 import { logger } from '@/lib/logger';
@@ -8,11 +13,8 @@ import type { VendorBrand, VendorBrandContext } from '@/types/vendor-brands';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-type VendorBrandActor = {
+type VendorBrandActor = ActorContextLike & {
   uid: string;
-  orgId?: string;
-  currentOrgId?: string;
-  brandId?: string;
 };
 
 const VENDOR_BRAND_ROLES = [
@@ -24,24 +26,12 @@ const VENDOR_BRAND_ROLES = [
   'super_admin',
 ] as const;
 
-function getOrgId(user: VendorBrandActor): string | null {
-  return user.currentOrgId || user.orgId || user.brandId || null;
-}
-
-function isValidOrgId(orgId: string): boolean {
-  return !!orgId && !orgId.includes('/');
-}
-
-function isValidDocumentId(id: string): boolean {
-  return !!id && !id.includes('/');
-}
-
 function requireOrgId(user: VendorBrandActor, action: string): string {
-  const orgId = getOrgId(user);
-  if (!orgId || !isValidOrgId(orgId)) {
+  try {
+    return requireActorOrgId(user, action);
+  } catch {
     throw new Error(`Missing organization context for ${action}`);
   }
-  return orgId;
 }
 
 function normalizeUrl(input: string): string {

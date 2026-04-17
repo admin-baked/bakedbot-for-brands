@@ -2,12 +2,13 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
+import {
+    isSuperRole,
+    isValidOrgId,
+    resolveActorOrgId,
+} from '@/server/auth/actor-context';
 import { ActivityEvent, UsageSummary } from '@/types/events';
 import { FieldValue } from 'firebase-admin/firestore';
-
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
 
 function getActorOrgId(user: unknown): string | null {
     if (!user || typeof user !== 'object') return null;
@@ -20,9 +21,7 @@ function getActorOrgId(user: unknown): string | null {
         organizationId?: string;
     };
     return (
-        token.currentOrgId ||
-        token.orgId ||
-        token.brandId ||
+        resolveActorOrgId(token) ||
         token.dispensaryId ||
         token.tenantId ||
         token.organizationId ||
@@ -39,7 +38,7 @@ function getUserUid(user: unknown): string {
 }
 
 function validateOrgId(orgId: string): void {
-    if (!orgId || orgId.includes('/')) {
+    if (!isValidOrgId(orgId)) {
         throw new Error('Invalid orgId');
     }
 }

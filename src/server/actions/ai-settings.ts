@@ -9,6 +9,12 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isSuperRole as isCanonicalSuperRole,
+    isValidDocumentId,
+    resolveActorOrgId,
+} from '@/server/auth/actor-context';
 import { logger } from '@/lib/logger';
 import {
     TenantAISettings,
@@ -21,9 +27,9 @@ import {
 
 function isSuperRole(role: unknown): boolean {
     if (Array.isArray(role)) {
-        return role.includes('super_user') || role.includes('super_admin');
+        return role.some((value) => isCanonicalSuperRole(value));
     }
-    return role === 'super_user' || role === 'super_admin';
+    return isCanonicalSuperRole(role);
 }
 
 function canManageTenantSettings(role: unknown): boolean {
@@ -43,20 +49,10 @@ function canManageTenantSettings(role: unknown): boolean {
     ].includes(role);
 }
 
-function isValidDocId(id: string): boolean {
-    return !!id && !id.includes('/');
-}
-
 function getActorOrgId(session: unknown): string | null {
     if (!session || typeof session !== 'object') return null;
-    const token = session as {
-        uid?: string;
-        currentOrgId?: string;
-        orgId?: string;
-        brandId?: string;
-    };
-    const candidate = token.currentOrgId || token.orgId || token.brandId || null;
-    if (!candidate || !isValidDocId(candidate)) return null;
+    const candidate = resolveActorOrgId(session as ActorContextLike);
+    if (!candidate || !isValidDocumentId(candidate)) return null;
     return candidate;
 }
 
@@ -70,7 +66,7 @@ function getActorOrgId(session: unknown): string | null {
 export async function getTenantAISettings(tenantId: string): Promise<TenantAISettings> {
     try {
         const normalizedTenantId = tenantId.trim();
-        if (!isValidDocId(normalizedTenantId)) {
+        if (!isValidDocumentId(normalizedTenantId)) {
             return DEFAULT_TENANT_AI_SETTINGS;
         }
 
@@ -124,7 +120,7 @@ export async function saveTenantAISettings(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const normalizedTenantId = tenantId.trim();
-        if (!isValidDocId(normalizedTenantId)) {
+        if (!isValidDocumentId(normalizedTenantId)) {
             return { success: false, error: 'Invalid tenant id' };
         }
 
@@ -191,7 +187,7 @@ export async function saveTenantAISettings(
 export async function getUserAISettings(userId: string): Promise<UserAISettings> {
     try {
         const normalizedUserId = userId.trim();
-        if (!isValidDocId(normalizedUserId)) {
+        if (!isValidDocumentId(normalizedUserId)) {
             return DEFAULT_USER_AI_SETTINGS;
         }
 
@@ -305,10 +301,10 @@ export async function loadAISettingsForAgent(
         const actorOrgId = getActorOrgId(session);
         const normalizedTenantId = tenantId?.trim();
         const normalizedUserId = userId?.trim();
-        const validTenantId = normalizedTenantId && isValidDocId(normalizedTenantId)
+        const validTenantId = normalizedTenantId && isValidDocumentId(normalizedTenantId)
             ? normalizedTenantId
             : undefined;
-        const validUserId = normalizedUserId && isValidDocId(normalizedUserId)
+        const validUserId = normalizedUserId && isValidDocumentId(normalizedUserId)
             ? normalizedUserId
             : undefined;
 
@@ -356,7 +352,7 @@ export async function getMyTenantAISettings(): Promise<TenantAISettings | null> 
 
     const tenantId = userData?.currentOrgId || userData?.orgId || userData?.brandId;
 
-    if (!tenantId || !isValidDocId(tenantId)) {
+    if (!tenantId || !isValidDocumentId(tenantId)) {
         return null;
     }
 

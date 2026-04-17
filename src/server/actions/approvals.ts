@@ -2,22 +2,20 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
+import {
+    isSuperRole,
+    resolveActorOrgId,
+} from '@/server/auth/actor-context';
 import { ApprovalRequest } from '@/types/agent-toolkit';
 import { requireUser } from '@/server/auth/auth';
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
 function getActorOrgId(user: unknown): string | null {
     if (!user || typeof user !== 'object') return null;
-    const token = user as {
-        uid?: string;
+    return resolveActorOrgId(user as {
         currentOrgId?: string;
         orgId?: string;
         brandId?: string;
-    };
-    return token.currentOrgId || token.orgId || token.brandId || token.uid || null;
+    });
 }
 
 function validatePathSegment(value: string, fieldName: string): void {
@@ -33,7 +31,7 @@ export async function getPendingApprovals(tenantId: string): Promise<ApprovalReq
     const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
     const isSuperUser = isSuperRole(role);
 
-    if (!isSuperUser && actorOrgId && actorOrgId !== tenantId) {
+    if (!isSuperUser && actorOrgId !== tenantId) {
         throw new Error('Unauthorized');
     }
 
@@ -56,7 +54,7 @@ export async function approveRequest(tenantId: string, requestId: string, approv
     const actorOrgId = getActorOrgId(user);
     const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
     const isSuperUser = isSuperRole(role);
-    if (!isSuperUser && actorOrgId && actorOrgId !== tenantId) {
+    if (!isSuperUser && actorOrgId !== tenantId) {
         throw new Error('Unauthorized');
     }
 
