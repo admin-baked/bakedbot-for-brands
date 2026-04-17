@@ -423,6 +423,11 @@ env:
     secret: SLACK_ELROY_SIGNING_SECRET@1
     availability:
       - RUNTIME
+  # Gmail reply-check: Firebase UID of martez@bakedbot.ai — reads Gmail token from Firestore
+  - variable: MARTY_SUPER_USER_ID
+    value: "GrRRe2YR4zY0MT0PEfMPrPCsR5A3"
+    availability:
+      - RUNTIME
   - variable: SLACK_MARTY_APP_ID
     secret: SLACK_MARTY_APP_ID@1
     availability:

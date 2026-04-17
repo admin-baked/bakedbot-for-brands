@@ -1,4 +1,5 @@
 import { createServerClient } from '@/firebase/server-client';
+import { getAdminFirestore } from '@/firebase/admin';
 import { encrypt, decrypt } from '@/server/utils/encryption';
 import { logger } from '@/lib/logger';
 import { Credentials } from 'google-auth-library';
@@ -50,7 +51,7 @@ export async function saveGmailToken(userId: string, tokens: Credentials) {
 }
 
 export async function getGmailToken(userId: string): Promise<Credentials | null> {
-    const { firestore } = await createServerClient();
+    const firestore = getAdminFirestore();
     const doc = await firestore.collection('users').doc(userId).collection('integrations').doc('gmail').get();
 
     if (!doc.exists) return null;
