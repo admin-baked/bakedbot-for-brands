@@ -3,13 +3,14 @@
 /**
  * Register Linus Autonomous Cron Jobs
  *
- * Creates/updates 6 Cloud Scheduler jobs for Linus proactive intelligence:
+ * Creates/updates 7 Cloud Scheduler jobs for Linus proactive intelligence:
  *   - deploy-watchdog          every 20 min
  *   - linus-backlog-brief      Mon 8 AM EST
  *   - linus-sleep              daily 2 AM EST
  *   - customer-health-alert    daily 9 AM EST
  *   - linus-weekly-report      Mon 9 AM EST
  *   - competitive-intel-all-orgs  Wed 7 AM EST
+ *   - bug-hunter               every 30 min
  *
  * Usage:
  *   CRON_SECRET=xxx node scripts/register-linus-autonomous-crons.mjs
@@ -67,6 +68,13 @@ const JOBS = [
     timezone: 'UTC',
     endpoint: '/api/cron/competitive-intel-all-orgs',
     description: 'Ezal competitive intel sweep across all orgs (Wed 7 AM EST)',
+  },
+  {
+    name: 'bug-hunter',
+    schedule: '*/30 * * * *',
+    timezone: 'UTC',
+    endpoint: '/api/cron/bug-hunter',
+    description: 'Codebase bug scan — files tasks for Linus every 30 min',
   },
 ];
 
