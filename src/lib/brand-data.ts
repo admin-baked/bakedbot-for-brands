@@ -347,7 +347,7 @@ export async function fetchBrandPageData(brandParam: string) {
                     name: 'Ecstatic Edibles',
                     slug: 'brand_ecstatic_edibles',
                     description: 'Premium gummies crafted for joy. (Mock Data)',
-                    logoUrl: 'https://storage.googleapis.com/bakedbot-global-assets/ecstatic-logo.png', // Fallback or placeholder
+                    logoUrl: 'https://storage.googleapis.com/bakedbot-global-assets/brands/brand_ecstatic_edibles/logo/ecstatic_logo.png',
                     verificationStatus: 'verified',
                     claimStatus: 'claimed',
                     type: 'brand',

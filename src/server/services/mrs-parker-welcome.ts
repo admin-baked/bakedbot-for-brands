@@ -128,7 +128,7 @@ function buildEcstaticEdiblesWelcomeEmail(context: {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bakedbot.ai';
     const brandUrl = `${appUrl}/ecstaticedibles`;
     
-    const logoUrl = 'https://storage.googleapis.com/bakedbot-global-assets/ecstatic-logo.png';
+    const logoUrl = 'https://storage.googleapis.com/bakedbot-global-assets/brands/brand_ecstatic_edibles/logo/ecstatic_logo.png';
     const primaryColor = '#e11d48'; // Ecstatic Red
     
     const subject = '🍪 Welcome to the Ecstatic Family! (Something special is coming...)';
@@ -147,7 +147,7 @@ function buildEcstaticEdiblesWelcomeEmail(context: {
                 <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 10px 30px rgba(225,29,72,0.1);">
                     <tr>
                         <td style="padding:40px;text-align:center;background:linear-gradient(135deg,#e11d48 0%,#be123c 100%);">
-                            <img src="${logoUrl}" alt="Ecstatic Edibles" width="120" style="margin-bottom:20px;filter:brightness(0) invert(1);">
+                            <img src="${logoUrl}" alt="Ecstatic Edibles" width="200" style="margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;">
                             <h1 style="margin:0;font-size:32px;color:#ffffff;letter-spacing:-0.02em;">Welcome, Honey! 🍪</h1>
                             <p style="margin:12px 0 0;font-size:16px;color:rgba(255,255,255,0.9);font-weight:500;">From Los Angeles with Love • Founded by Melanie Comarcho</p>
                         </td>
@@ -270,7 +270,7 @@ export async function sendWelcomeEmail(context: WelcomeEmailContext): Promise<{ 
             subject = thriveWelcome.subject;
             htmlBody = thriveWelcome.htmlBody;
             textBody = thriveWelcome.textBody;
-            fromName = 'Thrive Syracuse';
+            fromName = 'Thrive Cannabis Marketplace';
             fromEmail = undefined; // Resolved by dispatcher via orgId
         } else if (isEcstaticEdiblesWelcome(context)) {
             const ecstaticWelcome = buildEcstaticEdiblesWelcomeEmail({
