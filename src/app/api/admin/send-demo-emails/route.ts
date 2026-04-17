@@ -13,8 +13,9 @@ export const dynamic = 'force-dynamic';
 
 const TO = 'martez@bakedbot.ai';
 const THRIVE_LOGO = 'https://storage.googleapis.com/bakedbot-global-assets/logos/org_thrive_syracuse/thrive-logo.svg';
-const THRIVE_GREEN = '#0A803A';
-const THRIVE_LIGHT = '#4ade80';
+const THRIVE_TEAL = '#1CC0DD';
+const THRIVE_DARK = '#0169A1';
+const THRIVE_GOLD = '#FEBF10';
 
 const b2bHtml = `<!DOCTYPE html>
 <html>
@@ -58,35 +59,35 @@ const b2bHtml = `<!DOCTYPE html>
 const thriveHtml = `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#f2f9f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;background:#f2f9f4;">
+<body style="margin:0;padding:0;background:#f0fbfd;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;background:#f0fbfd;">
     <tr><td align="center">
-      <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(10,128,58,0.1);">
-        <tr><td style="padding:28px 40px 24px;background:${THRIVE_GREEN};text-align:center;">
+      <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(28,192,221,0.15);">
+        <tr><td style="padding:28px 40px 24px;background:${THRIVE_DARK};text-align:center;">
           <img src="${THRIVE_LOGO}" alt="Thrive Cannabis Marketplace" height="44" style="display:block;margin:0 auto 12px;">
-          <p style="margin:0;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${THRIVE_LIGHT};font-weight:600;">VIP Rewards</p>
+          <p style="margin:0;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${THRIVE_GOLD};font-weight:600;">VIP Rewards</p>
         </td></tr>
-        <tr><td style="height:4px;background:linear-gradient(90deg,${THRIVE_GREEN},${THRIVE_LIGHT},${THRIVE_GREEN});"></td></tr>
+        <tr><td style="height:4px;background:linear-gradient(90deg,${THRIVE_TEAL},${THRIVE_GOLD},${THRIVE_TEAL});"></td></tr>
         <tr><td style="padding:40px;">
-          <h2 style="margin:0 0 16px;font-size:22px;color:#0d2b13;line-height:1.3;">Great seeing you today, Alex!</h2>
+          <h2 style="margin:0 0 16px;font-size:22px;color:#0169A1;line-height:1.3;">Great seeing you today, Alex!</h2>
           <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">Thanks for stopping by. Jamie was on duty today — ask for them next time and they'll have your favorites pulled up before you walk in.</p>
-          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#f2f9f4;border-radius:10px;border-left:4px solid ${THRIVE_GREEN};">
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#f0fbfd;border-radius:10px;border-left:4px solid ${THRIVE_TEAL};">
             <tr><td style="padding:18px 22px;">
-              <p style="margin:0;font-size:15px;color:#0d2b13;line-height:1.6;">🎁 <strong>You now have 340 VIP points</strong> — 60 away from your next $5 reward.<br><span style="font-size:13px;color:#555;">1 point per $1 spent · 100 points = $5 off</span></p>
+              <p style="margin:0;font-size:15px;color:#0169A1;line-height:1.6;">🎁 <strong>You now have 340 VIP points</strong> — 60 away from your next $5 reward.<br><span style="font-size:13px;color:#555;">1 point per $1 spent · 100 points = $5 off</span></p>
             </td></tr>
           </table>
           <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#333;">How was your experience today? A quick rating helps our team keep improving — takes 5 seconds.</p>
           <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
-            <tr><td style="background:${THRIVE_GREEN};border-radius:8px;padding:14px 32px;">
+            <tr><td style="background:${THRIVE_TEAL};border-radius:8px;padding:14px 32px;">
               <a href="https://bakedbot.ai/thrivesyracuse?review=1" style="color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">Rate Your Visit ⭐</a>
             </td></tr>
           </table>
           <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#555;">Coming back soon? Pre-check in from your phone and skip the wait.</p>
-          <p style="margin:0;font-size:14px;"><a href="https://bakedbot.ai/loyalty-tablet?orgId=org_thrive_syracuse" style="color:${THRIVE_GREEN};font-weight:600;text-decoration:none;">Pre-Check In →</a></p>
+          <p style="margin:0;font-size:14px;"><a href="https://bakedbot.ai/loyalty-tablet?orgId=org_thrive_syracuse" style="color:${THRIVE_TEAL};font-weight:600;text-decoration:none;">Pre-Check In →</a></p>
         </td></tr>
-        <tr><td style="padding:20px 40px;background:#f2f9f4;border-top:1px solid #d1f0dc;">
+        <tr><td style="padding:20px 40px;background:#f0fbfd;border-top:1px solid #b2e8f2;">
           <p style="margin:0 0 4px;font-size:12px;color:#666;text-align:center;"><strong>Thrive Cannabis Marketplace</strong><br>3065 Erie Blvd E, Syracuse, NY 13224 · Mon–Sat 10:30 AM–8 PM · Sun 11 AM–6 PM</p>
-          <p style="margin:8px 0 0;font-size:11px;color:#aaa;text-align:center;"><a href="https://bakedbot.ai/unsubscribe" style="color:${THRIVE_GREEN};">Unsubscribe</a> · <a href="https://bakedbot.ai/privacy" style="color:${THRIVE_GREEN};">Privacy</a></p>
+          <p style="margin:8px 0 0;font-size:11px;color:#aaa;text-align:center;"><a href="https://bakedbot.ai/unsubscribe" style="color:${THRIVE_TEAL};">Unsubscribe</a> · <a href="https://bakedbot.ai/privacy" style="color:${THRIVE_TEAL};">Privacy</a></p>
         </td></tr>
       </table>
     </td></tr>

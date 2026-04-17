@@ -56,12 +56,12 @@ export async function sendReturningCustomerEmail(
 
         const thriveHeader = isThrive ? `
                     <tr>
-                        <td style="padding:28px 40px 24px;background:#0A803A;text-align:center;">
+                        <td style="padding:28px 40px 24px;background:#0169A1;text-align:center;">
                             <img src="https://storage.googleapis.com/bakedbot-global-assets/logos/org_thrive_syracuse/thrive-logo.svg" alt="Thrive Cannabis Marketplace" height="44" style="display:block;margin:0 auto 12px;">
-                            <p style="margin:0;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#4ade80;font-weight:600;">VIP Rewards</p>
+                            <p style="margin:0;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#FEBF10;font-weight:600;">VIP Rewards</p>
                         </td>
                     </tr>
-                    <tr><td style="height:4px;background:linear-gradient(90deg,#0A803A,#4ade80,#0A803A);"></td></tr>` : `
+                    <tr><td style="height:4px;background:linear-gradient(90deg,#1CC0DD,#FEBF10,#1CC0DD);"></td></tr>` : `
                     <tr>
                         <td style="padding:36px 36px 24px;background:linear-gradient(135deg,#1d7d4d 0%,#74d693 100%);color:#ffffff;">
                             <p style="margin:0 0 8px;font-size:13px;letter-spacing:0.18em;text-transform:uppercase;">${brandName}</p>
@@ -70,9 +70,9 @@ export async function sendReturningCustomerEmail(
                     </tr>`;
         const thriveFooter = isThrive ? `
                     <tr>
-                        <td style="padding:20px 40px;background:#f2f9f4;border-top:1px solid #d1f0dc;">
+                        <td style="padding:20px 40px;background:#f0fbfd;border-top:1px solid #b2e8f2;">
                             <p style="margin:0 0 4px;font-size:12px;color:#666;text-align:center;"><strong>Thrive Cannabis Marketplace</strong><br>3065 Erie Blvd E, Syracuse, NY 13224 · Mon–Sat 10:30 AM–8 PM · Sun 11 AM–6 PM</p>
-                            <p style="margin:8px 0 0;font-size:11px;color:#aaa;text-align:center;"><a href="https://bakedbot.ai/unsubscribe" style="color:#0A803A;">Unsubscribe</a> · <a href="https://bakedbot.ai/privacy" style="color:#0A803A;">Privacy</a></p>
+                            <p style="margin:8px 0 0;font-size:11px;color:#aaa;text-align:center;"><a href="https://bakedbot.ai/unsubscribe" style="color:#1CC0DD;">Unsubscribe</a> · <a href="https://bakedbot.ai/privacy" style="color:#1CC0DD;">Privacy</a></p>
                         </td>
                     </tr>` : `
                     <tr>
@@ -83,8 +83,8 @@ export async function sendReturningCustomerEmail(
                             </p>
                         </td>
                     </tr>`;
-        const ctaBg = isThrive ? '#0A803A' : 'linear-gradient(135deg,#1d7d4d,#0d5a33)';
-        const outerBg = isThrive ? '#f2f9f4' : '#f4f7f2';
+        const ctaBg = isThrive ? '#1CC0DD' : 'linear-gradient(135deg,#1d7d4d,#0d5a33)';
+        const outerBg = isThrive ? '#f0fbfd' : '#f4f7f2';
 
         const htmlBody = `
 <!DOCTYPE html>
@@ -98,11 +98,11 @@ export async function sendReturningCustomerEmail(
     <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;background:${outerBg};">
         <tr>
             <td align="center">
-                <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(10,128,58,0.1);">
+                <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(28,192,221,0.15);">
                     ${thriveHeader}
                     <tr>
                         <td style="padding:40px;">
-                            ${isThrive ? `<h2 style="margin:0 0 16px;font-size:22px;color:#0d2b13;line-height:1.3;">Great seeing you today${firstName ? `, ${firstName}` : ''}!</h2>` : ''}
+                            ${isThrive ? `<h2 style="margin:0 0 16px;font-size:22px;color:#0169A1;line-height:1.3;">Great seeing you today${firstName ? `, ${firstName}` : ''}!</h2>` : ''}
                             <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">
                                 Thanks for stopping by${firstName ? `, ${firstName}` : ''}! ${budtenderLine}
                             </p>
@@ -112,9 +112,9 @@ export async function sendReturningCustomerEmail(
                             </p>
                             ` : ''}
                             ${loyaltyPoints !== undefined && loyaltyPoints > 0 ? `
-                            <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background:#f2f9f4;border-radius:10px;border-left:4px solid #0A803A;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background:#f0fbfd;border-radius:10px;border-left:4px solid #1CC0DD;">
                                 <tr><td style="padding:16px 20px;">
-                                    <p style="margin:0;font-size:15px;color:#0d2b13;line-height:1.6;">🎁 <strong>You have ${loyaltyPoints} VIP points</strong> — keep earning with every visit!</p>
+                                    <p style="margin:0;font-size:15px;color:#0169A1;line-height:1.6;">🎁 <strong>You have ${loyaltyPoints} VIP points</strong> — keep earning with every visit!</p>
                                 </td></tr>
                             </table>
                             ` : ''}
