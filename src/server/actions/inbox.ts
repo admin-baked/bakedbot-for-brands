@@ -11,6 +11,11 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getServerSessionUser } from '@/server/auth/session';
+import {
+    isSuperRole,
+    isValidDocumentId,
+    resolveScopedOrgId,
+} from '@/server/auth/actor-context';
 import { logger } from '@/lib/logger';
 import { omitUndefinedDeep } from '@/lib/utils';
 import type { ChatMessage } from '@/lib/store/agent-chat-store';
@@ -73,31 +78,6 @@ const INBOX_ARTIFACTS_COLLECTION = 'inbox_artifacts';
 
 function getDb() {
     return getAdminFirestore();
-}
-
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
-const PLATFORM_ORG_ID = 'bakedbot_super_admin';
-
-function getActorOrgId(user: {
-    currentOrgId?: string | null;
-    orgId?: string | null;
-    brandId?: string | null;
-    role?: string | null;
-}): string | null {
-    const orgId = user.currentOrgId ?? user.orgId ?? user.brandId ?? null;
-    if (!orgId && isSuperRole(user.role)) return PLATFORM_ORG_ID;
-    return orgId;
-}
-
-function isValidOrgId(orgId: string): boolean {
-    return !!orgId && !orgId.includes('/');
-}
-
-function isValidDocumentId(id: string): boolean {
-    return !!id && !id.includes('/') && id.length <= 128;
 }
 
 function getThreadCustomerDisplayName(thread: InboxThread): string | null {
@@ -198,24 +178,27 @@ export async function createInboxThread(input: {
         if (!user) {
             return { success: false, error: 'Unauthorized' };
         }
+
         const isSuperUser = isSuperRole(user.role);
-        const actorOrgId = getActorOrgId(user);
-        if (!actorOrgId || !isValidOrgId(actorOrgId)) {
-            return { success: false, error: 'Missing organization context' };
-        }
         const requestedOrgId = input.brandId || input.dispensaryId;
-        if (requestedOrgId && !isValidOrgId(requestedOrgId)) {
-            return { success: false, error: 'Invalid organization context' };
+        let threadOrgId: string;
+
+        try {
+            threadOrgId = resolveScopedOrgId({
+                actor: user,
+                requestedOrgId,
+                allowSuperOverride: true,
+            });
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Invalid organization context',
+            };
         }
+
         if (input.id && !isValidDocumentId(input.id)) {
             return { success: false, error: 'Invalid thread id' };
         }
-
-        if (!isSuperUser && requestedOrgId && requestedOrgId !== actorOrgId) {
-            return { success: false, error: 'Unauthorized org context' };
-        }
-
-        const threadOrgId = isSuperUser && requestedOrgId ? requestedOrgId : actorOrgId;
 
         // Validate input
         const validation = CreateInboxThreadSchema.safeParse(input);
@@ -898,24 +881,24 @@ export async function getInboxOwnerBriefingSummary(
             return { success: false, error: 'Unauthorized' };
         }
 
-        const actorOrgId = getActorOrgId(user);
-        if (!actorOrgId || !isValidOrgId(actorOrgId)) {
-            return { success: false, error: 'Missing organization context' };
-        }
-
-        const requestedOrgId = orgId ?? actorOrgId;
-        if (!isValidOrgId(requestedOrgId)) {
-            return { success: false, error: 'Invalid organization context' };
-        }
-
-        if (!isSuperRole(user.role) && requestedOrgId !== actorOrgId) {
-            return { success: false, error: 'Unauthorized org context' };
+        let scopedOrgId: string;
+        try {
+            scopedOrgId = resolveScopedOrgId({
+                actor: user,
+                requestedOrgId: orgId,
+                allowSuperOverride: true,
+            });
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Invalid organization context',
+            };
         }
 
         const db = getDb();
         const threadSnapshot = await db
             .collection(INBOX_THREADS_COLLECTION)
-            .where('orgId', '==', requestedOrgId)
+            .where('orgId', '==', scopedOrgId)
             .where('metadata.isBriefingThread', '==', true)
             .limit(1)
             .get();
@@ -938,8 +921,8 @@ export async function getInboxOwnerBriefingSummary(
 
         const briefing = latestBriefingArtifact.data as AnalyticsBriefing;
         const commitments = await listOpenCommitments({
-            tenantId: requestedOrgId,
-            organizationId: requestedOrgId,
+            tenantId: scopedOrgId,
+            organizationId: scopedOrgId,
         });
 
         return {

@@ -48,33 +48,7 @@ import {
 } from 'recharts';
 import { Loader2, RefreshCw, Download } from 'lucide-react';
 import { getPlaybookTemplateStats } from '@/server/actions/playbook-template-admin';
-import { getPlaybookReadiness } from '@/config/playbook-readiness';
-import type { PlaybookReadiness } from '@/config/workflow-runtime';
-
-const READINESS_STYLES: Record<PlaybookReadiness, string> = {
-  executable_now:  'bg-green-100 text-green-800 border-green-200',
-  partial_support: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  template_only:   'bg-gray-100 text-gray-600 border-gray-200',
-  experimental:    'bg-purple-100 text-purple-800 border-purple-200',
-  legacy:          'bg-red-100 text-red-700 border-red-200',
-};
-
-const READINESS_LABELS: Record<PlaybookReadiness, string> = {
-  executable_now:  'Live',
-  partial_support: 'Partial',
-  template_only:   'Template',
-  experimental:    'Experimental',
-  legacy:          'Legacy',
-};
-
-function ReadinessBadge({ templateId }: { templateId: string }) {
-  const readiness = getPlaybookReadiness(templateId);
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${READINESS_STYLES[readiness]}`}>
-      {READINESS_LABELS[readiness]}
-    </span>
-  );
-}
+import { PlaybookReadinessIndicator } from '@/components/playbooks/playbook-readiness-indicator';
 
 interface TemplateStats {
   templateId: string;
@@ -401,7 +375,13 @@ export default function PlaybookTemplatesPage() {
                           {template.tier}
                         </Badge>
                       </TableCell>
-                      <TableCell><ReadinessBadge templateId={template.templateId} /></TableCell>
+                      <TableCell>
+                        <PlaybookReadinessIndicator
+                          playbookId={template.templateId}
+                          showDescription
+                          descriptionClassName="max-w-xs"
+                        />
+                      </TableCell>
                       <TableCell className="text-right">{template.assignedCount}</TableCell>
                       <TableCell className="text-right">{template.executedCount}</TableCell>
                       <TableCell className="text-right">

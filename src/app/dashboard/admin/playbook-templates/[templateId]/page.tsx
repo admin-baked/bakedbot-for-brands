@@ -53,6 +53,7 @@ import {
   type ExecutionRecord,
   type TemplateExecutionTimeline,
 } from '@/server/actions/playbook-template-drilldown';
+import { PlaybookReadinessIndicator } from '@/components/playbooks/playbook-readiness-indicator';
 
 export default function TemplateDrilldownPage() {
   const params = useParams();
@@ -154,6 +155,11 @@ export default function TemplateDrilldownPage() {
           {template.description && (
             <p className="text-muted-foreground">{template.description}</p>
           )}
+          <PlaybookReadinessIndicator
+            playbookId={templateId}
+            showDescription
+            descriptionClassName="max-w-2xl"
+          />
         </div>
       </div>
 

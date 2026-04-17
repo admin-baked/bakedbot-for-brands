@@ -13,6 +13,12 @@
 'use server';
 
 import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isValidDocumentId,
+    isValidOrgId,
+    requireActorOrgId,
+} from '@/server/auth/actor-context';
 import { cognitiveStateManager } from '@/server/services/letta/cognitive-state-manager';
 import { memoryGardeningService } from '@/server/services/letta/memory-gardening';
 import { completenessDoctrineService } from '@/server/services/letta/completeness-doctrine';
@@ -31,39 +37,9 @@ import { getAdminFirestore } from '@/firebase/admin';
 
 const getFirestore = getAdminFirestore;
 
-type IntelligenceActor = {
+type IntelligenceActor = ActorContextLike & {
     uid: string;
-    role?: string;
-    orgId?: string;
-    brandId?: string;
-    currentOrgId?: string;
 };
-
-const PLATFORM_ORG_ID = 'bakedbot_super_admin';
-
-function getActorOrgId(user: IntelligenceActor): string | null {
-    const orgId = user.currentOrgId || user.orgId || user.brandId || null;
-    if (!orgId && (user.role === 'super_user' || user.role === 'super_admin')) {
-        return PLATFORM_ORG_ID;
-    }
-    return orgId;
-}
-
-function isValidOrgId(orgId: string): boolean {
-    return !!orgId && !orgId.includes('/');
-}
-
-function isValidDocumentId(id: string): boolean {
-    return !!id && !id.includes('/');
-}
-
-function requireActorOrgId(user: IntelligenceActor, action: string): string {
-    const orgId = getActorOrgId(user);
-    if (!orgId || !isValidOrgId(orgId)) {
-        throw new Error(`Missing organization context for ${action}`);
-    }
-    return orgId;
-}
 
 // =============================================================================
 // COGNITIVE STATE ACTIONS (LiveHud Dashboard)

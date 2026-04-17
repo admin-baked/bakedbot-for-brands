@@ -1,3 +1,5 @@
+import { THRIVE_CUSTOMER_SENDER_NAME } from './sender-branding';
+
 /**
  * Thrive Syracuse canonical email design system.
  *
@@ -12,6 +14,7 @@
  */
 
 export const THRIVE = {
+    DISPLAY_NAME: THRIVE_CUSTOMER_SENDER_NAME,
     TEAL: '#27c0dd',
     GOLD: '#f1b200',
     DARK: '#0d2b31',
@@ -28,7 +31,7 @@ export function thriveHeader(badgeText = 'VIP Rewards'): string {
     return `
   <tr>
     <td style="background-color:${THRIVE.TEAL};padding:24px 32px 20px;text-align:center;border-radius:12px 12px 0 0;">
-      <img src="${THRIVE.LOGO_URL}" alt="Thrive Cannabis Marketplace" width="160" style="display:block;margin:0 auto 12px;max-width:160px;height:auto;">
+      <img src="${THRIVE.LOGO_URL}" alt="${THRIVE.DISPLAY_NAME}" width="160" style="display:block;margin:0 auto 12px;max-width:160px;height:auto;">
       <p style="margin:0 0 10px;font-size:12px;color:${THRIVE.DARK};letter-spacing:1.5px;text-transform:uppercase;font-family:Arial,sans-serif;font-weight:600;">
         Cannabis Dispensary &middot; Syracuse, NY
       </p>
@@ -44,7 +47,7 @@ export function thriveFooter(unsubscribeUrl: string): string {
     return `
   <tr>
     <td style="background-color:${THRIVE.DARK};padding:24px 32px;text-align:center;border-radius:0 0 12px 12px;">
-      <img src="${THRIVE.LOGO_URL}" alt="Thrive Cannabis Marketplace" width="100" style="display:block;margin:0 auto 10px;opacity:0.85;">
+      <img src="${THRIVE.LOGO_URL}" alt="${THRIVE.DISPLAY_NAME}" width="100" style="display:block;margin:0 auto 10px;opacity:0.85;">
       <p style="margin:0 0 4px;font-size:12px;color:#a0d4de;font-family:Arial,sans-serif;">
         ${THRIVE.ADDRESS} &middot; ${THRIVE.PHONE}
       </p>
@@ -52,7 +55,7 @@ export function thriveFooter(unsubscribeUrl: string): string {
         ${THRIVE.HOURS}
       </p>
       <p style="margin:14px 0 0;font-size:11px;color:#5a8f9a;font-family:Arial,sans-serif;">
-        You're receiving this because you opted in at Thrive.
+        You're receiving this because you opted in at ${THRIVE.DISPLAY_NAME}.
         <a href="${unsubscribeUrl}" style="color:${THRIVE.TEAL};text-decoration:underline;">Unsubscribe</a>
       </p>
     </td>

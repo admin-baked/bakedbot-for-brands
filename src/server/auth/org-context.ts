@@ -1,3 +1,5 @@
+export { isSuperRole } from './actor-context';
+
 export type ActorOrgContext = {
   uid?: string | null;
   role?: string | null;
@@ -14,10 +16,6 @@ function normalizeOrgCandidate(value: unknown): string | null {
   if (!trimmed || trimmed.includes('/')) return null;
 
   return trimmed;
-}
-
-export function isSuperRole(role: unknown): boolean {
-  return role === 'super_user' || role === 'super_admin';
 }
 
 export function getActorOrgId(

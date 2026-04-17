@@ -6,12 +6,13 @@
  */
 
 import { getEmailInsights } from '@/server/actions/email-insights';
+import type { EmailInsights } from '@/server/actions/email-insights';
 import { EmailPreviewClient } from './email-preview-client';
 
 export const dynamic = 'force-dynamic';
 
 export default async function EmailPreviewPage() {
-    let insights = [];
+    let insights: EmailInsights[] = [];
     try {
         insights = await getEmailInsights();
     } catch {

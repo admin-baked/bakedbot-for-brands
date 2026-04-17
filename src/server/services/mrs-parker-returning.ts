@@ -9,6 +9,7 @@
 
 import { logger } from '@/lib/logger';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { THRIVE_CUSTOMER_SENDER_NAME } from '@/lib/email/sender-branding';
 import { getAdminFirestore } from '@/firebase/admin';
 import { thriveEmail, thriveCard, thriveCta, thriveLoyaltyBlock, THRIVE } from '@/lib/email/thrive-template';
 
@@ -143,7 +144,7 @@ Questions? Reply to this email — we're here to help!
             orgId,
             communicationType: 'transactional',
             agentName: 'mrs_parker',
-            fromName: isThrive ? 'Thrive Cannabis Marketplace' : 'Mrs. Parker',
+            fromName: isThrive ? THRIVE_CUSTOMER_SENDER_NAME : 'Mrs. Parker',
             fromEmail: 'hello@bakedbot.ai',
         });
 

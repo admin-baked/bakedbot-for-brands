@@ -8,6 +8,7 @@
 
 import { logger } from '@/lib/logger';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { THRIVE_CUSTOMER_SENDER_NAME } from '@/lib/email/sender-branding';
 import { getAdminFirestore } from '@/firebase/admin';
 import { thriveEmail, thriveCard, thriveCta, THRIVE } from '@/lib/email/thrive-template';
 
@@ -73,7 +74,7 @@ export async function sendRetentionNudgeEmail(
                 </ul>
                 ${thriveCta({ label: "See What's New", url: `https://bakedbot.ai/${brandSlug}` })}
             `),
-        })` : `
+        }) : `
 <!DOCTYPE html>
 <html>
 <head>
@@ -149,7 +150,7 @@ See what's new: https://bakedbot.ai/${brandSlug}
             textBody,
             communicationType: 'winback',
             agentName: 'mrs_parker',
-            fromName: isThrive ? 'Thrive Cannabis Marketplace' : 'Mrs. Parker',
+            fromName: isThrive ? THRIVE_CUSTOMER_SENDER_NAME : 'Mrs. Parker',
             fromEmail: 'hello@bakedbot.ai',
             orgId,
         });

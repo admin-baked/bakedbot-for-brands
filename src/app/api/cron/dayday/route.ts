@@ -41,9 +41,9 @@ export const maxDuration = 300;
 // Type routing
 // ---------------------------------------------------------------------------
 
-type DayDayJobType = 'discovery' | 'international' | 'seo-report' | 'review';
+type DayDayJobType = 'discovery' | 'international' | 'seo-report' | 'review' | 'brand-page-seo';
 
-const VALID_TYPES = new Set<DayDayJobType>(['discovery', 'international', 'seo-report', 'review']);
+const VALID_TYPES = new Set<DayDayJobType>(['discovery', 'international', 'seo-report', 'review', 'brand-page-seo']);
 
 function parseType(req: NextRequest, body: Record<string, unknown>): DayDayJobType | null {
     const t = (body.type as string) ?? req.nextUrl.searchParams.get('type');
@@ -114,6 +114,21 @@ async function handler(request: NextRequest) {
                 logger.info('[dayday/review] Starting weekly review');
                 const result = await runDayDayWeeklyReview();
                 return NextResponse.json({ success: true, type, result });
+            }
+
+            case 'brand-page-seo': {
+                const { runBrandPageSEOAudit } = await import('@/server/jobs/dayday-brand-page-seo');
+                logger.info('[dayday/brand-page-seo] Starting brand page SEO audit');
+                const result = await runBrandPageSEOAudit();
+                return NextResponse.json({
+                    success: true,
+                    type,
+                    totalPages: result.totalPages,
+                    zeroPages: result.zeroPages.length,
+                    lowPages: result.lowPages.length,
+                    rankingPages: result.rankingPages.length,
+                    gscConnected: result.gscConnected,
+                });
             }
         }
     } catch (error) {

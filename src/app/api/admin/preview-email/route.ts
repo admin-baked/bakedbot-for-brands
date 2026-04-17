@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCronSecret } from '@/server/auth/cron';
+import { THRIVE_CUSTOMER_SENDER_NAME } from '@/lib/email/sender-branding';
 import { thriveEmail, thriveCard, thriveCta, thriveLoyaltyBlock, THRIVE } from '@/lib/email/thrive-template';
 
 export const dynamic = 'force-dynamic';
@@ -35,7 +36,7 @@ function buildThriveWelcome(): string {
                 Welcome to Thrive VIP, Alex! 🌿
             </p>
             <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
-                Thanks for visiting Thrive Cannabis Marketplace — you're now part of our VIP Rewards program!
+                Thanks for visiting ${THRIVE_CUSTOMER_SENDER_NAME} — you're now part of our VIP Rewards program!
             </p>
             ${thriveLoyaltyBlock(50)}
             <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.6;">

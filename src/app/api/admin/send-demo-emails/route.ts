@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCronSecret } from '@/server/auth/cron';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { THRIVE_CUSTOMER_SENDER_NAME } from '@/lib/email/sender-branding';
 import { thriveEmail, thriveCard, thriveCta, thriveLoyaltyBlock, THRIVE } from '@/lib/email/thrive-template';
 import { logger } from '@/lib/logger';
 
@@ -16,6 +17,7 @@ export const dynamic = 'force-dynamic';
 
 const TO = 'martez@bakedbot.ai';
 const THRIVE_LOGO = THRIVE.LOGO_URL;
+const THRIVE_NAME = THRIVE_CUSTOMER_SENDER_NAME;
 
 // A/B/C legacy variants — teal header, green secondary (pre-canonical)
 const TEAL = '#1CC0DD';
@@ -54,7 +56,7 @@ function buildThriveEmail(opts: {
       <p style="margin:0 0 8px;font-size:11px;color:#999;text-align:center;">Design Variant ${variant}</p>
       <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;${cardShadow}">
         <tr><td style="padding:28px 40px 24px;background:${headerBg};text-align:center;">
-          <img src="${THRIVE_LOGO}" alt="Thrive Cannabis Marketplace" height="44" style="display:block;margin:0 auto 12px;">
+          <img src="${THRIVE_LOGO}" alt="${THRIVE_NAME}" height="44" style="display:block;margin:0 auto 12px;">
           <p style="margin:0;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${headerAccentColor};font-weight:600;">VIP Rewards</p>
         </td></tr>
         <tr><td style="height:4px;background:${accentBar};"></td></tr>
@@ -76,7 +78,7 @@ function buildThriveEmail(opts: {
           <p style="margin:0;font-size:14px;"><a href="https://bakedbot.ai/loyalty-tablet?orgId=org_thrive_syracuse" style="color:${linkColor};font-weight:600;text-decoration:none;">Pre-Check In →</a></p>
         </td></tr>
         <tr><td style="padding:20px 40px;background:${footerBg};border-top:1px solid ${footerBorder};">
-          <p style="margin:0 0 4px;font-size:12px;color:#666;text-align:center;"><strong>Thrive Cannabis Marketplace</strong><br>3065 Erie Blvd E, Syracuse, NY 13224 · Mon–Sat 10:30 AM–8 PM · Sun 11 AM–6 PM</p>
+          <p style="margin:0 0 4px;font-size:12px;color:#666;text-align:center;"><strong>${THRIVE_NAME}</strong><br>3065 Erie Blvd E, Syracuse, NY 13224 · Mon–Sat 10:30 AM–8 PM · Sun 11 AM–6 PM</p>
           <p style="margin:8px 0 0;font-size:11px;color:#aaa;text-align:center;"><a href="https://bakedbot.ai/unsubscribe" style="color:${linkColor};">Unsubscribe</a> · <a href="https://bakedbot.ai/privacy" style="color:${linkColor};">Privacy</a></p>
         </td></tr>
       </table>
@@ -228,7 +230,7 @@ async function handler(request: NextRequest) {
                     to: TO,
                     name: 'Martez Benjamins',
                     fromEmail: 'hello@bakedbot.ai',
-                    fromName: 'Thrive Cannabis Marketplace',
+                    fromName: THRIVE_NAME,
                     subject: v.subject,
                     htmlBody: v.html,
                     orgId: 'org_thrive_syracuse',
@@ -262,7 +264,7 @@ async function handler(request: NextRequest) {
             to: TO,
             name: 'Martez Benjamins',
             fromEmail: 'hello@bakedbot.ai',
-            fromName: 'Thrive Cannabis Marketplace',
+            fromName: THRIVE_NAME,
             subject: '[DEMO] Thrive VIP — Post-Visit Email (Canonical Design)',
             htmlBody: thriveHtml,
             orgId: 'org_thrive_syracuse',

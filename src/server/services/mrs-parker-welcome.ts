@@ -9,6 +9,7 @@
 
 import { logger } from '@/lib/logger';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { THRIVE_CUSTOMER_SENDER_NAME } from '@/lib/email/sender-branding';
 import { blackleafService } from '@/lib/notifications/blackleaf-service';
 import { getAdminFirestore } from '@/firebase/admin';
 import { thriveEmail, thriveCard, thriveCta, THRIVE } from '@/lib/email/thrive-template';
@@ -270,7 +271,7 @@ export async function sendWelcomeEmail(context: WelcomeEmailContext): Promise<{ 
             subject = thriveWelcome.subject;
             htmlBody = thriveWelcome.htmlBody;
             textBody = thriveWelcome.textBody;
-            fromName = 'Thrive Cannabis Marketplace';
+            fromName = THRIVE_CUSTOMER_SENDER_NAME;
             fromEmail = undefined; // Resolved by dispatcher via orgId
         } else if (isEcstaticEdiblesWelcome(context)) {
             const ecstaticWelcome = buildEcstaticEdiblesWelcomeEmail({
