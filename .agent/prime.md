@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Gmail admin SDK fix; inbox super-user orgId fallback; test leads cleaned
-**Recent work (2026-04-17):** `694bae769` getGmailToken→admin SDK; inbox.ts/intelligence.ts getActorOrgId super-user fallback to bakedbot_super_admin
+**Current Status:** 🟢 main green | Agent coaching key fix (Marty/Elroy); 1585 quality tasks resolved; order-analytics refactor
+**Recent work (2026-04-17):** `9c650af41` Marty/Elroy coaching key mismatch fixed + grounding rules; `8bcbea30a` order-analytics service refactor + simplify fixes
 
 ---
 

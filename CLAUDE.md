@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Gmail admin SDK fix; inbox super-user orgId fallback; test leads cleaned | **Last update:** 2026-04-17 (`694bae769`)
+**Current Status:** 🟢 main green | Agent coaching key fix (Marty/Elroy); 1585 quality tasks resolved; order-analytics refactor | **Last update:** 2026-04-17 (`8bcbea30a`)
 
 ---
 
