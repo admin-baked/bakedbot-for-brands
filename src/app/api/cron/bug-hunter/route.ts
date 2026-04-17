@@ -143,10 +143,10 @@ async function scanFile(filePath: string): Promise<BugFinding[]> {
                     if (braceCount === 0 && j > i) break;
                 }
                 const block = blockLines.join('\n');
-                const hasOnlyConsoleLog = /catch[^}]*\{[^}]*console\.(log|error|warn)[^}]*\}/s.test(block) &&
+                const hasOnlyConsoleLog = /catch[^}]*\{[\s\S]*?console\.(log|error|warn)[\s\S]*?\}/.test(block) &&
                     !block.includes('logger');
-                const hasOnlyComment = /catch[^}]*\{\s*\/\//s.test(block);
-                if (hasOnlyConsoleOnly || hasOnlyComment) {
+                const hasOnlyComment = /catch[^}]*\{\s*\/\//.test(block);
+                if (hasOnlyConsoleLog || hasOnlyComment) {
                     findings.push({
                         type: 'catch_log',
                         severity: 'normal',
@@ -261,7 +261,7 @@ async function fileTask(finding: BugFinding): Promise<string | null> {
             'Review and fix.'
         }`,
         priority: priorityMap[finding.severity],
-        category: 'bug-hunt',
+        category: 'bug',
         reportedBy: 'bug-hunter',
         assignedTo: 'linus',
         filePath: finding.file,
