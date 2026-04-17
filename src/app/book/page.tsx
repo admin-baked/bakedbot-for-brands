@@ -6,15 +6,17 @@
 
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import Logo from '@/components/logo';
+import { getExecutiveProfile } from '@/server/actions/executive-calendar';
 
 export const metadata: Metadata = {
     title: 'Book a Founder | BakedBot AI',
     description: 'Schedule time with a BakedBot founder. Choose between Martez (CEO) or Jack (Head of Revenue).',
 };
 
-const founders = [
+const FOUNDERS = [
     {
         slug: 'martez',
         name: 'Martez',
@@ -22,7 +24,6 @@ const founders = [
         description:
             'Strategy, vision, and operator execution. Book Martez to talk about your dispensary\'s revenue system, what\'s leaking, and how BakedBot fits.',
         emoji: '🌿',
-        themeColor: '#10b981',
         gradient: 'from-emerald-500/20 to-emerald-500/5',
         border: 'hover:border-emerald-500/50',
         badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
@@ -34,14 +35,21 @@ const founders = [
         description:
             'Go-to-market, partnerships, and growth. Book Jack to explore the Operator plan, pilot terms, or channel opportunities in the cannabis market.',
         emoji: '⚡',
-        themeColor: '#6366f1',
         gradient: 'from-indigo-500/20 to-indigo-500/5',
         border: 'hover:border-indigo-500/50',
         badge: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
     },
 ];
 
-export default function BookFounderPage() {
+export default async function BookFounderPage() {
+    const [martezProfile, jackProfile] = await Promise.all([
+        getExecutiveProfile('martez'),
+        getExecutiveProfile('jack'),
+    ]);
+    const avatarUrls: Record<string, string | undefined> = {
+        martez: martezProfile?.avatarUrl,
+        jack: jackProfile?.avatarUrl,
+    };
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-emerald-500/30 font-sans">
             {/* Background */}
@@ -80,7 +88,9 @@ export default function BookFounderPage() {
 
                 {/* Founder Cards */}
                 <div className="grid gap-5 sm:grid-cols-2">
-                    {founders.map((founder) => (
+                    {FOUNDERS.map((founder) => {
+                        const avatarUrl = avatarUrls[founder.slug];
+                        return (
                         <Link
                             key={founder.slug}
                             href={`/book/${founder.slug}`}
@@ -92,9 +102,21 @@ export default function BookFounderPage() {
                             />
 
                             <div className="relative">
-                                {/* Avatar placeholder */}
-                                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 border border-white/10 text-3xl">
-                                    {founder.emoji}
+                                {/* Avatar */}
+                                <div className="mb-6">
+                                    {avatarUrl ? (
+                                        <Image
+                                            src={avatarUrl}
+                                            alt={founder.name}
+                                            width={64}
+                                            height={64}
+                                            className="h-16 w-16 rounded-2xl object-cover ring-2 ring-white/10"
+                                        />
+                                    ) : (
+                                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 border border-white/10 text-3xl">
+                                            {founder.emoji}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Name + title */}
@@ -119,7 +141,8 @@ export default function BookFounderPage() {
                                 </div>
                             </div>
                         </Link>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 {/* Reassurance */}
