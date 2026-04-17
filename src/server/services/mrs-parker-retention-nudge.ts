@@ -64,12 +64,12 @@ export async function sendRetentionNudgeEmail(
             <td align="center">
                 <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(28,192,221,0.15);">
                     <tr>
-                        <td style="padding:28px 40px 24px;background:#0169A1;text-align:center;">
+                        <td style="padding:28px 40px 24px;background:#1CC0DD;text-align:center;">
                             <img src="https://storage.googleapis.com/bakedbot-global-assets/logos/org_thrive_syracuse/thrive-logo.svg" alt="Thrive Cannabis Marketplace" height="44" style="display:block;margin:0 auto 12px;">
-                            <p style="margin:0;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#FEBF10;font-weight:600;">VIP Rewards</p>
+                            <p style="margin:0;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#22C55E;font-weight:600;">VIP Rewards</p>
                         </td>
                     </tr>
-                    <tr><td style="height:4px;background:linear-gradient(90deg,#1CC0DD,#FEBF10,#1CC0DD);"></td></tr>
+                    <tr><td style="height:4px;background:linear-gradient(90deg,#0bacc7,#22C55E,#0bacc7);"></td></tr>
                     <tr>
                         <td style="padding:40px;">
                             <h2 style="margin:0 0 16px;font-size:22px;color:#0169A1;line-height:1.3;">We miss you${firstName ? `, ${firstName}` : ''}!</h2>
@@ -86,7 +86,7 @@ export async function sendRetentionNudgeEmail(
                                 <li>Exclusive rewards points double</li>
                             </ul>
                             <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
-                                <tr><td style="background:#1CC0DD;border-radius:8px;padding:14px 32px;">
+                                <tr><td style="background:#22C55E;border-radius:8px;padding:14px 32px;">
                                     <a href="https://bakedbot.ai/${brandSlug}" style="color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">See What's New →</a>
                                 </td></tr>
                             </table>
@@ -95,7 +95,7 @@ export async function sendRetentionNudgeEmail(
                     <tr>
                         <td style="padding:20px 40px;background:#f0fbfd;border-top:1px solid #b2e8f2;">
                             <p style="margin:0 0 4px;font-size:12px;color:#666;text-align:center;"><strong>Thrive Cannabis Marketplace</strong><br>3065 Erie Blvd E, Syracuse, NY 13224 · Mon–Sat 10:30 AM–8 PM · Sun 11 AM–6 PM</p>
-                            <p style="margin:8px 0 0;font-size:11px;color:#aaa;text-align:center;"><a href="https://bakedbot.ai/unsubscribe" style="color:#1CC0DD;">Unsubscribe</a> · <a href="https://bakedbot.ai/privacy" style="color:#1CC0DD;">Privacy</a></p>
+                            <p style="margin:8px 0 0;font-size:11px;color:#aaa;text-align:center;"><a href="https://bakedbot.ai/unsubscribe" style="color:#0bacc7;">Unsubscribe</a> · <a href="https://bakedbot.ai/privacy" style="color:#0bacc7;">Privacy</a></p>
                         </td>
                     </tr>
                 </table>

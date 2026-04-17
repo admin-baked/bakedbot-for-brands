@@ -1,7 +1,9 @@
 /**
- * One-shot demo email sender — sends two branded preview emails to martez@bakedbot.ai
- * via production SES so the design can be reviewed and approved.
- * Secured with CRON_SECRET. DELETE after sign-off.
+ * Demo email sender — sends A/B/C/D design variants to martez@bakedbot.ai
+ * for design review. Secured with CRON_SECRET.
+ *
+ * GET/POST /api/admin/send-demo-emails        → sends current (D) only
+ * GET/POST /api/admin/send-demo-emails?all=1  → sends all A/B/C/D variants
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,9 +15,149 @@ export const dynamic = 'force-dynamic';
 
 const TO = 'martez@bakedbot.ai';
 const THRIVE_LOGO = 'https://storage.googleapis.com/bakedbot-global-assets/logos/org_thrive_syracuse/thrive-logo.svg';
-const THRIVE_TEAL = '#1CC0DD';
-const THRIVE_DARK = '#0169A1';
-const THRIVE_GOLD = '#FEBF10';
+
+// Variant D — CURRENT: teal header, green secondary
+const TEAL = '#1CC0DD';
+const TEAL_DARK = '#0bacc7';
+const GREEN = '#22C55E';
+const TEAL_BG = '#f0fbfd';
+const TEAL_BORDER = '#b2e8f2';
+
+function buildThriveEmail(opts: {
+  variant: string;
+  headerBg: string;
+  headerAccentColor: string;
+  accentBar: string;
+  ctaBg: string;
+  outerBg: string;
+  cardShadow: string;
+  footerBg: string;
+  footerBorder: string;
+  headingColor: string;
+  calloutBg: string;
+  calloutBorder: string;
+  calloutTextColor: string;
+  linkColor: string;
+}): string {
+  const {
+    variant, headerBg, headerAccentColor, accentBar, ctaBg,
+    outerBg, cardShadow, footerBg, footerBorder,
+    headingColor, calloutBg, calloutBorder, calloutTextColor, linkColor,
+  } = opts;
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:${outerBg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;background:${outerBg};">
+    <tr><td align="center">
+      <p style="margin:0 0 8px;font-size:11px;color:#999;text-align:center;">Design Variant ${variant}</p>
+      <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;${cardShadow}">
+        <tr><td style="padding:28px 40px 24px;background:${headerBg};text-align:center;">
+          <img src="${THRIVE_LOGO}" alt="Thrive Cannabis Marketplace" height="44" style="display:block;margin:0 auto 12px;">
+          <p style="margin:0;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${headerAccentColor};font-weight:600;">VIP Rewards</p>
+        </td></tr>
+        <tr><td style="height:4px;background:${accentBar};"></td></tr>
+        <tr><td style="padding:40px;">
+          <h2 style="margin:0 0 16px;font-size:22px;color:${headingColor};line-height:1.3;">Great seeing you today, Alex!</h2>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">Thanks for stopping by. Jamie was on duty today — ask for them next time and they'll have your favorites pulled up before you walk in.</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:${calloutBg};border-radius:10px;border-left:4px solid ${calloutBorder};">
+            <tr><td style="padding:18px 22px;">
+              <p style="margin:0;font-size:15px;color:${calloutTextColor};line-height:1.6;">🎁 <strong>You now have 340 VIP points</strong> — 60 away from your next $5 reward.<br><span style="font-size:13px;color:#555;">1 point per $1 spent · 100 points = $5 off</span></p>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#333;">How was your experience today? A quick rating helps our team keep improving — takes 5 seconds.</p>
+          <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
+            <tr><td style="background:${ctaBg};border-radius:8px;padding:14px 32px;">
+              <a href="https://bakedbot.ai/thrivesyracuse?review=1" style="color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">Rate Your Visit ⭐</a>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#555;">Coming back soon? Pre-check in from your phone and skip the wait.</p>
+          <p style="margin:0;font-size:14px;"><a href="https://bakedbot.ai/loyalty-tablet?orgId=org_thrive_syracuse" style="color:${linkColor};font-weight:600;text-decoration:none;">Pre-Check In →</a></p>
+        </td></tr>
+        <tr><td style="padding:20px 40px;background:${footerBg};border-top:1px solid ${footerBorder};">
+          <p style="margin:0 0 4px;font-size:12px;color:#666;text-align:center;"><strong>Thrive Cannabis Marketplace</strong><br>3065 Erie Blvd E, Syracuse, NY 13224 · Mon–Sat 10:30 AM–8 PM · Sun 11 AM–6 PM</p>
+          <p style="margin:8px 0 0;font-size:11px;color:#aaa;text-align:center;"><a href="https://bakedbot.ai/unsubscribe" style="color:${linkColor};">Unsubscribe</a> · <a href="https://bakedbot.ai/privacy" style="color:${linkColor};">Privacy</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+// A — Original gradient green header (pre-branding session)
+const variantA = buildThriveEmail({
+  variant: 'A — Gradient Green (original)',
+  headerBg: 'linear-gradient(135deg,#1d7d4d 0%,#74d693 100%)',
+  headerAccentColor: 'rgba(255,255,255,0.85)',
+  accentBar: 'linear-gradient(90deg,#1d7d4d,#74d693)',
+  ctaBg: '#1d7d4d',
+  outerBg: '#f4f7f2',
+  cardShadow: 'box-shadow:0 4px 16px rgba(29,125,77,0.12);',
+  footerBg: '#f4f7f2',
+  footerBorder: '#d4e8da',
+  headingColor: '#123524',
+  calloutBg: '#f4f7f2',
+  calloutBorder: '#1d7d4d',
+  calloutTextColor: '#123524',
+  linkColor: '#1d7d4d',
+});
+
+// B — Solid forest green (#0A803A branding session)
+const variantB = buildThriveEmail({
+  variant: 'B — Forest Green (#0A803A)',
+  headerBg: '#0A803A',
+  headerAccentColor: '#4ade80',
+  accentBar: 'linear-gradient(90deg,#0A803A,#4ade80,#0A803A)',
+  ctaBg: '#0A803A',
+  outerBg: '#f2f9f4',
+  cardShadow: 'box-shadow:0 4px 16px rgba(10,128,58,0.1);',
+  footerBg: '#f2f9f4',
+  footerBorder: '#d1f0dc',
+  headingColor: '#0d2b13',
+  calloutBg: '#f2f9f4',
+  calloutBorder: '#0A803A',
+  calloutTextColor: '#0d2b13',
+  linkColor: '#0A803A',
+});
+
+// C — Dark blue header + teal CTA + gold accent
+const variantC = buildThriveEmail({
+  variant: 'C — Dark Blue Header + Teal CTA + Gold',
+  headerBg: '#0169A1',
+  headerAccentColor: '#FEBF10',
+  accentBar: 'linear-gradient(90deg,#1CC0DD,#FEBF10,#1CC0DD)',
+  ctaBg: '#1CC0DD',
+  outerBg: '#f0fbfd',
+  cardShadow: 'box-shadow:0 4px 16px rgba(28,192,221,0.15);',
+  footerBg: '#f0fbfd',
+  footerBorder: '#b2e8f2',
+  headingColor: '#0169A1',
+  calloutBg: '#f0fbfd',
+  calloutBorder: '#1CC0DD',
+  calloutTextColor: '#0169A1',
+  linkColor: '#1CC0DD',
+});
+
+// D — CURRENT: teal header behind logo, green secondary
+const variantD = buildThriveEmail({
+  variant: 'D — Teal Header + Green Secondary ✅ CURRENT',
+  headerBg: TEAL,
+  headerAccentColor: GREEN,
+  accentBar: `linear-gradient(90deg,${TEAL_DARK},${GREEN},${TEAL_DARK})`,
+  ctaBg: GREEN,
+  outerBg: TEAL_BG,
+  cardShadow: `box-shadow:0 4px 16px rgba(28,192,221,0.15);`,
+  footerBg: TEAL_BG,
+  footerBorder: TEAL_BORDER,
+  headingColor: '#0169A1',
+  calloutBg: TEAL_BG,
+  calloutBorder: TEAL,
+  calloutTextColor: '#0169A1',
+  linkColor: TEAL,
+});
+
+// The canonical thriveHtml used by the current live templates
+const thriveHtml = variantD;
 
 const b2bHtml = `<!DOCTYPE html>
 <html>
@@ -56,49 +198,48 @@ const b2bHtml = `<!DOCTYPE html>
   </table>
 </body></html>`;
 
-const thriveHtml = `<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#f0fbfd;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;background:#f0fbfd;">
-    <tr><td align="center">
-      <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(28,192,221,0.15);">
-        <tr><td style="padding:28px 40px 24px;background:${THRIVE_DARK};text-align:center;">
-          <img src="${THRIVE_LOGO}" alt="Thrive Cannabis Marketplace" height="44" style="display:block;margin:0 auto 12px;">
-          <p style="margin:0;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:${THRIVE_GOLD};font-weight:600;">VIP Rewards</p>
-        </td></tr>
-        <tr><td style="height:4px;background:linear-gradient(90deg,${THRIVE_TEAL},${THRIVE_GOLD},${THRIVE_TEAL});"></td></tr>
-        <tr><td style="padding:40px;">
-          <h2 style="margin:0 0 16px;font-size:22px;color:#0169A1;line-height:1.3;">Great seeing you today, Alex!</h2>
-          <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">Thanks for stopping by. Jamie was on duty today — ask for them next time and they'll have your favorites pulled up before you walk in.</p>
-          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#f0fbfd;border-radius:10px;border-left:4px solid ${THRIVE_TEAL};">
-            <tr><td style="padding:18px 22px;">
-              <p style="margin:0;font-size:15px;color:#0169A1;line-height:1.6;">🎁 <strong>You now have 340 VIP points</strong> — 60 away from your next $5 reward.<br><span style="font-size:13px;color:#555;">1 point per $1 spent · 100 points = $5 off</span></p>
-            </td></tr>
-          </table>
-          <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#333;">How was your experience today? A quick rating helps our team keep improving — takes 5 seconds.</p>
-          <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
-            <tr><td style="background:${THRIVE_TEAL};border-radius:8px;padding:14px 32px;">
-              <a href="https://bakedbot.ai/thrivesyracuse?review=1" style="color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">Rate Your Visit ⭐</a>
-            </td></tr>
-          </table>
-          <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#555;">Coming back soon? Pre-check in from your phone and skip the wait.</p>
-          <p style="margin:0;font-size:14px;"><a href="https://bakedbot.ai/loyalty-tablet?orgId=org_thrive_syracuse" style="color:${THRIVE_TEAL};font-weight:600;text-decoration:none;">Pre-Check In →</a></p>
-        </td></tr>
-        <tr><td style="padding:20px 40px;background:#f0fbfd;border-top:1px solid #b2e8f2;">
-          <p style="margin:0 0 4px;font-size:12px;color:#666;text-align:center;"><strong>Thrive Cannabis Marketplace</strong><br>3065 Erie Blvd E, Syracuse, NY 13224 · Mon–Sat 10:30 AM–8 PM · Sun 11 AM–6 PM</p>
-          <p style="margin:8px 0 0;font-size:11px;color:#aaa;text-align:center;"><a href="https://bakedbot.ai/unsubscribe" style="color:${THRIVE_TEAL};">Unsubscribe</a> · <a href="https://bakedbot.ai/privacy" style="color:${THRIVE_TEAL};">Privacy</a></p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
-
 async function handler(request: NextRequest) {
     const authError = await requireCronSecret(request, 'send-demo-emails');
     if (authError) return authError;
 
-    logger.info('[DemoEmails] Sending preview emails to', { to: TO });
+    const sendAll = new URL(request.url).searchParams.get('all') === '1';
+
+    if (sendAll) {
+        logger.info('[DemoEmails] Sending A/B/C/D variants to', { to: TO });
+
+        const variants = [
+            { label: 'A', subject: '[DESIGN A] Thrive VIP — Gradient Green (original)', html: variantA },
+            { label: 'B', subject: '[DESIGN B] Thrive VIP — Forest Green (#0A803A)', html: variantB },
+            { label: 'C', subject: '[DESIGN C] Thrive VIP — Dark Blue + Teal CTA + Gold', html: variantC },
+            { label: 'D', subject: '[DESIGN D] Thrive VIP — Teal Header + Green Secondary ✅ CURRENT', html: variantD },
+        ];
+
+        const results = await Promise.allSettled(
+            variants.map(v =>
+                sendGenericEmail({
+                    to: TO,
+                    name: 'Martez Benjamins',
+                    fromEmail: 'hello@bakedbot.ai',
+                    fromName: 'Thrive Cannabis Marketplace',
+                    subject: v.subject,
+                    htmlBody: v.html,
+                    orgId: 'org_thrive_syracuse',
+                })
+            )
+        );
+
+        const summary: Record<string, string> = {};
+        variants.forEach((v, i) => {
+            const r = results[i];
+            summary[v.label] = r.status === 'fulfilled' && r.value.success
+                ? 'sent'
+                : r.status === 'fulfilled' ? (r.value.error ?? 'error') : String((r as PromiseRejectedResult).reason);
+        });
+
+        return NextResponse.json({ success: Object.values(summary).every(v => v === 'sent'), variants: summary });
+    }
+
+    logger.info('[DemoEmails] Sending current (D) preview to', { to: TO });
 
     const [r1, r2] = await Promise.allSettled([
         sendGenericEmail({
@@ -114,7 +255,7 @@ async function handler(request: NextRequest) {
             name: 'Martez Benjamins',
             fromEmail: 'hello@bakedbot.ai',
             fromName: 'Thrive Cannabis Marketplace',
-            subject: '[DEMO] Thrive VIP — Post-Visit Email with Logo + Brand Colors',
+            subject: '[DEMO] Thrive VIP — Post-Visit Email (Design D: Teal + Green)',
             htmlBody: thriveHtml,
             orgId: 'org_thrive_syracuse',
         }),
