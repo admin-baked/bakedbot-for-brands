@@ -7,15 +7,13 @@
  * ⚪ Queued | 🟡 Running | 🟠 Escalated | 🟢 Complete | 🔴 Failed
  *
  * Features:
- * - Live Firestore subscription (onSnapshot) for in-flight tasks
+ * - Polls /api/admin/agent-board every 8s (session-cookie auth, no App Check needed)
  * - Click card → step log drawer + feedback panel
  * - 👍 / 🚩 / 👎 feedback buttons write to agent_learning_log
  * - Agent + org filters
  */
 
-import { useEffect, useState, useCallback } from 'react';
-import { getFirestore, collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
-import { getApp } from 'firebase/app';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,18 +35,27 @@ import { STOPLIGHT_EMOJI } from '@/types/agent-task';
 type Column = {
     key: AgentTaskStoplight;
     label: string;
-    statuses: AgentTask['status'][];
     headerClass: string;
     dotClass: string;
 };
 
 const COLUMNS: Column[] = [
-    { key: 'gray',   label: 'Queued',    statuses: ['open'],                       headerClass: 'border-gray-300  bg-gray-50',   dotClass: 'bg-gray-400'  },
-    { key: 'yellow', label: 'Running',   statuses: ['claimed', 'in_progress'],     headerClass: 'border-yellow-300 bg-yellow-50', dotClass: 'bg-yellow-400' },
-    { key: 'orange', label: 'Escalated', statuses: ['escalated'],                  headerClass: 'border-orange-300 bg-orange-50', dotClass: 'bg-orange-400' },
-    { key: 'green',  label: 'Complete',  statuses: ['done'],                       headerClass: 'border-green-300  bg-green-50',  dotClass: 'bg-green-500'  },
-    { key: 'red',    label: 'Failed',    statuses: ['wont_fix'],                   headerClass: 'border-red-300    bg-red-50',    dotClass: 'bg-red-500'    },
+    { key: 'gray',   label: 'Queued',    headerClass: 'border-gray-300  bg-gray-50',   dotClass: 'bg-gray-400'  },
+    { key: 'yellow', label: 'Running',   headerClass: 'border-yellow-300 bg-yellow-50', dotClass: 'bg-yellow-400' },
+    { key: 'orange', label: 'Escalated', headerClass: 'border-orange-300 bg-orange-50', dotClass: 'bg-orange-400' },
+    { key: 'green',  label: 'Complete',  headerClass: 'border-green-300  bg-green-50',  dotClass: 'bg-green-500'  },
+    { key: 'red',    label: 'Failed',    headerClass: 'border-red-300    bg-red-50',    dotClass: 'bg-red-500'    },
 ];
+
+type BoardColumns = {
+    gray: AgentTask[];
+    yellow: AgentTask[];
+    orange: AgentTask[];
+    green: AgentTask[];
+    red: AgentTask[];
+};
+
+const EMPTY_COLUMNS: BoardColumns = { gray: [], yellow: [], orange: [], green: [], red: [] };
 
 // ============================================================================
 // Helpers
@@ -328,72 +335,56 @@ function BoardColumn({ col, tasks, onCardClick }: { col: Column; tasks: AgentTas
 // Page
 // ============================================================================
 
+const POLL_INTERVAL_MS = 8_000;
+
 export default function AgentBoardPage() {
-    const [tasks, setTasks]             = useState<AgentTask[]>([]);
+    const [columns, setColumns]         = useState<BoardColumns>(EMPTY_COLUMNS);
     const [loading, setLoading]         = useState(true);
+    const [error, setError]             = useState<string | null>(null);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const [agentFilter, setAgentFilter] = useState('');
     const [orgFilter, setOrgFilter]     = useState('');
     const [selected, setSelected]       = useState<AgentTask | null>(null);
     const [drawerOpen, setDrawerOpen]   = useState(false);
-    const [feedback, setFeedback]       = useState<Record<string, string>>({});
+    const intervalRef                   = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Live Firestore subscription
-    useEffect(() => {
-        let db: ReturnType<typeof getFirestore>;
+    const fetchBoard = useCallback(async () => {
         try {
-            db = getFirestore(getApp());
+            const res = await fetch('/api/admin/agent-board', { credentials: 'same-origin' });
+            if (!res.ok) {
+                setError(`Board unavailable (${res.status})`);
+                return;
+            }
+            const data = await res.json() as { columns: BoardColumns };
+            setColumns(data.columns ?? EMPTY_COLUMNS);
+            setError(null);
+            setLastUpdated(new Date());
         } catch {
+            setError('Failed to load board');
+        } finally {
             setLoading(false);
-            return;
         }
-
-        const activeQ = query(
-            collection(db, 'agent_tasks'),
-            where('status', 'in', ['open', 'claimed', 'in_progress', 'escalated']),
-            orderBy('createdAt', 'desc'),
-            limit(100),
-        );
-
-        const recentQ = query(
-            collection(db, 'agent_tasks'),
-            where('status', 'in', ['done', 'wont_fix']),
-            orderBy('updatedAt', 'desc'),
-            limit(30),
-        );
-
-        const activeTasks  = new Map<string, AgentTask>();
-        const recentTasks  = new Map<string, AgentTask>();
-
-        const merge = () => {
-            setTasks([...activeTasks.values(), ...recentTasks.values()]);
-        };
-
-        const unsubActive = onSnapshot(activeQ, snap => {
-            snap.docs.forEach(d => activeTasks.set(d.id, { id: d.id, ...d.data() } as AgentTask));
-            snap.docChanges().forEach(c => {
-                if (c.type === 'removed') activeTasks.delete(c.doc.id);
-            });
-            merge();
-            setLoading(false);
-        });
-
-        const unsubRecent = onSnapshot(recentQ, snap => {
-            snap.docs.forEach(d => recentTasks.set(d.id, { id: d.id, ...d.data() } as AgentTask));
-            snap.docChanges().forEach(c => {
-                if (c.type === 'removed') recentTasks.delete(c.doc.id);
-            });
-            merge();
-        });
-
-        return () => { unsubActive(); unsubRecent(); };
     }, []);
 
-    // Keep drawer task in sync with live updates
+    // Initial fetch + 8s polling
+    useEffect(() => {
+        fetchBoard();
+        intervalRef.current = setInterval(fetchBoard, POLL_INTERVAL_MS);
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, [fetchBoard]);
+
+    // Keep drawer task in sync with polled updates
     useEffect(() => {
         if (!selected) return;
-        const live = tasks.find(t => t.id === selected.id);
+        const allTasks = [
+            ...columns.gray, ...columns.yellow, ...columns.orange,
+            ...columns.green, ...columns.red,
+        ];
+        const live = allTasks.find(t => t.id === selected.id);
         if (live) setSelected(live);
-    }, [tasks, selected?.id]);
+    }, [columns, selected?.id]);
 
     const handleFeedback = useCallback(async (taskId: string, rating: string, note: string) => {
         const resp = await fetch(`/api/agent-tasks/${taskId}/feedback`, {
@@ -402,24 +393,32 @@ export default function AgentBoardPage() {
             body: JSON.stringify({ rating, note, reviewedBy: 'martez@bakedbot.ai' }),
         });
         if (resp.ok) {
-            setFeedback(prev => ({ ...prev, [taskId]: rating }));
+            // Refresh board immediately after feedback
+            await fetchBoard();
         }
-    }, []);
+    }, [fetchBoard]);
 
-    // Filter tasks
-    const filtered = tasks.filter(t => {
+    // Client-side filter applied to each column
+    const filterTasks = useCallback((tasks: AgentTask[]) => {
         const agent = agentFilter.toLowerCase();
         const org   = orgFilter.toLowerCase();
-        const matchAgent = !agent ||
-            (t.assignedTo || '').toLowerCase().includes(agent) ||
-            (t.reportedBy || '').toLowerCase().includes(agent);
-        const matchOrg = !org || (t.orgId || '').toLowerCase().includes(org);
-        return matchAgent && matchOrg;
-    });
+        return tasks.filter(t => {
+            const matchAgent = !agent ||
+                (t.assignedTo || '').toLowerCase().includes(agent) ||
+                (t.reportedBy || '').toLowerCase().includes(agent);
+            const matchOrg = !org || (t.orgId || '').toLowerCase().includes(org);
+            return matchAgent && matchOrg;
+        });
+    }, [agentFilter, orgFilter]);
 
-    // Group into columns
-    const colTasks = (col: Column) =>
-        filtered.filter(t => (t.stoplight ?? 'gray') === col.key);
+    const filteredColumns = {
+        gray:   filterTasks(columns.gray),
+        yellow: filterTasks(columns.yellow),
+        orange: filterTasks(columns.orange),
+        green:  filterTasks(columns.green),
+        red:    filterTasks(columns.red),
+    };
+    const filteredTotal = Object.values(filteredColumns).reduce((s, col) => s + col.length, 0);
 
     return (
         <div className="flex flex-col h-full">
@@ -427,7 +426,12 @@ export default function AgentBoardPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b bg-white">
                 <div>
                     <h1 className="text-lg font-semibold text-gray-900">Agent Board</h1>
-                    <p className="text-sm text-gray-500">Live view of every agent task · {filtered.length} tasks</p>
+                    <p className="text-sm text-gray-500">
+                        {filteredTotal} tasks
+                        {lastUpdated && (
+                            <span className="ml-2 text-gray-400">· updated {elapsed(lastUpdated.toISOString())} ago</span>
+                        )}
+                    </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Input
@@ -447,8 +451,18 @@ export default function AgentBoardPage() {
                             Clear
                         </Button>
                     )}
+                    <Button variant="outline" size="sm" onClick={fetchBoard}>
+                        Refresh
+                    </Button>
                 </div>
             </div>
+
+            {/* Error banner */}
+            {error && (
+                <div className="mx-6 mt-3 rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700">
+                    {error}
+                </div>
+            )}
 
             {/* Board */}
             <div className="flex-1 overflow-auto p-6">
@@ -460,7 +474,7 @@ export default function AgentBoardPage() {
                             <BoardColumn
                                 key={col.key}
                                 col={col}
-                                tasks={colTasks(col)}
+                                tasks={filteredColumns[col.key]}
                                 onCardClick={t => { setSelected(t); setDrawerOpen(true); }}
                             />
                         ))}
@@ -476,6 +490,7 @@ export default function AgentBoardPage() {
                         {STOPLIGHT_EMOJI[c.key]} {c.label}
                     </span>
                 ))}
+                <span className="ml-auto">Polls every 8s</span>
             </div>
 
             {/* Detail drawer */}
