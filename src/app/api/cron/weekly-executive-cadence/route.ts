@@ -30,6 +30,7 @@ import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { callClaude } from '@/ai/claude';
 import { buildMartyScoreboard, TARGET_MRR } from '@/server/services/marty-reporting';
+import { sendGenericEmail } from '@/lib/email/dispatcher';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -159,6 +160,72 @@ async function generateThursdaySection(agent: string, ctx: Awaited<ReturnType<ty
 }
 
 // ---------------------------------------------------------------------------
+// THURSDAY ADD-ON — FFF Audit B2B Lead Nurture
+// ---------------------------------------------------------------------------
+
+const FFF_SENDER_EMAIL = 'martez@bakedbot.ai';
+const FFF_SENDER_NAME = 'Martez Benjamins';
+
+async function runFFFLeadNurture(): Promise<{ sent: number; skipped: number; errors: number }> {
+    const db = getAdminFirestore();
+    const oneWeekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+
+    const snap = await db.collection('leads')
+        .where('source', '==', 'fff_audit')
+        .where('status', '==', 'lead')
+        .get();
+
+    let sent = 0; let skipped = 0; let errors = 0;
+
+    for (const doc of snap.docs) {
+        const lead = doc.data();
+        if (!lead.email) { skipped++; continue; }
+        // Skip if emailed within the last week
+        if (lead.lastEmailed && lead.lastEmailed > oneWeekAgo) { skipped++; continue; }
+
+        try {
+            const emailBody = await callClaude({
+                model: 'claude-haiku-4-5-20251001',
+                userMessage: `You are Craig, BakedBot's campaign manager. Write a short, personal B2B nurture email from Martez Benjamins (CEO of BakedBot AI) to ${lead.contactName || lead.name || 'a dispensary decision-maker'} at ${lead.dispensaryName || lead.company || 'their dispensary'}. They completed a Fit/Function/Finance audit showing interest in BakedBot's AI platform. Focus on ROI proof and invite them to a 20-minute demo. Keep it under 150 words. Conversational tone — no fluff. Output ONLY the email body (no subject, no greeting header, start directly).`,
+                maxTokens: 300,
+                caller: 'weekly-executive-cadence/fff-nurture',
+            });
+
+            const subject = `Following up — ${lead.dispensaryName || lead.company || 'your dispensary'} + BakedBot`;
+            const htmlBody = `<div style="font-family:sans-serif;max-width:600px;color:#1a1a1a">${emailBody.replace(/\n/g, '<br>')}<br><br>— Martez<br><span style="color:#666;font-size:12px">BakedBot AI | martez@bakedbot.ai</span></div>`;
+
+            const result = await sendGenericEmail({
+                to: lead.email,
+                name: lead.contactName || lead.name,
+                fromEmail: FFF_SENDER_EMAIL,
+                fromName: FFF_SENDER_NAME,
+                subject,
+                htmlBody,
+                textBody: emailBody + '\n\n— Martez\nBakedBot AI | martez@bakedbot.ai',
+            });
+
+            if (result.success) {
+                await doc.ref.update({
+                    lastEmailed: Date.now(),
+                    emailCount: (lead.emailCount || 0) + 1,
+                    updatedAt: Date.now(),
+                });
+                logger.info('[fff-nurture] Email sent', { leadId: doc.id, email: lead.email });
+                sent++;
+            } else {
+                logger.warn('[fff-nurture] Send failed', { leadId: doc.id, error: result.error });
+                errors++;
+            }
+        } catch (err) {
+            logger.error('[fff-nurture] Error', { leadId: doc.id, error: String(err) });
+            errors++;
+        }
+    }
+
+    return { sent, skipped, errors };
+}
+
+// ---------------------------------------------------------------------------
 // Slack post
 // ---------------------------------------------------------------------------
 
@@ -252,12 +319,18 @@ async function handler(request: NextRequest) {
             );
         }
 
-        await Promise.allSettled([
+        const sideEffects: Promise<unknown>[] = [
             postToSlack(day, sections, ctx),
             logCadence(day, sections),
-        ]);
+        ];
+        if (day === 'thursday') sideEffects.push(runFFFLeadNurture());
 
-        return NextResponse.json({ success: true, day, sectionCount: sections.length });
+        const results = await Promise.allSettled(sideEffects);
+        const nurtureResult = day === 'thursday' && results[2].status === 'fulfilled'
+            ? results[2].value as { sent: number; skipped: number; errors: number }
+            : null;
+
+        return NextResponse.json({ success: true, day, sectionCount: sections.length, nurture: nurtureResult });
     } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         logger.error('[weekly-executive-cadence] Failed', { day, error: msg });
