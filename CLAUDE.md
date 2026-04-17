@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Agent coaching key fix (Marty/Elroy); 1585 quality tasks resolved; order-analytics refactor | **Last update:** 2026-04-17 (`8bcbea30a`)
+**Current Status:** 🟢 main green | Thrive email branding (all 3 templates) + demo emails live via SES; FFF nurture megacron; bug-hunter TS fixes | **Last update:** 2026-04-17 (`2f93dfe1a`)
 
 ---
 

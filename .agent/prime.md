@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Agent coaching key fix (Marty/Elroy); 1585 quality tasks resolved; order-analytics refactor
-**Recent work (2026-04-17):** `9c650af41` Marty/Elroy coaching key mismatch fixed + grounding rules; `8bcbea30a` order-analytics service refactor + simplify fixes
+**Current Status:** 🟢 main green | Thrive email branding (3 templates) + demo emails SES live; FFF nurture megacron; bug-hunter TS fixes
+**Recent work (2026-04-17):** `c0a378fea` Thrive welcome/returning/nudge brand guide applied; `2f93dfe1a` bug-hunter TS fixes; `c22621b48` orgId + fromName for subdomain routing
 
 ---
 
@@ -189,12 +189,12 @@ Full roster + engineering agents: `.agent/refs/agents.md`
 
 | System | Status | Key Ref |
 |--------|--------|---------|
-| Campaign System (Craig) | SMS+Email+Deebo gate | `refs/agents.md` |
-| Compliance (Deebo) | NY/CA/IL rules + monitor | `refs/agents.md` |
-| Public Menu Pages | Brand + Dispensary + ISR | `refs/pages-brand.md` |
-| Thrive Syracuse | Production pilot | `memory/customers.md` |
+| Campaign System (Craig) | SMS+Email+Deebo gate | `.agent/refs/agents.md` |
+| Compliance (Deebo) | NY/CA/IL rules + monitor | `.agent/refs/agents.md` |
+| Public Menu Pages | Brand + Dispensary + ISR | `.agent/refs/pages-brand.md` |
+| Thrive Syracuse | Production pilot | `.agent/refs/pilot-setup.md` |
 | Herbalist Samui | International (Thailand) | `HERBALIST_SAMUI_SETUP.md` |
-| Alleaves POS Sync | Customer + order data | `refs/alleaves-pos.md` |
+| Alleaves POS Sync | Customer + order data | `.agent/refs/alleaves-pos.md` |
 | Agent Training | Grok loop + audit dashboard | `memory/MEMORY.md` |
 
 ---
