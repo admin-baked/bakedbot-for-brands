@@ -11,6 +11,7 @@ import { logger } from '@/lib/logger';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { blackleafService } from '@/lib/notifications/blackleaf-service';
 import { getAdminFirestore } from '@/firebase/admin';
+import { thriveEmail, thriveCard, thriveCta, THRIVE } from '@/lib/email/thrive-template';
 
 export interface WelcomeEmailContext {
     leadId: string;
@@ -74,62 +75,31 @@ function buildThriveVipWelcomeEmail(context: {
     const { displayName } = context;
     const checkinUrl = getThriveCheckinUrl();
     const subject = 'Welcome to Thrive VIP Rewards';
-    const htmlBody = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${subject}</title>
-</head>
-<body style="margin:0;padding:0;background:#f0fbfd;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;background:#f0fbfd;">
-        <tr>
-            <td align="center">
-                <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(28,192,221,0.15);">
-                    <tr>
-                        <td style="padding:28px 40px 24px;background:#1CC0DD;text-align:center;">
-                            <img src="https://storage.googleapis.com/bakedbot-global-assets/logos/org_thrive_syracuse/thrive-logo.svg" alt="Thrive Cannabis Marketplace" height="44" style="display:block;margin:0 auto 12px;">
-                            <p style="margin:0;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#22C55E;font-weight:600;">VIP Rewards</p>
-                        </td>
-                    </tr>
-                    <tr><td style="height:4px;background:linear-gradient(90deg,#0bacc7,#22C55E,#0bacc7);"></td></tr>
-                    <tr>
-                        <td style="padding:40px;">
-                            <h2 style="margin:0 0 16px;font-size:22px;color:#0169A1;line-height:1.3;">Welcome, ${displayName}!</h2>
-                            <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">
-                                You are officially part of Thrive VIP Rewards. We will use what you share with us to make your next visit faster, smarter, and more personal.
-                            </p>
-                            <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">Here is what to expect:</p>
-                            <ul style="margin:0 0 24px 20px;padding:0;font-size:15px;line-height:1.8;color:#333;">
-                                <li>Weekly deals and VIP perks from Thrive</li>
-                                <li>Better budtender handoff before you shop</li>
-                                <li>Smokey-powered recommendations based on your favorites</li>
-                                <li>Pre-check-in from your phone — skip the wait</li>
-                            </ul>
-                            <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
-                                <tr><td style="background:#22C55E;border-radius:8px;padding:14px 32px;">
-                                    <a href="${checkinUrl}" style="color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">Pre-Check In From Your Phone →</a>
-                                </td></tr>
-                            </table>
-                            <p style="margin:0;font-size:14px;line-height:1.7;color:#555;">
-                                Keep an eye on your inbox for new drops and post-visit follow-ups.
-                            </p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding:20px 40px;background:#f0fbfd;border-top:1px solid #b2e8f2;">
-                            <p style="margin:0 0 4px;font-size:12px;color:#666;text-align:center;"><strong>Thrive Cannabis Marketplace</strong><br>3065 Erie Blvd E, Syracuse, NY 13224 · Mon–Sat 10:30 AM–8 PM · Sun 11 AM–6 PM</p>
-                            <p style="margin:8px 0 0;font-size:11px;color:#aaa;text-align:center;"><a href="https://bakedbot.ai/unsubscribe" style="color:#0bacc7;">Unsubscribe</a> · <a href="https://bakedbot.ai/privacy" style="color:#0bacc7;">Privacy</a></p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>
-    `.trim();
+    const unsubUrl = `https://bakedbot.ai/api/email/unsubscribe?token=${Buffer.from(`${checkinUrl}|org_thrive_syracuse`).toString('base64url')}`;
+    const htmlBody = thriveEmail({
+        title: subject,
+        badgeText: '🌿 VIP Rewards',
+        unsubscribeUrl: unsubUrl,
+        bodyRows: thriveCard(`
+            <p style="margin:0 0 20px;font-size:22px;font-weight:700;color:${THRIVE.BODY_HEADING};line-height:1.3;">
+                Welcome, ${displayName}! 🌿
+            </p>
+            <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+                You're officially part of Thrive VIP Rewards. We'll use what you share with us to make every visit faster, smarter, and more personal.
+            </p>
+            <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">Here's what to expect:</p>
+            <ul style="margin:0 0 28px;padding-left:20px;color:#374151;font-size:15px;line-height:2.0;">
+                <li>Weekly deals and VIP perks from Thrive</li>
+                <li>Faster budtender handoff — we'll have your favorites ready</li>
+                <li>Smokey-powered recommendations based on your profile</li>
+                <li>Pre-check-in from your phone — skip the wait</li>
+            </ul>
+            ${thriveCta({ label: 'Pre-Check In From Your Phone', url: checkinUrl })}
+            <p style="margin:16px 0 0;font-size:14px;color:#6b7280;text-align:center;">
+                Keep an eye on your inbox for deals and post-visit follow-ups.
+            </p>
+        `),
+    });
     const textBody = `
 Hi ${displayName},
 

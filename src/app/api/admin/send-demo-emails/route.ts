@@ -9,14 +9,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCronSecret } from '@/server/auth/cron';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { thriveEmail, thriveCard, thriveCta, thriveLoyaltyBlock, THRIVE } from '@/lib/email/thrive-template';
 import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
 const TO = 'martez@bakedbot.ai';
-const THRIVE_LOGO = 'https://storage.googleapis.com/bakedbot-global-assets/logos/org_thrive_syracuse/thrive-logo.svg';
+const THRIVE_LOGO = THRIVE.LOGO_URL;
 
-// Variant D — CURRENT: teal header, green secondary
+// A/B/C legacy variants — teal header, green secondary (pre-canonical)
 const TEAL = '#1CC0DD';
 const TEAL_DARK = '#0bacc7';
 const GREEN = '#22C55E';
@@ -138,22 +139,29 @@ const variantC = buildThriveEmail({
   linkColor: '#1CC0DD',
 });
 
-// D — CURRENT: teal header behind logo, green secondary
-const variantD = buildThriveEmail({
-  variant: 'D — Teal Header + Green Secondary ✅ CURRENT',
-  headerBg: TEAL,
-  headerAccentColor: GREEN,
-  accentBar: `linear-gradient(90deg,${TEAL_DARK},${GREEN},${TEAL_DARK})`,
-  ctaBg: GREEN,
-  outerBg: TEAL_BG,
-  cardShadow: `box-shadow:0 4px 16px rgba(28,192,221,0.15);`,
-  footerBg: TEAL_BG,
-  footerBorder: TEAL_BORDER,
-  headingColor: '#0169A1',
-  calloutBg: TEAL_BG,
-  calloutBorder: TEAL,
-  calloutTextColor: '#0169A1',
-  linkColor: TEAL,
+// D — CANONICAL: uses shared thrive-template.ts (source of truth for all Thrive emails)
+const DEMO_UNSUB = `https://bakedbot.ai/api/email/unsubscribe?token=${Buffer.from('martez@bakedbot.ai|org_thrive_syracuse').toString('base64url')}`;
+const variantD = thriveEmail({
+    title: '[DESIGN D] Thrive VIP — Post-Visit Email ✅ CANONICAL',
+    badgeText: '🌿 VIP Rewards',
+    unsubscribeUrl: DEMO_UNSUB,
+    bodyRows: thriveCard(`
+        <p style="margin:0 0 4px;font-size:11px;color:#999;text-align:right;">[Design Variant D — Canonical]</p>
+        <p style="margin:0 0 20px;font-size:22px;font-weight:700;color:${THRIVE.BODY_HEADING};line-height:1.3;">
+            Great seeing you today, Alex! 🌿
+        </p>
+        <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+            Thanks for stopping by! Jamie was on duty today — ask for them next time and they'll have your favorites pulled up before you walk in.
+        </p>
+        ${thriveLoyaltyBlock(340)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
+            How was your experience today? A quick rating helps our team keep improving — takes 5 seconds.
+        </p>
+        ${thriveCta({ label: 'Rate Your Visit ⭐', url: 'https://bakedbot.ai/thrivesyracuse?review=1' })}
+        <p style="margin:16px 0 0;font-size:14px;color:#6b7280;text-align:center;">
+            Questions? Reply to this email — we're here to help!
+        </p>
+    `),
 });
 
 // The canonical thriveHtml used by the current live templates
@@ -211,7 +219,7 @@ async function handler(request: NextRequest) {
             { label: 'A', subject: '[DESIGN A] Thrive VIP — Gradient Green (original)', html: variantA },
             { label: 'B', subject: '[DESIGN B] Thrive VIP — Forest Green (#0A803A)', html: variantB },
             { label: 'C', subject: '[DESIGN C] Thrive VIP — Dark Blue + Teal CTA + Gold', html: variantC },
-            { label: 'D', subject: '[DESIGN D] Thrive VIP — Teal Header + Green Secondary ✅ CURRENT', html: variantD },
+            { label: 'D', subject: '[DESIGN D] Thrive VIP — Canonical (teal #27c0dd, gold #f1b200, dark #0d2b31) ✅', html: variantD },
         ];
 
         const results = await Promise.allSettled(
@@ -255,7 +263,7 @@ async function handler(request: NextRequest) {
             name: 'Martez Benjamins',
             fromEmail: 'hello@bakedbot.ai',
             fromName: 'Thrive Cannabis Marketplace',
-            subject: '[DEMO] Thrive VIP — Post-Visit Email (Design D: Teal + Green)',
+            subject: '[DEMO] Thrive VIP — Post-Visit Email (Canonical Design)',
             htmlBody: thriveHtml,
             orgId: 'org_thrive_syracuse',
         }),
