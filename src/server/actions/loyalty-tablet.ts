@@ -214,6 +214,13 @@ type RawMenuProduct = {
     description?: string;
     strainType?: string;
     strain_type?: string;
+    thcPercent?: number;
+    thc_percent?: number;
+    thc?: number;
+    cbdPercent?: number;
+    cbd_percent?: number;
+    cbd?: number;
+    effects?: string[];
 };
 
 // Categories scanned from purchase history text to infer customer preferences
@@ -426,15 +433,31 @@ function buildPopularPicksFallback(products: RawMenuProduct[]): TabletProduct[] 
                 brandName: getProductBrandName(product),
                 imageUrl: getProductImageUrl(product),
                 reason: "A staff favorite from today's menu — you might enjoy this one.",
+                ...getProductPotency(product),
             });
         }
     }
     return picks;
 }
 
+function getProductPotency(product: RawMenuProduct): Pick<TabletProduct, 'thcPercent' | 'cbdPercent' | 'strainType' | 'effects'> {
+    const thcRaw = product.thcPercent ?? product.thc_percent ?? product.thc;
+    const cbdRaw = product.cbdPercent ?? product.cbd_percent ?? product.cbd;
+    const strainType = typeof product.strainType === 'string' ? product.strainType
+        : typeof product.strain_type === 'string' ? product.strain_type
+        : undefined;
+    return {
+        thcPercent: typeof thcRaw === 'number' && thcRaw > 0 ? thcRaw : undefined,
+        cbdPercent: typeof cbdRaw === 'number' && cbdRaw > 0 ? cbdRaw : undefined,
+        strainType,
+        effects: Array.isArray(product.effects) && product.effects.length > 0
+            ? product.effects as string[]
+            : undefined,
+    };
+}
+
 function toTabletProduct(product: RawMenuProduct, config: MoodRecommendationConfig): TabletProduct {
     const category = getProductCategory(product);
-
     return {
         productId: getProductId(product),
         name: getProductName(product),
@@ -443,6 +466,7 @@ function toTabletProduct(product: RawMenuProduct, config: MoodRecommendationConf
         brandName: getProductBrandName(product),
         imageUrl: getProductImageUrl(product),
         reason: buildProductReason(config, category),
+        ...getProductPotency(product),
     };
 }
 

@@ -80,6 +80,8 @@ export interface ALLeavesInventoryItem {
     id_area?: number;                // Area ID (join with /inventory/area)
     area?: string;                   // Area name (if returned inline)
     area_name?: string;              // Alternate area name field
+    // Product image (P2 — not always present in inventory response)
+    image_url?: string;
 }
 
 /**
@@ -645,7 +647,7 @@ export class ALLeavesClient implements POSClient {
                 cbdPercent: item.cbd || undefined,
                 thcMg: thcMg || undefined,
                 cbdMg: cbdMg || undefined,
-                imageUrl: getPlaceholderImageForCategory(category),
+                imageUrl: item.image_url || getPlaceholderImageForCategory(category),
                 expirationDate,
                 packageDate,
                 // Inventory metadata (P1)

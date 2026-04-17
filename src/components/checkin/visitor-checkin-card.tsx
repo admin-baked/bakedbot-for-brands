@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState, type FormEvent } from 'react';
-import { CheckCircle2, Loader2, MessageSquareText, Mic, Sparkles, Star } from 'lucide-react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { CheckCircle2, ChevronDown, ChevronUp, Loader2, MessageSquareText, Mic, Sparkles, Star, X } from 'lucide-react';
 import Chatbot from '@/components/chatbot';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,6 +19,7 @@ import {
 } from '@/server/actions/visitor-checkin';
 import {
     getMoodRecommendations,
+    prefetchTabletInventory,
 } from '@/server/actions/loyalty-tablet';
 import {
     TABLET_MOODS,
@@ -115,6 +116,12 @@ export function VisitorCheckinCard({
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [submission, setSubmission] = useState<SubmissionState | null>(null);
+    const [selectedDetailProduct, setSelectedDetailProduct] = useState<TabletProduct | null>(null);
+
+    // Pre-warm inventory cache so first mood click returns in < 2s
+    useEffect(() => {
+        prefetchTabletInventory(orgId).catch(() => undefined);
+    }, [orgId]);
 
     const savedEmail = context.savedEmail || '';
     const savedEmailConsent = context.savedEmailConsent === true;
@@ -687,53 +694,121 @@ export function VisitorCheckinCard({
                                         Smokey is pulling recommendations now.
                                     </div>
                                 ) : recommendationProducts.length > 0 ? (
-                                    <div className="grid gap-4 md:grid-cols-3">
-                                        {recommendationProducts.map((product) => {
-                                            const isSelected = selectedProductIds.includes(product.productId);
-                                            return (
-                                                <div key={product.productId} className="flex flex-col rounded-2xl border border-border/60 overflow-hidden bg-background">
-                                                    <div className="relative aspect-square w-full bg-muted/30">
-                                                        {product.imageUrl ? (
-                                                            <Image
-                                                                src={product.imageUrl}
-                                                                alt={product.name}
-                                                                fill
-                                                                className="object-cover transition-transform hover:scale-105"
-                                                                sizes="(max-width: 768px) 100vw, 33vw"
-                                                            />
-                                                        ) : (
-                                                            <div className="flex h-full w-full items-center justify-center">
-                                                                {(() => {
-                                                                    const iconName = getCategoryIconName(product.category);
-                                                                    // @ts-ignore - Dynamic lucide icon access
-                                                                    const CategoryIcon = Icons[iconName] || Icons.Leaf;
-                                                                    const iconColor = getCategoryIconColor(product.category);
-                                                                    return <CategoryIcon className={`h-12 w-12 ${iconColor}`} strokeWidth={1.5} />;
-                                                                })()}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex flex-1 flex-col p-4">
-                                                        <p className="font-semibold line-clamp-1">{product.name}</p>
-                                                        <p className="mt-1 text-xs text-muted-foreground">
-                                                            {product.category} · {formatCurrency(product.price)}
-                                                        </p>
-                                                        <p className="mt-3 text-sm text-muted-foreground line-clamp-3 flex-1">
-                                                            {product.reason}
-                                                        </p>
-                                                        <Button
+                                    <div className="space-y-4">
+                                        <div className="grid gap-4 md:grid-cols-3">
+                                            {recommendationProducts.map((product) => {
+                                                const isSelected = selectedProductIds.includes(product.productId);
+                                                const isExpanded = selectedDetailProduct?.productId === product.productId;
+                                                return (
+                                                    <div key={product.productId} className="flex flex-col rounded-2xl border border-border/60 overflow-hidden bg-background">
+                                                        <button
                                                             type="button"
-                                                            variant={isSelected ? 'default' : 'outline'}
-                                                            className="mt-4 w-full"
-                                                            style={isSelected ? { backgroundColor: primaryColor } : undefined}
-                                                            onClick={() => toggleProductSelection(product.productId)}
+                                                            className="relative aspect-square w-full bg-muted/30 focus:outline-none"
+                                                            onClick={() => setSelectedDetailProduct(isExpanded ? null : product)}
+                                                            aria-label={`View details for ${product.name}`}
                                                         >
-                                                            {isSelected ? 'Saved for budtender' : 'Save for budtender'}
-                                                        </Button>
+                                                            {product.imageUrl ? (
+                                                                <Image
+                                                                    src={product.imageUrl}
+                                                                    alt={product.name}
+                                                                    fill
+                                                                    className="object-cover transition-transform hover:scale-105"
+                                                                    sizes="(max-width: 768px) 100vw, 33vw"
+                                                                />
+                                                            ) : (
+                                                                <div className="flex h-full w-full items-center justify-center">
+                                                                    {(() => {
+                                                                        const iconName = getCategoryIconName(product.category);
+                                                                        // @ts-ignore - Dynamic lucide icon access
+                                                                        const CategoryIcon = Icons[iconName] || Icons.Leaf;
+                                                                        const iconColor = getCategoryIconColor(product.category);
+                                                                        return <CategoryIcon className={`h-12 w-12 ${iconColor}`} strokeWidth={1.5} />;
+                                                                    })()}
+                                                                </div>
+                                                            )}
+                                                            <div className="absolute bottom-2 right-2 rounded-full bg-black/50 p-1 text-white">
+                                                                {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                                            </div>
+                                                        </button>
+                                                        <div className="flex flex-1 flex-col p-4">
+                                                            <p className="font-semibold line-clamp-1">{product.name}</p>
+                                                            <p className="mt-1 text-xs text-muted-foreground">
+                                                                {product.category} · {formatCurrency(product.price)}
+                                                            </p>
+                                                            {product.thcPercent ? (
+                                                                <p className="mt-1 text-xs font-medium text-emerald-600">
+                                                                    THC {product.thcPercent}%{product.cbdPercent ? ` · CBD ${product.cbdPercent}%` : ''}
+                                                                    {product.strainType ? ` · ${product.strainType}` : ''}
+                                                                </p>
+                                                            ) : null}
+                                                            <p className="mt-3 text-sm text-muted-foreground line-clamp-3 flex-1">
+                                                                {product.reason}
+                                                            </p>
+                                                            <Button
+                                                                type="button"
+                                                                variant={isSelected ? 'default' : 'outline'}
+                                                                className="mt-4 w-full"
+                                                                style={isSelected ? { backgroundColor: primaryColor } : undefined}
+                                                                onClick={() => toggleProductSelection(product.productId)}
+                                                            >
+                                                                {isSelected ? 'Saved for budtender' : 'Save for budtender'}
+                                                            </Button>
+                                                        </div>
                                                     </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {selectedDetailProduct ? (
+                                            <div className="rounded-2xl border border-border/60 bg-muted/20 p-5 space-y-4">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div>
+                                                        <p className="font-semibold text-lg">{selectedDetailProduct.name}</p>
+                                                        {selectedDetailProduct.brandName ? (
+                                                            <p className="text-sm text-muted-foreground">{selectedDetailProduct.brandName}</p>
+                                                        ) : null}
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedDetailProduct(null)}
+                                                        className="rounded-full p-1 text-muted-foreground hover:text-foreground"
+                                                        aria-label="Close detail"
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </button>
                                                 </div>
-                                            );
-                                        })}
+                                                <div className="flex flex-wrap gap-2 text-sm">
+                                                    <span className="rounded-full bg-background border border-border/60 px-3 py-1">{selectedDetailProduct.category}</span>
+                                                    <span className="rounded-full bg-background border border-border/60 px-3 py-1 font-semibold" style={{ color: primaryColor }}>{formatCurrency(selectedDetailProduct.price)}</span>
+                                                    {selectedDetailProduct.strainType ? (
+                                                        <span className="rounded-full bg-background border border-border/60 px-3 py-1 capitalize">{selectedDetailProduct.strainType}</span>
+                                                    ) : null}
+                                                    {selectedDetailProduct.thcPercent ? (
+                                                        <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-emerald-700">THC {selectedDetailProduct.thcPercent}%</span>
+                                                    ) : null}
+                                                    {selectedDetailProduct.cbdPercent ? (
+                                                        <span className="rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-blue-700">CBD {selectedDetailProduct.cbdPercent}%</span>
+                                                    ) : null}
+                                                </div>
+                                                {selectedDetailProduct.effects?.length ? (
+                                                    <div>
+                                                        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-2">Effects</p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {selectedDetailProduct.effects.map((effect) => (
+                                                                <span key={effect} className="rounded-full bg-background border border-border/60 px-3 py-1 text-sm">{effect}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ) : null}
+                                                <div>
+                                                    <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-1">Why Smokey picked it</p>
+                                                    <p className="text-sm text-muted-foreground">{selectedDetailProduct.reason}</p>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground italic">
+                                                    Tap the image again to close, or show this to your budtender — they can pull it up in Alleaves.
+                                                </p>
+                                            </div>
+                                        ) : null}
                                     </div>
                                 ) : (
                                     <p className="text-sm text-muted-foreground">

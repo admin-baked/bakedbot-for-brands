@@ -95,6 +95,61 @@ const captureVisitorCheckinSchema = z.object({
 });
 
 /**
+ * Fire-and-forget: notify backoffice that a kiosk customer selected products.
+ * Writes to tenants/{orgId}/kioskPicks (real-time Firestore listener on dashboard).
+ * Staff sees the customer name + product IDs before they reach the counter.
+ */
+async function notifyKioskPicks(params: {
+    orgId: string;
+    customerId: string;
+    firstName: string;
+    mood: string | null;
+    cartProductIds: string[];
+    db: FirebaseFirestore.Firestore;
+    now: Date;
+}): Promise<void> {
+    const { orgId, customerId, firstName, mood, cartProductIds, db, now } = params;
+
+    // Fetch product names for the notification (best-effort, non-blocking)
+    let productNames: string[] = [];
+    try {
+        const productSnaps = await Promise.all(
+            cartProductIds.slice(0, 5).map((id) =>
+                db.collection('tenants').doc(orgId)
+                    .collection('publicViews').doc('products')
+                    .collection('items').doc(id).get()
+            )
+        );
+        productNames = productSnaps
+            .filter((snap) => snap.exists)
+            .map((snap) => (snap.data() as { name?: string })?.name ?? snap.id);
+    } catch {
+        productNames = cartProductIds;
+    }
+
+    const pickDoc = {
+        orgId,
+        customerId,
+        firstName,
+        mood: mood ?? null,
+        productIds: cartProductIds,
+        productNames,
+        status: 'pending',
+        createdAt: now,
+        expiresAt: new Date(now.getTime() + 4 * 60 * 60 * 1000), // 4h TTL
+    };
+
+    await db.collection('tenants').doc(orgId)
+        .collection('kioskPicks').add(pickDoc);
+
+    logger.info('[VisitorCheckin] Kiosk pick written for backoffice', {
+        orgId,
+        customerId,
+        productCount: cartProductIds.length,
+    });
+}
+
+/**
  * Fire-and-forget: sync email/phone from check-in back to the Alleaves POS customer record.
  * Looks up the customer's alleavesCustomerId from their Firestore doc, then PUTs the update.
  */
@@ -1360,6 +1415,24 @@ export async function captureVisitorCheckin(
         });
 
         await batch.commit();
+
+        // 8b. Kiosk product picks — notify backoffice if customer selected products
+        if (cartProductIds.length > 0) {
+            notifyKioskPicks({
+                orgId: validated.orgId,
+                customerId,
+                firstName: validated.firstName,
+                mood: validated.mood ?? null,
+                cartProductIds,
+                db,
+                now,
+            }).catch((err) => {
+                logger.warn('[VisitorCheckin] Kiosk pick notification failed', {
+                    orgId: validated.orgId,
+                    error: err instanceof Error ? err.message : String(err),
+                });
+            });
+        }
 
         // 9. Dispatch Playbook Events
         const resolvedEmail = normalizedEmail

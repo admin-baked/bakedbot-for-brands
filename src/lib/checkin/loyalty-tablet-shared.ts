@@ -31,6 +31,10 @@ export interface TabletProduct {
     brandName?: string;
     imageUrl?: string;
     reason: string;
+    thcPercent?: number;
+    cbdPercent?: number;
+    strainType?: string;
+    effects?: string[];
 }
 
 export interface TabletBundle {
