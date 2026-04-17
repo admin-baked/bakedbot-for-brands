@@ -222,6 +222,19 @@ export async function requestSlackApproval(
 ): Promise<ApprovalResult> {
     const timeoutMs = input.approvalTimeoutMs ?? 4 * 60 * 60 * 1000; // 4h default
     try {
+        // Create the approval doc first so its ID can be embedded in button values
+        const db = getAdminFirestore();
+        const approvalRef = await db.collection('agent_approvals').add({
+            agentId: input.agentId,
+            domain: input.domain,
+            title: input.title,
+            hypothesisId: input.hypothesisId ?? null,
+            status: 'pending',
+            defaultVariant: input.variants[0]?.id ?? 'A',
+            createdAt: Date.now(),
+            expiresAt: Date.now() + timeoutMs,
+        });
+
         const variantBlocks = input.variants.map(v => ({
             type: 'section',
             text: {
@@ -240,23 +253,24 @@ export async function requestSlackApproval(
                         `*Agent:* ${input.agentId} | *Domain:* ${input.domain}`,
                         input.description,
                         input.scheduledFor ? `*Scheduled for:* ${input.scheduledFor}` : '',
-                        `_Reply with the variant ID (A, B, control) to approve. No reply = ${input.variants[0]?.id ?? 'A'} proceeds after ${Math.round(timeoutMs / 3600000)}h._`,
+                        `_No reply = ${input.variants[0]?.id ?? 'A'} proceeds after ${Math.round(timeoutMs / 60000)} min._`,
                     ].filter(Boolean).join('\n'),
                 },
             },
             ...variantBlocks,
             {
                 type: 'actions',
+                // Value embeds the approvalDocId so the webhook can update it directly
                 elements: input.variants.map(v => ({
                     type: 'button',
                     text: { type: 'plain_text', text: `Use ${v.id}` },
-                    value: `approve_variant:${input.agentId}:${v.id}`,
+                    value: JSON.stringify({ approvalId: approvalRef.id, variant: v.id }),
                     action_id: `approve_variant_${v.id.toLowerCase()}`,
                     style: v.id === input.variants[0]?.id ? 'primary' : undefined,
                 })).concat([{
                     type: 'button',
                     text: { type: 'plain_text', text: 'Cancel send' },
-                    value: `cancel_send:${input.agentId}`,
+                    value: JSON.stringify({ approvalId: approvalRef.id, variant: null }),
                     action_id: 'cancel_send',
                     style: 'danger',
                 }]),
@@ -272,22 +286,14 @@ export async function requestSlackApproval(
                 agentId: input.agentId,
                 error: result.error,
             });
+            await db.collection('agent_approvals').doc(approvalRef.id).update({ status: 'timed_out' });
             return { approved: true, selectedVariant: input.variants[0]?.id, timedOut: true };
         }
 
-        // Store pending approval in Firestore for webhook to resolve
-        const db = getAdminFirestore();
-        const approvalRef = await db.collection('agent_approvals').add({
-            agentId: input.agentId,
-            domain: input.domain,
-            title: input.title,
-            hypothesisId: input.hypothesisId ?? null,
+        // Update doc with Slack message coordinates for confirmation update
+        await db.collection('agent_approvals').doc(approvalRef.id).update({
             slackTs: result.ts,
             slackChannel: result.channel,
-            status: 'pending',
-            defaultVariant: input.variants[0]?.id ?? 'A',
-            createdAt: Date.now(),
-            expiresAt: Date.now() + timeoutMs,
         });
 
         // Poll for resolution (simple poll approach — approval webhook updates the doc)

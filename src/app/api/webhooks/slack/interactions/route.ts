@@ -157,6 +157,12 @@ async function handleBlockActions(payload: any): Promise<void> {
             continue;
         }
 
+        // ---- A/B variant approval (agent learning loop) ----
+        if (actionId.startsWith('approve_variant_') || actionId === 'cancel_send') {
+            await handleVariantApproval(actionId, value, userId, responseUrl);
+            continue;
+        }
+
         // ---- Legacy agent action approval ----
         const approval = await getApprovalRequest(value);
         if (!approval) {
@@ -355,6 +361,78 @@ async function handleTaskFeedback(
         const msg = err instanceof Error ? err.message : String(err);
         logger.error('[Slack/Interactions] Task feedback failed', { taskId, error: msg });
         await sendErrorResponse(responseUrl, `Feedback failed: ${msg}`);
+    }
+}
+
+// ============================================================================
+// A/B Variant Approval Handler (agent learning loop)
+// ============================================================================
+
+/**
+ * Handles "Use A", "Use B", "Cancel send" buttons from requestSlackApproval cards.
+ * Value is JSON: { approvalId: string, variant: string | null }
+ */
+async function handleVariantApproval(
+    actionId: string,
+    value: string,
+    slackUserId: string,
+    responseUrl: string,
+): Promise<void> {
+    let parsed: { approvalId: string; variant: string | null };
+    try {
+        parsed = JSON.parse(value);
+    } catch {
+        await sendErrorResponse(responseUrl, 'Invalid variant approval payload');
+        return;
+    }
+
+    const { approvalId, variant } = parsed;
+    if (!approvalId) {
+        await sendErrorResponse(responseUrl, 'Missing approval ID');
+        return;
+    }
+
+    try {
+        const { getAdminFirestore } = await import('@/firebase/admin');
+        const db = getAdminFirestore();
+        const ref = db.collection('agent_approvals').doc(approvalId);
+        const snap = await ref.get();
+
+        if (!snap.exists) {
+            await sendErrorResponse(responseUrl, 'This approval has expired or was already resolved.');
+            return;
+        }
+
+        const data = snap.data();
+        if (data?.status !== 'pending') {
+            await sendSuccessResponse(responseUrl, `Already resolved (${data?.status}).`);
+            return;
+        }
+
+        const isCancelled = actionId === 'cancel_send' || variant === null;
+
+        await ref.update({
+            status: isCancelled ? 'cancelled' : 'approved',
+            selectedVariant: isCancelled ? null : variant,
+            resolvedBy: slackUserId,
+            resolvedAt: Date.now(),
+        });
+
+        const label = isCancelled
+            ? '🚫 Send cancelled.'
+            : `✅ Variant *${variant}* selected — campaign will proceed.`;
+
+        await sendSuccessResponse(responseUrl, label);
+
+        logger.info('[Slack/Interactions] Variant approval resolved', {
+            approvalId,
+            variant: isCancelled ? 'cancelled' : variant,
+            resolvedBy: slackUserId,
+        });
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.error('[Slack/Interactions] Variant approval failed', { approvalId, error: msg });
+        await sendErrorResponse(responseUrl, `Failed to record decision: ${msg}`);
     }
 }
 
