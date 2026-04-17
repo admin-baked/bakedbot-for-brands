@@ -66,7 +66,7 @@ function buildSearchText(entry: Record<string, unknown>): string {
         .toLowerCase();
 }
 
-async function ensureElroyChannel(channelName: string): Promise<string> {
+export async function ensureElroyChannel(channelName: string): Promise<string> {
     const normalized = channelName.replace(/^#/, '');
 
     const existing = await elroySlackService.findChannelByName(normalized);

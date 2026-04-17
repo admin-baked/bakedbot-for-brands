@@ -12,6 +12,7 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { elroySlackService } from '@/server/services/communications/slack';
+import { ensureElroyChannel } from '@/server/services/agent-learning-loop';
 
 // ─── Collections ────────────────────────────────────────────────────────────
 
@@ -262,7 +263,7 @@ export async function requestSlackApproval(
             },
         ];
 
-        const channelId = await ensureChannel(APPROVAL_CHANNEL);
+        const channelId = await ensureElroyChannel(APPROVAL_CHANNEL);
         const fallback = `${input.agentId} A/B test needs approval: ${input.title}`;
         const result = await elroySlackService.postMessage(channelId, fallback, blocks);
 
@@ -316,21 +317,6 @@ export async function requestSlackApproval(
     }
 }
 
-async function ensureChannel(channelName: string): Promise<string> {
-    try {
-        const existing = await elroySlackService.findChannelByName(channelName);
-        if (existing?.id) {
-            await elroySlackService.joinChannel(existing.id);
-            return existing.id;
-        }
-        const created = await elroySlackService.createChannel(channelName);
-        if (created?.id) {
-            await elroySlackService.joinChannel(created.id);
-            return created.id;
-        }
-    } catch {}
-    return channelName;
-}
 
 // ─── Trend Computation ────────────────────────────────────────────────────────
 
