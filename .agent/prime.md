@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** main green | Thrive telemetry repaired; Ecstatic catalog fallback live with a warning card for missing sales telemetry; Campaigns/Playbooks + welcome emails live for Thrive + Ecstatic
-**Recent work (2026-04-16):** `catalog-analytics-source.ts` now resolves Ecstatic through tenant aliases + `brandId`; live insight published as `Sales history missing for 4 in-stock SKUs` after confirming `5` brand products load
+**Current Status:** 🟢 main green | GTM v2.2 live; 24 agent board tasks seeded (Leo owns board); Karpathy guidelines in CLAUDE.md
+**Recent work (2026-04-17):** `741bd1a3d` GTM v2.2 + Karpathy guidelines + 24 Firestore agent_tasks seeded via seed-gtm-agent-tasks.mjs
 
 ---
 

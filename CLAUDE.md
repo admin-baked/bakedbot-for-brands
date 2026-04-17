@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** main green | Thrive telemetry repaired; Ecstatic catalog fallback live with a truthful slow-mover telemetry warning card; Campaigns/Playbooks + welcome-email smokes passing for Thrive + Ecstatic | **Last update:** 2026-04-16 (Ecstatic shipit prep)
+**Current Status:** 🟢 main green | GTM v2.2 live; 24 agent board tasks seeded; Karpathy guidelines added | **Last update:** 2026-04-17 (`741bd1a3d`)
 
 ---
 
@@ -550,7 +550,7 @@ Prepend your session block under a new `## Session YYYY-MM-DD` heading.
 
 1. Read `CLAUDE.md` line 15. Parse the existing `YYYY-MM-DD`.
 2. If **your session date is newer or equal** ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ update both files:
-   - **`CLAUDE.md` line 15:** `**Current Status:** main green | Thrive telemetry repaired; Ecstatic catalog fallback live with a truthful slow-mover telemetry warning card; Campaigns/Playbooks + welcome-email smokes passing for Thrive + Ecstatic | **Last update:** 2026-04-16 (Ecstatic shipit prep)
+   - **`CLAUDE.md` line 15:** `**Current Status:** 🟢 main green | GTM v2.2 live; 24 agent board tasks seeded; Karpathy guidelines added | **Last update:** 2026-04-17 (`741bd1a3d`)
    - **`.agent/prime.md` lines ~41ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“44:** max 2-line block ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â feature names + commit hashes only
 3. If **your session date is older** than what's already there ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ **skip both files**. Your session is already captured in MEMORY.md and `memory/sessions/`. Don't overwrite newer work.
 
