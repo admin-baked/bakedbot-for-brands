@@ -22,12 +22,83 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function generateMetadata({ params }: { params: Promise<{ brand: string }> }): Promise<Metadata> {
-    const { brand } = await params;
-    const isDemo = ['demo', 'demo-shop', 'demo-brand', 'demo-40tons'].includes(brand);
+    const { brand: brandParam } = await params;
+    const isDemo = ['demo', 'demo-shop', 'demo-brand', 'demo-40tons'].includes(brandParam);
+    if (isDemo) return { robots: { index: false, follow: true } };
 
-    return {
-        robots: isDemo ? { index: false, follow: true } : undefined,
-    };
+    try {
+        const { brand } = await fetchBrandPageData(brandParam);
+        if (!brand) return { robots: { index: false, follow: true } };
+
+        const brandName = brand.name;
+        const city    = brand.location?.city  ?? (brand as any).city  ?? '';
+        const state   = brand.location?.state ?? (brand as any).state ?? '';
+        const isDispensary = (brand as any).type === 'dispensary';
+        const logoUrl = brand.logoUrl ?? '';
+        const canonicalUrl = `https://bakedbot.ai/${brandParam}`;
+
+        // Build a rich, keyword-loaded description
+        const locationSuffix = city && state ? ` in ${city}, ${state}` : '';
+        const descriptionBase = brand.description && !brand.description.includes('Mock Data')
+            ? brand.description
+            : isDispensary
+                ? `Shop premium cannabis products at ${brandName}${locationSuffix}. Browse today's menu, earn VIP loyalty rewards, and find exclusive deals on flower, edibles, concentrates, and more.`
+                : `Shop ${brandName} premium cannabis products online. Browse our full menu of edibles, flower, and concentrates. Fast shipping nationwide.`;
+
+        const keywords = isDispensary
+            ? [
+                brandName,
+                `${brandName} menu`,
+                `${brandName} dispensary`,
+                city ? `dispensary ${city}` : '',
+                city && state ? `cannabis ${city} ${state}` : '',
+                state ? `dispensary near me ${state}` : '',
+                'cannabis dispensary',
+                'weed dispensary',
+                'marijuana dispensary',
+                'cannabis deals',
+                'dispensary loyalty rewards',
+                'cannabis menu',
+              ].filter(Boolean)
+            : [
+                brandName,
+                `${brandName} edibles`,
+                `buy ${brandName} online`,
+                'cannabis edibles online',
+                'hemp edibles',
+                'cannabis gummies',
+                'delta-8 edibles',
+                'CBD edibles',
+                'ship cannabis nationwide',
+              ].filter(Boolean);
+
+        return {
+            title: isDispensary
+                ? `${brandName} Menu & Deals${locationSuffix} | Cannabis Dispensary`
+                : `${brandName} | Shop Cannabis Edibles Online`,
+            description: descriptionBase,
+            keywords: keywords.join(', '),
+            alternates: { canonical: canonicalUrl },
+            openGraph: {
+                title: isDispensary
+                    ? `${brandName}${locationSuffix} — Shop Cannabis Today`
+                    : `${brandName} — Premium Cannabis Edibles`,
+                description: descriptionBase,
+                url: canonicalUrl,
+                siteName: brandName,
+                type: 'website',
+                images: logoUrl ? [{ url: logoUrl, alt: brandName }] : [],
+            },
+            twitter: {
+                card: 'summary',
+                title: brandName,
+                description: descriptionBase,
+                images: logoUrl ? [logoUrl] : [],
+            },
+        };
+    } catch {
+        return {};
+    }
 }
 
 export default async function BrandPage({ params }: { params: Promise<{ brand: string }> }) {
@@ -123,11 +194,55 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
     // Fetch public loyalty/menu display settings (no auth required)
     const publicMenuSettings = await getPublicMenuSettings(brand.id).catch(() => null);
 
+    // JSON-LD structured data for search engines
+    const isDispensary = (brand as any).type === 'dispensary';
+    const city    = brand.location?.city  ?? (brand as any).city  ?? '';
+    const state   = brand.location?.state ?? (brand as any).state ?? '';
+    const phone   = brand.location?.phone ?? (brand as any).phone ?? '';
+    const address = brand.location?.address ?? (brand as any).address ?? '';
+    const zip     = brand.location?.zip   ?? (brand as any).zip   ?? '';
+    const canonicalUrl = `https://bakedbot.ai/${brandParam}`;
+
+    const jsonLd = isDispensary ? {
+        '@context': 'https://schema.org',
+        '@type': 'MedicalBusiness',
+        name: brand.name,
+        description: (brand as any).description ?? `Cannabis dispensary in ${city}, ${state}`,
+        url: canonicalUrl,
+        logo: brand.logoUrl ?? undefined,
+        telephone: phone || undefined,
+        address: address ? {
+            '@type': 'PostalAddress',
+            streetAddress: address,
+            addressLocality: city,
+            addressRegion: state,
+            postalCode: zip,
+            addressCountry: 'US',
+        } : undefined,
+        openingHours: (brand as any).hours ?? undefined,
+        priceRange: '$$',
+        currenciesAccepted: 'USD',
+        paymentAccepted: 'Cash, Credit Card, Debit Card',
+        hasMap: address ? `https://maps.google.com/?q=${encodeURIComponent([address, city, state].filter(Boolean).join(', '))}` : undefined,
+    } : {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: brand.name,
+        description: (brand as any).description ?? `Premium cannabis brand`,
+        url: canonicalUrl,
+        logo: brand.logoUrl ?? undefined,
+        sameAs: (brand as any).website ? [(brand as any).website] : [],
+    };
+
     return (
         <MenuWithAgeGate
             brandId={brand.id}
             source={`brand-menu-${brandParam}`}
         >
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
             <main className="relative min-h-screen">
                 <BrandMenuClient
                     brand={brand}

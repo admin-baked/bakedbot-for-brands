@@ -171,17 +171,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           .filter((item): item is NonNullable<typeof item> => item !== null)
       );
 
-      // Generate llm.txt routes from same snapshot (no extra query)
+      // Add /{slug} menu pages + sub-pages for each brand (the actual indexable URLs)
       for (const doc of brandsSnapshot.docs) {
         const data = doc.data();
-        if (data.slug) {
-          llmRoutes.push({
-            url: `${BASE_URL}/${data.slug}/llm.txt`,
-            lastModified: new Date(),
-            changeFrequency: 'daily' as const,
-            priority: 0.6,
+        if (!data.slug) continue;
+        const slug = data.slug as string;
+        const lastMod = typeof data.updatedAt?.toDate === 'function' ? data.updatedAt.toDate() : new Date();
+        // Main menu page — highest priority (this is the page Google should index)
+        brandRoutes.push({
+          url: `${BASE_URL}/${slug}`,
+          lastModified: lastMod,
+          changeFrequency: 'daily' as const,
+          priority: 0.9,
+        });
+        // Sub-pages
+        for (const sub of ['locations', 'about', 'blog']) {
+          brandRoutes.push({
+            url: `${BASE_URL}/${slug}/${sub}`,
+            lastModified: lastMod,
+            changeFrequency: 'weekly' as const,
+            priority: 0.7,
           });
         }
+        // llm.txt
+        llmRoutes.push({
+          url: `${BASE_URL}/${slug}/llm.txt`,
+          lastModified: new Date(),
+          changeFrequency: 'daily' as const,
+          priority: 0.6,
+        });
       }
     } catch (e) {
       console.error('[Sitemap] Failed to fetch brands:', e);
@@ -223,6 +241,39 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           })
           .filter((item): item is NonNullable<typeof item> => item !== null)
       );
+
+      // Add /{slug} menu page + sub-pages for each dispensary/org
+      const orgsSnapshot = await firestore
+        .collection('orgs')
+        .where('type', '==', 'dispensary')
+        .select('website', 'updatedAt')
+        .limit(500)
+        .get();
+
+      for (const doc of orgsSnapshot.docs) {
+        const data = doc.data();
+        // Extract slug from website URL (e.g., "https://bakedbot.ai/thrivesyracuse" → "thrivesyracuse")
+        const website = data.website as string | undefined;
+        if (!website) continue;
+        const match = website.match(/bakedbot\.ai\/([^/?#]+)$/);
+        const slug = match?.[1];
+        if (!slug) continue;
+        const lastMod = typeof data.updatedAt?.toDate === 'function' ? data.updatedAt.toDate() : new Date();
+        retailerRoutes.push({
+          url: `${BASE_URL}/${slug}`,
+          lastModified: lastMod,
+          changeFrequency: 'daily' as const,
+          priority: 0.9,
+        });
+        for (const sub of ['locations', 'about', 'blog']) {
+          retailerRoutes.push({
+            url: `${BASE_URL}/${slug}/${sub}`,
+            lastModified: lastMod,
+            changeFrequency: 'weekly' as const,
+            priority: 0.7,
+          });
+        }
+      }
     } catch (e) {
       console.error('[Sitemap] Failed to fetch retailers:', e);
     }

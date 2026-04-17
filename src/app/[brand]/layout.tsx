@@ -2,10 +2,9 @@ import { Metadata } from 'next';
 
 export async function generateMetadata({ params }: { params: Promise<{ brand: string }> }): Promise<Metadata> {
     const { brand } = await params;
-
+    // Page-level generateMetadata provides the authoritative title/description/OG tags.
+    // Layout only owns the llm.txt alternate link — page metadata takes full precedence.
     return {
-        title: `${brand} | Powered by BakedBot`,
-        description: `Shop at ${brand} - powered by BakedBot AI`,
         alternates: {
             types: {
                 'text/plain': `https://bakedbot.ai/${brand}/llm.txt`,

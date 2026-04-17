@@ -1,5 +1,6 @@
 import { fetchBrandPageData } from '@/lib/brand-data';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { DemoHeader } from '@/components/demo/demo-header';
 import { DemoFooter } from '@/components/demo/demo-footer';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,6 +12,27 @@ import { getBrandPageBySlug } from '@/server/actions/brand-pages';
 import { cookies } from 'next/headers';
 import { getCurrentUser } from '@/lib/auth-helpers';
 import { PublicPageEditBar } from '@/components/brand-pages/public-page-edit-bar';
+
+export async function generateMetadata({ params }: { params: Promise<{ brand: string }> }): Promise<Metadata> {
+    try {
+        const { brand: brandSlug } = await params;
+        const { brand } = await fetchBrandPageData(brandSlug);
+        if (!brand) return {};
+        const city  = brand.location?.city  ?? (brand as any).city  ?? '';
+        const state = brand.location?.state ?? (brand as any).state ?? '';
+        const locationStr = city && state ? ` in ${city}, ${state}` : '';
+        const title = `${brand.name} Locations${locationStr}`;
+        const description = `Find ${brand.name} dispensary locations${locationStr}. Get hours, address, phone number, and directions.`;
+        return {
+            title,
+            description,
+            alternates: { canonical: `https://bakedbot.ai/${brandSlug}/locations` },
+            openGraph: { title, description, url: `https://bakedbot.ai/${brandSlug}/locations` },
+        };
+    } catch {
+        return {};
+    }
+}
 
 export default async function LocationsPage({ params }: { params: Promise<{ brand: string }> }) {
     const { brand: brandSlug } = await params;
