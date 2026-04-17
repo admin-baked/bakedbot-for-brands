@@ -37,6 +37,7 @@ export default async function DispensariesPage({ searchParams }: Props) {
     city: r.city || '',
     state: r.state || '',
     zip: r.zip || '',
+    logoUrl: (r as any).logoUrl as string | undefined,
     description: undefined as string | undefined,
     isLicensed: true,
   }));
@@ -51,6 +52,7 @@ export default async function DispensariesPage({ searchParams }: Props) {
       city: p.city || '',
       state: p.state || '',
       zip: p.zipCode || '',
+      logoUrl: (p as any).logoUrl as string | undefined,
       description: p.seoTags?.metaDescription,
       isLicensed: false,
     }));
@@ -120,8 +122,13 @@ export default async function DispensariesPage({ searchParams }: Props) {
                   className="group bg-white rounded-2xl p-6 border border-slate-200 hover:border-green-300 hover:shadow-lg transition-all"
                 >
                   <div className="flex items-start justify-between mb-4">
-                    <div className="w-11 h-11 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600 font-bold text-lg flex-shrink-0">
-                      {entry.name.charAt(0).toUpperCase()}
+                    <div className="w-11 h-11 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600 font-bold text-lg flex-shrink-0 overflow-hidden">
+                      {entry.logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={entry.logoUrl} alt={entry.name} className="w-full h-full object-cover" />
+                      ) : (
+                        entry.name.charAt(0).toUpperCase()
+                      )}
                     </div>
                     <div className="flex items-center gap-1.5">
                       {entry.isLicensed && (

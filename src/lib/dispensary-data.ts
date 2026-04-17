@@ -4,6 +4,20 @@ import { logger } from '@/lib/logger';
 import { Retailer, Product } from '@/types/domain';
 import { DispensarySEOPage } from '@/types/foot-traffic';
 
+// Slugs/names that must never appear in the public dispensary directory
+const EXCLUDED_DISPENSARY_SLUGS = new Set([
+    'andrewsdevelopments', 'andrews-developments', 'andrews_developments',
+]);
+const EXCLUDED_DISPENSARY_NAMES = ['andrews developments', 'andrewsdevelopments'];
+
+function isExcludedDispensary(name: string, slug: string): boolean {
+    const n = name.toLowerCase();
+    const s = slug.toLowerCase();
+    if (EXCLUDED_DISPENSARY_SLUGS.has(s)) return true;
+    if (EXCLUDED_DISPENSARY_NAMES.some(x => n.includes(x))) return true;
+    return false;
+}
+
 export async function fetchDispensaryPageData(slug: string) {
     const { firestore } = await createServerClient();
 
@@ -71,7 +85,8 @@ export async function fetchDispensaryPageData(slug: string) {
 }
 
 /**
- * Fetch all discovered SEO pages for listing/index pages
+ * Fetch all discovered SEO pages for listing/index pages.
+ * Excludes non-cannabis entries.
  */
 export async function fetchDiscoveredDispensaryPages(limit = 50) {
     try {
@@ -83,10 +98,11 @@ export async function fetchDiscoveredDispensaryPages(limit = 50) {
             .limit(limit)
             .get();
 
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DispensarySEOPage));
+        return snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as DispensarySEOPage))
+            .filter(p => !isExcludedDispensary(p.dispensaryName ?? '', p.dispensarySlug ?? ''));
     } catch (error) {
         console.error('[fetchDiscoveredDispensaryPages] Error:', error);
-        // Return empty array if Firestore fails (e.g., auth issues locally)
         return [];
     }
 }
@@ -104,7 +120,9 @@ export async function fetchRetailersForDirectory(state?: string, limit = 150): P
             ? col.where('state', '==', state).limit(limit)
             : col.limit(limit);
         const snapshot = await q.get();
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Retailer));
+        return snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as Retailer))
+            .filter(r => !isExcludedDispensary(r.name ?? '', r.slug ?? r.id ?? ''));
     } catch (error) {
         logger.error('[fetchRetailersForDirectory] Error', { error, state });
         return [];

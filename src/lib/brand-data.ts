@@ -412,8 +412,13 @@ export async function fetchBrandPageData(brandParam: string) {
     }
 }
 
+// Slugs/names that are not cannabis brands and must never appear in public directories
+const EXCLUDED_BRAND_SLUGS = new Set(['andrewsdevelopments', 'andrews-developments', 'andrews_developments']);
+const EXCLUDED_BRAND_NAMES = ['andrews developments', 'andrewsdevelopments'];
+
 /**
- * Fetch all discovered Brand SEO pages for listing/index pages
+ * Fetch all discovered Brand SEO pages for listing/index pages.
+ * Only returns published pages; excludes non-cannabis entries.
  */
 export async function fetchDiscoveredBrandPages(limit = 50) {
     try {
@@ -421,11 +426,20 @@ export async function fetchDiscoveredBrandPages(limit = 50) {
 
         const snapshot = await firestore
             .collection('seo_pages_brand')
+            .where('published', '==', true)
             .orderBy('createdAt', 'desc')
             .limit(limit)
             .get();
 
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+        return snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as any))
+            .filter((p: any) => {
+                const slug = (p.brandSlug || p.id || '').toLowerCase();
+                const name = (p.brandName || '').toLowerCase();
+                if (EXCLUDED_BRAND_SLUGS.has(slug)) return false;
+                if (EXCLUDED_BRAND_NAMES.some(n => name.includes(n))) return false;
+                return true;
+            });
     } catch (error) {
         console.error('[fetchDiscoveredBrandPages] Error:', error);
         return [];
