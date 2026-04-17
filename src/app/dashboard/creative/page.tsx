@@ -59,6 +59,7 @@ import type {
   SocialSafetyMode,
 } from "@/types/creative-content";
 import type { DeckPurpose, GeneratePowerPointOutput } from "@/types/powerpoint";
+import type { GenerateVideoInput } from "@/ai/video-types";
 import { useRouter } from "next/navigation";
 import { getMenuData } from "@/app/dashboard/menu/actions";
 import { logger } from "@/lib/logger";
@@ -184,6 +185,13 @@ const LEFT_PANELS: { id: LeftPanel; icon: React.ElementType; label: string }[] =
 ];
 
 const MOBILE_PRIMARY_PANELS: LeftPanel[] = ['generate', 'templates', 'brandkit', 'drafts'];
+const STANDARD_MEDIA_MODES: CreativeImageMode[] = ['photo', 'branded', 'slideshow'];
+const SUPER_USER_MEDIA_MODES: CreativeImageMode[] = ['photo', 'branded', 'video', 'slideshow', 'longvideo', 'remix', 'deck'];
+const REMOTION_CLIENT_POLL_INTERVAL_MS = 2_500;
+const REMOTION_CLIENT_MAX_POLL_ATTEMPTS = 144;
+const REMOTION_CLIENT_TIMEOUT_MINUTES = Math.floor(
+  (REMOTION_CLIENT_POLL_INTERVAL_MS * REMOTION_CLIENT_MAX_POLL_ATTEMPTS) / 60_000,
+);
 
 const BUSINESS_CONTEXT_OPTIONS: Array<{
   value: CreativeBusinessContext;
@@ -461,6 +469,29 @@ function getFormatLabel(
   return FORMAT_LABELS[format];
 }
 
+function normalizeBrandMatchValue(value?: string | null): string {
+  return (value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function matchesOrgPreset(
+  preset: CreativeOrgPreset,
+  brandName?: string | null,
+): boolean {
+  const normalizedPreset = normalizeBrandMatchValue(preset.brandName);
+  const normalizedBrandName = normalizeBrandMatchValue(brandName);
+
+  if (!normalizedPreset || !normalizedBrandName) {
+    return false;
+  }
+
+  return normalizedPreset === normalizedBrandName
+    || normalizedBrandName.includes(normalizedPreset)
+    || normalizedPreset.includes(normalizedBrandName);
+}
+
 function getMediaAspectRatio(
   platform: SocialPlatform,
   format: SocialPostFormat,
@@ -697,6 +728,11 @@ export default function CreativeCommandCenter() {
   const [selectedMenuItemId, setSelectedMenuItemId] = useState("");
   const [revisionNote, setRevisionNote] = useState("");
   const isSuperUser = (user as any)?.role === 'super_user';
+  const visibleQuickStarts = QUICK_STARTS.filter((quickStart) => isSuperUser || quickStart.businessContext !== 'company');
+  const visibleOrgPresets = isSuperUser
+    ? ORG_PRESETS
+    : ORG_PRESETS.filter((preset) => matchesOrgPreset(preset, brandGuide?.brandName));
+  const availableMediaModes = isSuperUser ? SUPER_USER_MEDIA_MODES : STANDARD_MEDIA_MODES;
   const visibleLeftPanels = (isMobile
     ? LEFT_PANELS.filter(({ id }) => MOBILE_PRIMARY_PANELS.includes(id))
     : LEFT_PANELS
@@ -938,6 +974,12 @@ export default function CreativeCommandCenter() {
   const [fridayQuoteIdx, setFridayQuoteIdx] = useState(0);
   const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [remotionRenderState, setRemotionRenderState] = useState<{
+    renderId: string;
+    progress: number;
+    duration: number;
+    model: string;
+  } | null>(null);
 
   // Remix mode state
   const [remixVideoUrl, setRemixVideoUrl] = useState<string | null>(null);
@@ -946,6 +988,15 @@ export default function CreativeCommandCenter() {
   const [remixShowLowerThird, setRemixShowLowerThird] = useState(true);
   const [remixShowOutro, setRemixShowOutro] = useState(true);
   const [remixMuted, setRemixMuted] = useState(false);
+
+  useEffect(() => {
+    if (availableMediaModes.includes(imageMode)) {
+      return;
+    }
+
+    setImageMode(selectedFormat === 'story' || selectedFormat === 'reel' ? 'slideshow' : 'branded');
+    setLocalVideoUrl(null);
+  }, [availableMediaModes, imageMode, selectedFormat]);
 
   useEffect(() => {
     if (!isGeneratingVideo || imageMode !== 'longvideo') return;
@@ -1054,10 +1105,7 @@ export default function CreativeCommandCenter() {
     setTone(inferredContext === 'company' ? 'professional' : 'educational');
     setSocialSafetyMode('social-safe');
 
-    const normalizedBrandName = brandGuide?.brandName?.toLowerCase().trim();
-    const matchedPreset = normalizedBrandName
-      ? ORG_PRESETS.find((preset) => preset.brandName.toLowerCase() === normalizedBrandName)
-      : null;
+    const matchedPreset = visibleOrgPresets[0] ?? null;
 
     if (matchedPreset) {
       setSelectedOrgPresetId(matchedPreset.id);
@@ -1075,7 +1123,7 @@ export default function CreativeCommandCenter() {
     }
 
     hasInitializedCreativeDefaults.current = true;
-  }, [brandGuide?.brandName, brandGuideLoading, isLoadingMenu, menuItems.length, selectedPlatform]);
+  }, [brandGuide?.brandName, brandGuideLoading, isLoadingMenu, menuItems.length, selectedPlatform, visibleOrgPresets]);
 
   useEffect(() => {
     if (hasSeededStarterPrompt.current) {
@@ -1300,11 +1348,124 @@ export default function CreativeCommandCenter() {
     }, 60);
   };
 
+  const pollRemotionRender = async (
+    renderId: string,
+    metadata: { duration: number; model: string },
+  ): Promise<{ videoUrl: string; duration: number }> => {
+    for (let attempt = 0; attempt < REMOTION_CLIENT_MAX_POLL_ATTEMPTS; attempt += 1) {
+      const response = await fetch('/api/ai/video/remotion/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          renderId,
+          duration: metadata.duration,
+          model: metadata.model,
+        }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to check render status';
+        try {
+          const errorBody = await response.json() as { error?: string };
+          if (errorBody.error) {
+            errorMessage = errorBody.error;
+          }
+        } catch {
+          // Keep the fallback message if the response body is not JSON.
+        }
+        setRemotionRenderState(null);
+        throw new Error(errorMessage);
+      }
+
+      const status = await response.json() as {
+        status: 'pending' | 'completed' | 'failed';
+        progress: number;
+        duration: number;
+        model: string;
+        videoUrl?: string;
+        error?: string;
+      };
+
+      if (status.status === 'completed' && status.videoUrl) {
+        setRemotionRenderState(null);
+        return {
+          videoUrl: status.videoUrl,
+          duration: status.duration,
+        };
+      }
+
+      if (status.status === 'failed') {
+        setRemotionRenderState(null);
+        throw new Error(status.error || 'Remotion render failed');
+      }
+
+      setRemotionRenderState({
+        renderId,
+        progress: status.progress,
+        duration: status.duration,
+        model: status.model,
+      });
+
+      await new Promise((resolve) => window.setTimeout(resolve, REMOTION_CLIENT_POLL_INTERVAL_MS));
+    }
+
+    setRemotionRenderState(null);
+    throw new Error(`Remotion render timed out after ${REMOTION_CLIENT_TIMEOUT_MINUTES} minutes`);
+  };
+
+  const startRemotionRender = async (
+    input: GenerateVideoInput,
+    successLabel: (duration: number) => string,
+    failureLabel: string,
+  ) => {
+    const response = await fetch('/api/ai/video/remotion/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input }),
+    });
+
+    if (!response.ok) {
+      let errorMessage = failureLabel;
+      try {
+        const errorBody = await response.json() as { error?: string };
+        if (errorBody.error) {
+          errorMessage = errorBody.error;
+        }
+      } catch {
+        // Keep the fallback message if the response body is not JSON.
+      }
+      setRemotionRenderState(null);
+      throw new Error(errorMessage);
+    }
+
+    const started = await response.json() as {
+      renderId: string;
+      duration: number;
+      model: string;
+    };
+
+    setRemotionRenderState({
+      renderId: started.renderId,
+      progress: 0,
+      duration: started.duration,
+      model: started.model,
+    });
+
+    const result = await pollRemotionRender(started.renderId, {
+      duration: started.duration,
+      model: started.model,
+    });
+
+    setLocalVideoUrl(result.videoUrl);
+    toast.success(successLabel(result.duration));
+  };
+
   // --- Handlers ---
 
   const handleGenerate = async () => {
     if (imageMode !== 'remix' && !campaignPrompt.trim()) { toast.error("Please enter a campaign description"); return; }
     setGenerationError(null);
+    setRemotionRenderState(null);
 
     // ── Deck mode: pptxgenjs + GLM — PowerPoint generation ──
     if (imageMode === 'deck') {
@@ -1365,44 +1526,28 @@ export default function CreativeCommandCenter() {
       setDeckResultSlideCount(null);
 
       try {
-        const response = await fetch('/api/ai/video', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            input: {
-              prompt: campaignPrompt.trim() || 'Brand remix',
-              aspectRatio,
-              brandName: brandGuide?.brandName,
-              primaryColor: brandColors?.primary,
-              secondaryColor: brandColors?.secondary,
-              accentColor: brandColors?.accent,
-              logoUrl: brandGuide?.visualIdentity?.logo?.primary,
-              headline: textOverlay.headline.trim() || campaignPrompt.trim().substring(0, 40).toUpperCase(),
-              ctaText: textOverlay.cta || 'Learn More',
-              websiteUrl: brandGuide?.source?.sourceUrl,
-              videoSrc: remixVideoUrl,
-              showHeadline: remixShowHeadline,
-              showLowerThird: remixShowLowerThird,
-              showOutro: remixShowOutro,
-              muted: remixMuted,
-              orgId: (user as any)?.orgId ?? '',
-            },
-            forceProvider: 'remotion',
-          }),
-        });
-
-        if (!response.ok) {
-          let errorMessage = 'Remix generation failed';
-          try {
-            const errorBody = await response.json() as { error?: string };
-            if (errorBody.error) errorMessage = errorBody.error;
-          } catch { /* keep default */ }
-          throw new Error(errorMessage);
-        }
-
-        const result = await response.json() as { videoUrl: string; duration: number };
-        setLocalVideoUrl(result.videoUrl);
-        toast.success('Remix ready!');
+        await startRemotionRender(
+          {
+            prompt: campaignPrompt.trim() || 'Brand remix',
+            aspectRatio,
+            brandName: brandGuide?.brandName,
+            primaryColor: brandColors?.primary,
+            secondaryColor: brandColors?.secondary,
+            accentColor: brandColors?.accent,
+            logoUrl: brandGuide?.visualIdentity?.logo?.primary,
+            headline: textOverlay.headline.trim() || campaignPrompt.trim().substring(0, 40).toUpperCase(),
+            ctaText: textOverlay.cta || 'Learn More',
+            websiteUrl: brandGuide?.source?.sourceUrl,
+            videoSrc: remixVideoUrl,
+            showHeadline: remixShowHeadline,
+            showLowerThird: remixShowLowerThird,
+            showOutro: remixShowOutro,
+            muted: remixMuted,
+            orgId: (user as any)?.orgId ?? '',
+          },
+          () => 'Remix ready!',
+          'Remix generation failed',
+        );
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Remix generation failed';
         setGenerationError(msg);
@@ -1498,11 +1643,9 @@ export default function CreativeCommandCenter() {
       setDeckResultSlideCount(null);
       setLocalVideoUrl(null);
       try {
-        const response = await fetch('/api/ai/video', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            input: {
+        if (isSlideshow) {
+          await startRemotionRender(
+            {
               prompt: videoPrompt,
               duration: videoDuration,
               aspectRatio,
@@ -1511,39 +1654,56 @@ export default function CreativeCommandCenter() {
               secondaryColor: brandColors?.secondary,
               accentColor: brandColors?.accent,
               logoUrl: brandGuide?.visualIdentity?.logo?.primary,
-              tagline: isSlideshow ? (brandTagline || trimmedPrompt.substring(0, 60)) : brandTagline,
-              headline: isSlideshow
-                ? (textOverlay.headline.trim() || selectedMenuProduct?.name || trimmedPrompt.substring(0, 60))
-                : undefined,
-              productImageUrl: isSlideshow ? (selectedMenuProduct?.imageUrl || undefined) : undefined,
-              ctaText: isSlideshow && textOverlay.cta ? textOverlay.cta : undefined,
-              websiteUrl: isSlideshow ? brandGuide?.source?.sourceUrl : undefined,
+              tagline: brandTagline || trimmedPrompt.substring(0, 60),
+              headline: textOverlay.headline.trim() || selectedMenuProduct?.name || trimmedPrompt.substring(0, 60),
+              productImageUrl: selectedMenuProduct?.imageUrl || undefined,
+              ctaText: textOverlay.cta || undefined,
+              websiteUrl: brandGuide?.source?.sourceUrl,
             },
-            allowFallbackDemo: false,
-            forceProvider: isSlideshow ? 'remotion' : 'kling',
-          }),
-        });
+            (duration) => `${selectedFormat === 'story' ? 'Story' : 'Slideshow'} ready! (${duration}s)`,
+            'Slideshow generation failed',
+          );
+        } else {
+          const response = await fetch('/api/ai/video', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              input: {
+                prompt: videoPrompt,
+                duration: videoDuration,
+                aspectRatio,
+                brandName: brandGuide?.brandName,
+                primaryColor: brandColors?.primary,
+                secondaryColor: brandColors?.secondary,
+                accentColor: brandColors?.accent,
+                logoUrl: brandGuide?.visualIdentity?.logo?.primary,
+                tagline: brandTagline,
+              },
+              allowFallbackDemo: false,
+              forceProvider: 'kling',
+            }),
+          });
 
-        if (!response.ok) {
-          let errorMessage = isSlideshow ? 'Slideshow generation failed' : 'Video generation failed';
-          try {
-            const errorBody = await response.json() as { error?: string };
-            if (errorBody.error) {
-              errorMessage = errorBody.error;
+          if (!response.ok) {
+            let errorMessage = 'Video generation failed';
+            try {
+              const errorBody = await response.json() as { error?: string };
+              if (errorBody.error) {
+                errorMessage = errorBody.error;
+              }
+            } catch {
+              // Ignore invalid error bodies and keep the fallback message.
             }
-          } catch {
-            // Ignore invalid error bodies and keep the fallback message.
+            throw new Error(errorMessage);
           }
-          throw new Error(errorMessage);
-        }
 
-        const result = await response.json() as {
-          videoUrl: string;
-          duration: number;
-        };
-        setLocalVideoUrl(result.videoUrl);
-        const label = isSlideshow ? `Slideshow ready! (${result.duration}s)` : `Video ready! (${result.duration}s clip)`;
-        toast.success(label);
+          const result = await response.json() as {
+            videoUrl: string;
+            duration: number;
+          };
+          setLocalVideoUrl(result.videoUrl);
+          toast.success(`Video ready! (${result.duration}s clip)`);
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Video generation failed';
         setGenerationError(msg);
@@ -1912,9 +2072,11 @@ export default function CreativeCommandCenter() {
       <div className="border-b border-border bg-muted/20 px-4 py-2">
         {isMobile ? (
           <div className="flex flex-wrap items-center gap-2 text-[11px]">
-            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground">
-              {currentPlan?.name ?? usageSummary?.planId ?? 'Plan loading'}
-            </span>
+            {isSuperUser && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground">
+                {currentPlan?.name ?? usageSummary?.planId ?? 'Plan loading'}
+              </span>
+            )}
             <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
               {isLoadingUsageSummary
                 ? 'Checking credits...'
@@ -1930,18 +2092,20 @@ export default function CreativeCommandCenter() {
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-2 text-[11px]">
-            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground">
-              {currentPlan?.name ?? usageSummary?.planId ?? 'Plan loading'}
-              <span className="text-muted-foreground">plan</span>
-            </span>
+            {isSuperUser && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground">
+                {currentPlan?.name ?? usageSummary?.planId ?? 'Plan loading'}
+                <span className="text-muted-foreground">plan</span>
+              </span>
+            )}
             <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
               {isLoadingUsageSummary
                 ? 'Checking credits...'
-                : usageSummary && totalCreditsRemaining !== null
+                  : usageSummary && totalCreditsRemaining !== null
                   ? `${formatCount(totalCreditsRemaining)} credits left this cycle`
                   : 'Credits update when your workspace usage loads'}
             </span>
-            {usageSummary && automationCreditsRemaining !== null && (
+            {isSuperUser && usageSummary && automationCreditsRemaining !== null && (
               <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
                 {formatCount(automationCreditsRemaining)} automation credits left
               </span>
@@ -1979,7 +2143,7 @@ export default function CreativeCommandCenter() {
           <div className="space-y-2">
             <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Quick starts</span>
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {QUICK_STARTS.map((quickStart) => (
+              {visibleQuickStarts.map((quickStart) => (
                 <button
                   key={quickStart.id}
                   type="button"
@@ -1995,7 +2159,7 @@ export default function CreativeCommandCenter() {
         ) : (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Quick starts</span>
-            {QUICK_STARTS.map((quickStart) => (
+            {visibleQuickStarts.map((quickStart) => (
               <button
                 key={quickStart.id}
                 type="button"
@@ -2162,31 +2326,49 @@ export default function CreativeCommandCenter() {
                         )}
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                          Org Presets
-                        </label>
-                        <div className="grid grid-cols-1 gap-2">
-                          {ORG_PRESETS.map((preset) => (
-                            <button
-                              key={preset.id}
-                              type="button"
-                              onClick={() => applyOrgPreset(preset)}
-                              className={cn(
-                                "w-full rounded-xl border px-3 py-2.5 text-left transition-all",
-                                selectedOrgPresetId === preset.id
-                                  ? "border-primary bg-primary/10"
-                                  : "border-border bg-background hover:border-primary/40 hover:bg-muted/40",
-                              )}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs font-medium text-foreground">{preset.label}</span>
-                                <span className="text-[10px] text-muted-foreground">{preset.hint}</span>
-                              </div>
-                            </button>
-                          ))}
+                      {visibleOrgPresets.length > 1 ? (
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                            Org Presets
+                          </label>
+                          <div className="grid grid-cols-1 gap-2">
+                            {visibleOrgPresets.map((preset) => (
+                              <button
+                                key={preset.id}
+                                type="button"
+                                onClick={() => applyOrgPreset(preset)}
+                                className={cn(
+                                  "w-full rounded-xl border px-3 py-2.5 text-left transition-all",
+                                  selectedOrgPresetId === preset.id
+                                    ? "border-primary bg-primary/10"
+                                    : "border-border bg-background hover:border-primary/40 hover:bg-muted/40",
+                                )}
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-xs font-medium text-foreground">{preset.label}</span>
+                                  <span className="text-[10px] text-muted-foreground">{preset.hint}</span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      ) : visibleOrgPresets.length === 1 ? (
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                            Current Org
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => applyOrgPreset(visibleOrgPresets[0])}
+                            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-left transition-all hover:border-primary/40 hover:bg-muted/40"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-medium text-foreground">{visibleOrgPresets[0].label}</span>
+                              <span className="text-[10px] text-muted-foreground">Reset current defaults</span>
+                            </div>
+                          </button>
+                        </div>
+                      ) : null}
 
                       <Separator />
 
@@ -2453,7 +2635,7 @@ export default function CreativeCommandCenter() {
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Media</label>
                         <div className="flex rounded-lg border border-border bg-muted/40 p-0.5 gap-0.5 flex-wrap">
-                          {(['photo', 'branded', 'video', 'slideshow', 'longvideo', 'remix', 'deck'] as const).map(m => (
+                          {availableMediaModes.map(m => (
                             <button
                               key={m}
                               onClick={() => {
@@ -3332,6 +3514,11 @@ export default function CreativeCommandCenter() {
                               ? `${videoDuration}s branded motion piece · ~10-30s`
                               : `${videoDuration}s motion clip · 1-3 min`}
                       </p>
+                      {remotionRenderState && (imageMode === 'slideshow' || imageMode === 'remix') && (
+                        <p className="text-[11px] font-medium text-primary mt-2">
+                          {Math.max(5, Math.round(remotionRenderState.progress * 100))}% complete
+                        </p>
+                      )}
                     </>
                   ) : (
                     <>
@@ -3420,7 +3607,7 @@ export default function CreativeCommandCenter() {
                   <div className="absolute inset-x-0 bottom-[72px] flex flex-col items-center gap-3 px-5 pointer-events-none">
                     {textOverlay.headline && (
                       <p
-                        className="text-white text-4xl font-black text-center leading-tight tracking-tight"
+                        className="text-white text-3xl md:text-4xl font-black text-center leading-tight tracking-tight"
                         style={{ textShadow: '0 2px 20px rgba(0,0,0,1), 0 4px 40px rgba(0,0,0,0.9)' }}
                       >
                         {textOverlay.headline}
@@ -3437,44 +3624,13 @@ export default function CreativeCommandCenter() {
                   </div>
                 )}
 
-                {/* Caption overlay — taller gradient covers text overlay + caption area */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent pt-28 p-4">
-                  {isEditingCaption ? (
-                    <div className="space-y-2">
-                      <Textarea
-                        value={editedCaption}
-                        onChange={e => setEditedCaption(e.target.value)}
-                        className="bg-black/60 border-white/20 text-white text-xs resize-none h-24 backdrop-blur-sm focus-visible:ring-white/30"
-                        autoFocus
-                      />
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={handleSaveCaption} className="flex-1 h-7 text-xs bg-primary">
-                          <CheckCircle2 className="w-3 h-3 mr-1" /> Save
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={handleCancelEditCaption} className="flex-1 h-7 text-xs border-white/20 text-white bg-transparent hover:bg-white/10">
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="cursor-pointer group" onClick={handleStartEditCaption}>
-                      <p className="text-white text-xs leading-relaxed line-clamp-3 group-hover:line-clamp-none transition-all">
-                        {currentContent.caption}
-                      </p>
-                      <p className="text-white/40 text-[10px] mt-1 group-hover:text-white/60 flex items-center gap-1 transition-colors">
-                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                        Click to edit
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {/* Readability wash for lower-third text overlays */}
+                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
 
                 {/* Platform badge */}
                 <div className="absolute top-3 left-3">
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/60 text-white backdrop-blur-sm capitalize tracking-wide">
-                    {selectedPlatform}
+                    {PLATFORM_LABELS[selectedPlatform]}
                   </span>
                 </div>
 
@@ -3516,25 +3672,6 @@ export default function CreativeCommandCenter() {
             )}
           </motion.div>
 
-          {/* Hashtag chips below canvas */}
-          <AnimatePresence>
-            {currentContent?.hashtags && currentContent.hashtags.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="flex flex-wrap gap-1.5 mt-4 max-w-[320px] justify-center"
-              >
-                {currentContent.hashtags.slice(0, 10).map((tag, idx) => (
-                  <span key={idx} className="text-xs text-primary/60 hover:text-primary transition-colors cursor-default">
-                    #{tag}
-                  </span>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Revision input row */}
           <AnimatePresence>
             {currentContent && (
               <motion.div
@@ -3544,6 +3681,62 @@ export default function CreativeCommandCenter() {
                 transition={{ delay: 0.1 }}
                 className="w-full max-w-[320px] mt-4 space-y-2"
               >
+                <div className="rounded-2xl border border-border bg-background/95 p-3 space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      Caption
+                    </p>
+                    {!isEditingCaption && (
+                      <button
+                        type="button"
+                        onClick={handleStartEditCaption}
+                        className="text-[10px] font-medium text-primary hover:text-primary/80 transition-colors"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditingCaption ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editedCaption}
+                        onChange={e => setEditedCaption(e.target.value)}
+                        className="text-xs resize-none h-24"
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={handleSaveCaption} className="flex-1 h-8 text-xs bg-primary">
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={handleCancelEditCaption} className="flex-1 h-8 text-xs">
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleStartEditCaption}
+                      className="w-full rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/5"
+                    >
+                      <p className="text-xs leading-relaxed text-foreground">
+                        {currentContent.caption}
+                      </p>
+                    </button>
+                  )}
+
+                  {currentContent.hashtags && currentContent.hashtags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {currentContent.hashtags.slice(0, 10).map((tag, idx) => (
+                        <span key={idx} className="rounded-full bg-primary/8 px-2 py-1 text-[11px] text-primary/80">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Revision notes display */}
                 {currentContent.revisionNotes && currentContent.revisionNotes.length > 0 && (
                   <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 flex items-start gap-2">

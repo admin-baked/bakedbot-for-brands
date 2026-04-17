@@ -2,6 +2,7 @@ import { generateMarketingVideo } from '../generate-video';
 import { generateSoraVideo } from '../../generators/sora';
 import { generateVeoVideo } from '../../generators/veo';
 import { generateKlingVideo, generateWanVideo } from '../../generators/fal-video';
+import { generateRemotionVideo } from '../../generators/remotion-video';
 import { getSafeVideoProviderAction } from '../../../server/actions/super-admin/safe-settings';
 
 jest.mock('../../../server/actions/super-admin/safe-settings', () => ({
@@ -19,6 +20,10 @@ jest.mock('../../generators/veo', () => ({
 jest.mock('../../generators/fal-video', () => ({
     generateKlingVideo: jest.fn(),
     generateWanVideo: jest.fn(),
+}));
+
+jest.mock('../../generators/remotion-video', () => ({
+    generateRemotionVideo: jest.fn(),
 }));
 
 jest.mock('../../genkit', () => ({
@@ -53,6 +58,12 @@ describe('Video Generation Flow', () => {
             duration: 5,
             provider: 'wan',
             model: 'fal-ai/wan/v2.1/1.3b/text-to-video',
+        });
+        (generateRemotionVideo as jest.Mock).mockResolvedValue({
+            videoUrl: 'https://remotion.mock/video.mp4',
+            duration: 5,
+            provider: 'remotion',
+            model: 'BrandedSlideshow-16x9',
         });
     });
 
@@ -133,6 +144,29 @@ describe('Video Generation Flow', () => {
         expect(generateKlingVideo).toHaveBeenCalled();
         expect(generateWanVideo).toHaveBeenCalled();
         expect(generateVeoVideo).toHaveBeenCalled();
+    });
+
+    it('uses Remotion when provider is set to remotion', async () => {
+        (getSafeVideoProviderAction as jest.Mock).mockResolvedValue('remotion');
+
+        const result = await generateMarketingVideo(mockInput);
+
+        expect(result.videoUrl).toBe('https://remotion.mock/video.mp4');
+        expect(result.provider).toBe('remotion');
+        expect(generateRemotionVideo).toHaveBeenCalledWith(mockInput);
+        expect(generateKlingVideo).not.toHaveBeenCalled();
+    });
+
+    it('falls back to Kling when Remotion fails', async () => {
+        (getSafeVideoProviderAction as jest.Mock).mockResolvedValue('remotion');
+        (generateRemotionVideo as jest.Mock).mockRejectedValue(new Error('Remotion stalled'));
+
+        const result = await generateMarketingVideo(mockInput);
+
+        expect(result.videoUrl).toBe('https://kling.mock/video.mp4');
+        expect(result.provider).toBe('kling');
+        expect(generateRemotionVideo).toHaveBeenCalledWith(mockInput);
+        expect(generateKlingVideo).toHaveBeenCalledWith(mockInput);
     });
 });
 

@@ -38,6 +38,11 @@ const COMPOSITION_MAP: Record<string, Record<string, string>> = {
         '1:1': 'VideoRemix-1x1',
     },
 };
+const REMOTION_POLL_INTERVAL_MS = 2_000;
+const REMOTION_MAX_POLL_ATTEMPTS = 180;
+const REMOTION_POLL_TIMEOUT_SECONDS = Math.floor(
+    (REMOTION_POLL_INTERVAL_MS * REMOTION_MAX_POLL_ATTEMPTS) / 1000,
+);
 
 export interface RemotionVideoInput extends GenerateVideoInput {
     productImageUrl?: string;
@@ -63,27 +68,78 @@ export interface RemotionVideoInput extends GenerateVideoInput {
     durationOverride?: number;
 }
 
-export async function generateRemotionVideo(
-    input: RemotionVideoInput
-): Promise<GenerateVideoOutput> {
-    const region = (process.env.REMOTION_AWS_REGION || 'us-east-1') as any;
+export interface RemotionRenderSession {
+    renderId: string;
+    duration: number;
+    provider: 'remotion';
+    model: string;
+}
+
+export interface RemotionRenderStatus {
+    status: 'pending' | 'completed' | 'failed';
+    progress: number;
+    duration: number;
+    provider: 'remotion';
+    model: string;
+    videoUrl?: string;
+    error?: string;
+}
+
+interface RemotionLambdaConfig {
+    region: string;
+    functionName: string;
+    bucketName: string;
+}
+
+type RemotionCompositionType = keyof typeof COMPOSITION_MAP;
+
+function getRemotionLambdaConfig(): RemotionLambdaConfig {
     const REMOTION_VERSION = '4.0.438';
-    const functionName = process.env.REMOTION_AWS_FUNCTION_NAME || `remotion-render-${REMOTION_VERSION.replace(/\./g, '-')}-mem2048mb-disk2048mb-300sec`;
-    const bucketName = 'remotionlambda-useast1-5hg2s7ajg0';
-    const TIMEOUT_SECONDS = 300; // Increased to 5 minutes for "Solo Mode" reliability 
-    
-    // Detect composition type
-    const type = input.videoSrc
-        ? 'remix'
-        : input.clipUrls?.length
-            ? 'longform'
-            : (input.screenshotUrls?.length || input.kineticHeadline)
-                ? 'tool'
-                : 'slideshow';
 
-    const compositionId = input.compositionId || COMPOSITION_MAP[type][input.aspectRatio || '16:9'] || COMPOSITION_MAP[type]['16:9'];
+    return {
+        region: process.env.REMOTION_AWS_REGION || 'us-east-1',
+        functionName: process.env.REMOTION_AWS_FUNCTION_NAME || `remotion-render-${REMOTION_VERSION.replace(/\./g, '-')}-mem2048mb-disk2048mb-300sec`,
+        bucketName: 'remotionlambda-useast1-5hg2s7ajg0',
+    };
+}
 
-    // Build props based on composition type
+function getRemotionCompositionType(input: RemotionVideoInput): RemotionCompositionType {
+    if (input.videoSrc) {
+        return 'remix';
+    }
+
+    if (input.clipUrls?.length) {
+        return 'longform';
+    }
+
+    if (input.screenshotUrls?.length || input.kineticHeadline) {
+        return 'tool';
+    }
+
+    return 'slideshow';
+}
+
+function getRemotionDurationSeconds(input: RemotionVideoInput): number {
+    if (typeof input.durationOverride === 'number' && Number.isFinite(input.durationOverride) && input.durationOverride > 0) {
+        return Math.max(1, Math.ceil(input.durationOverride / 30));
+    }
+
+    return Number.parseInt(input.duration || '5', 10);
+}
+
+function getRemotionCompositionId(
+    input: RemotionVideoInput,
+    type: RemotionCompositionType,
+): string {
+    return input.compositionId
+        || COMPOSITION_MAP[type][input.aspectRatio || '16:9']
+        || COMPOSITION_MAP[type]['16:9'];
+}
+
+function buildRemotionProps(
+    input: RemotionVideoInput,
+    type: RemotionCompositionType,
+): Record<string, unknown> {
     const baseProps = {
         brandName: input.brandName || 'BakedBot AI',
         headline: (input.kineticHeadline || input.headline || input.prompt.substring(0, 40)).toUpperCase(),
@@ -91,12 +147,12 @@ export async function generateRemotionVideo(
         secondaryColor: input.secondaryColor || '#27272a',
         accentColor: input.accentColor || '#22c55e',
         logoUrl: input.logoUrl,
-        ctaText: input.ctaText || 'Shop Now',
+        ctaText: input.ctaText || 'Learn More',
         websiteUrl: input.websiteUrl,
     };
 
-    const props = type === 'remix'
-        ? {
+    if (type === 'remix') {
+        return {
             ...baseProps,
             videoSrc: input.videoSrc!,
             showHeadline: input.showHeadline ?? true,
@@ -104,101 +160,160 @@ export async function generateRemotionVideo(
             showOutro: input.showOutro ?? true,
             muted: input.muted ?? false,
             durationOverride: input.durationOverride,
-        }
-        : {
-            ...baseProps,
-            tagline: input.tagline || input.prompt.substring(0, 80),
-            clipUrls: input.clipUrls || [],
-            sceneTitles: input.sceneTitles || [],
-            productImageUrl: input.productImageUrl,
-            screenshotUrls: input.screenshotUrls || [],
-            backgroundImageUrl: input.backgroundImageUrl,
-            styleMode: input.styleMode || 'stop-motion',
-            kineticHeadline: input.kineticHeadline || 'INTRODUCING',
         };
+    }
+
+    return {
+        ...baseProps,
+        tagline: input.tagline || input.prompt.substring(0, 80),
+        clipUrls: input.clipUrls || [],
+        sceneTitles: input.sceneTitles || [],
+        productImageUrl: input.productImageUrl,
+        screenshotUrls: input.screenshotUrls || [],
+        backgroundImageUrl: input.backgroundImageUrl,
+        styleMode: input.styleMode || 'stop-motion',
+        kineticHeadline: input.kineticHeadline || 'INTRODUCING',
+    };
+}
+
+async function toAccessibleRenderUrl(
+    finalUrl: string,
+    config: RemotionLambdaConfig,
+): Promise<string> {
+    let accessibleUrl = finalUrl;
 
     try {
-        // 1. Trigger render
-        const { renderId } = await renderMediaOnLambda({
-            region,
-            functionName,
-            composition: compositionId,
-            serveUrl: 'bakedbot-creative', // The site name deployed to S3/sites/
-            codec: 'h264',
-            inputProps: props as Record<string, unknown>,
-            privacy: 'no-acl',
-            // Limit to 1 concurrent Lambda invocation to avoid AWS ThrottlingException.
-            // Renders take longer but reliably complete without 429s on this account.
-            concurrencyPerLambda: 1,
+        const s3Match = finalUrl.match(/s3\.[\w-]+\.amazonaws\.com\/([^/]+)\/(.+)/);
+        if (s3Match) {
+            accessibleUrl = await presignUrl({
+                region: config.region as any,
+                bucketName: s3Match[1],
+                objectKey: s3Match[2],
+                expiresInSeconds: 7 * 24 * 60 * 60,
+            });
+        }
+    } catch (presignErr) {
+        logger.warn('[Remotion] Presign failed, using raw URL', {
+            error: presignErr instanceof Error ? presignErr.message : String(presignErr),
         });
+    }
 
-        logger.info('[Remotion] Render triggered', { renderId, bucketName });
+    return accessibleUrl;
+}
 
-        // 2. Poll for completion (up to 300s)
-        let progress = 0;
-        let finalUrl = null;
-        let attempts = 0;
+export async function startRemotionVideoRender(
+    input: RemotionVideoInput,
+): Promise<RemotionRenderSession> {
+    const config = getRemotionLambdaConfig();
+    const type = getRemotionCompositionType(input);
+    const compositionId = getRemotionCompositionId(input, type);
+    const props = buildRemotionProps(input, type);
 
-        while (progress < 1 && attempts < 300) { // 300 attempts * 2s = 600s
-            logger.info('[Remotion] Polling attempt', { attempts, renderId });
-            const status = await getRenderProgress({
-                renderId,
-                bucketName,
-                region,
-                functionName,
-            });
-            logger.info('[Remotion] Polling status', { 
-                progress: status.overallProgress,
-                done: !!status.outputFile,
-                error: !!status.fatalErrorEncountered
-            });
+    const { renderId } = await renderMediaOnLambda({
+        region: config.region as any,
+        functionName: config.functionName,
+        composition: compositionId,
+        serveUrl: 'bakedbot-creative',
+        codec: 'h264',
+        inputProps: props,
+        privacy: 'no-acl',
+        concurrencyPerLambda: 1,
+    });
 
-            if (status.fatalErrorEncountered) {
-                throw new Error(`[Remotion] Lambda render failed: ${status.errors[0]?.message}`);
-            }
+    logger.info('[Remotion] Render triggered', {
+        renderId,
+        bucketName: config.bucketName,
+        compositionId,
+    });
 
-            progress = status.overallProgress;
-            
-            if (status.outputFile) {
-                finalUrl = status.outputFile;
-                break;
-            }
+    return {
+        renderId,
+        duration: getRemotionDurationSeconds(input),
+        provider: 'remotion',
+        model: compositionId,
+    };
+}
 
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            attempts++;
-        }
+export async function getRemotionVideoRenderStatus(
+    renderId: string,
+    metadata?: Partial<Pick<RemotionRenderSession, 'duration' | 'model'>>,
+): Promise<RemotionRenderStatus> {
+    const config = getRemotionLambdaConfig();
+    const duration = metadata?.duration ?? 5;
+    const model = metadata?.model ?? 'remotion';
 
-        if (!finalUrl) {
-            throw new Error('[Remotion] Render timed out after 300 seconds.');
-        }
+    const status = await getRenderProgress({
+        renderId,
+        bucketName: config.bucketName,
+        region: config.region as any,
+        functionName: config.functionName,
+    });
 
-        // Presign the S3 URL so clients can access it (no-acl bucket)
-        let accessibleUrl = finalUrl;
-        try {
-            // Extract bucket and key from the S3 URL
-            const s3Match = finalUrl.match(/s3\.[\w-]+\.amazonaws\.com\/([^/]+)\/(.+)/);
-            if (s3Match) {
-                accessibleUrl = await presignUrl({
-                    region,
-                    bucketName: s3Match[1],
-                    objectKey: s3Match[2],
-                    expiresInSeconds: 7 * 24 * 60 * 60, // 7 days
-                });
-            }
-        } catch (presignErr) {
-            logger.warn('[Remotion] Presign failed, using raw URL', {
-                error: presignErr instanceof Error ? presignErr.message : String(presignErr),
-            });
-        }
-
+    if (status.fatalErrorEncountered) {
         return {
-            videoUrl: accessibleUrl,
-            thumbnailUrl: undefined,
-            duration: 10,
+            status: 'failed',
+            progress: status.overallProgress,
+            duration,
             provider: 'remotion',
-            model: compositionId,
+            model,
+            error: status.errors[0]?.message || '[Remotion] Lambda render failed.',
         };
+    }
 
+    if (status.outputFile) {
+        const accessibleUrl = await toAccessibleRenderUrl(status.outputFile, config);
+        return {
+            status: 'completed',
+            progress: 1,
+            duration,
+            provider: 'remotion',
+            model,
+            videoUrl: accessibleUrl,
+        };
+    }
+
+    return {
+        status: 'pending',
+        progress: status.overallProgress,
+        duration,
+        provider: 'remotion',
+        model,
+    };
+}
+
+export async function generateRemotionVideo(
+    input: RemotionVideoInput
+): Promise<GenerateVideoOutput> {
+    const session = await startRemotionVideoRender(input);
+
+    try {
+        for (let attempts = 0; attempts < REMOTION_MAX_POLL_ATTEMPTS; attempts += 1) {
+            logger.info('[Remotion] Polling attempt', { attempts, renderId: session.renderId });
+            const status = await getRemotionVideoRenderStatus(session.renderId, session);
+            logger.info('[Remotion] Polling status', {
+                progress: status.progress,
+                done: status.status === 'completed',
+                error: status.status === 'failed',
+            });
+
+            if (status.status === 'completed' && status.videoUrl) {
+                return {
+                    videoUrl: status.videoUrl,
+                    thumbnailUrl: undefined,
+                    duration: status.duration,
+                    provider: status.provider,
+                    model: status.model,
+                };
+            }
+
+            if (status.status === 'failed') {
+                throw new Error(status.error || '[Remotion] Lambda render failed.');
+            }
+
+            await new Promise(resolve => setTimeout(resolve, REMOTION_POLL_INTERVAL_MS));
+        }
+
+        throw new Error(`[Remotion] Render timed out after ${REMOTION_POLL_TIMEOUT_SECONDS} seconds.`);
     } catch (error) {
         logger.error('[Remotion] Lambda error', {
             error: error instanceof Error ? error.message : String(error),

@@ -16,7 +16,7 @@
 
 ---
 
-**Session Status (2026-04-17):** local actor-context contract, canonical `agent-contract.ts`, internal readiness surfacing, and drift-check hardening landed in the working tree.
+**Session Status (2026-04-17):** local actor-context contract, canonical `agent-contract.ts`, internal readiness surfacing, drift-check hardening, and Creative Center role-aware Remotion fixes are in the working tree.
 
 ## Canonical Engineering Principles (MANDATORY)
 

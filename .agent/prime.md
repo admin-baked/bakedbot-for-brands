@@ -29,11 +29,11 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 ```
 
 **Current Status:** 🟢 main green | Founder headshots live on /book + blog_authors; martez.png + jack.png in /public/images
-**Recent work (2026-04-17):** `a48647cdc` founder headshots on /book + Firestore avatarUrl/headshot patched; `7cac4c71f` simplify + Slack #ceo routing
+**Recent work (2026-04-17):** `a48647cdc` founder headshots on /book + Firestore avatarUrl/headshot patched; `7cac4c71f` simplify + Slack #ceo routing; local Creative Center scope + Remotion polling hardening in progress
 
 ---
 
-**Session Status (2026-04-17):** local actor-context/org-scoping hardening, canonical `agent-contract.ts`, internal playbook readiness badges, and stronger drift derivation are in progress in the working tree.
+**Session Status (2026-04-17):** local actor-context/org-scoping hardening, canonical `agent-contract.ts`, internal playbook readiness badges, stronger drift derivation, and Creative Center role-aware Remotion fixes are in progress in the working tree.
 
 ## Canonical Engineering Principles (MANDATORY)
 
