@@ -148,6 +148,14 @@ export function VisitorCheckinCard({
         setSelectedCandidate(null);
     };
 
+    const resetRecommendationState = () => {
+        setRecommendationProducts([]);
+        setRecommendationBundle(null);
+        setSelectedProductIds([]);
+        setBundleAdded(false);
+        setSelectedDetailProduct(null);
+    };
+
     const toggleProductSelection = (productId: string) => {
         setSelectedProductIds((current) => (
             current.includes(productId)
@@ -251,14 +259,13 @@ export function VisitorCheckinCard({
 
     const handleMoodSelect = async (moodId: TabletMoodId) => {
         resetMessages();
+        resetRecommendationState();
         setSelectedMood(moodId);
         setLoadingRecommendations(true);
 
         try {
             const result = await getMoodRecommendations(orgId, moodId);
             if (!result.success) {
-                setRecommendationProducts([]);
-                setRecommendationBundle(null);
                 setError('Recommendations are loading slowly. Your budtender can still help from the mood you picked.');
                 return;
             }
@@ -266,8 +273,6 @@ export function VisitorCheckinCard({
             setRecommendationProducts(result.products ?? []);
             setRecommendationBundle(result.bundle ?? null);
         } catch (_error) {
-            setRecommendationProducts([]);
-            setRecommendationBundle(null);
             setError('Recommendations are loading slowly. Your budtender can still help from the mood you picked.');
         } finally {
             setLoadingRecommendations(false);

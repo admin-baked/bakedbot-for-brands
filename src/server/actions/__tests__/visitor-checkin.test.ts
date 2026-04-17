@@ -43,7 +43,7 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
-type CollectionName = 'customers' | 'checkin_visits' | 'email_leads' | 'orders';
+type CollectionName = 'customers' | 'checkin_visits' | 'email_leads' | 'orders' | 'tenants';
 
 function getNestedFieldValue(data: Record<string, unknown>, field: string): unknown {
   return field.split('.').reduce<unknown>((current, key) => {
@@ -59,11 +59,14 @@ function createFirestore(args?: {
   customers?: Record<string, Record<string, unknown>>;
   emailLeads?: Record<string, Record<string, unknown>>;
   orders?: Record<string, Record<string, unknown>>;
+  tenantProducts?: Record<string, { name: string }>;
 }) {
   const customers = new Map<string, Record<string, unknown>>(Object.entries(args?.customers ?? {}));
   const visits = new Map<string, Record<string, unknown>>();
   const emailLeads = new Map<string, Record<string, unknown>>(Object.entries(args?.emailLeads ?? {}));
   const orders = new Map<string, Record<string, unknown>>(Object.entries(args?.orders ?? {}));
+  const tenantProducts = new Map(Object.entries(args?.tenantProducts ?? {}));
+  const kioskPicks: Record<string, unknown>[] = [];
 
   const getStore = (collectionName: CollectionName) => {
     if (collectionName === 'customers') return customers;
@@ -168,11 +171,43 @@ function createFirestore(args?: {
         };
       }
 
+      if (name === 'tenants') {
+        return {
+          doc: (_orgId: string) => ({
+            collection: (subCol: string) => {
+              if (subCol === 'publicViews') {
+                return {
+                  doc: (_: string) => ({
+                    collection: (_2: string) => ({
+                      doc: (itemId: string) => ({
+                        get: jest.fn(async () => {
+                          const data = tenantProducts.get(itemId);
+                          return { exists: !!data, data: () => data, id: itemId };
+                        }),
+                      }),
+                    }),
+                  }),
+                };
+              }
+              if (subCol === 'kioskPicks') {
+                return {
+                  add: jest.fn(async (data: Record<string, unknown>) => {
+                    kioskPicks.push(data);
+                    return { id: `kiosk_pick_${kioskPicks.length}` };
+                  }),
+                };
+              }
+              throw new Error(`Unexpected tenants sub-collection: ${subCol}`);
+            },
+          }),
+        };
+      }
+
       throw new Error(`Unexpected collection: ${name}`);
     }),
   };
 
-  return { firestore, customers, visits, emailLeads, orders };
+  return { firestore, customers, visits, emailLeads, orders, kioskPicks };
 }
 
 describe('visitor check-in actions', () => {
@@ -854,5 +889,89 @@ describe('visitor check-in actions', () => {
       phoneLast4: '0522',
       isReturning: true,
     });
+  });
+
+  it('writes a kiosk pick notification when cartProductIds are present', async () => {
+    const state = createFirestore({
+      tenantProducts: {
+        'prod-flower': { name: 'Blue Dream' },
+        'prod-vape': { name: 'Sunny Side Cart' },
+      },
+    });
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+    (captureEmailLead as jest.Mock).mockResolvedValue({
+      success: true,
+      leadId: 'lead-kiosk',
+      isNewLead: true,
+    });
+    (dispatchPlaybookEvent as jest.Mock).mockResolvedValue(undefined);
+
+    await captureVisitorCheckin({
+      orgId: 'org_thrive_syracuse',
+      firstName: 'Tamika',
+      phone: '3155550101',
+      email: 'tamika@example.com',
+      emailConsent: true,
+      smsConsent: true,
+      source: 'loyalty_tablet_checkin',
+      ageVerifiedMethod: 'staff_visual_check',
+      mood: 'relaxed',
+      cartProductIds: ['prod-flower', 'prod-vape'],
+    });
+
+    // flush fire-and-forget chain
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(logger.info).toHaveBeenCalledWith(
+      '[VisitorCheckin] Kiosk pick written for backoffice',
+      expect.objectContaining({
+        orgId: 'org_thrive_syracuse',
+        productCount: 2,
+      }),
+    );
+    expect(state.kioskPicks).toHaveLength(1);
+    expect(state.kioskPicks[0]).toMatchObject({
+      orgId: 'org_thrive_syracuse',
+      firstName: 'Tamika',
+      mood: 'relaxed',
+      productIds: ['prod-flower', 'prod-vape'],
+      productNames: ['Blue Dream', 'Sunny Side Cart'],
+      status: 'pending',
+    });
+  });
+
+  it('does not write a kiosk pick when cartProductIds is empty', async () => {
+    const state = createFirestore();
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+    (captureEmailLead as jest.Mock).mockResolvedValue({
+      success: true,
+      leadId: 'lead-nokiosk',
+      isNewLead: true,
+    });
+    (dispatchPlaybookEvent as jest.Mock).mockResolvedValue(undefined);
+
+    await captureVisitorCheckin({
+      orgId: 'org_thrive_syracuse',
+      firstName: 'Dana',
+      phone: '3155550202',
+      email: 'dana@example.com',
+      emailConsent: true,
+      smsConsent: true,
+      source: 'loyalty_tablet_checkin',
+      ageVerifiedMethod: 'staff_visual_check',
+      cartProductIds: [],
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(logger.info).not.toHaveBeenCalledWith(
+      '[VisitorCheckin] Kiosk pick written for backoffice',
+      expect.anything(),
+    );
+    expect(state.kioskPicks).toHaveLength(0);
   });
 });
