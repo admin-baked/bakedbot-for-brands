@@ -164,10 +164,10 @@ export function ArchetypeSelector({
       {/* Selection summary + save */}
       <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/40 px-4 py-3">
         <div className="text-sm">
-          {primary ? (
+          {primary && BRAND_ARCHETYPES[primary] ? (
             <span>
               <strong>{BRAND_ARCHETYPES[primary].icon} {BRAND_ARCHETYPES[primary].shortLabel}</strong>
-              {secondary ? (
+              {secondary && BRAND_ARCHETYPES[secondary] ? (
                 <> + <span className="text-muted-foreground">{BRAND_ARCHETYPES[secondary].icon} {BRAND_ARCHETYPES[secondary].shortLabel} (30%)</span></>
               ) : null}
             </span>

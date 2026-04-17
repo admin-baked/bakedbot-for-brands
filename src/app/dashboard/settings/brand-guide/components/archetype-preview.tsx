@@ -55,9 +55,11 @@ export function ArchetypePreview({
   onSaveGreeting,
   onSaveCraigSubject,
 }: ArchetypePreviewProps) {
-  const archetype = BRAND_ARCHETYPES[primary];
-  const secondaryArchetype = secondary ? BRAND_ARCHETYPES[secondary] : null;
+  const archetype = BRAND_ARCHETYPES[primary] ?? null;
+  const secondaryArchetype = secondary ? (BRAND_ARCHETYPES[secondary] ?? null) : null;
   const voiceValues = getVoiceDefaults(primary, secondary ?? undefined);
+
+  if (!archetype) return null;
   const displayName = brandName || 'your dispensary';
 
   // Default texts from archetype constants with real brand name substituted
