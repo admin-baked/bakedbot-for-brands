@@ -246,9 +246,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        const errStack = error instanceof Error ? error.stack?.split('\n').slice(0, 3).join(' | ') : '';
-        logger.error('[ReplyCheck] Unexpected error', { error: errMsg, stack: errStack });
-        return NextResponse.json({ success: false, error: errMsg, stack: errStack }, { status: 500 });
+        logger.error('[ReplyCheck] Unexpected error', { error: errMsg, stack: error instanceof Error ? error.stack : undefined });
+        return NextResponse.json({ success: false, error: errMsg }, { status: 500 });
     }
 }
 

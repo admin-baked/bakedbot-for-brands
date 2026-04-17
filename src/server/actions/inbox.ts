@@ -88,10 +88,7 @@ function getActorOrgId(user: {
     role?: string | null;
 }): string | null {
     const orgId = user.currentOrgId ?? user.orgId ?? user.brandId ?? null;
-    // Super users without impersonation context operate under the platform org
-    if (!orgId && (user.role === 'super_user' || user.role === 'super_admin')) {
-        return PLATFORM_ORG_ID;
-    }
+    if (!orgId && isSuperRole(user.role)) return PLATFORM_ORG_ID;
     return orgId;
 }
 
