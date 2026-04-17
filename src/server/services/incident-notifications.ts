@@ -1,5 +1,5 @@
 import { logger } from '@/lib/logger';
-import { slackService, SlackService } from '@/server/services/communications/slack';
+import { slackService, martySlackService } from '@/server/services/communications/slack';
 
 const LINUS_INCIDENTS_CHANNEL = 'linus-incidents';
 
@@ -7,13 +7,6 @@ const LINUS_INCIDENTS_CHANNEL = 'linus-incidents';
 // Marty's bot IS a member, so CEO-targeted messages must use the Marty bot token.
 // Channel ID is pinned via env var so it survives renames.
 const CEO_CHANNEL_ID = process.env.SLACK_CHANNEL_ID_CEO ?? 'C0ASE9QLBJ5';
-let _martySlackService: SlackService | null = null;
-function getMartySlackService(): SlackService {
-    if (!_martySlackService) {
-        _martySlackService = new SlackService(process.env.SLACK_MARTY_BOT_TOKEN);
-    }
-    return _martySlackService;
-}
 const SLACK_TIMEOUT_MS = 5_000;
 
 export type LinusIncidentSlackBlock = Record<string, unknown>;
@@ -57,10 +50,9 @@ async function postToIncidentChannel(message: LinusIncidentSlackMessage): Promis
     // #ceo is private — must use Marty's bot token (the only bot that's a member).
     // Route before any general-bot logic.
     if (channelName === 'ceo') {
-        const svc = getMartySlackService();
         const result = message.threadTs
-            ? await svc.postInThread(CEO_CHANNEL_ID, message.threadTs, message.fallbackText, message.blocks)
-            : await svc.postMessage(CEO_CHANNEL_ID, message.fallbackText, message.blocks);
+            ? await martySlackService.postInThread(CEO_CHANNEL_ID, message.threadTs, message.fallbackText, message.blocks)
+            : await martySlackService.postMessage(CEO_CHANNEL_ID, message.fallbackText, message.blocks);
         if (result.sent) {
             logger.info('[IncidentNotifications] Posted to #ceo via Marty bot', { source: message.source });
             return { sent: true, channelId: CEO_CHANNEL_ID, channelName: 'ceo', ts: result.ts ?? null, delivery: message.threadTs ? 'thread' : 'channel' };

@@ -78,12 +78,9 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
                 redirect(`/dispensaries/${properSlug}`);
             }
         } catch (e: unknown) {
-            // Suppress errors: if the redirect lookup fails, just show 404
-            const isRedirect = e && typeof e === 'object' && 'digest' in e &&
-                typeof (e as { digest?: string }).digest === 'string' &&
-                ((e as { digest: string }).digest.startsWith('NEXT_REDIRECT') ||
-                 (e as { digest: string }).digest.startsWith('NEXT_NOT_FOUND'));
-            if (isRedirect) throw e;
+            // Re-throw Next.js navigation signals; suppress Firestore errors as 404
+            const digest = e != null && typeof e === 'object' && 'digest' in e ? String((e as { digest: unknown }).digest) : '';
+            if (digest.startsWith('NEXT_REDIRECT') || digest.startsWith('NEXT_NOT_FOUND')) throw e;
         }
         notFound();
     }

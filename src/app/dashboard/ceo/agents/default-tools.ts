@@ -1417,8 +1417,8 @@ export const defaultExecutiveBoardTools = {
                 .limit(50)
                 .get();
             return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        } catch (e: any) {
-            return { error: `getActivePlaybooks failed: ${e.message}` };
+        } catch (e: unknown) {
+            return { error: `getActivePlaybooks failed: ${e instanceof Error ? e.message : String(e)}` };
         }
     },
 
