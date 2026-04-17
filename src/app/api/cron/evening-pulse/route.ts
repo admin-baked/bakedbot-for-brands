@@ -17,12 +17,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCronSecret } from '@/server/auth/cron';
+import { PLATFORM_ORG_ID } from '@/server/auth/actor-context';
 import { logger } from '@/lib/logger';
 import { generateDayPulse, postPulseToInbox } from '@/server/services/morning-briefing';
 
 export const dynamic = 'force-dynamic';
-
-const PLATFORM_ORG_ID = 'bakedbot_super_admin';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
     const authError = await requireCronSecret(request, 'evening-pulse');

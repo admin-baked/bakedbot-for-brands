@@ -18,6 +18,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { requireCronSecret } from '@/server/auth/cron';
 import { postMorningBriefingToInbox, generateMorningBriefing } from '@/server/services/morning-briefing';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { BAKEDBOT_OPERATOR_SENDER_NAME } from '@/lib/email/sender-branding';
 
 export const dynamic = 'force-dynamic';
 
@@ -196,8 +197,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                         to: email,
                         subject: `${sampleBriefing.dayOfWeek}'s Briefing — ${sampleBriefing.urgencyLevel === 'clean' ? 'All Clear' : sampleBriefing.urgencyLevel.toUpperCase()}`,
                         htmlBody,
-                        fromName: 'BakedBot Daily Briefing',
-                        communicationType: 'transactional',
+                        fromName: BAKEDBOT_OPERATOR_SENDER_NAME,
+                        communicationType: 'strategy',
                         agentName: 'pops',
                     }).catch(err => {
                         logger.warn('[MorningBriefingCron] Failed to send email', {

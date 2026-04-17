@@ -142,6 +142,20 @@
                 },
                 {
                     "fieldPath": "createdAt",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "orders",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "retailerId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
                     "order": "DESCENDING"
                 }
             ]
@@ -1925,6 +1939,14 @@
                 { "fieldPath": "orgId", "order": "ASCENDING" },
                 { "fieldPath": "createdAt", "order": "ASCENDING" },
                 { "fieldPath": "status", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "orders",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "dispensaryId", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "ASCENDING" }
             ]
         },
         {

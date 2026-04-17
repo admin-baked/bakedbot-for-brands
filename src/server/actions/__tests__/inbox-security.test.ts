@@ -10,6 +10,10 @@ jest.mock('@/firebase/admin', () => ({
   getAdminFirestore: jest.fn(),
 }));
 
+jest.mock('@/server/actions/agent-vm', () => ({
+  resolveVmToolApproval: jest.fn(),
+}));
+
 jest.mock('@/lib/logger', () => ({
   logger: {
     info: jest.fn(),

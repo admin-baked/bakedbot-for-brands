@@ -9,6 +9,7 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
+import { BAKEDBOT_OPERATOR_SENDER_NAME } from '@/lib/email/sender-branding';
 import {
     getWeeklySnapshots,
     getCompetitorSummaries,
@@ -1152,7 +1153,8 @@ async function sendReportEmail(
             to: userEmail,
             subject,
             htmlBody,
-            fromName: 'Ezal — BakedBot Intelligence',
+            fromName: BAKEDBOT_OPERATOR_SENDER_NAME,
+            communicationType: 'strategy',
         });
 
         logger.info('[WeeklyReport] sendGenericEmail returned', { success: result.success, error: result.error, orgId, userEmail });

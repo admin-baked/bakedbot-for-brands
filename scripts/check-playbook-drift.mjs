@@ -19,9 +19,10 @@
  * Exit codes: 0 = all pass, 1 = failures
  *
  * Source derivation:
- *   IDs are read directly from source files rather than maintained as mirrored
- *   arrays. The only manual data here is KNOWN_REGISTRY_GAPS (intentional gaps)
- *   and EXECUTABLE_CRON_MAP (cross-file join: readiness → cron route name).
+ *   IDs, readiness, and cron coverage are read directly from source files rather
+ *   than maintained as mirrored arrays. The only manual data here is
+ *   KNOWN_REGISTRY_GAPS (intentional gaps) and EXECUTABLE_CRON_ROUTE_ALIASES
+ *   for shared or legacy cron routes that do not self-declare a playbookId.
  */
 
 import * as fs from 'node:fs';
@@ -52,12 +53,15 @@ function extractUnionMembers(src, typeName) {
 }
 
 /**
- * Read all playbook IDs that appear as `id: 'some-id'` in a TypeScript file.
+ * Read top-level quoted object keys from a TypeScript exported const.
  * Used for src/config/playbooks.ts (the main catalog).
  */
-function readIdProperties(filePath) {
+function readQuotedObjectKeys(filePath, exportName) {
     const src = fs.readFileSync(filePath, 'utf-8');
-    return [...src.matchAll(/\bid:\s*'([^']+)'/g)].map(m => m[1]);
+    const pattern = new RegExp(`${exportName}[^=]*=\\s*\\{([\\s\\S]*?)\\}\\s*(?:as const)?;`);
+    const blockMatch = src.match(pattern);
+    if (!blockMatch) return [];
+    return [...blockMatch[1].matchAll(/^\s+'([a-z][a-z0-9-]+)':\s*\{/gm)].map(m => m[1]);
 }
 
 /**
@@ -77,22 +81,110 @@ function readTierPlaybookIds(filePath) {
  * Read agent IDs declared in the canonical agent contract markdown table.
  * Matches backtick-wrapped IDs in the first column: | `agent_id` | ...
  */
-function readContractAgentIds(filePath) {
+function readContractAgentIdsFromMarkdown(filePath) {
     const src = fs.readFileSync(filePath, 'utf-8');
     // Match table rows where the first cell contains a backtick-wrapped identifier
     return [...src.matchAll(/^\|\s*`([a-z][a-z0-9_]+)`\s*\|/gm)].map(m => m[1]);
 }
 
 /**
- * Read keys from PLAYBOOK_READINESS record.
- * Matches `'playbook-id':` at the start of an entry.
+ * Read IDs from the canonical agent contract. Prefer the machine-readable
+ * TypeScript source when present; otherwise fall back to the human-readable
+ * markdown companion during the migration window.
  */
-function readReadinessKeys(filePath) {
+function readContractAgentIds() {
+    const tsPath = path.join(repoRoot, 'src/config/agent-contract.ts');
+    if (fs.existsSync(tsPath)) {
+        const src = fs.readFileSync(tsPath, 'utf-8');
+        const ids = [...src.matchAll(/\bid:\s*'([a-z][a-z0-9_]+)'/g)].map(m => m[1]);
+        if (ids.length === 0) {
+            throw new Error('src/config/agent-contract.ts exists but no contract IDs were found');
+        }
+        return {
+            ids: [...new Set(ids)],
+            source: tsPath,
+        };
+    }
+
+    const markdownPath = path.join(repoRoot, '.agent/refs/agent-contract.md');
+    return {
+        ids: readContractAgentIdsFromMarkdown(markdownPath),
+        source: markdownPath,
+    };
+}
+
+/**
+ * Read top-level unquoted object keys from a TypeScript exported const.
+ */
+function readUnquotedObjectKeysFromSource(src, exportName) {
+    const pattern = new RegExp(`${exportName}[^=]*=\\s*\\{([\\s\\S]*?)\\n\\};`);
+    const blockMatch = src.match(pattern);
+    if (!blockMatch) return [];
+    return [...blockMatch[1].matchAll(/^ {4}([a-z][a-z0-9_]+):\s*\{/gm)].map(m => m[1]);
+}
+
+/**
+ * Read registry agent IDs from the closest literal source available.
+ * Prefers AGENT_REGISTRY keys, then AGENT_UI_DEFINITIONS keys for derived
+ * registries, then falls back to literal union members if needed.
+ */
+function readRegistryAgentIds(filePath) {
     const src = fs.readFileSync(filePath, 'utf-8');
-    // Extract the PLAYBOOK_READINESS object body
+
+    const directRegistryIds = readUnquotedObjectKeysFromSource(src, 'AGENT_REGISTRY');
+    if (directRegistryIds.length > 0) {
+        return directRegistryIds;
+    }
+
+    const uiDefinitionIds = readUnquotedObjectKeysFromSource(src, 'AGENT_UI_DEFINITIONS');
+    if (uiDefinitionIds.length > 0) {
+        return uiDefinitionIds;
+    }
+
+    return [
+        ...extractUnionMembers(src, 'AgentId'),
+        ...extractUnionMembers(src, 'ExecutiveAgentId'),
+    ];
+}
+
+/**
+ * Read key/value pairs from PLAYBOOK_READINESS.
+ * Matches `'playbook-id': 'readiness'` at the start of an entry.
+ */
+function readReadinessEntries(filePath) {
+    const src = fs.readFileSync(filePath, 'utf-8');
     const blockMatch = src.match(/PLAYBOOK_READINESS[^=]*=\s*\{([\s\S]*?)\};/);
     if (!blockMatch) return [];
-    return [...blockMatch[1].matchAll(/^\s+'([a-z][a-z0-9-]+)':/gm)].map(m => m[1]);
+    return [...blockMatch[1].matchAll(/^\s+'([a-z][a-z0-9-]+)':\s*'([a-z_]+)'/gm)].map(m => [m[1], m[2]]);
+}
+
+/**
+ * Scan cron route source files for self-declared playbook IDs.
+ * Returns a map of playbookId → route directory names.
+ */
+function readCronDeclaredPlaybookRoutes(cronDir) {
+    const declaredRoutes = new Map();
+
+    if (!fs.existsSync(cronDir)) {
+        return declaredRoutes;
+    }
+
+    for (const entry of fs.readdirSync(cronDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+
+        const routeFile = path.join(cronDir, entry.name, 'route.ts');
+        if (!fs.existsSync(routeFile)) continue;
+
+        const src = fs.readFileSync(routeFile, 'utf-8');
+        const playbookIds = [...src.matchAll(/\bplaybookId\s*:\s*'([^']+)'/g)].map(m => m[1]);
+        for (const playbookId of new Set(playbookIds)) {
+            const routeNames = declaredRoutes.get(playbookId) ?? new Set();
+            routeNames.add(entry.name);
+            declaredRoutes.set(playbookId, routeNames);
+        }
+    }
+
+    return declaredRoutes;
 }
 
 // ---------------------------------------------------------------------------
@@ -102,28 +194,29 @@ function readReadinessKeys(filePath) {
 const serverAgentIdsSrc = fs.readFileSync(
     path.join(repoRoot, 'src/server/agents/agent-definitions.ts'), 'utf-8'
 );
-const registrySrc = fs.readFileSync(
-    path.join(repoRoot, 'src/lib/agents/registry.ts'), 'utf-8'
-);
+const registryPath = path.join(repoRoot, 'src/lib/agents/registry.ts');
 
 const SERVER_AGENT_IDS = extractUnionMembers(serverAgentIdsSrc, 'AgentId');
 
-const REGISTRY_AGENT_IDS = [
-    ...extractUnionMembers(registrySrc, 'AgentId'),
-    ...extractUnionMembers(registrySrc, 'ExecutiveAgentId'),
-];
+const REGISTRY_AGENT_IDS = readRegistryAgentIds(registryPath);
 
 const CATALOG_PLAYBOOK_IDS = [
-    ...readIdProperties(path.join(repoRoot, 'src/config/playbooks.ts')),
+    ...readQuotedObjectKeys(path.join(repoRoot, 'src/config/playbooks.ts'), 'PLAYBOOKS'),
     ...readTierPlaybookIds(path.join(repoRoot, 'src/config/tier-playbook-templates.ts')),
 ];
 
-const READINESS_KEYS = readReadinessKeys(
+const READINESS_ENTRIES = readReadinessEntries(
     path.join(repoRoot, 'src/config/playbook-readiness.ts')
 );
+const READINESS_KEYS = READINESS_ENTRIES.map(([id]) => id);
+const EXECUTABLE_PLAYBOOK_IDS = READINESS_ENTRIES
+    .filter(([, readiness]) => readiness === 'executable_now')
+    .map(([id]) => id);
 
-const CONTRACT_AGENT_IDS = readContractAgentIds(
-    path.join(repoRoot, '.agent/refs/agent-contract.md')
+const { ids: CONTRACT_AGENT_IDS, source: CONTRACT_AGENT_SOURCE } = readContractAgentIds();
+
+const CRON_DECLARED_PLAYBOOK_ROUTES = readCronDeclaredPlaybookRoutes(
+    path.join(repoRoot, 'src/app/api/cron')
 );
 
 // ---------------------------------------------------------------------------
@@ -136,16 +229,12 @@ const KNOWN_REGISTRY_GAPS = new Set([
     'big_worm', // In AgentId type, no AGENT_CAPABILITY entry yet — orphaned type
 ]);
 
-// executable_now playbooks → expected cron route directory name.
-// This is a cross-file join (readiness label + cron filesystem path) that
-// cannot be derived from a single source file without a TypeScript compiler.
-const EXECUTABLE_CRON_MAP = {
-    'weekly-competitive-snapshot':       'competitive-intel',
-    'pro-competitive-brief':             'competitive-intel',
-    'daily-competitive-intel':           'competitive-intel',
-    'flnnstoned-competitive-deep-dive':  'competitive-intel',
-    'daily-sales-highlights':            'generate-insights',
-    'weekly-loyalty-health':             'weekly-monday-command',
+// Shared or legacy cron routes that back executable_now playbooks but do not
+// self-declare a playbookId in source. Keep this list narrow and documented.
+const EXECUTABLE_CRON_ROUTE_ALIASES = {
+    'weekly-competitive-snapshot': ['competitive-intel'],
+    'pro-competitive-brief': ['competitive-intel'],
+    'weekly-loyalty-health': ['weekly-monday-command'],
 };
 
 // ---------------------------------------------------------------------------
@@ -219,10 +308,36 @@ function checkExecutablePlaybooksHaveCronRoutes() {
     if (!fs.existsSync(cronDir)) {
         return { name: 'executable_now playbooks have cron routes', passed: true, issues: ['  SKIP: cron directory not found'] };
     }
-    const cronRoutes = new Set(fs.readdirSync(cronDir));
-    const issues = Object.entries(EXECUTABLE_CRON_MAP)
-        .filter(([, route]) => !cronRoutes.has(route))
-        .map(([id, route]) => `  MISSING CRON: "${id}" is executable_now but cron route "${route}" not found`);
+    const cronRoutes = new Set(
+        fs.readdirSync(cronDir, { withFileTypes: true })
+            .filter(entry => entry.isDirectory())
+            .map(entry => entry.name)
+    );
+
+    const executableSet = new Set(EXECUTABLE_PLAYBOOK_IDS);
+    const issues = Object.keys(EXECUTABLE_CRON_ROUTE_ALIASES)
+        .filter(id => !executableSet.has(id))
+        .map(id => `  STALE ALIAS: "${id}" is aliased in EXECUTABLE_CRON_ROUTE_ALIASES but is not executable_now`);
+
+    for (const playbookId of EXECUTABLE_PLAYBOOK_IDS) {
+        const expectedRoutes = new Set([
+            ...(CRON_DECLARED_PLAYBOOK_ROUTES.get(playbookId) ?? []),
+            ...(EXECUTABLE_CRON_ROUTE_ALIASES[playbookId] ?? []),
+        ]);
+
+        if (expectedRoutes.size === 0) {
+            issues.push(`  UNMAPPED EXECUTABLE: "${playbookId}" is executable_now but no cron route declares it and no alias exists`);
+            continue;
+        }
+
+        const missingRoutes = [...expectedRoutes].filter(route => !cronRoutes.has(route));
+        if (missingRoutes.length === expectedRoutes.size) {
+            issues.push(`  MISSING CRON: "${playbookId}" is executable_now but none of its expected cron routes exist (${[...expectedRoutes].join(', ')})`);
+        } else if (missingRoutes.length > 0) {
+            issues.push(`  STALE CRON ROUTE: "${playbookId}" points at missing route(s): ${missingRoutes.join(', ')}`);
+        }
+    }
+
     return {
         name: 'executable_now playbooks have cron routes',
         passed: issues.length === 0,
@@ -235,8 +350,8 @@ function checkExecutablePlaybooksHaveCronRoutes() {
 // ---------------------------------------------------------------------------
 
 console.log('\n🔍 Playbook Drift Check\n');
-console.log(`  Source: ${SERVER_AGENT_IDS.length} server agents, ${REGISTRY_AGENT_IDS.length} registry agents, ${CONTRACT_AGENT_IDS.length} contract agents`);
-console.log(`  Source: ${CATALOG_PLAYBOOK_IDS.length} catalog playbooks, ${READINESS_KEYS.length} readiness keys\n`);
+console.log(`  Source: ${SERVER_AGENT_IDS.length} server agents, ${REGISTRY_AGENT_IDS.length} registry agents, ${CONTRACT_AGENT_IDS.length} contract agents (${path.relative(repoRoot, CONTRACT_AGENT_SOURCE)})`);
+console.log(`  Source: ${CATALOG_PLAYBOOK_IDS.length} catalog playbooks, ${READINESS_KEYS.length} readiness keys, ${EXECUTABLE_PLAYBOOK_IDS.length} executable_now\n`);
 
 const results = [
     checkAllPlaybooksClassified(),

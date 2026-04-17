@@ -82,7 +82,7 @@ Create a session handoff when:
 ---
 
 ## Related Files
-- `refs/relevant-ref.md`
+- `refs/backend.md`
 - `dev/testing/relevant-test.md`
 ```
 

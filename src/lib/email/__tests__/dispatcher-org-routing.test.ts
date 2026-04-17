@@ -1,5 +1,7 @@
 import { getAdminFirestore } from '@/firebase/admin';
-import { resolveOrgSesFrom } from '../dispatcher';
+import { isOrgOnFreePlan } from '@/lib/get-org-tier';
+import { sendGenericEmail as sendMailjetGenericEmail } from '../mailjet';
+import { resolveOrgSesFrom, sendGenericEmail as dispatchGenericEmail } from '../dispatcher';
 
 jest.mock('@/firebase/admin', () => ({
   getAdminFirestore: jest.fn(),
@@ -12,6 +14,10 @@ jest.mock('@/lib/logger', () => ({
     error: jest.fn(),
     debug: jest.fn(),
   },
+}));
+
+jest.mock('@/lib/get-org-tier', () => ({
+  isOrgOnFreePlan: jest.fn(),
 }));
 
 jest.mock('../sendgrid', () => ({
@@ -90,6 +96,7 @@ function makeFirestoreMock() {
 describe('resolveOrgSesFrom', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (isOrgOnFreePlan as jest.Mock).mockResolvedValue(true);
   });
 
   it('routes brand-scoped Ecstatic mail through the tenant SES subdomain', async () => {
@@ -110,5 +117,27 @@ describe('resolveOrgSesFrom', () => {
       email: 'hello@ecstatic.bakedbot.ai',
       name: 'Ecstatic Team',
     });
+  });
+
+  it('defaults strategy emails to the operator sender name when none is provided', async () => {
+    (getAdminFirestore as jest.Mock).mockReturnValue(makeFirestoreMock());
+    (sendMailjetGenericEmail as jest.Mock).mockResolvedValue({ success: true });
+
+    await expect(
+      dispatchGenericEmail({
+        to: 'ops@example.com',
+        subject: 'Friday briefing',
+        htmlBody: '<p>Numbers look clean.</p>',
+        communicationType: 'strategy',
+      })
+    ).resolves.toEqual({ success: true });
+
+    expect(sendMailjetGenericEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'ops@example.com',
+        communicationType: 'strategy',
+        fromName: 'BakedBot Strategy',
+      })
+    );
   });
 });

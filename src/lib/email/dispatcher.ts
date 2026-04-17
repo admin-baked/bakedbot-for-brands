@@ -8,6 +8,7 @@ import { getWorkspaceToken } from '@/server/integrations/google-workspace/token-
 import { sendGmail } from '@/server/integrations/gmail/send';
 import { encrypt, decrypt } from '@/server/utils/encryption';
 import { logger } from '@/lib/logger';
+import { resolveEmailSenderName } from './sender-branding';
 import Mailjet from 'node-mailjet';
 
 // ─────────────────────────────────────────────────────────────
@@ -412,20 +413,25 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
         return { success: true };
     }
 
+    const normalizedData: GenericEmailData = {
+        ...data,
+        fromName: resolveEmailSenderName(data.communicationType, data.fromName),
+    };
+
     let result: { success: boolean; error?: string };
 
     // ── Resolve plan tier: free orgs use Mailjet, paid orgs use SES ──
     const { isOrgOnFreePlan } = await import('@/lib/get-org-tier');
-    const isFreeOrg = data.orgId ? await isOrgOnFreePlan(data.orgId) : true;
+    const isFreeOrg = normalizedData.orgId ? await isOrgOnFreePlan(normalizedData.orgId) : true;
 
     // ══════════════════════════════════════════════════════════════════
     // FREE PLAN: Mailjet only (platform 6k/month free tier)
     // No SES, no Workspace, no Gmail — simple single-channel path.
     // ══════════════════════════════════════════════════════════════════
-    if (isFreeOrg && data.communicationType !== 'welcome') {
-        logger.info('[Dispatcher] Free org → Mailjet path', { orgId: data.orgId, type: data.communicationType });
-        result = await sendViaPlatformMailjet(data);
-        logCrm(result, data, 'mailjet_free');
+    if (isFreeOrg && normalizedData.communicationType !== 'welcome') {
+        logger.info('[Dispatcher] Free org → Mailjet path', { orgId: normalizedData.orgId, type: normalizedData.communicationType });
+        result = await sendViaPlatformMailjet(normalizedData);
+        logCrm(result, normalizedData, 'mailjet_free');
         return result;
     }
 
@@ -436,68 +442,73 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
     //   (used when org has Workspace connected but SES domain DNS is pending)
     // ══════════════════════════════════════════════════════════════════
 
-    const primaryChannel = data.orgId ? await getOrgPrimaryChannel(data.orgId) : 'ses';
+    const primaryChannel = normalizedData.orgId ? await getOrgPrimaryChannel(normalizedData.orgId) : 'ses';
 
     // ── Route 1: BakedBot Mail (Absolute Primary, All tiers) ───────────────
     if (process.env.AWS_SES_ACCESS_KEY_ID && process.env.AWS_SES_SECRET_ACCESS_KEY) {
         try {
-            const sesFrom = await resolveOrgSesFrom(data.orgId, data.fromEmail, data.fromName);
+            const sesFrom = await resolveOrgSesFrom(normalizedData.orgId, normalizedData.fromEmail, normalizedData.fromName);
             await sendSesEmail({
-                to: data.to,
+                to: normalizedData.to,
                 from: sesFrom.email,
                 fromName: sesFrom.name,
-                subject: data.subject,
-                htmlBody: data.htmlBody,
-                textBody: data.textBody,
+                subject: normalizedData.subject,
+                htmlBody: normalizedData.htmlBody,
+                textBody: normalizedData.textBody,
             });
             result = { success: true };
-            logCrm(result, data, 'bakedbot_mail');
+            logCrm(result, normalizedData, 'bakedbot_mail');
             return result;
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
-            logger.warn('[Dispatcher] BakedBot Mail (SES) failed, trying fallbacks', { error: msg, orgId: data.orgId });
+            logger.warn('[Dispatcher] BakedBot Mail (SES) failed, trying fallbacks', { error: msg, orgId: normalizedData.orgId });
         }
     }
 
     // ── Route 2: Org Google Workspace (Paid legacy fallback) ─────────
-    if (data.orgId && (primaryChannel === 'workspace' || !isFreeOrg)) {
+    if (normalizedData.orgId && (primaryChannel === 'workspace' || !isFreeOrg)) {
         // Only try Workspace here if we didn't already try it above
         try {
-            const wsConfig = await getOrgWorkspaceConfig(data.orgId);
+            const wsConfig = await getOrgWorkspaceConfig(normalizedData.orgId);
             if (wsConfig) {
-                result = await sendViaOrgWorkspace(data.orgId, wsConfig.sendAs, data);
+                result = await sendViaOrgWorkspace(normalizedData.orgId, wsConfig.sendAs, normalizedData);
                 if (result.success) {
-                    logCrm(result, data, 'google_workspace');
+                    logCrm(result, normalizedData, 'google_workspace');
                     return result;
                 }
-                logger.warn('[Dispatcher] Org Workspace failed, falling back', { orgId: data.orgId });
+                logger.warn('[Dispatcher] Org Workspace failed, falling back', { orgId: normalizedData.orgId });
             }
         } catch (e) {
-            logger.warn('[Dispatcher] Workspace lookup failed', { orgId: data.orgId, error: e });
+            logger.warn('[Dispatcher] Workspace lookup failed', { orgId: normalizedData.orgId, error: e });
         }
     }
 
     // ── Route 3: Org Mailjet (bulk fallback, if configured) ──────────
-    if (data.orgId && isBulkEmail(data.communicationType)) {
-        const orgMailjet = await getOrgMailjetConfig(data.orgId);
+    if (normalizedData.orgId && isBulkEmail(normalizedData.communicationType)) {
+        const orgMailjet = await getOrgMailjetConfig(normalizedData.orgId);
         if (orgMailjet) {
-            result = await sendViaOrgMailjet(orgMailjet, data);
+            result = await sendViaOrgMailjet(orgMailjet, normalizedData);
             if (result.success) {
-                logCrm(result, data, 'mailjet_org');
+                logCrm(result, normalizedData, 'mailjet_org');
                 return result;
             }
-            logger.warn('[Dispatcher] Org Mailjet failed, falling back', { orgId: data.orgId });
+            logger.warn('[Dispatcher] Org Mailjet failed, falling back', { orgId: normalizedData.orgId });
         }
     }
 
     // ── Route 4: User-level Gmail (internal, personal account) ────────
-    if (data.userId) {
+    if (normalizedData.userId) {
         try {
-            const gmailToken = await getGmailToken(data.userId);
+            const gmailToken = await getGmailToken(normalizedData.userId);
             if (gmailToken?.refresh_token) {
-                await sendGmail({ userId: data.userId, to: [data.to], subject: data.subject, html: data.htmlBody });
+                await sendGmail({
+                    userId: normalizedData.userId,
+                    to: [normalizedData.to],
+                    subject: normalizedData.subject,
+                    html: normalizedData.htmlBody,
+                });
                 result = { success: true };
-                logCrm(result, data, 'gmail_user');
+                logCrm(result, normalizedData, 'gmail_user');
                 return result;
             }
         } catch {
@@ -506,8 +517,8 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
     }
 
     // ── Route 5: Platform Mailjet / SendGrid (last resort) ────────────
-    result = await sendViaPlatformMailjet(data);
-    logCrm(result, data, 'mailjet_platform');
+    result = await sendViaPlatformMailjet(normalizedData);
+    logCrm(result, normalizedData, 'mailjet_platform');
     return result;
 }
 

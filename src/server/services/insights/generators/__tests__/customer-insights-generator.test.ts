@@ -54,6 +54,12 @@ describe('CustomerInsightsGenerator', () => {
       .spyOn(generator as unknown as { saveInsights: () => Promise<void> }, 'saveInsights')
       .mockResolvedValue(undefined);
     jest
+      .spyOn(
+        generator as unknown as { deleteRetiredDeterministicInsights: () => Promise<void> },
+        'deleteRetiredDeterministicInsights',
+      )
+      .mockResolvedValue(undefined);
+    jest
       .spyOn(generator as unknown as { getTodayNewVsReturning: () => Promise<{ newCustomers: number; returningCustomers: number }> }, 'getTodayNewVsReturning')
       .mockResolvedValue({ newCustomers: 0, returningCustomers: 0 });
 
@@ -95,6 +101,12 @@ describe('CustomerInsightsGenerator', () => {
       .spyOn(generator as unknown as { saveInsights: () => Promise<void> }, 'saveInsights')
       .mockResolvedValue(undefined);
     jest
+      .spyOn(
+        generator as unknown as { deleteRetiredDeterministicInsights: () => Promise<void> },
+        'deleteRetiredDeterministicInsights',
+      )
+      .mockResolvedValue(undefined);
+    jest
       .spyOn(generator as unknown as { getTodayNewVsReturning: () => Promise<{ newCustomers: number; returningCustomers: number }> }, 'getTodayNewVsReturning')
       .mockResolvedValue({ newCustomers: 0, returningCustomers: 0 });
 
@@ -116,6 +128,12 @@ describe('CustomerInsightsGenerator', () => {
     const generator = new CustomerInsightsGenerator('org_test');
     jest
       .spyOn(generator as unknown as { saveInsights: () => Promise<void> }, 'saveInsights')
+      .mockResolvedValue(undefined);
+    jest
+      .spyOn(
+        generator as unknown as { deleteRetiredDeterministicInsights: () => Promise<void> },
+        'deleteRetiredDeterministicInsights',
+      )
       .mockResolvedValue(undefined);
     jest
       .spyOn(generator as unknown as { getTodayNewVsReturning: () => Promise<{ newCustomers: number; returningCustomers: number }> }, 'getTodayNewVsReturning')

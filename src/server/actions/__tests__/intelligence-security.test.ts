@@ -61,10 +61,22 @@ describe('intelligence actions security', () => {
     expect(cognitiveStateManager.getState).toHaveBeenCalledWith('agent-1', 'org-current');
   });
 
-  it('rejects when organization context is missing', async () => {
+  it('uses the platform org fallback for super users without organization context', async () => {
     (requireUser as jest.Mock).mockResolvedValue({
       uid: 'super-1',
       role: 'super_user',
+    });
+    (cognitiveStateManager.getState as jest.Mock).mockResolvedValue(null);
+
+    await getAgentCognitiveState('agent-1');
+
+    expect(cognitiveStateManager.getState).toHaveBeenCalledWith('agent-1', 'bakedbot_super_admin');
+  });
+
+  it('rejects when a non-super actor has no organization context', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'brand-1',
+      role: 'brand',
     });
 
     await expect(getAgentCognitiveState('agent-1')).rejects.toThrow(

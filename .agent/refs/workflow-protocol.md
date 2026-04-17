@@ -108,7 +108,7 @@ Fix every confirmed finding. Then `npm run simplify:record`.
 
 1. **Commit** with structured message.
 2. **Push to GitHub** — `git push origin main` triggers Firebase App Hosting deployment.
-3. **Open a PR with full governance** (see `.agent/refs/pr-governance.md` for exact format).
+3. **Open a PR with full governance** (see `CLAUDE.md` → "PR Governance" for the exact format).
 4. **Update session memory** — `CLAUDE.md` line 15 + `prime.md` recent work block + `MEMORY.md`.
 
 ---

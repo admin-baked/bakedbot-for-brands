@@ -6,6 +6,10 @@ import type { Product } from '@/types/products';
 import { logger } from '@/lib/logger';
 import { toAnalyticsDate } from '@/server/services/catalog-analytics-source';
 import { resolveCatalogAnalyticsScope, normalizeCandidate } from '@/server/services/catalog-analytics-scope';
+import {
+    queryHistoricalOrdersByScope,
+    type HistoricalOrderRecord,
+} from '@/server/services/order-history-query';
 import { buildTenantPosProductDocId } from '@/server/services/pos-product-doc-id';
 
 /**
@@ -30,33 +34,12 @@ interface OrderData {
 
 type AnalyticsProductDoc = Partial<Product> & Record<string, unknown>;
 
-type HistoricalOrderRecord = {
-    createdAt?: unknown;
-    items?: Array<Record<string, unknown>>;
-    userId?: unknown;
-    orgId?: unknown;
-    brandId?: unknown;
-    amount?: unknown;
-    totals?: {
-        total?: unknown;
-    };
-};
-
 type AggregatedProductSales = {
     count: number;
     salesLast7Days: number;
     salesLast30Days: number;
     lastDate: Date | null;
 };
-
-type HistoricalOrderQueryField = 'brandId' | 'orgId' | 'retailerId' | 'dispensaryId';
-
-type HistoricalOrderDocument = {
-    id: string;
-    data: HistoricalOrderRecord;
-};
-
-type HistoricalOrderQueryCandidates = Record<HistoricalOrderQueryField, string[]>;
 
 function toNonNegativeNumber(value: unknown): number {
     return typeof value === 'number' && Number.isFinite(value)
@@ -132,78 +115,6 @@ async function resolveAnalyticsProductTargets(
     }
 
     return targets;
-}
-
-async function queryHistoricalOrdersByField(
-    db: FirebaseFirestore.Firestore,
-    field: HistoricalOrderQueryField,
-    candidateId: string,
-    lookbackDate: Date,
-): Promise<HistoricalOrderDocument[]> {
-    try {
-        const snap = await db.collection('orders')
-            .where(field, '==', candidateId)
-            .where('createdAt', '>=', lookbackDate)
-            .limit(10000)
-            .get();
-
-        return snap.docs.map((doc) => ({
-            id: doc.id,
-            data: doc.data() as HistoricalOrderRecord,
-        }));
-    } catch (error) {
-        logger.warn('[OrderAnalytics] Historical order query failed, retrying without createdAt filter', {
-            field,
-            candidateId,
-            error: error instanceof Error ? error.message : String(error),
-        });
-
-        const fallback = await db.collection('orders')
-            .where(field, '==', candidateId)
-            .limit(10000)
-            .get()
-            .catch((fallbackError) => {
-                logger.error('[OrderAnalytics] Historical order fallback query failed', {
-                    field,
-                    candidateId,
-                    error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
-                });
-                return null;
-            });
-
-        if (!fallback) {
-            return [];
-        }
-
-        return fallback.docs
-            .map((doc) => ({
-                id: doc.id,
-                data: doc.data() as HistoricalOrderRecord,
-            }))
-            .filter(({ data: order }) => {
-                const createdAt = toAnalyticsDate(order.createdAt);
-                return createdAt instanceof Date && createdAt >= lookbackDate;
-            });
-    }
-}
-
-function buildHistoricalOrderQueryCandidates(
-    orgId: string,
-    scope: Awaited<ReturnType<typeof resolveCatalogAnalyticsScope>>,
-): HistoricalOrderQueryCandidates {
-    const brandScopedIds = new Set<string>([orgId, ...scope.rootProductQueryIds.brandId]);
-    const generalIds = new Set<string>([
-        orgId,
-        ...scope.tenantIds,
-        ...scope.rootProductQueryIds.brandId,
-    ]);
-
-    return {
-        brandId: Array.from(brandScopedIds),
-        orgId: Array.from(generalIds),
-        retailerId: Array.from(generalIds),
-        dispensaryId: Array.from(generalIds),
-    };
 }
 
 function addTargetRef(
@@ -560,33 +471,12 @@ export async function backfillHistoricalSalesData(orgId: string, lookbackDays: n
 
         const { scope, targetIndex, tenantCatalogCount, rootCatalogCount } =
             await buildHistoricalBackfillTargetIndex(db, orgId);
-        const orderQueryCandidates = buildHistoricalOrderQueryCandidates(orgId, scope);
-        const queryPlans: HistoricalOrderQueryField[] = ['brandId', 'orgId', 'retailerId', 'dispensaryId'];
-        const ordersById = new Map<string, HistoricalOrderRecord>();
-        const queryMatches: Array<{ field: HistoricalOrderQueryField; candidateId: string; count: number }> = [];
-
-        const allQueryPlans = queryPlans.flatMap((field) =>
-            orderQueryCandidates[field].map((candidateId) => ({ field, candidateId })),
-        );
-        const allResults = await Promise.all(
-            allQueryPlans.map(({ field, candidateId }) =>
-                queryHistoricalOrdersByField(db, field, candidateId, lookbackDate).then((orders) => ({
-                    field,
-                    candidateId,
-                    orders,
-                })),
-            ),
-        );
-
-        for (const { field, candidateId, orders: candidateOrders } of allResults) {
-            if (candidateOrders.length === 0) continue;
-            queryMatches.push({ field, candidateId, count: candidateOrders.length });
-            for (const order of candidateOrders) {
-                ordersById.set(order.id, order.data);
-            }
-        }
-
-        const orders = Array.from(ordersById.values());
+        const {
+            candidates: orderQueryCandidates,
+            orders: historicalOrders,
+            queryMatches,
+        } = await queryHistoricalOrdersByScope(db, orgId, scope, { startDate: lookbackDate });
+        const orders = historicalOrders.map(({ data }) => data);
 
         if (orders.length === 0) {
             logger.info('[OrderAnalytics] No historical orders found for backfill', {

@@ -1,72 +1,62 @@
-# BakedBot Canonical Agent Contract
+# BakedBot Agent Contract
 
-> **This is the authoritative source of truth for all BakedBot agents.**
-> `src/lib/agents/registry.ts`, `src/server/agents/agent-definitions.ts`, and `refs/agents.md`
-> are all derived from or validated against this document.
->
-> **When adding an agent:** update this file first, then add to all three of the above.
-> **When removing an agent:** downgrade `status` to `retired` here; don't delete.
-> **Drift check:** `npm run check:playbook-drift` validates registry ↔ agent-definitions alignment.
+`src/config/agent-contract.ts` is the canonical machine-readable source of truth for
+agent identity, domains, supported roles, visibility, and maturity.
 
----
+`src/lib/agents/registry.ts` derives its non-visual metadata from that contract and
+adds only UI-specific fields like icons, metrics, images, and hrefs.
 
-## Field Agents (AgentId in registry.ts + agent-definitions.ts)
+## Visibility
 
-| ID | Name | Role | Domain | File | Slack | AI Provider | Status |
-|----|------|------|--------|------|-------|-------------|--------|
-| `smokey` | Smokey | Budtender | commerce | `src/server/agents/smokey.ts` | DM / #smokey | Gemini (Genkit) | active |
-| `craig` | Craig | Marketer | marketing | `src/server/agents/craig.ts` | DM / #campaigns | Claude | active |
-| `pops` | Pops | Analyst | analytics | `src/server/agents/pops.ts` | #ops | Claude | active |
-| `ezal` | Ezal | Competitive Lookout | competitive_intel | `src/server/agents/ezal.ts` | #competitive-intel | Claude | active |
-| `money_mike` | Money Mike | Pricing Analyst | pricing | `src/server/agents/money-mike.ts` | #ops | Claude | active |
-| `mrs_parker` | Mrs. Parker | Retention Hostess | loyalty | `src/server/agents/mrs-parker.ts` | #retention | Claude | active |
-| `deebo` | Deebo | Compliance Enforcer | compliance | `src/server/agents/deebo.ts` | #compliance | Claude | active |
-| `day_day` | Day Day | Growth / SEO | growth | `src/server/agents/day-day.ts` | #growth | Claude | active |
-| `puff` | Puff | Media / Video | marketing | `src/server/agents/puff.ts` | #media | Claude | active |
-| `general` | General | System Assistant | system | `src/server/agents/general.ts` | — | Claude | active |
-| `big_worm` | Big Worm | Research | analytics | `src/server/agents/big-worm.ts` | #ops | Claude | active (registry gap — see below) |
+- `squad`: listed in the standard business-facing squad surfaces
+- `internal`: intentionally visible only in internal or super-user experiences
+- `hidden`: canonical agent that is not listed in standard UI catalogs
 
----
+## Field Agents
 
-## Executive Agents (ExecutiveAgentId in registry.ts; AgentId in agent-definitions.ts)
+| ID | Display Name | Title | Domains | Access | Visibility | Maturity |
+|----|--------------|-------|---------|--------|------------|----------|
+| `smokey` | Smokey | AI Budtender & Headless Menu | `commerce` | `brand`, `dispensary`, `owner`, `admin`, `customer`, `concierge` | `squad` | `active` |
+| `craig` | Craig | Email & SMS Hustler | `marketing` | `brand`, `dispensary`, `owner`, `admin`, `editor` | `squad` | `active` |
+| `pops` | Pops | Analytics & Forecasting | `analytics` | `brand`, `dispensary`, `owner`, `admin`, `super_admin` | `squad` | `active` |
+| `ezal` | Ezal | Competitive Monitoring | `competitive_intel` | `brand`, `dispensary`, `owner`, `admin` | `squad` | `active` |
+| `money_mike` | Money Mike | Pricing & Margin Brain | `pricing` | `brand`, `dispensary`, `owner`, `admin` | `squad` | `active` |
+| `mrs_parker` | Mrs. Parker | Customer Success | `loyalty` | `brand`, `dispensary`, `owner`, `admin` | `squad` | `active` |
+| `deebo` | Deebo | Regulation OS | `compliance` | `brand`, `dispensary`, `owner`, `admin`, `editor`, `super_admin` | `squad` | `active` |
+| `day_day` | Day Day | SEO & Growth Manager | `growth` | `brand`, `dispensary`, `owner`, `admin` | `squad` | `active` |
 
-| ID | Name | Role | Domain | File | Slack | AI Provider | Status |
-|----|------|------|--------|------|-------|-------------|--------|
-| `marty` | Marty | CEO | operations | `src/server/agents/marty.ts` | DM / #ceo | Claude | active |
-| `leo` | Leo | COO | operations | `src/server/agents/leo.ts` | DM / #ops | Claude | active |
-| `linus` | Linus | CTO | technology | `src/server/agents/linus.ts` | DM / #eng | Claude | active |
-| `jack` | Jack | CRO | revenue | `src/server/agents/jack.ts` | DM / #sales | Claude | active |
-| `glenda` | Glenda | CMO | marketing | `src/server/agents/glenda.ts` | #marketing | Claude | active |
-| `mike_exec` | Mike (Exec) | CFO | analytics | `src/server/agents/mike-exec.ts` | #finance | Claude | active |
-| `roach` | Roach | Legal Counsel | compliance | `src/server/agents/roach.ts` | #legal | Claude | active |
-| `felisha` | Felisha | Executive Ops | operations | `src/server/agents/felisha.ts` | #ops | Claude | active |
-| `uncle_elroy` | Uncle Elroy | Data Auditor | analytics | `src/server/agents/uncle-elroy.ts` | #eng | Claude | active |
-| `openclaw` | Openclaw | WhatsApp / Task | operations | `src/server/agents/openclaw.ts` | WhatsApp | Claude | active |
+## System Agents
 
----
+| ID | Display Name | Title | Domains | Access | Visibility | Maturity | Notes |
+|----|--------------|-------|---------|--------|------------|----------|-------|
+| `puff` | Puff | System Agent | `system` | `super_admin` | `internal` | `active` | Canonical system orchestration agent, intentionally excluded from the standard business squad. |
+| `general` | Assistant | General Assistant | `system` | `brand`, `dispensary`, `owner`, `admin`, `super_admin`, `customer`, `editor`, `concierge` | `hidden` | `active` | Canonical fallback assistant that is not listed in the standard squad surfaces. |
 
-## Known Gaps
+## Executive Agents
 
-| Issue | Agent | Notes |
-|-------|-------|-------|
-| Registry gap | `big_worm` | Present in `agent-definitions.ts` AgentId but has no `AGENT_REGISTRY` entry in `registry.ts`. Intentional — no AGENT_CAPABILITY defined yet. Listed in `KNOWN_REGISTRY_GAPS` in the drift check. |
-| ID duality | `money_mike` vs `mike_exec` | Intentionally distinct: `money_mike` = field pricing agent (customer-org scope); `mike_exec` = CFO (BakedBot corporate scope). Different prompts, different access. |
+| ID | Display Name | Title | Domains | Access | Visibility | Maturity |
+|----|--------------|-------|---------|--------|------------|----------|
+| `marty` | Marty Benjamins | CEO - Growth, Strategy & Company Operations | `operations`, `revenue` | `super_admin` | `internal` | `active` |
+| `leo` | Leo | COO - Operations Chief | `operations` | `super_admin` | `internal` | `active` |
+| `jack` | Jack | CRO - Revenue Chief | `revenue` | `super_admin` | `internal` | `active` |
+| `linus` | Linus | CTO - Technical Chief | `technology` | `super_admin` | `internal` | `active` |
+| `glenda` | Glenda | CMO - Marketing Chief | `marketing` | `super_admin` | `internal` | `active` |
+| `mike_exec` | Mike | CFO - Finance Chief | `pricing` | `super_admin` | `internal` | `active` |
+| `roach` | Roach | Research Librarian | `research` | `super_admin` | `internal` | `active` |
+| `felisha` | Felisha | Meetings & Operations | `operations` | `super_admin` | `internal` | `active` |
+| `uncle_elroy` | Uncle Elroy | Adversarial Data Auditor | `analytics` | `super_admin` | `internal` | `active` |
+| `openclaw` | OpenClaw | WhatsApp & Task Automation | `operations` | `super_admin` | `internal` | `active` |
 
----
+## Notes
 
-## ID Namespace Rules
+- `money_mike` and `mike_exec` are intentionally distinct agents:
+  `money_mike` is the field pricing agent for customer-org work, while `mike_exec`
+  is the super-user CFO persona for company-level finance.
+- `general` remains canonical even though it is hidden from standard squad views.
+- `marty`, `felisha`, `uncle_elroy`, `openclaw`, and other executive agents stay
+  represented in the contract even when the business-facing UI does not list them.
 
-- **Field agents** use snake_case IDs matching their character name
-- **Executive agents** use the same convention; `mike_exec` is an exception to avoid collision with `money_mike`
-- **IDs are permanent** — once assigned, never reuse. Retire by setting `status: retired` in this doc
-- **All new agents** must be added here before being added to any TypeScript file
+## Maintenance Rule
 
----
-
-## Validation
-
-The drift check script (`scripts/check-playbook-drift.mjs`) reads agent IDs directly from:
-- `src/server/agents/agent-definitions.ts` — `AgentId` union type (all agents)
-- `src/lib/agents/registry.ts` — `AgentId` + `ExecutiveAgentId` union types
-
-It validates that both sets are in sync, flagging any agent present in one but not the other.
+When agent identity or access metadata changes, update `src/config/agent-contract.ts`
+first, then refresh this mirror document if the human-readable summary needs to change.

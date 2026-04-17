@@ -84,20 +84,24 @@ function createFirestoreMock(options?: {
   });
 
   const ordersCollection = {
-    where: jest.fn((field: HistoricalOrderField, _operator: string, candidateId: string) => ({
-      where: jest.fn((_createdAtField: string, _createdAtOperator: string, _lookbackDate: Date) => ({
-        get: jest.fn(async () => ({
-          docs: (options?.ordersByField?.[field]?.[candidateId] ?? []).map((doc) =>
-            makeQueryDoc(`orders/${doc.id}`, doc),
-          ),
+    where: jest.fn((field: HistoricalOrderField, _operator: string, candidateId: string) => {
+      const docs = (options?.ordersByField?.[field]?.[candidateId] ?? []).map((doc) =>
+        makeQueryDoc(`orders/${doc.id}`, doc),
+      );
+
+      return {
+        where: jest.fn((_createdAtField: string, _createdAtOperator: string, _lookbackDate: Date) => ({
+          limit: jest.fn(() => ({
+            get: jest.fn(async () => ({ docs })),
+          })),
+          get: jest.fn(async () => ({ docs })),
         })),
-      })),
-      get: jest.fn(async () => ({
-        docs: (options?.ordersByField?.[field]?.[candidateId] ?? []).map((doc) =>
-          makeQueryDoc(`orders/${doc.id}`, doc),
-        ),
-      })),
-    })),
+        limit: jest.fn(() => ({
+          get: jest.fn(async () => ({ docs })),
+        })),
+        get: jest.fn(async () => ({ docs })),
+      };
+    }),
     doc: jest.fn((orderId: string) => createRef(`orders/${orderId}`, () => null)),
   };
 

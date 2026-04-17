@@ -6,6 +6,7 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { BAKEDBOT_OPERATOR_SENDER_NAME } from '@/lib/email/sender-branding';
 import type {
     HeartbeatChannel,
     HeartbeatCheckResult,
@@ -125,7 +126,8 @@ async function sendEmailNotification(
             subject,
             htmlBody,
             textBody: formatResultsForText(results),
-            fromName: 'BakedBot AI',
+            fromName: BAKEDBOT_OPERATOR_SENDER_NAME,
+            communicationType: 'strategy',
         });
 
         return result.success;

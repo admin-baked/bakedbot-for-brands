@@ -10,6 +10,8 @@ import { getSegmentSummary, getAtRiskCustomers, getTodayCheckins } from '@/serve
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { InsightCard } from '@/types/insight-cards';
+import { normalizeCandidate, resolveCatalogAnalyticsScope } from '@/server/services/catalog-analytics-scope';
+import { queryHistoricalOrdersByScope, type HistoricalOrderRecord } from '@/server/services/order-history-query';
 
 // ============ Generator ============
 
@@ -21,6 +23,17 @@ type CustomerSegmentMetrics = {
 };
 
 export class CustomerInsightsGenerator extends InsightGeneratorBase {
+  private static readonly DETERMINISTIC_TITLES = [
+    'CHURN RISK ALERT',
+    'CUSTOMER MIX',
+    'LOYALTY PERFORMANCE',
+  ] as const;
+
+  private static readonly SEGMENT_BACKED_TITLES = [
+    'CUSTOMER MIX',
+    'LOYALTY PERFORMANCE',
+  ] as const;
+
   constructor(orgId: string) {
     super(orgId, 'smokey', 'Smokey', 'customer');
   }
@@ -64,6 +77,11 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
 
       // Save to Firestore
       await this.saveInsights(insights);
+      const retirableTitles = [
+        'CHURN RISK ALERT',
+        ...(segmentResult ? CustomerInsightsGenerator.SEGMENT_BACKED_TITLES : []),
+      ];
+      await this.deleteRetiredDeterministicInsights(insights, retirableTitles);
 
       logger.info('[CustomerInsights] Generated insights', {
         orgId: this.orgId,
@@ -106,23 +124,29 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
       const db = getAdminFirestore();
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
+      const tomorrowStart = new Date(todayStart);
+      tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+      const scope = await resolveCatalogAnalyticsScope(db, this.orgId);
 
-      // Get today's orders for this org
-      const todayOrdersSnap = await db.collection('orders')
-        .where('orgId', '==', this.orgId)
-        .where('createdAt', '>=', todayStart)
-        .limit(500)
-        .get();
+      const [{ orders: todayOrders }, { orders: priorOrders }] = await Promise.all([
+        queryHistoricalOrdersByScope(db, this.orgId, scope, {
+          startDate: todayStart,
+          endDate: tomorrowStart,
+        }),
+        queryHistoricalOrdersByScope(db, this.orgId, scope, {
+          startDate: new Date(todayStart.getTime() - 30 * 24 * 60 * 60 * 1000),
+          endDate: todayStart,
+        }),
+      ]);
 
-      if (todayOrdersSnap.empty) {
+      if (todayOrders.length === 0) {
         return { newCustomers: 0, returningCustomers: 0 };
       }
 
       // Collect unique customer identifiers from today's orders
       const customerIds = new Set<string>();
-      for (const doc of todayOrdersSnap.docs) {
-        const data = doc.data();
-        const customerId = data.customerId || data.customerEmail || data.userId;
+      for (const { data } of todayOrders) {
+        const customerId = this.getOrderCustomerIdentifier(data);
         if (customerId) customerIds.add(customerId);
       }
 
@@ -130,24 +154,10 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
         return { newCustomers: 0, returningCustomers: 0 };
       }
 
-      // For each unique customer, check if they have an order in the 30 days BEFORE today
-      const thirtyDaysAgo = new Date(todayStart);
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
       let returningCount = 0;
-      // Batch check: query orders in last 30 days for these customers
-      // Use a single query to check which customers have prior orders
-      const priorOrdersSnap = await db.collection('orders')
-        .where('orgId', '==', this.orgId)
-        .where('createdAt', '>=', thirtyDaysAgo)
-        .where('createdAt', '<', todayStart)
-        .limit(1000)
-        .get();
-
       const customersWithPriorOrders = new Set<string>();
-      for (const doc of priorOrdersSnap.docs) {
-        const data = doc.data();
-        const customerId = data.customerId || data.customerEmail || data.userId;
+      for (const { data } of priorOrders) {
+        const customerId = this.getOrderCustomerIdentifier(data);
         if (customerId) customersWithPriorOrders.add(customerId);
       }
 
@@ -168,6 +178,50 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
       });
       return { newCustomers: 0, returningCustomers: 0 };
     }
+  }
+
+  private getOrderCustomerIdentifier(order: HistoricalOrderRecord): string | null {
+    return normalizeCandidate(order.customerId)
+      ?? normalizeCandidate(order.customerEmail)
+      ?? normalizeCandidate(order.userId);
+  }
+
+  private async deleteRetiredDeterministicInsights(
+    insights: InsightCard[],
+    retirableTitles: readonly string[] = CustomerInsightsGenerator.DETERMINISTIC_TITLES,
+  ): Promise<void> {
+    if (insights.length === 0 || retirableTitles.length === 0) {
+      return;
+    }
+
+    const currentInsightIds = new Set(insights.map((insight) => this.buildInsightSlug(insight)));
+    const staleTitles = retirableTitles.filter((title) =>
+      !currentInsightIds.has(this.buildInsightSlug({ category: this.category, title })),
+    );
+
+    if (staleTitles.length === 0) {
+      return;
+    }
+
+    const db = getAdminFirestore();
+    const batch = db.batch();
+
+    staleTitles.forEach((title) => {
+      const slug = this.buildInsightSlug({ category: this.category, title });
+      const ref = db
+        .collection('tenants')
+        .doc(this.orgId)
+        .collection('insights')
+        .doc(slug);
+      batch.delete(ref);
+    });
+
+    await batch.commit();
+
+    logger.info('[CustomerInsights] Retired deterministic insights', {
+      orgId: this.orgId,
+      deleted: staleTitles,
+    });
   }
 
   /**
