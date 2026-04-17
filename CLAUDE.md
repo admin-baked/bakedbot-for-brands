@@ -1,10 +1,10 @@
-# CLAUDE.md â€” BakedBot Codebase Context
+# CLAUDE.md ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â BakedBot Codebase Context
 
 > Official Claude Code context file. Loaded automatically on every interaction.
 
 ---
 
-## ðŸš¨ FIRST: Check Build Health
+## ÃƒÂ°Ã…Â¸Ã…Â¡Ã‚Â¨ FIRST: Check Build Health
 
 ```powershell
 .\scripts\npm-safe.cmd run check:types
@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Smokey 3/3 100% passing — all pgvector RPC timeouts fixed, Agent Training dashboard live | **Last update:** 2026-04-16 (`6aedab1d1`)
+**Current Status:** main green | Thrive telemetry repaired; Ecstatic catalog fallback live with a truthful slow-mover telemetry warning card; Campaigns/Playbooks + welcome-email smokes passing for Thrive + Ecstatic | **Last update:** 2026-04-16 (Ecstatic shipit prep)
 
 ---
 
@@ -30,7 +30,7 @@
 
 ---
 
-## ðŸ”„ Auto-Simplify Protocol (MANDATORY)
+## ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ¢â‚¬Å¾ Auto-Simplify Protocol (MANDATORY)
 
 After completing ANY code modifications AND **before every `git push` / Firebase deploy**, you **MUST** run `/simplify`:
 
@@ -46,7 +46,7 @@ After completing ANY code modifications AND **before every `git push` / Firebase
 7. **Summarize** what was changed.
 
 > This is NOT optional. Every code session ends with `/simplify`, and every `git push` is gated on it. Repo-owned hooks plus `scripts/safe-push.sh` verify the recorded review. If hooks are missing locally, run `npm run setup:git-hooks`. See `.agent/workflows/simplify.md` for the full protocol.
-> **Applies to all builder agents:** Claude Code, Codex, and Gemini â€” no exceptions.
+> **Applies to all builder agents:** Claude Code, Codex, and Gemini ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no exceptions.
 
 ---
 
@@ -59,19 +59,19 @@ After completing ANY code modifications AND **before every `git push` / Firebase
 | `.\scripts\npm-safe.cmd test -- path/to/file.test.ts` | Test specific file |
 | `.\scripts\npm-safe.cmd run lint` | ESLint check |
 | `.\scripts\npm-safe.cmd run dev` | Local dev server |
-| `git push origin main` | **Deploy to production** â€” triggers Firebase App Hosting CI/CD |
+| `git push origin main` | **Deploy to production** ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â triggers Firebase App Hosting CI/CD |
 | `npm run gh:checks` | Check CI status for HEAD commit (check runs + statuses) |
 | `npm run gh:checks:wait` | Poll until all checks pass (30s interval, 15min timeout) |
 | `npm run gh:checks -- status <sha>` | Check CI status for specific commit |
 | `node scripts/firebase-apphosting.mjs cancel <id>` | Cancel stuck build (> 25 min RUNNING) |
 
-> **ðŸš€ Deploy = Push to GitHub.** `git push origin main` automatically starts a Firebase build and deploys to production. Always push after committing finished work.
+> **ÃƒÂ°Ã…Â¸Ã…Â¡Ã¢â€šÂ¬ Deploy = Push to GitHub.** `git push origin main` automatically starts a Firebase build and deploys to production. Always push after committing finished work.
 >
-> **ðŸ”„ After every push: poll + trigger.** Don't stop at the push â€” poll `gh run list` until `completed|success`, then run post-deploy triggers (POS sync, etc.). See `.agent/prime.md` â†’ **Post-Deploy Protocol** for the full loop and trigger map.
+> **ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ¢â‚¬Å¾ After every push: poll + trigger.** Don't stop at the push ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â poll `gh run list` until `completed|success`, then run post-deploy triggers (POS sync, etc.). See `.agent/prime.md` ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ **Post-Deploy Protocol** for the full loop and trigger map.
 >
-> **âš ï¸ Stuck build pattern:** If `firebase-apphosting.mjs status` shows a build RUNNING > 25 min with `Duration: unknown`, cancel it and push an empty commit to re-trigger.
+> **ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â Stuck build pattern:** If `firebase-apphosting.mjs status` shows a build RUNNING > 25 min with `Duration: unknown`, cancel it and push an empty commit to re-trigger.
 
-**Note:** Windows PowerShell â€” use `;` not `&&` for command chaining.
+**Note:** Windows PowerShell ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â use `;` not `&&` for command chaining.
 
 ---
 
@@ -94,8 +94,8 @@ node --max-old-space-size=8192 node_modules/.bin/tsc --noEmit
 For Firebase deployments: builds frequently fail due to OOM, Turbopack issues, or GCP timing. Always monitor the deploy after triggering it and be prepared to retry once. If a deploy fails on a docs-only commit, re-trigger before investigating.
 
 - After `git push origin main`, poll `gh run list --workflow "Deploy to Firebase App Hosting" --branch main --limit 3` until `completed|success`
-- If a build is RUNNING > 25 min with `Duration: unknown` â†’ cancel and push an empty commit to re-trigger
-- Docs-only commit failures are almost always infra timeouts â€” re-trigger first, don't debug the commit
+- If a build is RUNNING > 25 min with `Duration: unknown` ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ cancel and push an empty commit to re-trigger
+- Docs-only commit failures are almost always infra timeouts ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â re-trigger first, don't debug the commit
 
 ---
 
@@ -103,7 +103,7 @@ For Firebase deployments: builds frequently fail due to OOM, Turbopack issues, o
 
 When debugging production bugs, always check server-side root causes first before applying client-side fixes. Multiple sessions showed initial client-side fixes missing the real server-side issue (e.g., auth/session bugs, wrong bot tokens).
 
-1. Trace the full request path from client â†’ server before writing any fix
+1. Trace the full request path from client ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ server before writing any fix
 2. Check server logs / Firestore for the actual error, not just what the UI shows
 3. Don't apply a client-side patch until server-side causes are ruled out
 
@@ -113,12 +113,12 @@ When debugging production bugs, always check server-side root causes first befor
 
 Before running any bulk API operation (Apollo, fal.ai, Jina, Firestore batch writes, etc.):
 
-1. **Validate keys** â€” make a single test call to confirm the API key is active and not rate-limited
-2. **5-item pilot** â€” run a test batch of 5 items end-to-end and verify the full pipeline works
-3. **Scale up** â€” only then process in 20-item batches with exponential backoff and per-item error handling
+1. **Validate keys** ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â make a single test call to confirm the API key is active and not rate-limited
+2. **5-item pilot** ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â run a test batch of 5 items end-to-end and verify the full pipeline works
+3. **Scale up** ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â only then process in 20-item batches with exponential backoff and per-item error handling
 
 ```typescript
-// Pattern: validate â†’ pilot â†’ scale
+// Pattern: validate ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ pilot ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ scale
 await validateApiKey();
 const pilot = await processBatch(items.slice(0, 5));
 if (!pilot.success) throw new Error(`Pilot failed: ${pilot.error}`);
@@ -127,7 +127,7 @@ for (const chunk of chunks(items, 20)) {
 }
 ```
 
-Never start a bulk run without validating keys first â€” depleted/rate-limited keys discovered mid-run waste all prior work.
+Never start a bulk run without validating keys first ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â depleted/rate-limited keys discovered mid-run waste all prior work.
 
 ---
 
@@ -154,9 +154,9 @@ Use `/shipit` to run this as a single command.
 
 ---
 
-## ðŸ”´ PR Governance (MANDATORY â€” CI will fail without this)
+## ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â´ PR Governance (MANDATORY ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â CI will fail without this)
 
-Every PR body **must** include all 8 sections below. GitHub's PR template (`.github/PULL_REQUEST_TEMPLATE.md`) has the full checklist, but when creating PRs via API/MCP/CLI the template is NOT auto-applied â€” you must fill it in manually.
+Every PR body **must** include all 8 sections below. GitHub's PR template (`.github/PULL_REQUEST_TEMPLATE.md`) has the full checklist, but when creating PRs via API/MCP/CLI the template is NOT auto-applied ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â you must fill it in manually.
 
 **Required sections** (CI governance check scans for these exact strings):
 
@@ -175,13 +175,13 @@ Every PR body **must** include all 8 sections below. GitHub's PR template (`.git
 
 **Suppression rule:** if your diff contains `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, or `: any`, you must explicitly justify it in the PR body or the governance check will block the PR.
 
-> **Tip:** Use `doc: any` patterns for firebase-admin/firestore callbacks (module resolution is broken in this tsconfig â€” established pattern since commit `6fc39372`). Justify in `# Failure Modes` or `# Explainability`.
+> **Tip:** Use `doc: any` patterns for firebase-admin/firestore callbacks (module resolution is broken in this tsconfig ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â established pattern since commit `6fc39372`). Justify in `# Failure Modes` or `# Explainability`.
 
 ---
 
-## ðŸš€ Developer Super Powers (11 Ready-to-Use Scripts)
+## ÃƒÂ°Ã…Â¸Ã…Â¡Ã¢â€šÂ¬ Developer Super Powers (11 Ready-to-Use Scripts)
 
-**All 21 npm scripts deployed 2026-02-22** â€” Use these for automation, testing, compliance, and observability.
+**All 21 npm scripts deployed 2026-02-22** ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Use these for automation, testing, compliance, and observability.
 
 **Linus can execute any super power via Slack:** `@linus execute execute_super_power script=<script-name> options=<cli-options>`
 
@@ -200,7 +200,7 @@ Every PR body **must** include all 8 sections below. GitHub's PR template (`.git
 | `npm run generate:action <name>` | Scaffold server action |
 | `npm run generate:route <endpoint>` | Scaffold API route (GET/POST) |
 | `npm run generate:cron <job-name>` | Scaffold cron job endpoint |
-| `npm run fix:build` | Auto-fix TypeScript errors (import paths, consoleâ†’logger) |
+| `npm run fix:build` | Auto-fix TypeScript errors (import paths, consoleÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢logger) |
 
 ### Tier 3: Safety
 | Command | Purpose |
@@ -231,7 +231,7 @@ Every PR body **must** include all 8 sections below. GitHub's PR template (`.git
 | `npm run opencode:task -- --prompt "..." --model zen/kimi-k24` | Use long-context Zen model |
 | `npm run opencode:task -- --prompt "..." --model anthropic/claude-sonnet-4-6` | Premium model (billed) |
 
-**SP13 — Opencode Agent:** Cloud Run container at `OPENCODE_AGENT_URL`. Free via Zen models, no API key needed.
+**SP13 Ã¢â‚¬â€ Opencode Agent:** Cloud Run container at `OPENCODE_AGENT_URL`. Free via Zen models, no API key needed.
 Deploy: `gcloud run deploy opencode-agent --source ./docker/opencode --region us-central1`
 Linus Slack: `@linus execute execute_super_power script=opencode-task options="--prompt \"fix type error in X\""`
 
@@ -250,7 +250,7 @@ Linus Slack: `@linus execute execute_super_power script=opencode-task options="-
 
 ## Project Overview
 
-**BakedBot AI** â€” Agentic Commerce OS for cannabis industry
+**BakedBot AI** ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Agentic Commerce OS for cannabis industry
 - Multi-agent platform keeping customers in brand's funnel
 - Routes orders to retail partners for fulfillment
 - Automates marketing, analytics, compliance, competitive intelligence
@@ -266,30 +266,30 @@ Linus Slack: `@linus execute execute_super_power script=opencode-task options="-
 
 ```
 src/
-â”œâ”€â”€ app/                     # Next.js pages & API routes
-â”‚   â”œâ”€â”€ api/                 # API routes
-â”‚   â””â”€â”€ dashboard/           # Role-based dashboards
-â”œâ”€â”€ components/              # React components
-â”œâ”€â”€ server/
-â”‚   â”œâ”€â”€ agents/              # Agent implementations â­
-â”‚   â”œâ”€â”€ services/            # Business logic
-â”‚   â”‚   â”œâ”€â”€ letta/           # Memory service
-â”‚   â”‚   â”œâ”€â”€ rtrvr/           # Browser automation
-â”‚   â”‚   â””â”€â”€ ezal/            # Competitive intel
-â”‚   â”œâ”€â”€ actions/             # Server Actions ('use server')
-â”‚   â””â”€â”€ tools/               # Agent tools (Genkit)
-â”œâ”€â”€ ai/                      # AI wrappers (claude.ts)
-â””â”€â”€ lib/                     # Utilities
+ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ app/                     # Next.js pages & API routes
+ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬Å¡   ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ api/                 # API routes
+ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬Å¡   ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬ÂÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ dashboard/           # Role-based dashboards
+ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ components/              # React components
+ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ server/
+ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬Å¡   ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ agents/              # Agent implementations ÃƒÂ¢Ã‚Â­Ã‚Â
+ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬Å¡   ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ services/            # Business logic
+ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬Å¡   ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬Å¡   ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ letta/           # Memory service
+ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬Å¡   ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬Å¡   ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ rtrvr/           # Browser automation
+ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬Å¡   ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬Å¡   ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬ÂÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ ezal/            # Competitive intel
+ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬Å¡   ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ actions/             # Server Actions ('use server')
+ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬Å¡   ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬ÂÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ tools/               # Agent tools (Genkit)
+ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ ai/                      # AI wrappers (claude.ts)
+ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬ÂÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ lib/                     # Utilities
 
 .agent/
-â”œâ”€â”€ prime.md                 # Agent startup context (READ FIRST)
-â”œâ”€â”€ refs/                    # Detailed reference docs â­
-â””â”€â”€ workflows/               # Automation recipes
+ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ prime.md                 # Agent startup context (READ FIRST)
+ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ refs/                    # Detailed reference docs ÃƒÂ¢Ã‚Â­Ã‚Â
+ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬ÂÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ workflows/               # Automation recipes
 
 dev/
-â”œâ”€â”€ work_archive/            # Historical decisions
-â”œâ”€â”€ backlog.json             # Task tracking
-â””â”€â”€ progress_log.md          # Session logs
+ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ work_archive/            # Historical decisions
+ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ backlog.json             # Task tracking
+ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬ÂÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ progress_log.md          # Session logs
 ```
 
 ---
@@ -307,6 +307,43 @@ dev/
 
 ---
 
+## Karpathy Coding Guidelines (via [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills))
+
+> Bias toward caution over speed. For trivial tasks, use judgment.
+
+### 1. Think Before Coding
+- State assumptions explicitly before implementing. If uncertain, ask.
+- If multiple interpretations exist, present them Ã¢â‚¬â€ don't pick silently.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+### 2. Simplicity First
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+### 3. Surgical Changes
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it Ã¢â‚¬â€ don't delete it.
+- Remove imports/variables/functions that YOUR changes made unused. Don't remove pre-existing dead code unless asked.
+- **Test:** Every changed line should trace directly to the user's request.
+
+### 4. Goal-Driven Execution
+Transform tasks into verifiable goals before starting:
+- "Add validation" Ã¢â€ â€™ "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" Ã¢â€ â€™ "Write a test that reproduces it, then make it pass"
+
+For multi-step tasks, state a brief plan with a verify step for each:
+```
+1. [Step] Ã¢â€ â€™ verify: [check]
+2. [Step] Ã¢â€ â€™ verify: [check]
+```
+
+---
+
 ## Workflow
 
 ### Simple Task (1-2 files)
@@ -317,7 +354,7 @@ dev/
 5. Commit
 
 ### Complex Task (3+ files, new feature)
-1. Run `npm run check:types` â€” ensure build is healthy
+1. Run `npm run check:types` ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ensure build is healthy
 2. Query work history: `query_work_history({ query: "area/file" })`
 3. Read relevant refs from `.agent/refs/`
 4. Create plan, get user approval
@@ -372,7 +409,7 @@ These agents write and ship code in this repo. All follow the same `/simplify` +
 
 | Agent | Platform | Protocol |
 |-------|----------|----------|
-| **Claude Code** | Anthropic CLI / IDE | Primary â€” full CLAUDE.md protocol |
+| **Claude Code** | Anthropic CLI / IDE | Primary ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â full CLAUDE.md protocol |
 | **Codex** | OpenAI Codex | Same: `/simplify` pre-push, session-end update, no `console.log`, typed TS |
 | **Gemini** | Google Gemini CLI / Code Assist | Same: `/simplify` pre-push, session-end update, no `console.log`, typed TS |
 
@@ -396,13 +433,13 @@ These agents write and ship code in this repo. All follow the same `/simplify` +
 ## Memory & History
 
 ### Work Archive (Local)
-- `query_work_history` â€” Check before modifying files
-- `archive_work` â€” Record decisions after changes
+- `query_work_history` ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Check before modifying files
+- `archive_work` ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Record decisions after changes
 - Location: `dev/work_archive/`
 
 ### Letta Memory (Persistent)
-- `letta_save_fact` â€” Store important insights
-- `letta_search_memory` â€” Query past decisions
+- `letta_save_fact` ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Store important insights
+- `letta_search_memory` ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Query past decisions
 - Shared across Executive agents (Hive Mind)
 
 ---
@@ -420,7 +457,7 @@ These agents write and ship code in this repo. All follow the same `/simplify` +
 
 ---
 
-## ðŸš€ Auto-Approved Operations (Production Automation)
+## ÃƒÂ°Ã…Â¸Ã…Â¡Ã¢â€šÂ¬ Auto-Approved Operations (Production Automation)
 
 ### Claude Code (This Tool)
 Claude can execute autonomously without asking:
@@ -440,31 +477,31 @@ Linus has **comprehensive CTO autonomy**. See `.agent/LINUS_CTO_AUTONOMY.md` for
 | **Build & Test** | Run full suite, analyze failures | `npm run check:types`, `npm test` |
 | **Developer Productivity** | Execute super power scripts autonomously | `execute_super_power script=fix-build options=--apply` |
 | **Deployment** | GO/NO-GO decisions, deploy to production | Firebase App Hosting push |
-| **Incident Response** | Auto-revert failed deployments, fix issues | Deploy failure â†’ auto-revert âœ… |
+| **Incident Response** | Auto-revert failed deployments, fix issues | Deploy failure ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ auto-revert ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ |
 | **Cron Jobs** | Create/modify Cloud Scheduler | `gcloud scheduler jobs create http ...` |
 | **Infrastructure** | Service accounts, IAM roles | Create automated deployment accounts |
 | **Reporting** | Real-time Slack + dashboard updates | Auto-notify on deploy/incident |
 
 **Safety Mechanisms:**
-- âœ… Build must pass before push (hard gate)
-- âœ… Deployment failure â†’ auto-revert within 2 minutes
-- âœ… Destructive ops (delete critical jobs) require human approval
-- âœ… Full audit trail in Firestore (every action logged)
-- âœ… Hive Mind memory (learns from incidents)
+- ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Build must pass before push (hard gate)
+- ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Deployment failure ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ auto-revert within 2 minutes
+- ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Destructive ops (delete critical jobs) require human approval
+- ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Full audit trail in Firestore (every action logged)
+- ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Hive Mind memory (learns from incidents)
 
 ---
 
-## ðŸ”š Session End: "Update recent work"
+## ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ…Â¡ Session End: "Update recent work"
 
-When the user says **"Update recent work"** (or similar), execute this checklist automatically â€” no questions.
+When the user says **"Update recent work"** (or similar), execute this checklist automatically ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no questions.
 
-> **Multi-tab reality:** Multiple sessions often run in parallel across different tabs and complete at different times. The protocol below handles this safely â€” each tab writes to its own isolated session file first, then a conflict-free merge updates the shared files.
+> **Multi-tab reality:** Multiple sessions often run in parallel across different tabs and complete at different times. The protocol below handles this safely ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â each tab writes to its own isolated session file first, then a conflict-free merge updates the shared files.
 
 ---
 
-### Step 1 â€” Write a session file (ALWAYS FIRST, every tab)
+### Step 1 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Write a session file (ALWAYS FIRST, every tab)
 
-Write `memory/sessions/YYYY-MM-DD-HHMM-{slug}.md` before touching any shared file. This is your isolated record â€” safe to write even if other tabs have already updated CLAUDE.md.
+Write `memory/sessions/YYYY-MM-DD-HHMM-{slug}.md` before touching any shared file. This is your isolated record ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â safe to write even if other tabs have already updated CLAUDE.md.
 
 ```markdown
 ---
@@ -475,9 +512,9 @@ commits: [commitHash1, commitHash2]
 features: [Feature A, Feature B]
 ---
 
-## Session YYYY-MM-DD â€” Feature A + Feature B
+## Session YYYY-MM-DD ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Feature A + Feature B
 
-- bullet summary (3â€“5 points max)
+- bullet summary (3ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“5 points max)
 - Gotchas discovered
 ```
 
@@ -485,41 +522,41 @@ features: [Feature A, Feature B]
 
 ---
 
-### Step 2 â€” Append to `memory/MEMORY.md`
+### Step 2 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Append to `memory/MEMORY.md`
 
 Prepend your session block under a new `## Session YYYY-MM-DD` heading.
-- 3â€“5 bullets max, commit hash, ref pointer
-- If topic already has a `memory/*.md` file â†’ update that instead, add a one-liner to MEMORY.md
+- 3ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“5 bullets max, commit hash, ref pointer
+- If topic already has a `memory/*.md` file ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ update that instead, add a one-liner to MEMORY.md
 
 **Safe for concurrent tabs:** each session gets its own dated block. Order by date, not write-time.
 
 ---
 
-### Step 3 â€” Auto-Archive MEMORY.md (if > 150 lines)
+### Step 3 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Auto-Archive MEMORY.md (if > 150 lines)
 
 **Every time you write to MEMORY.md**, check line count. If > 150:
 1. Identify all `## Session` entries **older than the 3 most recent**.
 2. Move them to `memory/archive/YYYY-MM.md` (append if file exists). Keep blocks intact.
-3. Replace with a single pointer line: `â†’ Sessions before YYYY-MM-DD archived in memory/archive/YYYY-MM.md`
-4. Verify â‰¤ 150 lines after.
+3. Replace with a single pointer line: `ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Sessions before YYYY-MM-DD archived in memory/archive/YYYY-MM.md`
+4. Verify ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤ 150 lines after.
 
 **Permanent sections** (Startup Ritual, etc.) are never archived.
 
 ---
 
-### Step 4 â€” Update shared files (date-gated)
+### Step 4 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Update shared files (date-gated)
 
-**Only update CLAUDE.md and prime.md if this session's date â‰¥ the current "Last update" date.**
+**Only update CLAUDE.md and prime.md if this session's date ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¥ the current "Last update" date.**
 
 1. Read `CLAUDE.md` line 15. Parse the existing `YYYY-MM-DD`.
-2. If **your session date is newer or equal** â†’ update both files:
-   - **`CLAUDE.md` line 15:** `**Current Status:** ðŸŸ¢ main green | **Last update:** 2026-04-02 (Job stream helper restored Type Check + E2E + deploy)
-   - **`.agent/prime.md` lines ~41â€“44:** max 2-line block â€” feature names + commit hashes only
-3. If **your session date is older** than what's already there â†’ **skip both files**. Your session is already captured in MEMORY.md and `memory/sessions/`. Don't overwrite newer work.
+2. If **your session date is newer or equal** ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ update both files:
+   - **`CLAUDE.md` line 15:** `**Current Status:** main green | Thrive telemetry repaired; Ecstatic catalog fallback live with a truthful slow-mover telemetry warning card; Campaigns/Playbooks + welcome-email smokes passing for Thrive + Ecstatic | **Last update:** 2026-04-16 (Ecstatic shipit prep)
+   - **`.agent/prime.md` lines ~41ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“44:** max 2-line block ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â feature names + commit hashes only
+3. If **your session date is older** than what's already there ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ **skip both files**. Your session is already captured in MEMORY.md and `memory/sessions/`. Don't overwrite newer work.
 
 ---
 
-### Step 5 â€” Route to topic file if applicable
+### Step 5 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Route to topic file if applicable
 
 | What changed | Update this file |
 |---|---|
@@ -534,23 +571,23 @@ Prepend your session block under a new `## Session YYYY-MM-DD` heading.
 
 ---
 
-### Step 6 â€” Commit
+### Step 6 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Commit
 
 ```bash
 git add CLAUDE.md .agent/prime.md
 git commit -m "docs: Update session notes YYYY-MM-DD - [brief summary]"
 ```
-Memory files are local-only (not committed â€” `memory/` lives outside repo).
+Memory files are local-only (not committed ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â `memory/` lives outside repo).
 
 ---
 
-### "Consolidate sessions" â€” merge all pending tabs at once
+### "Consolidate sessions" ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â merge all pending tabs at once
 
 When multiple tabs have pending session files in `memory/sessions/`, say **"Consolidate sessions"** to merge them all in one pass:
 
 1. Read all `memory/sessions/*.md` files
 2. Sort chronologically by `date` + `time` frontmatter
-3. For each session (oldest â†’ newest):
+3. For each session (oldest ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ newest):
    - Append its block to MEMORY.md (skip if already present)
    - Route to topic file if applicable
 4. Update CLAUDE.md line 15 + prime.md with the **most recent** session's data
@@ -562,10 +599,10 @@ When multiple tabs have pending session files in `memory/sessions/`, say **"Cons
 
 ---
 
-### âš ï¸ What NOT to do
+### ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â What NOT to do
 - Do NOT update CLAUDE.md/prime.md if your session is older than what's already there
 - Do NOT add full implementation details to `prime.md`
-- Do NOT add more than 2â€“3 lines to the prime.md recent work block
+- Do NOT add more than 2ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“3 lines to the prime.md recent work block
 - Do NOT commit `memory/` files (they're in the Claude projects folder, not the repo)
 
 ---

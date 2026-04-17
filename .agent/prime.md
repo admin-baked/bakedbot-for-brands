@@ -14,11 +14,11 @@ ls .w/ > /dev/null 2>&1 && cat ~/.code-index/_savings.json
 
 | Result | Action |
 |--------|--------|
-| `.w/` exists + savings JSON | Report: "jcodemunch active — X tokens saved (~$Y)" |
+| `.w/` exists + savings JSON | Report: "jcodemunch active Ã¢â‚¬â€ X tokens saved (~$Y)" |
 | `.w/` missing | Prompt: "jcodemunch not detected. Run: `jcodemunch index`" |
-| `_savings.json` missing | First session — report 0 tokens saved |
+| `_savings.json` missing | First session Ã¢â‚¬â€ report 0 tokens saved |
 
-Dollar estimate: `total_tokens_saved × $0.000003`
+Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 
 ---
 
@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved × $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 Smokey 3/3 100% — all pgvector RPC timeouts fixed; Agent Training dashboard + Grok loop live
-**Recent work (2026-04-16):** `6aedab1d1` all Supabase RPC timeouts; `5eb4c1bec` Smokey prompt fix (no POS CTA on knowledge)
+**Current Status:** main green | Thrive telemetry repaired; Ecstatic catalog fallback live with a warning card for missing sales telemetry; Campaigns/Playbooks + welcome emails live for Thrive + Ecstatic
+**Recent work (2026-04-16):** `catalog-analytics-source.ts` now resolves Ecstatic through tenant aliases + `brandId`; live insight published as `Sales history missing for 4 in-stock SKUs` after confirming `5` brand products load
 
 ---
 
@@ -39,7 +39,7 @@ Dollar estimate: `total_tokens_saved × $0.000003`
 1. Choose the canonical home for the logic.
 2. Reuse existing types, services, schemas, adapters, workflows before adding abstractions.
 3. Set the risk tier and explicitly handle failure modes.
-4. Preserve observability — billing, auth, integrations, automations must stay debuggable.
+4. Preserve observability Ã¢â‚¬â€ billing, auth, integrations, automations must stay debuggable.
 5. Keep code explainable: typed boundaries, no silent catches, no hidden UI business logic.
 
 Full workflow protocol: `.agent/refs/workflow-protocol.md`
@@ -48,19 +48,19 @@ Full workflow protocol: `.agent/refs/workflow-protocol.md`
 
 ## Workflow Runtime (V1 vs V2)
 
-**V2 stage-based is canonical. V1 step-based is legacy — maintenance only.**
+**V2 stage-based is canonical. V1 step-based is legacy Ã¢â‚¬â€ maintenance only.**
 
 | File | Role |
 |------|------|
-| `src/server/services/playbook-stage-runner.ts` | **CANONICAL** — all new playbook development |
-| `src/server/services/playbook-executor.ts` | **LEGACY** — bug fixes only, no new action types |
+| `src/server/services/playbook-stage-runner.ts` | **CANONICAL** Ã¢â‚¬â€ all new playbook development |
+| `src/server/services/playbook-executor.ts` | **LEGACY** Ã¢â‚¬â€ bug fixes only, no new action types |
 | `src/config/workflow-runtime.ts` | Runtime constants + `PlaybookReadiness` type |
 | `src/config/playbook-readiness.ts` | Classification map for all 37 playbooks |
 | `.agent/refs/workflow-runtime-decision.md` | ADR for the V1/V2 split |
 
 ---
 
-## Megacron Pattern (MANDATORY — read before creating any cron endpoint)
+## Megacron Pattern (MANDATORY Ã¢â‚¬â€ read before creating any cron endpoint)
 
 Before creating a new cron route, **always check if an existing cron can handle it via routing.**
 
@@ -69,7 +69,7 @@ Before creating a new cron route, **always check if an existing cron can handle 
 | Same day, different agents | Add a section to the existing day's cron |
 | New weekday (Tue or Thu) | Add day routing inside `weekly-executive-cadence` |
 | New daily window | Add window routing inside `daily-executive-cadence` |
-| Truly new independent schedule | New cron file — justify why existing crons can't serve it |
+| Truly new independent schedule | New cron file Ã¢â‚¬â€ justify why existing crons can't serve it |
 
 ### Current megacrons
 
@@ -78,10 +78,10 @@ Before creating a new cron route, **always check if an existing cron can handle 
 | `weekly-monday-command` | Mon 7 AM EST | Full Monday Command Day (12 agents) |
 | `weekly-wednesday-check` | Wed 2 PM EST | Full Wednesday Inspection Day (9 agents) |
 | `weekly-friday-memo` | Fri 4 PM EST | Full Friday Truth Day (13 agents) |
-| `weekly-executive-cadence` | Tue 9 AM + Thu 1 PM EST | `getDay()` → Build Day or Proof Day |
-| `daily-executive-cadence` | 8/12/6/10 PM EST | `getHours()` → Morning/Midday/Closeout/Overnight |
-| `generate-insights` | hourly/daily | `?type=` → customer/velocity/regulatory/competitive-pricing/dynamic/goal-progress |
-| `dayday` | 6/7/8 AM daily + Mon 8 AM | `?type=` → discovery/international/seo-report/review |
+| `weekly-executive-cadence` | Tue 9 AM + Thu 1 PM EST | `getDay()` Ã¢â€ â€™ Build Day or Proof Day |
+| `daily-executive-cadence` | 8/12/6/10 PM EST | `getHours()` Ã¢â€ â€™ Morning/Midday/Closeout/Overnight |
+| `generate-insights` | hourly/daily | `?type=` Ã¢â€ â€™ customer/velocity/regulatory/competitive-pricing/dynamic/goal-progress |
+| `dayday` | 6/7/8 AM daily + Mon 8 AM | `?type=` Ã¢â€ â€™ discovery/international/seo-report/review |
 
 ---
 
@@ -91,7 +91,7 @@ Claude can execute without asking:
 - Cloud Scheduler job creation/modification/execution
 - Backfill commands (`POST /api/cron/backfill-*`)
 - Cron job triggers (`POST /api/cron/*`)
-- Deployments (`git push origin main` — after build passes)
+- Deployments (`git push origin main` Ã¢â‚¬â€ after build passes)
 - Service account setup (IAM operations)
 
 **Linus CTO full autonomy:** `.agent/LINUS_CTO_AUTONOMY.md`
@@ -102,7 +102,7 @@ Claude can execute without asking:
 
 | File | Why |
 |------|-----|
-| `.env` | Real API keys — use `.env.local` (gitignored) |
+| `.env` | Real API keys Ã¢â‚¬â€ use `.env.local` (gitignored) |
 | `service-account.json` | GCP service account private key |
 | `PRODUCTION_SETUP.md` | Contained plain-text secrets |
 | `.codex-firebase-deploy.{out,err}.log` | Firebase output includes API keys |
@@ -123,7 +123,7 @@ All 5 in `.gitignore`. For secret management: `.agent/refs/firebase-secrets.md`
 | `npm run gh:checks` | CI status for HEAD |
 | `npm run simplify:record` | Record pre-push simplify review |
 
-**Shell Note:** Windows PowerShell — use `;` not `&&`
+**Shell Note:** Windows PowerShell Ã¢â‚¬â€ use `;` not `&&`
 
 ---
 
@@ -167,7 +167,7 @@ Full roster + engineering agents: `.agent/refs/agents.md`
 | Workflow protocol (PRD/Spec/Build) | `.agent/refs/workflow-protocol.md` |
 | Post-deploy protocol | `.agent/refs/post-deploy.md` |
 | Workflow runtime (V1 vs V2 ADR) | `.agent/refs/workflow-runtime-decision.md` |
-| PR governance | CLAUDE.md → PR Governance section |
+| PR governance | CLAUDE.md Ã¢â€ â€™ PR Governance section |
 | **Agent contract (canonical)** | `.agent/refs/agent-contract.md` |
 | Agents & architecture | `.agent/refs/agents.md` |
 | Slack operations | `.agent/refs/slack-operations.md` |
@@ -179,7 +179,7 @@ Full roster + engineering agents: `.agent/refs/agents.md`
 | Playbook architecture | `.agent/refs/playbook-architecture.md` |
 | Memory/Letta | `.agent/refs/bakedbot-intelligence.md` |
 | Browser automation | `.agent/refs/autonomous-browsing.md` |
-| Super Powers | CLAUDE.md → Super Powers section |
+| Super Powers | CLAUDE.md Ã¢â€ â€™ Super Powers section |
 | Super users | `.agent/refs/super-users.md` |
 | Session history | `memory/MEMORY.md` |
 
