@@ -948,13 +948,68 @@ export async function triggerCRMLeadSync(): Promise<{
     updated?: number;
     skipped?: number;
     states?: string[];
+    retailersCRMCreated?: number;
     error?: string;
 }> {
     try {
         await requireUser(['super_user']);
-        const { syncCRMDispensariesToOutreachQueue } = await import('@/server/services/ny-outreach/crm-queue-sync');
+        const db = getAdminFirestore();
+        const now = Date.now();
 
-        const result = await syncCRMDispensariesToOutreachQueue({ limit: 30 });
+        // Step 1: Sync unclaimed retailers → crm_dispensaries
+        const [retailersSnap, crmSnap] = await Promise.all([
+            db.collection('retailers').limit(500).get(),
+            db.collection('crm_dispensaries').get(),
+        ]);
+
+        const existingSlugs = new Set(crmSnap.docs.map(d => (d.data().slug as string) || d.id));
+        let batch = db.batch();
+        let batchCount = 0;
+        let retailersCRMCreated = 0;
+
+        for (const doc of retailersSnap.docs) {
+            const r = doc.data();
+            const slug = (r.slug as string) || doc.id;
+            if (existingSlugs.has(slug) || !r.name || !r.city || !r.state) continue;
+            if (r.claimStatus === 'claimed' || r.claimedOrgId) continue;
+
+            batch.set(db.collection('crm_dispensaries').doc(slug), {
+                name: r.name,
+                slug,
+                address: (r.address as string) || '',
+                city: r.city,
+                state: r.state,
+                zip: (r.zip as string) || '',
+                ...(r.website ? { website: r.website } : {}),
+                ...(r.phone ? { phone: r.phone } : {}),
+                source: 'import',
+                claimStatus: 'unclaimed',
+                retailerId: doc.id,
+                discoveredAt: now,
+                updatedAt: now,
+                createdAt: now,
+            }, { merge: true });
+
+            batchCount++;
+            retailersCRMCreated++;
+
+            if (batchCount >= 400) {
+                await batch.commit();
+                batch = db.batch();
+                batchCount = 0;
+            }
+        }
+        if (batchCount > 0) await batch.commit();
+
+        // Step 2: Sync crm_dispensaries → ny_dispensary_leads
+        const { syncCRMDispensariesToOutreachQueue } = await import('@/server/services/ny-outreach/crm-queue-sync');
+        const result = await syncCRMDispensariesToOutreachQueue({ limit: 50 });
+
+        logger.info('[OutreachDashboard] CRM lead sync complete', {
+            retailersCRMCreated,
+            leadsCreated: result.created,
+            leadsUpdated: result.updated,
+        });
 
         return {
             success: true,
@@ -962,6 +1017,7 @@ export async function triggerCRMLeadSync(): Promise<{
             updated: result.updated,
             skipped: result.skipped,
             states: result.states,
+            retailersCRMCreated,
         };
     } catch (err) {
         logger.error('[OutreachDashboard] CRM lead sync failed', { error: String(err) });

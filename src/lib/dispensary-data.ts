@@ -4,6 +4,24 @@ import { logger } from '@/lib/logger';
 import { Retailer, Product } from '@/types/domain';
 import { DispensarySEOPage } from '@/types/foot-traffic';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isUuidSlug(s: string): boolean {
+    return UUID_RE.test(s);
+}
+
+/** Generate a URL-safe slug from a dispensary name + city. */
+export function generateDispensarySlug(name: string, city: string): string {
+    const base = `${name} ${city}`
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 80);
+    return base;
+}
+
 // Slugs/names that must never appear in the public dispensary directory
 const EXCLUDED_DISPENSARY_SLUGS = new Set([
     'andrewsdevelopments', 'andrews-developments', 'andrews_developments',
@@ -121,7 +139,14 @@ export async function fetchRetailersForDirectory(state?: string, limit = 150): P
             : col.limit(limit);
         const snapshot = await q.get();
         return snapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() } as Retailer))
+            .map(doc => {
+                const r = { id: doc.id, ...doc.data() } as Retailer;
+                // Ensure slug is never a UUID — generate from name+city when missing or UUID
+                if (!r.slug || isUuidSlug(r.slug)) {
+                    (r as any).slug = generateDispensarySlug(r.name ?? '', r.city ?? '');
+                }
+                return r;
+            })
             .filter(r => !isExcludedDispensary(r.name ?? '', r.slug ?? r.id ?? ''));
     } catch (error) {
         logger.error('[fetchRetailersForDirectory] Error', { error, state });

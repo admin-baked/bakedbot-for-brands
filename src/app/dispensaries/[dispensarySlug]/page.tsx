@@ -1,7 +1,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import {
@@ -14,7 +14,7 @@ import {
     Star,
     AlertCircle
 } from 'lucide-react';
-import { fetchDispensaryPageData } from '@/lib/dispensary-data';
+import { fetchDispensaryPageData, isUuidSlug, generateDispensarySlug } from '@/lib/dispensary-data';
 import { PageViewTracker } from '@/components/analytics/PageViewTracker';
 import { ChatbotPageContext } from '@/components/chatbot-page-context';
 import { Button } from '@/components/ui/button';
@@ -32,22 +32,53 @@ const POPULAR_BRANDS = ['Cookies', 'STIIIZY', 'Wyld', 'Jeeter', 'Cresco'];
 
 export async function generateMetadata({ params }: { params: Promise<{ dispensarySlug: string }> }): Promise<Metadata> {
     const { dispensarySlug } = await params;
-    const { retailer } = await fetchDispensaryPageData(dispensarySlug);
+    if (isUuidSlug(dispensarySlug)) return { title: 'Dispensary | BakedBot' };
+    const { retailer, seoPage } = await fetchDispensaryPageData(dispensarySlug);
 
     if (!retailer) return { title: 'Dispensary Not Found | BakedBot' };
 
+    const description = seoPage?.seoTags?.metaDescription
+        || `Visit ${retailer.name} at ${retailer.address || retailer.city}. View menu, hours, and deals. Licensed cannabis dispensary on BakedBot.`;
+    const canonicalUrl = `https://bakedbot.ai/dispensaries/${dispensarySlug}`;
+
     return {
-        title: `${retailer.name} - Dispensary in ${retailer.city}, ${retailer.state} | BakedBot`,
-        description: `Visit ${retailer.name} at ${retailer.address} in ${retailer.city}. View menu, hours, and deals. Verified dispensary on BakedBot.`,
+        title: `${retailer.name} — Cannabis Dispensary in ${retailer.city}, ${retailer.state} | BakedBot`,
+        description,
+        alternates: { canonical: canonicalUrl },
         openGraph: {
+            title: `${retailer.name} | ${retailer.city} Cannabis Dispensary`,
+            description,
+            url: canonicalUrl,
+            type: 'website',
+            siteName: 'BakedBot',
+        },
+        twitter: {
+            card: 'summary',
             title: `${retailer.name} | BakedBot`,
-            description: `Order from ${retailer.name} in ${retailer.city}. View live menu and hours.`,
+            description,
+        },
+        other: {
+            'geo.region': `US-${retailer.state}`,
+            'geo.placename': retailer.city ?? '',
         }
     };
 }
 
 export default async function DispensaryPage({ params }: { params: Promise<{ dispensarySlug: string }> }) {
     const { dispensarySlug } = await params;
+
+    // 301 redirect UUID slugs to human-readable slugs
+    if (isUuidSlug(dispensarySlug)) {
+        const { retailer } = await fetchDispensaryPageData(dispensarySlug);
+        if (retailer) {
+            const properSlug = (retailer as any).slug && !isUuidSlug((retailer as any).slug)
+                ? (retailer as any).slug
+                : generateDispensarySlug(retailer.name ?? '', retailer.city ?? '');
+            redirect(`/dispensaries/${properSlug}`);
+        }
+        notFound();
+    }
+
     const { retailer: dispensary, products, seoPage } = await fetchDispensaryPageData(dispensarySlug);
 
     if (!dispensary) {
@@ -125,22 +156,50 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
-                        '@context': 'https://schema.org',
-                        '@type': 'MedicalBusiness',
-                        'name': dispensary.name,
-                        'address': {
-                            '@type': 'PostalAddress',
-                            'streetAddress': dispensary.address,
-                            'addressLocality': dispensary.city,
-                            'addressRegion': dispensary.state,
-                            'postalCode': dispensary.zip
+                    __html: JSON.stringify([
+                        {
+                            '@context': 'https://schema.org',
+                            '@type': 'MedicalBusiness',
+                            '@id': `https://bakedbot.ai/dispensaries/${dispensarySlug}#dispensary`,
+                            'name': dispensary.name,
+                            'url': `https://bakedbot.ai/dispensaries/${dispensarySlug}`,
+                            'description': seoPage?.seoTags?.metaDescription || `${dispensary.name} is a licensed cannabis dispensary in ${dispensary.city}, ${dispensary.state}.`,
+                            'address': {
+                                '@type': 'PostalAddress',
+                                'streetAddress': dispensary.address,
+                                'addressLocality': dispensary.city,
+                                'addressRegion': dispensary.state,
+                                'postalCode': dispensary.zip,
+                                'addressCountry': 'US'
+                            },
+                            ...((dispensary as any).lat && (dispensary as any).lon ? {
+                                'geo': { '@type': 'GeoCoordinates', 'latitude': (dispensary as any).lat, 'longitude': (dispensary as any).lon }
+                            } : {}),
+                            ...((dispensary as any).phone ? { 'telephone': (dispensary as any).phone } : {}),
+                            ...((dispensary as any).website ? { 'sameAs': [(dispensary as any).website] } : {}),
+                            'isAccessibleForFree': true,
+                            'publicAccess': true,
                         },
-                        ...(dispensary.lat && dispensary.lon ? {
-                            'geo': { '@type': 'GeoCoordinates', 'latitude': dispensary.lat, 'longitude': dispensary.lon }
-                        } : {}),
-                        'url': `https://bakedbot.ai/dispensaries/${dispensarySlug}`
-                    })
+                        {
+                            '@context': 'https://schema.org',
+                            '@type': 'BreadcrumbList',
+                            'itemListElement': [
+                                { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://bakedbot.ai' },
+                                { '@type': 'ListItem', 'position': 2, 'name': 'Dispensaries', 'item': 'https://bakedbot.ai/dispensaries' },
+                                ...(dispensary.state ? [{ '@type': 'ListItem', 'position': 3, 'name': `${dispensary.state} Dispensaries`, 'item': `https://bakedbot.ai/dispensaries?state=${dispensary.state}` }] : []),
+                                { '@type': 'ListItem', 'position': dispensary.state ? 4 : 3, 'name': dispensary.name, 'item': `https://bakedbot.ai/dispensaries/${dispensarySlug}` },
+                            ]
+                        },
+                        {
+                            '@context': 'https://schema.org',
+                            '@type': 'ProfilePage',
+                            '@id': `https://bakedbot.ai/dispensaries/${dispensarySlug}#profile`,
+                            'url': `https://bakedbot.ai/dispensaries/${dispensarySlug}`,
+                            'name': `${dispensary.name} | BakedBot Cannabis Directory`,
+                            'mainEntity': { '@id': `https://bakedbot.ai/dispensaries/${dispensarySlug}#dispensary` },
+                            'publisher': { '@id': 'https://bakedbot.ai/#org' }
+                        }
+                    ])
                 }}
             />
 
