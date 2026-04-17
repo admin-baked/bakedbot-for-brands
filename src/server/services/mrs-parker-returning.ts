@@ -166,7 +166,7 @@ Questions? Reply to this email — we're here to help!
             orgId,
             communicationType: 'transactional',
             agentName: 'mrs_parker',
-            fromName: 'Mrs. Parker',
+            fromName: isThrive ? 'Thrive Cannabis Marketplace' : 'Mrs. Parker',
             fromEmail: 'hello@bakedbot.ai',
         });
 

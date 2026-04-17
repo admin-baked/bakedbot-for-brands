@@ -180,8 +180,9 @@ See what's new: https://bakedbot.ai/${brandSlug}
             textBody,
             communicationType: 'winback',
             agentName: 'mrs_parker',
-            fromName: 'Mrs. Parker',
+            fromName: isThrive ? 'Thrive Cannabis Marketplace' : 'Mrs. Parker',
             fromEmail: 'hello@bakedbot.ai',
+            orgId,
         });
 
         if (result.success) {
