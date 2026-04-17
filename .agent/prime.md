@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Agent learning loop all agents; Platform Pat retro; agent-learning dashboard; 145 NY dispensaries
-**Recent work (2026-04-17):** `addecf2b9` simplify refactor; `77b1561e6` agent learning loop (all agents, Craig A/B Slack gate, Platform Pat retro, dashboard); `70edcc704` 145 NY dispensaries + CRM sync
+**Current Status:** 🟢 main green | Agent learning loop full; Slack A/B approval webhook live; email sender-branding; order-history-query
+**Recent work (2026-04-17):** `f8349bb21` core infra (sender-branding, order-history-query, insights); `9e5875828` Slack A/B webhook; `77b1561e6` agent learning loop all agents
 
 ---
 

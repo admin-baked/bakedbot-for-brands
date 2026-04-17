@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Agent learning loop (all agents); Platform Pat retro cron; agent-learning dashboard; Craig A/B Slack gate; 145 NY dispensaries | **Last update:** 2026-04-17 (`addecf2b9`)
+**Current Status:** 🟢 main green | Agent learning loop full; Slack A/B webhook live; email sender-branding; order-history-query service | **Last update:** 2026-04-17 (`f8349bb21`)
 
 ---
 
