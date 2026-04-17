@@ -48,6 +48,7 @@ import {
     Rocket,
     Inbox,
     GraduationCap,
+    Mail,
     MailSearch,
     Plug,
     HardDrive,
@@ -438,6 +439,14 @@ export function SuperAdminSidebar() {
                                         <Link href="/dashboard/admin/gmail-outreach">
                                             <MailSearch />
                                             <span>Gmail Outreach</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/admin/email-preview'}>
+                                        <Link href="/dashboard/admin/email-preview">
+                                            <Mail />
+                                            <span>Email Preview</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
