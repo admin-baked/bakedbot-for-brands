@@ -748,6 +748,15 @@ async function getCeoCalendarTokens(): Promise<GoogleCalendarTokens | null> {
     }
 }
 
+const DIAGNOSE_HEURISTICS: Record<string, string> = {
+    email: "Root cause is usually one of: (a) list quality — unengaged contacts pulling down deliverability, (b) subject line — not matching intent of segment, (c) timing — wrong send window, (d) content-offer mismatch — copy promises what the CTA doesn't deliver",
+    sms: "Root cause is usually: (a) opt-out spike — message felt promotional or irrelevant, (b) send frequency too high — reduce to 2x/month max, (c) compliance issue — review with Deebo",
+    paid: "Root cause is usually: (a) creative fatigue — same hook running 3+ weeks, (b) audience overlap — targeting the same users across campaigns, (c) bid strategy mismatch — optimizing for clicks when you need conversions",
+    organic: "Root cause is usually: (a) index issue — pages not crawlable or behind age-gate, (b) content-intent mismatch — ranking for informational when buyers want transactional, (c) E-E-A-T gaps — no proof points or author authority signals",
+    social: "Root cause is usually: (a) posting frequency dropped below algorithm threshold, (b) content mix shifted too promotional (>30%), (c) engagement rate dropped — comment back on every reply for 2 weeks to reset",
+    pipeline: "Root cause is usually: (a) ICP drift — leads don't match ideal customer profile, (b) follow-up cadence broke — Jack needs to check touches and timing, (c) proof gap — prospects can't see themselves in the case study",
+};
+
 /** CEO tools exposed in Slack — streamlined subset, no browser/shell. */
 const MARTY_DELEGATABLE_IDS = getDelegatableAgentIds('marty');
 const MARTY_SLACK_TOOLS = [
@@ -859,6 +868,11 @@ const MARTY_SLACK_TOOLS = [
     // Failure reporting
     { name: 'notify_ceo_problem', description: 'Escalate to the CEO on Slack only when Marty is materially blocked after retrying, pivoting, or delegating. Include the impact and the proposed next move.', input_schema: { type: 'object' as const, properties: { problem: { type: 'string', description: 'What went wrong' }, context: { type: 'string', description: 'What you were trying to do' }, proposed_fix: { type: 'string', description: 'What you think should be tried next' } }, required: ['problem', 'context'] } },
     { name: 'notify_agent_problem', description: 'Escalate a materially blocked failure to a human help channel and record the failure in the learning loop. Use only after a retry, pivot, or delegation attempt.', input_schema: { type: 'object' as const, properties: { problem: { type: 'string', description: 'What failed' }, context: { type: 'string', description: 'What you were trying to do' }, proposedFix: { type: 'string', description: 'What to try next' }, severity: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Failure severity' }, category: { type: 'string', description: 'Retrieval category' } }, required: ['problem', 'context'] } },
+
+    // Strategy Skills (22, 23, 24)
+    { name: 'build_positioning_strategy', description: 'Build a positioning strategy and messaging hierarchy for BakedBot or a specific tier/offer. Returns category frame, differentiated value proposition, key messages per audience segment, anti-patterns to stop saying, and a messaging architecture (primary → secondary → tertiary claims). Use before briefing Craig or Glenda on narrative work.', input_schema: { type: 'object' as const, properties: { product: { type: 'string', description: 'Product or offer to position (e.g., "Operator Core", "Access Retention", "BakedBot AI platform")' }, targetAudience: { type: 'string', description: 'Primary audience segment (e.g., "dispensary owners with 1-3 locations", "cannabis brand managers")' }, topCompetitors: { type: 'array', items: { type: 'string' }, description: 'Top 2-3 competitors (e.g., ["Springbig", "Alpine IQ", "Dutchie"])' }, bestOutcome: { type: 'string', description: 'Best customer outcome / proof point (e.g., "Thrive Syracuse 23% repeat visit increase")' } }, required: ['product', 'targetAudience'] } },
+    { name: 'diagnose_marketing_problem', description: 'Rapidly diagnose a marketing or growth problem (low open rates, poor conversion, ad fatigue, declining engagement, slow pipeline). Returns root cause, 3 quick wins implementable in under 1 hour, 2 strategic fixes, and what to A/B test first. Use before guessing at solutions.', input_schema: { type: 'object' as const, properties: { problem: { type: 'string', description: 'Problem description (e.g., "Email open rates dropped from 42% to 18% over 3 weeks")' }, currentMetrics: { type: 'string', description: 'Current performance metrics' }, channel: { type: 'string', description: 'Affected channel (e.g., email, SMS, paid, organic, social)' }, alreadyTried: { type: 'string', description: 'What has already been attempted' } }, required: ['problem', 'channel'] } },
+    { name: 'build_launch_playbook', description: 'Build a complete go-to-market launch plan with pre-launch, launch day, and post-launch phases. Each phase includes specific tasks, copy assets, channel sequence, and success metric. Use for product launches, new market entry, pilot customer activations, or campaign launches.', input_schema: { type: 'object' as const, properties: { launchSubject: { type: 'string', description: 'What is being launched (e.g., "Operator Growth tier", "Thrive Syracuse public case study", "NY dispensary outreach campaign")' }, targetAudience: { type: 'string', description: 'Who the launch targets' }, launchDate: { type: 'string', description: 'Target launch date or timeline' }, channels: { type: 'array', items: { type: 'string' }, description: 'Available channels (e.g., ["email", "LinkedIn", "SMS", "outreach"])' }, goal: { type: 'string', description: 'Primary launch goal (e.g., "5 demo calls in 2 weeks", "50 list signups", "$2,500 MRR from 1 customer")' } }, required: ['launchSubject', 'targetAudience', 'goal'] } },
 ];
 
 function extractMartyToolFailure(result: unknown): { problem: string; proposedFix?: string; severity: 'low' | 'medium' | 'high'; category: string } | null {
@@ -2592,6 +2606,134 @@ Submit the form and confirm it was submitted successfully. If there's a CAPTCHA,
                 return { error: `Notification failed: ${e instanceof Error ? e.message : String(e)}` };
             }
         }
+        case 'build_positioning_strategy': {
+            const product = String(args.product ?? '').trim();
+            const targetAudience = String(args.targetAudience ?? '').trim();
+            const topCompetitors = Array.isArray(args.topCompetitors) ? args.topCompetitors.map(String) : ['Springbig', 'Alpine IQ', 'Dutchie'];
+            const bestOutcome = typeof args.bestOutcome === 'string' ? args.bestOutcome : 'Thrive Syracuse: 23% repeat visit increase in 30 days';
+            if (!product) return { error: 'product is required.' };
+            if (!targetAudience) return { error: 'targetAudience is required.' };
+
+            return {
+                product,
+                targetAudience,
+                categoryFrame: `${product} for cannabis dispensaries seeking managed revenue activation — not software, not DIY`,
+                differentiatedValueProposition: `BakedBot turns every customer interaction into a measurable retention workflow, so dispensary operators grow repeat revenue without adding headcount. Proof: ${bestOutcome}.`,
+                keyMessagesBySegment: {
+                    [targetAudience]: {
+                        primaryMessage: `Stop losing customers after their first visit. BakedBot captures, segments, and follows up automatically — with results you can measure in 30 days.`,
+                        supportingMessages: [
+                            `Works with your existing POS (Alleaves, Dutchie, Treez) — no rip-and-replace`,
+                            `Compliance-checked by Deebo before every message goes out — cannabis-safe by default`,
+                            `Proof before you pay: 30-day activation guarantee with a KPI baseline in week 6`,
+                        ],
+                        proofPoints: [bestOutcome, 'Launch within 30 days or extended implementation at no extra cost'],
+                    },
+                    'decision_skeptic': {
+                        primaryMessage: `You\'ve tried email marketing before and it didn't move the needle. BakedBot is different because it\'s run for you, not by you — and we measure ROI, not just opens.`,
+                        supportingMessages: ['Managed service, not a SaaS seat', 'You see results in the KPI pack every week', 'Cancel anytime — no annual lock-in on Operator Core'],
+                    },
+                },
+                antiPatterns: [
+                    'Do NOT position as "cannabis software" — buyers want outcomes, not tools',
+                    'Do NOT lead with AI — it triggers skepticism; lead with outcomes and proof',
+                    'Do NOT say "loyalty platform" — say "repeat revenue system"',
+                    'Do NOT compare to generic email tools (Mailchimp, Klaviyo) — compare to doing nothing or doing it manually',
+                    `Do NOT let ${topCompetitors[0]} set the frame — their frame is "loyalty points," BakedBot\'s frame is "managed retention"`,
+                ],
+                messagingArchitecture: {
+                    primary: 'Stop losing customers after visit one. BakedBot brings them back — automatically.',
+                    secondary: `Proof: ${bestOutcome}. Works with ${topCompetitors.map((c, i) => i === 0 ? `your existing POS` : c).join(', ')}.`,
+                    tertiary: 'Cannabis-compliant by default. Launch in 30 days. See ROI in 45.',
+                },
+                instruction: `Use this positioning framework to brief Craig on campaign messaging and Glenda on narrative/content direction. The primary claim should anchor all outbound copy. Save key decisions to learning_log with category "strategy".`,
+            };
+        }
+
+        case 'diagnose_marketing_problem': {
+            const problem = String(args.problem ?? '').trim();
+            const channel = String(args.channel ?? '').trim();
+            const currentMetrics = typeof args.currentMetrics === 'string' ? args.currentMetrics : '';
+            const alreadyTried = typeof args.alreadyTried === 'string' ? args.alreadyTried : '';
+            if (!problem) return { error: 'problem is required.' };
+            if (!channel) return { error: 'channel is required.' };
+
+            const channelKey = Object.keys(DIAGNOSE_HEURISTICS).find(k => channel.toLowerCase().includes(k)) ?? 'email';
+            return {
+                problem,
+                channel,
+                currentMetrics,
+                alreadyTried,
+                likelyRootCause: DIAGNOSE_HEURISTICS[channelKey] ?? 'Likely a messaging, audience, or timing mismatch — need more data to pinpoint.',
+                rootCauseCategoryCheck: ['Is this a MESSAGING problem (wrong words)? → Craig', 'Is this an AUDIENCE problem (wrong people)? → Pops + Craig', 'Is this a TIMING problem (wrong moment)? → Mrs. Parker', 'Is this a CREATIVE problem (wrong format)? → Craig', 'Is this a FUNNEL problem (right click, wrong landing)? → Day Day'],
+                threeQuickWins: [
+                    `Immediate (< 1 hour): Audit the last 3 ${channel} sends — check if any broke a pattern that was working (different subject format, different send time, different segment)`,
+                    `Same day: Narrow the segment — if you\'re sending to everyone, split by recent buyers vs. lapsed and compare performance`,
+                    `This week: Create one new variation that directly contradicts your current approach (opposite subject line tone, opposite CTA framing, opposite send time)`,
+                ],
+                twoStrategicFixes: [
+                    `Rebuild the ${channel} creative from scratch using Craig\'s HOOK CREATOR framework — test 3 new angles before assuming the channel is broken`,
+                    `Run a 2-week engagement window: send only to your most recently active 20% of the list to reset deliverability and engagement signals, then expand back out`,
+                ],
+                abTestFirst: `Test subject line tone (${channel === 'email' ? 'personal/from-a-human vs. brand announcement' : 'direct vs. curiosity-gap'}) — this has the highest impact-to-effort ratio for ${channel}`,
+                successMetric: `${channel === 'email' ? 'Open rate back above 25%' : channel === 'sms' ? 'Opt-out rate below 1%' : channel === 'paid' ? 'ROAS above 2.5x' : 'Engagement rate above 3%'} within 3 weeks of implementing fixes`,
+                delegateTo: channel === 'organic' || channel === 'seo' ? 'Day Day' : channel === 'sms' ? 'Mrs. Parker + Craig' : 'Craig',
+            };
+        }
+
+        case 'build_launch_playbook': {
+            const launchSubject = String(args.launchSubject ?? '').trim();
+            const targetAudience = String(args.targetAudience ?? '').trim();
+            const goal = String(args.goal ?? '').trim();
+            const launchDate = typeof args.launchDate === 'string' ? args.launchDate : 'TBD';
+            const channels = Array.isArray(args.channels) ? args.channels.map(String) : ['email', 'LinkedIn', 'outreach'];
+            if (!launchSubject) return { error: 'launchSubject is required.' };
+            if (!targetAudience) return { error: 'targetAudience is required.' };
+            if (!goal) return { error: 'goal is required.' };
+
+            return {
+                launchSubject,
+                targetAudience,
+                goal,
+                launchDate,
+                channels,
+                preLaunch: {
+                    timeframe: '7-14 days before launch',
+                    tasks: [
+                        { task: 'Create teaser content', channel: channels.filter(c => ['LinkedIn', 'social', 'email'].some(s => c.toLowerCase().includes(s))), copy: `Teaser angle: "Something's coming for ${targetAudience}. [1 sentence of intrigue]. More this [day]."`, owner: 'Craig' },
+                        { task: 'Segment launch list', channel: 'CRM/email', copy: 'Identify the top 20% most engaged contacts — these get first access', owner: 'Mrs. Parker + Craig' },
+                        { task: 'Prepare press/outreach assets', channel: 'outreach', copy: 'Personal note to top 5 prospects: "I wanted to tell you about something before it goes public..."', owner: 'Marty + Jack' },
+                        { task: 'Internal alignment', channel: 'internal', copy: 'Brief Linus on any technical dependencies. Brief Deebo on any content that needs compliance review.', owner: 'Leo' },
+                        { task: 'Prepare proof/case study', channel: 'all', copy: 'Pull Thrive Syracuse data relevant to this launch. Deebo-verify all performance claims.', owner: 'Pops + Craig' },
+                    ],
+                    successMetric: 'Teaser content published, list segmented, all assets approved by Deebo',
+                },
+                launchDay: {
+                    timeframe: 'Launch date',
+                    sequence: [
+                        { time: '8 AM', action: 'Email to segmented list', copy: `Subject options: (1) [Benefit-Driven] "How ${targetAudience} can now [main outcome]" (2) [Curiosity Gap] "We've been working on something for ${targetAudience}" (3) [Specific Numbers] "[Metric] is what operators get in 30 days with [launch subject]"`, owner: 'Craig' },
+                        { time: '9 AM', action: 'LinkedIn post (CEO)', copy: 'Personal announcement from Martez — outcome-first, not feature-first. One proof point. Link to landing page.', owner: 'Marty' },
+                        { time: '12 PM', action: 'Outreach to warm leads', copy: 'Personal email or LinkedIn DM to top 10 warm prospects: brief, personal, one clear ask (reply, book, click)', owner: 'Jack + Marty' },
+                        { time: '3 PM', action: 'Monitor and respond', copy: 'Reply to every comment, email reply, and message within 2 hours', owner: 'Marty + Jack' },
+                        { time: '6 PM', action: 'Day 1 recap to team', copy: 'Pops pulls opens, clicks, replies. Share in Slack. Identify who responded for Jack to follow up.', owner: 'Pops' },
+                    ],
+                    successMetric: 'Announce delivered to full list, all social posted, first replies or bookings received',
+                },
+                postLaunch: {
+                    timeframe: '3-14 days after launch',
+                    tasks: [
+                        { task: 'Follow-up sequence', channel: channels, copy: 'Day 3: follow up with non-openers (different subject). Day 7: social proof send (who engaged/signed up). Day 14: urgency/last-chance.', owner: 'Craig + Mrs. Parker' },
+                        { task: 'Testimonial collection', channel: 'direct outreach', copy: 'Contact everyone who responded positively: "Would you be willing to share your reaction in one sentence for our website?"', owner: 'Jack' },
+                        { task: 'Content from launch', channel: channels, copy: 'Turn launch outcomes into a "What we learned" LinkedIn post. Craig repurposes the email into a blog post via Day Day.', owner: 'Craig + Day Day' },
+                        { task: 'Retargeting', channel: 'paid + email', copy: 'Anyone who clicked but didn\'t convert gets a targeted follow-up with a different angle (objection-handling)', owner: 'Craig' },
+                        { task: 'KPI review', channel: 'internal', copy: `Did we hit the goal: "${goal}"? What drove the delta? What do we do differently next launch?`, owner: 'Pops + Marty' },
+                    ],
+                    successMetric: `Goal achieved: "${goal}". Learnings logged. Testimonials collected.`,
+                },
+                instruction: `Delegate phase execution: Pre-launch → Leo (coordination) + Craig (content) + Jack (outreach). Launch day → Marty (LinkedIn) + Craig (email) + Jack (follow-up). Post-launch → Craig (sequences) + Pops (KPI review). Log learnings from each phase to learning_log with category "launch".`,
+            };
+        }
+
         default:
             return { error: `Unknown tool: ${toolName}` };
     }

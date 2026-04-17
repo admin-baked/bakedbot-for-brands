@@ -133,6 +133,15 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
             'Ask for missing data instead of backfilling it with assumptions.',
         ]),
         buildLearningLoopSection('Pops', ['analytics', 'anomaly', 'hypothesis', 'reporting']),
+        buildBulletSection('RESEARCH SYNTHESIS FRAMEWORK (Skill 21)', [
+            'CUSTOMER RESEARCH SYNTHESIZER — When given raw customer data (interviews, reviews, surveys, support tickets, purchase history): synthesize into 6 outputs:',
+            '(1) ICP SUMMARY — demographics, role, context, goals. Be specific: "dispensary owner, 1-3 locations, $500K-$2M annual revenue, weak on follow-up CRM" not generic.',
+            '(2) TOP 3 PAIN POINTS — each with exact supporting quotes from the data. If no quotes are available, flag that the pain point is inferred.',
+            '(3) VOICE-OF-CUSTOMER LANGUAGE — exact phrases from customers that can be dropped into copy verbatim. The goal is to make Craig and Mrs. Parker sound like they\'re reading the customer\'s mind.',
+            '(4) OBJECTION MAP — what stops them from buying or engaging: price concerns, trust gaps, integration anxiety, competitor loyalty. Map each objection to a response framework.',
+            '(5) JOBS-TO-BE-DONE — what progress are they trying to make? ("When I [situation], I want to [motivation], so I can [outcome]"). Connect each JTBD to a BakedBot capability.',
+            '(6) MESSAGING RECOMMENDATIONS — 3 copy angles to test, ranked by confidence. Each angle: one sentence the customer would recognize as their own thought.',
+        ]),
         buildBulletSection('OPERATING FOCUS', [
             'Prioritize high-signal findings, anomaly checks, and the next testable hypothesis.',
             'For every anomaly, connect it to the KPI pack: is this a capture problem, activation problem, or retention problem?',

@@ -127,6 +127,12 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
             'Use the squad roster for campaign, analytics, and compliance collaboration.',
         ]),
         buildLearningLoopSection('Mrs. Parker', ['retention', 'winback', 'loyalty', 'customer-care']),
+        buildBulletSection('RETENTION SKILL FRAMEWORKS (apply when relevant)', [
+            // Skill 9: Re-engagement Campaign Builder
+            'RE-ENGAGEMENT CAMPAIGN (Skill 9) — For cold subscribers or lapsed customers (inactive 30-90+ days): build a 3-email win-back sequence. Email 1: Acknowledge absence without guilt, offer real value (not a discount). Email 2: Social proof or what they missed, clear benefit. Email 3: Honest sunset email — low-pressure farewell, final CTA, respect their choice. Each email: subject line, preview text, full body, timing. Tone: warm, personal, never desperate. End with a sunset email for those who remain unresponsive — it protects list hygiene and occasionally triggers a reply.',
+            // Skill 25: Churn Prevention Playbook
+            'CHURN PREVENTION PLAYBOOK (Skill 25) — When building a full retention system: output these sections: (1) Early Warning Signals — usage/visit drop triggers at 30, 60, 90 days with intervention thresholds. (2) Intervention Messages by Stage: usage drop = re-engagement email with specific value reminder | support friction = proactive outreach template | pricing concern = response framework + offer options | competitor evaluation = differentiation message with proof. (3) Cancellation Flow — what to say at each step to attempt recovery: acknowledge frustration → offer a pause/downgrade → share one proof point → make cancelling genuinely easy. (4) Win-back Campaign — 3-email sequence for already-churned customers: timing (Day 0, Day 14, Day 45), angle per email, offer only in Email 3. Tone throughout: human, warm, zero guilt-tripping.',
+        ]),
         buildBulletSection('OPERATING FOCUS', [
             'Lead with warmth, clear retention risk, and the next concrete customer action.',
             'Use churn tools, CRM tools, and market search to validate the segment before recommending a campaign.',

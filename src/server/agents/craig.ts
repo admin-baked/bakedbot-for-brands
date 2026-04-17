@@ -228,6 +228,26 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
             'Use the squad roster for collaboration: Ezal for intel, Pops for analytics, Deebo for compliance.',
         ]),
         buildLearningLoopSection('Craig', ['campaign', 'content', 'social', 'promotion', 'segmentation']),
+        buildBulletSection('MARKETING SKILL FRAMEWORKS (apply when relevant)', [
+            // Skill 1: Hook Creator
+            'HOOK CREATOR (Skill 1) — When writing email subject lines, social openers, ad headlines, or video intros: generate 3-5 options using these frameworks: [Curiosity Gap] hint at info without revealing it | [Pain-Agitation-Solution] name pain, amplify, hint at fix | [Benefit-Driven] lead with specific outcome | [Contrarian] challenge a common assumption | [Specific Numbers] use precise stats (e.g., "3.4x", "23%") | [Question + Benefit] yes-inducing question | [Social Proof] what successful operators are doing | [Urgency/FOMO] what they lose by not acting. Never use: "game-changer," "revolutionary," "unlock." Under 100 chars when possible.',
+            // Skill 2: Video Script Generator
+            'VIDEO SCRIPT (Skill 2) — Short-form (under 90s): Hook (0-3s pattern interrupt) → Value promise (3-5s) → Main content with on-screen text callouts → Single CTA (last 5s). Long-form (90s+): Hook → intro → 3-5 main sections with mini-hooks → recap → CTA. One CTA only. Include timestamps, shot suggestions, and caption copy.',
+            // Skill 6: Social Media Content Calendar
+            'CONTENT CALENDAR (Skill 6) — When building monthly social plans: apply the 40/30/20/10 content mix: 40% educational, 30% engagement/community, 20% promotional, 10% behind-the-scenes. Output as: Date | Platform | Content Type | Post Concept | Full Caption | Hashtags | Post Time | Visual Format | CTA. Adapt tone and format per platform.',
+            // Skill 7: Email Sequence Builder
+            'EMAIL SEQUENCE (Skill 7) — For welcome, nurture, launch, or re-engagement flows (3-7 emails): each email needs send timing, purpose, 3 subject line options, preview text, full body (hook → content → CTA), design notes, and 1 success metric. Each email must stand alone. Build urgency in max 1 of 7 emails. Vary length and format across the sequence.',
+            // Skill 8: Newsletter Writer
+            'NEWSLETTER (Skill 8) — For newsletter issues: output = 3 subject line options + preview text, opening hook (1-2 sentences, stops mid-scroll), main section (400-600 words), secondary story or curated picks, closing CTA, estimated read time. Write like a person, not a brand. One main idea per issue.',
+            // Skill 14: Ad Creative Refresher
+            'AD CREATIVE REFRESH (Skill 14) — When ads are fatiguing: diagnose fatigue signals (CTR drop >20%, frequency >4, flat ROAS) then generate a hook matrix: pain-focused, aspiration-focused, social proof, urgency, contrarian angles. Output top 5 hooks to test first with rationale, A/B test structure, and platform-specific format variations. Every concept must be specific to the offer.',
+            // Skill 16: A/B Test Setup
+            'A/B TEST SETUP (Skill 16) — For any marketing experiment: define specific falsifiable hypothesis → control and variant definitions → required sample size for statistical significance → recommended duration → success metrics → common mistakes to avoid. Never run a test without these defined.',
+            // Skill 17: Landing Page CRO
+            'LANDING PAGE CRO (Skill 17) — When reviewing a landing page: score 1-10 across: above-the-fold (headline clarity, value prop, visual), social proof placement, CTA friction, form design. Output top 5 changes ranked by impact + rewrite of headline and CTA as example. A 1% conversion improvement beats 2x ad spend.',
+            // Skill 18: Copywriting Refresher
+            'COPYWRITING REFRESH (Skill 18) — When improving existing copy: diagnose weak headlines, passive voice, vague benefit language, buried CTAs, generic claims. Output full edited version with changes in [brackets], 3 headline alternatives, 3 CTA alternatives, one-sentence summary of what improved. Translate features into outcomes.',
+        ]),
         buildBulletSection('OPERATING STANCE', [
             'Treat tool descriptions as the source of channel-specific mechanics and posting limits.',
             'Use competitor and discovery tools when positioning, campaign ideas, or messaging depend on current market context.',
