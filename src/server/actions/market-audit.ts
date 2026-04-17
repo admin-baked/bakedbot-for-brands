@@ -6,6 +6,8 @@ import { captureEmailLead } from '@/server/actions/email-capture';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { upsertLeadAsCustomer, createAndSchedulePlatformCampaign } from '@/server/services/platform-campaign';
+import { retentionAuditDay0Email, retentionAuditDay3Email, retentionAuditDay7Email } from '@/server/services/email-templates/agency';
 
 export interface RetentionAuditResult {
   url: string;
@@ -351,9 +353,13 @@ export async function submitRetentionAuditLead(
       utmSource: req.utmSource,
     });
 
-    // Fire-and-forget — deliver the full report to their inbox
+    // Fire-and-forget — deliver the full report + enroll in Craig nurture drip
     sendRetentionAuditResultEmail(req.email, req.firstName, req.auditResult).catch((e: unknown) => {
       logger.warn('[RetentionAudit] Failed to send audit result email', { email: req.email, error: (e as Error).message });
+    });
+
+    enrollInRetentionAuditDrip(leadResult.leadId, req.email, req.firstName, req.auditResult).catch((e: unknown) => {
+      logger.warn('[RetentionAudit] Failed to enroll in Craig drip', { email: req.email, error: (e as Error).message });
     });
 
     return { success: true, leadId: leadResult.leadId, auditReportId: reportRef.id };
@@ -365,6 +371,62 @@ export async function submitRetentionAuditLead(
 
 // Backward-compatible alias while callers migrate.
 export const submitMarketAuditLead = submitRetentionAuditLead;
+
+// ── Craig nurture drip enrollment ────────────────────────────────────────────
+
+async function enrollInRetentionAuditDrip(
+  leadId: string,
+  email: string,
+  firstName: string | undefined,
+  audit: RetentionAuditResult,
+): Promise<void> {
+  const customerId = await upsertLeadAsCustomer({ email, firstName, leadSource: 'retention-audit' });
+  const topLeak = audit.revenueLeaks[0]?.title ?? 'post-visit customer retention';
+
+  const audience = { type: 'custom' as const, customFilter: { customerIds: [customerId] }, estimatedCount: 1 };
+
+  const day0 = retentionAuditDay0Email({ firstName, grade: audit.grade, topLeak, url: audit.url });
+  const day3 = retentionAuditDay3Email({ firstName });
+  const day7 = retentionAuditDay7Email({ firstName });
+
+  await Promise.all([
+    createAndSchedulePlatformCampaign({
+      name: `Retention Audit Day 0 — ${email}`,
+      description: 'Audit recap + book-a-call CTA',
+      goal: 'awareness',
+      channels: ['email'],
+      audience,
+      email: day0,
+      scheduledAt: new Date(Date.now() + 10 * 60 * 1000), // 10 min (after immediate result email)
+      tags: ['retention-audit', 'drip-day0', 'craig'],
+      createdByAgent: 'craig',
+    }),
+    createAndSchedulePlatformCampaign({
+      name: `Retention Audit Day 3 — ${email}`,
+      description: 'Social proof case study (Thrive Syracuse)',
+      goal: 'awareness',
+      channels: ['email'],
+      audience,
+      email: day3,
+      scheduledAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      tags: ['retention-audit', 'drip-day3', 'craig'],
+      createdByAgent: 'craig',
+    }),
+    createAndSchedulePlatformCampaign({
+      name: `Retention Audit Day 7 — ${email}`,
+      description: 'Final conversion push — book a call',
+      goal: 'drive_sales',
+      channels: ['email'],
+      audience,
+      email: day7,
+      scheduledAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      tags: ['retention-audit', 'drip-day7', 'craig'],
+      createdByAgent: 'craig',
+    }),
+  ]);
+
+  logger.info('[RetentionAudit] Craig drip enrolled', { leadId, customerId, grade: audit.grade });
+}
 
 // ── Audit result email ────────────────────────────────────────────────────────
 

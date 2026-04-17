@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import AgencyNewsletterPopup from '@/components/agency/newsletter-popup';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -98,7 +99,7 @@ export default function AgencyPage() {
                         <Link href="#partners" className="text-sm text-slate-600 hover:text-slate-900 hidden sm:block">Partners</Link>
                         <Link href="#how-it-works" className="text-sm text-slate-600 hover:text-slate-900 hidden sm:block">How it works</Link>
                         <Button asChild size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                            <Link href="/book">Apply now <ChevronRight className="ml-1 h-3.5 w-3.5" /></Link>
+                            <Link href="/agency/apply">Apply now <ChevronRight className="ml-1 h-3.5 w-3.5" /></Link>
                         </Button>
                     </div>
                 </div>
@@ -128,7 +129,7 @@ export default function AgencyPage() {
                         </p>
                         <div className="flex flex-wrap gap-4">
                             <Button asChild size="lg" className="bg-emerald-500 hover:bg-emerald-400 text-white font-semibold px-8">
-                                <Link href="/book">
+                                <Link href="/agency/apply">
                                     Apply to become a partner <ArrowRight className="ml-2 h-4 w-4" />
                                 </Link>
                             </Button>
@@ -278,7 +279,7 @@ export default function AgencyPage() {
                         We&#39;re accepting a limited number of agency partners in the NY market before expanding nationally. Applications reviewed personally by Martez.
                     </p>
                     <Button asChild size="lg" className="bg-emerald-500 hover:bg-emerald-400 text-white font-semibold px-10 py-6 text-base">
-                        <Link href="/book">
+                        <Link href="/agency/apply">
                             Apply now <ArrowRight className="ml-2 h-5 w-5" />
                         </Link>
                     </Button>
@@ -297,11 +298,13 @@ export default function AgencyPage() {
                     </div>
                     <div className="flex items-center gap-6 text-xs">
                         <Link href="https://bakedbot.ai" className="hover:text-white transition-colors">bakedbot.ai</Link>
-                        <Link href="/book" className="hover:text-white transition-colors">Apply</Link>
+                        <Link href="/agency/apply" className="hover:text-white transition-colors">Apply</Link>
                         <a href="mailto:martez@bakedbot.ai" className="hover:text-white transition-colors">Contact</a>
                     </div>
                 </div>
             </footer>
+
+            <AgencyNewsletterPopup />
         </div>
     );
 }
