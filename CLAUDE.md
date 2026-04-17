@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Agent learning loop full; Slack A/B webhook live; email sender-branding; order-history-query service | **Last update:** 2026-04-17 (`f8349bb21`)
+**Current Status:** 🟢 main green | Kiosk test infra fixed (21/21 pass); potency/kiosk-pick unit tests; Thrive kiosk UX: <2s, product detail, backoffice notify | **Last update:** 2026-04-17 (`6cd8127d2`)
 
 ---
 

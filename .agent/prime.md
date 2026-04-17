@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Agent learning loop full; Slack A/B approval webhook live; email sender-branding; order-history-query
-**Recent work (2026-04-17):** `f8349bb21` core infra (sender-branding, order-history-query, insights); `9e5875828` Slack A/B webhook; `77b1561e6` agent learning loop all agents
+**Current Status:** 🟢 main green | Kiosk test infra fixed (21/21 pass); potency/kiosk-pick tests; Thrive kiosk UX: <2s, detail panel, backoffice notify
+**Recent work (2026-04-17):** `6cd8127d2` kiosk test infra fix + potency/kiosk-pick tests; `100e4c7ab` Thrive kiosk UX overhaul
 
 ---
 
