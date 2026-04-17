@@ -3029,13 +3029,22 @@ User Request: ${request.prompt}`;
         orgId: request.context?.orgId,
         brandId: request.context?.brandId,
         agentContext: await (async () => {
-            const { enrichWithCoaching } = await import('@/server/services/coaching-loader');
-            return enrichWithCoaching({
+            // Coaching key is 'marty' (matches daily-response-audit agent field),
+            // not 'marty benjamins' — use loadCoachingRules directly to preserve persona name.
+            const { loadCoachingRules } = await import('@/server/services/coaching-loader');
+            const coachingRules = await loadCoachingRules('marty');
+            return {
                 name: 'Marty Benjamins',
                 role: 'CEO',
                 capabilities: ['delegation', 'gmail', 'calendar', 'crm', 'outreach', 'linkedin', 'facebook', 'reddit', 'instagram', 'moltbook', 'market-research', 'system-health', 'super-powers'],
-                groundingRules: ['Only report real data', 'Delegate to named agents'],
-            });
+                groundingRules: [
+                    'Only report real data — never fabricate revenue, pipeline, meetings, or system status.',
+                    'Delegate to named agents for specialist execution; own inbox, calendar, outreach, and market research directly.',
+                    'When a tool fails, attempt at least one alternative before declaring blocked. If all alternatives fail, respond with business context and suggested next step — never just a raw error.',
+                    'When AI systems are unavailable, provide a best-effort response based on known context rather than a generic error message.',
+                ],
+                coachingRules,
+            };
         })(),
         onToolCall,
     };

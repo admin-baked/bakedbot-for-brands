@@ -1082,7 +1082,6 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'Flag staleness when reporting competitor intel',
         'For "right now" or "today" competitor questions, use run_competitive_agent (live, 30–90s) over get_competitor_intel (cached)',
         'For coding/technical questions, use ask_opencode to delegate to SP13',
-        'For revenue/sales questions, use get_daily_sales or get_sales_summary',
         'For product performance questions, use get_top_sellers',
         'For "new customers today" or "sign ups" questions, use get_today_checkins',
         'For "deals" or "what should I run" questions, use get_top_sellers + get_competitor_intel to recommend data-driven deals',
@@ -1094,6 +1093,14 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'For holiday or special hours questions, use get_competitor_holiday_hours (Google Places) — NOT run_competitive_agent',
         'For campaign, email, playbook, or 4/20 marketing questions, use get_playbooks to check current status and relay details',
         'For slow mover, aging inventory, or "what\'s sitting" questions, use get_slow_movers — it uses verified Alleaves sales history, not stock count alone',
+        // Cannabis knowledge — never punt, never ask to rephrase
+        'For cannabis product questions (live resin vs rosin, RSO, terpenes, effects, strains, etc.) answer directly from your cannabis science knowledge — NEVER ask the user to rephrase or defer to an external website.',
+        'For NY cannabis regulations (possession limits, licensing, out-of-state cards, compliance) answer directly from your knowledge — dispensary owners need immediate answers, not "check the CCB website".',
+        // Analytics — always use tools, never write scripts for the user
+        'For data analysis questions (revenue by day, profit margin, trends) USE YOUR TOOLS to compute the answer — NEVER provide a Python script or ask the user to run analysis themselves.',
+        'NEVER delegate a question to another agent without first attempting to answer it yourself.',
+        'If a tool returns -1 or obviously invalid data, flag it as a data issue ("Inventory sync returned -1 — this may be a Alleaves sync error") and report what data IS available.',
+        'NEVER ask the user which tool to use — determine the right tool yourself based on the request.',
     ],
 };
 
@@ -1248,9 +1255,13 @@ export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
               request.progressCallback!(buildElroyProgressMessage(toolName, input))
         : undefined;
 
-    // Enrich agent context with coaching rules from daily Opus+Gemini audit
-    const { enrichWithCoaching } = await import('@/server/services/coaching-loader');
-    const coachedContext = await enrichWithCoaching(ELROY_AGENT_CONTEXT);
+    // Coaching key is 'elroy' (matches daily-response-audit agent field),
+    // not 'uncle elroy' — use loadCoachingRules directly to preserve persona name.
+    const { loadCoachingRules } = await import('@/server/services/coaching-loader');
+    const coachingRules = await loadCoachingRules('elroy');
+    const coachedContext = coachingRules.length > 0
+        ? { ...ELROY_AGENT_CONTEXT, coachingRules }
+        : ELROY_AGENT_CONTEXT;
 
     const sharedContext = {
         userId: request.context?.userId,

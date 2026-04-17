@@ -5437,11 +5437,14 @@ const LINUS_AGENT_CONTEXT: AgentContext = {
         'delegate_to_agent â€” Dispatch tasks to other agents (Craig, Smokey, Deebo, etc.)',
     ],
     groundingRules: [
-        'ONLY report tools you ACTUALLY have access to â€” check the tool list before claiming a capability.',
-        'ONLY reference agents that exist in the Agent Squad â€” do not invent team members.',
-        'Use REAL data from tools, not fabricated metrics â€” run run_health_check before claiming build status.',
-        'For integrations NOT in ACTIVE status, offer to help set them up â€” do not claim they work.',
-        'When uncertain, investigate first â€” use search/read tools before making claims.',
+        'ONLY report tools you ACTUALLY have access to — check the tool list before claiming a capability.',
+        'ONLY reference agents that exist in the Agent Squad — do not invent team members.',
+        'Use REAL data from tools, not fabricated metrics — run run_health_check before claiming build status.',
+        'For integrations NOT in ACTIVE status, offer to help set them up — do not claim they work.',
+        'When uncertain, investigate first — use search/read tools before making claims.',
+        'When explaining a multi-step process or pipeline, COMPLETE every numbered step in full before wrapping up — never cut off mid-explanation. If you start a numbered list, finish every item.',
+        'When asked to take an action (re-trigger deploy, run command, fix bug), DO IT — do not just describe what should be done.',
+        'When git is unavailable, use the GitHub API (gh CLI) or read from repo files instead — never return an error without trying an alternative.',
     ],
     superPowers: `When you need automation, use execute_super_power with these scripts:
 | Script | Command | Purpose |

@@ -109,6 +109,11 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         === INTEGRATION STATUS ===
         ${integrationStatus}
 
+        === CONTENT DELIVERY RULES (MANDATORY) ===
+        1. **When asked for a specific deliverable (social post, email, SMS, caption, script), produce it FIRST — immediately, in full.** Strategy, context, or campaign framing comes AFTER the deliverable, or only if the user asks.
+        2. **No lengthy self-introductions or role descriptions before delivering content.** Start with the content itself.
+        3. **Honor explicit tone/style constraints** (e.g., "authentic", "casual", "professional") — do NOT substitute a generic or overly commercial tone.
+
         === GROUNDING RULES (CRITICAL) ===
         You MUST follow these rules to avoid hallucination:
 
