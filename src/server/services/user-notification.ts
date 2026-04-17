@@ -6,11 +6,12 @@
  * - User rejected (notification to user + org admin)
  * - User promoted to super user (notification to user)
  *
- * Uses Mailjet for email delivery with HTML templates
+ * Uses sendGenericEmail dispatcher → AWS SES
  */
 
-import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
+import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { auditLogStreaming } from './audit-log-streaming';
 
 export interface UserApprovalNotification {
@@ -24,15 +25,13 @@ export interface UserApprovalNotification {
     variables?: Record<string, string>;
 }
 
+const FROM_EMAIL = 'hello@bakedbot.ai';
+const FROM_NAME = 'BakedBot';
+
 class UserNotificationService {
-    /**
-     * Send user approval notification (user approved by admin)
-     */
     async notifyUserApproved(userId: string, approvedBy: string): Promise<boolean> {
         try {
             const db = getAdminFirestore();
-
-            // Get user document
             const userDoc = await db.collection('users').doc(userId).get();
             if (!userDoc.exists) {
                 logger.error('[User Notification] User not found', { userId });
@@ -49,74 +48,39 @@ class UserNotificationService {
                 return false;
             }
 
-            // Get org details for email context
             const orgDoc = await db.collection('tenants').doc(orgId).get();
             const orgName = orgDoc.exists ? orgDoc.data()?.name : orgId;
-
-            // Get org admin email (for cc)
             const adminEmail = await this.getOrgAdminEmail(orgId);
 
-            // Build approval email
-            const emailPayload = {
-                FromEmail: 'noreply@bakedbot.ai',
-                FromName: 'BakedBot Admin',
-                Subject: 'Welcome to BakedBot!',
-                'Html-part': this.getApprovalEmailTemplate(userName, orgName),
-                Recipients: [
-                    { Email: userEmail, Name: userName },
-                    ...(adminEmail ? [{ Email: adminEmail, Name: 'Org Admin' }] : []),
-                ],
-            };
+            const htmlBody = this.getApprovalEmailTemplate(userName, orgName);
+            const subject = 'Welcome to BakedBot!';
 
-            // Send via Mailjet
-            const success = await this.sendEmailViaMailjet(emailPayload);
+            const [userResult] = await Promise.allSettled([
+                sendGenericEmail({ to: userEmail, name: userName, fromEmail: FROM_EMAIL, fromName: FROM_NAME, subject, htmlBody }),
+                adminEmail ? sendGenericEmail({ to: adminEmail, name: 'Org Admin', fromEmail: FROM_EMAIL, fromName: FROM_NAME, subject: `[Admin] ${subject}`, htmlBody }) : Promise.resolve({ success: true }),
+            ]);
 
-            if (success) {
-                // Log notification to audit trail
-                await auditLogStreaming.logAction(
-                    'user_approval_notification_sent',
-                    approvedBy,
-                    userId,
-                    'user',
-                    'success',
-                    { orgId, recipientCount: emailPayload.Recipients.length }
-                );
+            const success = userResult.status === 'fulfilled' && userResult.value.success;
 
-                logger.info('[User Notification] Approval email sent', {
-                    userId,
-                    userEmail,
-                    orgId,
-                });
-            } else {
-                await auditLogStreaming.logAction(
-                    'user_approval_notification_failed',
-                    approvedBy,
-                    userId,
-                    'user',
-                    'failed',
-                    { orgId, reason: 'Email service unavailable' }
-                );
-            }
+            await auditLogStreaming.logAction(
+                success ? 'user_approval_notification_sent' : 'user_approval_notification_failed',
+                approvedBy, userId, 'user', success ? 'success' : 'failed',
+                { orgId, recipientCount: adminEmail ? 2 : 1 }
+            );
 
+            if (success) logger.info('[User Notification] Approval email sent', { userId, userEmail, orgId });
             return success;
-
         } catch (error) {
             logger.error('[User Notification] Failed to send approval notification', {
-                userId,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                userId, error: error instanceof Error ? error.message : 'Unknown error',
             });
             return false;
         }
     }
 
-    /**
-     * Send user rejection notification
-     */
     async notifyUserRejected(userId: string, rejectedBy: string, reason?: string): Promise<boolean> {
         try {
             const db = getAdminFirestore();
-
-            // Get user document
             const userDoc = await db.collection('users').doc(userId).get();
             if (!userDoc.exists) {
                 logger.error('[User Notification] User not found', { userId });
@@ -133,73 +97,39 @@ class UserNotificationService {
                 return false;
             }
 
-            // Get org details
             const orgDoc = await db.collection('tenants').doc(orgId).get();
             const orgName = orgDoc.exists ? orgDoc.data()?.name : orgId;
-
-            // Get org admin email
             const adminEmail = await this.getOrgAdminEmail(orgId);
 
-            // Build rejection email
-            const emailPayload = {
-                FromEmail: 'noreply@bakedbot.ai',
-                FromName: 'BakedBot Admin',
-                Subject: 'BakedBot Application Status',
-                'Html-part': this.getRejectionEmailTemplate(userName, orgName, reason),
-                Recipients: [
-                    { Email: userEmail, Name: userName },
-                    ...(adminEmail ? [{ Email: adminEmail, Name: 'Org Admin' }] : []),
-                ],
-            };
+            const htmlBody = this.getRejectionEmailTemplate(userName, orgName, reason);
+            const subject = 'BakedBot Application Status';
 
-            // Send via Mailjet
-            const success = await this.sendEmailViaMailjet(emailPayload);
+            const [userResult] = await Promise.allSettled([
+                sendGenericEmail({ to: userEmail, name: userName, fromEmail: FROM_EMAIL, fromName: FROM_NAME, subject, htmlBody }),
+                adminEmail ? sendGenericEmail({ to: adminEmail, name: 'Org Admin', fromEmail: FROM_EMAIL, fromName: FROM_NAME, subject: `[Admin] ${subject}`, htmlBody }) : Promise.resolve({ success: true }),
+            ]);
 
-            if (success) {
-                await auditLogStreaming.logAction(
-                    'user_rejection_notification_sent',
-                    rejectedBy,
-                    userId,
-                    'user',
-                    'success',
-                    { orgId, reason: reason || 'No reason provided' }
-                );
+            const success = userResult.status === 'fulfilled' && userResult.value.success;
 
-                logger.info('[User Notification] Rejection email sent', {
-                    userId,
-                    userEmail,
-                    orgId,
-                });
-            } else {
-                await auditLogStreaming.logAction(
-                    'user_rejection_notification_failed',
-                    rejectedBy,
-                    userId,
-                    'user',
-                    'failed',
-                    { orgId, reason: 'Email service unavailable' }
-                );
-            }
+            await auditLogStreaming.logAction(
+                success ? 'user_rejection_notification_sent' : 'user_rejection_notification_failed',
+                rejectedBy, userId, 'user', success ? 'success' : 'failed',
+                { orgId, reason: reason || 'No reason provided' }
+            );
 
+            if (success) logger.info('[User Notification] Rejection email sent', { userId, userEmail, orgId });
             return success;
-
         } catch (error) {
             logger.error('[User Notification] Failed to send rejection notification', {
-                userId,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                userId, error: error instanceof Error ? error.message : 'Unknown error',
             });
             return false;
         }
     }
 
-    /**
-     * Send user promotion to super user notification
-     */
     async notifyUserPromoted(userId: string, promotedBy: string, newRole: string): Promise<boolean> {
         try {
             const db = getAdminFirestore();
-
-            // Get user document
             const userDoc = await db.collection('users').doc(userId).get();
             if (!userDoc.exists) {
                 logger.error('[User Notification] User not found', { userId });
@@ -215,289 +145,147 @@ class UserNotificationService {
                 return false;
             }
 
-            // Build promotion email
-            const emailPayload = {
-                FromEmail: 'noreply@bakedbot.ai',
-                FromName: 'BakedBot Admin',
-                Subject: 'You\'ve been promoted to Super User!',
-                'Html-part': this.getPromotionEmailTemplate(userName, newRole),
-                Recipients: [{ Email: userEmail, Name: userName }],
-            };
+            const htmlBody = this.getPromotionEmailTemplate(userName, newRole);
+            const result = await sendGenericEmail({
+                to: userEmail,
+                name: userName,
+                fromEmail: FROM_EMAIL,
+                fromName: FROM_NAME,
+                subject: "You've been promoted to Super User!",
+                htmlBody,
+            });
 
-            // Send via Mailjet
-            const success = await this.sendEmailViaMailjet(emailPayload);
+            await auditLogStreaming.logAction(
+                result.success ? 'user_promotion_notification_sent' : 'user_promotion_notification_failed',
+                promotedBy, userId, 'user', result.success ? 'success' : 'failed',
+                { newRole }
+            );
 
-            if (success) {
-                await auditLogStreaming.logAction(
-                    'user_promotion_notification_sent',
-                    promotedBy,
-                    userId,
-                    'user',
-                    'success',
-                    { newRole }
-                );
-
-                logger.info('[User Notification] Promotion email sent', {
-                    userId,
-                    userEmail,
-                    newRole,
-                });
-            } else {
-                await auditLogStreaming.logAction(
-                    'user_promotion_notification_failed',
-                    promotedBy,
-                    userId,
-                    'user',
-                    'failed',
-                    { newRole, reason: 'Email service unavailable' }
-                );
-            }
-
-            return success;
-
+            if (result.success) logger.info('[User Notification] Promotion email sent', { userId, userEmail, newRole });
+            return result.success;
         } catch (error) {
             logger.error('[User Notification] Failed to send promotion notification', {
-                userId,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                userId, error: error instanceof Error ? error.message : 'Unknown error',
             });
             return false;
         }
     }
 
-    /**
-     * Send email via Mailjet API
-     */
-    private async sendEmailViaMailjet(payload: any): Promise<boolean> {
-        try {
-            const apiKey = process.env.MAILJET_API_KEY;
-            const apiSecret = process.env.MAILJET_API_SECRET;
-
-            if (!apiKey || !apiSecret) {
-                logger.warn('[User Notification] Mailjet credentials not configured');
-                return false;
-            }
-
-            const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
-
-            const response = await fetch('https://api.mailjet.com/v3.1/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Basic ${auth}`,
-                },
-                body: JSON.stringify({ Messages: [payload] }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                logger.error('[User Notification] Mailjet API error', {
-                    status: response.status,
-                    error: errorData,
-                });
-                return false;
-            }
-
-            return true;
-
-        } catch (error) {
-            logger.error('[User Notification] Mailjet send failed', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-            });
-            return false;
-        }
-    }
-
-    /**
-     * Get org admin email (fallback to users collection query)
-     */
     private async getOrgAdminEmail(orgId: string): Promise<string | null> {
         try {
             const db = getAdminFirestore();
-
-            // Try to get from tenants collection first
             const tenantDoc = await db.collection('tenants').doc(orgId).get();
             if (tenantDoc.exists && tenantDoc.data()?.adminEmail) {
                 return tenantDoc.data()?.adminEmail;
             }
-
-            // Fallback: query users collection for dispensary role
-            const usersSnap = await db
-                .collection('users')
+            const usersSnap = await db.collection('users')
                 .where('orgId', '==', orgId)
                 .where('role', '==', 'dispensary')
                 .limit(1)
                 .get();
-
-            if (!usersSnap.empty) {
-                return usersSnap.docs[0].data()?.email || null;
-            }
-
-            return null;
-
+            return usersSnap.empty ? null : (usersSnap.docs[0].data()?.email || null);
         } catch (error) {
             logger.error('[User Notification] Failed to get org admin email', {
-                orgId,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                orgId, error: error instanceof Error ? error.message : 'Unknown error',
             });
             return null;
         }
     }
 
-    /**
-     * Email template: User Approved
-     */
     private getApprovalEmailTemplate(userName: string, orgName: string): string {
-        return `
-<!DOCTYPE html>
+        return `<!DOCTYPE html>
 <html>
-<head>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #10b981; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
-        .content { background: #f9fafb; padding: 20px; border-radius: 0 0 8px 8px; }
-        .button { display: inline-block; background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-        .footer { font-size: 12px; color: #6b7280; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Welcome to BakedBot! 🎉</h1>
-        </div>
-        <div class="content">
-            <p>Hi ${userName},</p>
-            <p>Great news! Your account for <strong>${orgName}</strong> has been approved and is now active.</p>
-            <p>You can now access:</p>
-            <ul>
-                <li>Product catalog and inventory</li>
-                <li>Customer loyalty programs</li>
-                <li>Marketing automation</li>
-                <li>Analytics and reporting</li>
-            </ul>
-            <a href="https://bakedbot.ai/dashboard" class="button">Go to Dashboard</a>
-            <p>If you have any questions, reply to this email or contact our support team.</p>
-            <p>Welcome aboard!</p>
-            <p>— The BakedBot Team</p>
-        </div>
-        <div class="footer">
-            <p>© 2026 BakedBot. All rights reserved. | <a href="https://bakedbot.ai/privacy">Privacy Policy</a></p>
-        </div>
-    </div>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f0f9f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;background:#f0f9f4;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.07);">
+        <tr><td style="padding:28px 40px;background:#0D211D;text-align:center;">
+          <img src="https://bakedbot.ai/bakedbot-logo-horizontal.png" alt="BakedBot AI" height="32" style="display:block;margin:0 auto;">
+        </td></tr>
+        <tr><td style="padding:40px;">
+          <h2 style="margin:0 0 16px;font-size:22px;color:#0d2b13;">Welcome to BakedBot! 🎉</h2>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">Hi ${userName},</p>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">Your account for <strong>${orgName}</strong> has been approved and is now active.</p>
+          <table cellpadding="0" cellspacing="0" style="margin:24px 0;">
+            <tr><td style="background:#22AD85;border-radius:8px;padding:14px 28px;">
+              <a href="https://bakedbot.ai/dashboard" style="color:#fff;font-size:15px;font-weight:700;text-decoration:none;">Go to Dashboard →</a>
+            </td></tr>
+          </table>
+          <p style="margin:0;font-size:14px;color:#555;">Questions? Reply to this email — we're here to help.</p>
+          <p style="margin:16px 0 0;font-size:14px;color:#555;">— The BakedBot Team</p>
+        </td></tr>
+        <tr><td style="padding:16px 40px;background:#f8f8f8;border-top:1px solid #eee;">
+          <p style="margin:0;font-size:11px;color:#aaa;text-align:center;">© ${new Date().getFullYear()} BakedBot AI · <a href="https://bakedbot.ai/privacy" style="color:#22AD85;">Privacy</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
 </body>
-</html>
-        `;
+</html>`;
     }
 
-    /**
-     * Email template: User Rejected
-     */
-    private getRejectionEmailTemplate(
-        userName: string,
-        orgName: string,
-        reason?: string
-    ): string {
-        return `
-<!DOCTYPE html>
+    private getRejectionEmailTemplate(userName: string, orgName: string, reason?: string): string {
+        return `<!DOCTYPE html>
 <html>
-<head>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #ef4444; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
-        .content { background: #f9fafb; padding: 20px; border-radius: 0 0 8px 8px; }
-        .reason-box { background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .footer { font-size: 12px; color: #6b7280; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Application Update</h1>
-        </div>
-        <div class="content">
-            <p>Hi ${userName},</p>
-            <p>Thank you for your interest in <strong>${orgName}</strong> on BakedBot.</p>
-            <p>Unfortunately, your application has not been approved at this time.</p>
-            ${reason ? `
-            <div class="reason-box">
-                <strong>Details:</strong>
-                <p>${reason}</p>
-            </div>
-            ` : ''}
-            <p>If you believe this is in error or would like to appeal, please contact the ${orgName} team directly.</p>
-            <p>We appreciate your interest in BakedBot!</p>
-            <p>— The BakedBot Team</p>
-        </div>
-        <div class="footer">
-            <p>© 2026 BakedBot. All rights reserved. | <a href="https://bakedbot.ai/privacy">Privacy Policy</a></p>
-        </div>
-    </div>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#fafafa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;background:#fafafa;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.07);">
+        <tr><td style="padding:28px 40px;background:#0D211D;text-align:center;">
+          <img src="https://bakedbot.ai/bakedbot-logo-horizontal.png" alt="BakedBot AI" height="32" style="display:block;margin:0 auto;">
+        </td></tr>
+        <tr><td style="padding:40px;">
+          <h2 style="margin:0 0 16px;font-size:20px;color:#1a1a1a;">Application Update</h2>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">Hi ${userName},</p>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">Thank you for your interest in <strong>${orgName}</strong> on BakedBot. Unfortunately, your application has not been approved at this time.</p>
+          ${reason ? `<div style="background:#fff3f3;border-left:4px solid #ef4444;padding:16px 20px;margin:20px 0;border-radius:4px;font-size:14px;color:#555;">${reason}</div>` : ''}
+          <p style="margin:0;font-size:14px;color:#555;">If you believe this is in error, contact the ${orgName} team directly.</p>
+          <p style="margin:16px 0 0;font-size:14px;color:#555;">— The BakedBot Team</p>
+        </td></tr>
+        <tr><td style="padding:16px 40px;background:#f8f8f8;border-top:1px solid #eee;">
+          <p style="margin:0;font-size:11px;color:#aaa;text-align:center;">© ${new Date().getFullYear()} BakedBot AI · <a href="https://bakedbot.ai/privacy" style="color:#22AD85;">Privacy</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
 </body>
-</html>
-        `;
+</html>`;
     }
 
-    /**
-     * Email template: User Promoted to Super User
-     */
     private getPromotionEmailTemplate(userName: string, newRole: string): string {
-        return `
-<!DOCTYPE html>
+        return `<!DOCTYPE html>
 <html>
-<head>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #8b5cf6; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
-        .content { background: #f9fafb; padding: 20px; border-radius: 0 0 8px 8px; }
-        .feature-box { background: white; border: 1px solid #e5e7eb; padding: 15px; margin: 15px 0; border-radius: 6px; }
-        .feature-box h3 { margin: 0 0 10px 0; color: #8b5cf6; }
-        .feature-box p { margin: 0; font-size: 14px; color: #6b7280; }
-        .footer { font-size: 12px; color: #6b7280; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🚀 You've Been Promoted!</h1>
-        </div>
-        <div class="content">
-            <p>Hi ${userName},</p>
-            <p>Congratulations! You have been promoted to <strong>${newRole}</strong> in BakedBot.</p>
-            <p>Your new role grants you access to:</p>
-            <div class="feature-box">
-                <h3>🔍 Advanced Analytics</h3>
-                <p>Platform-wide metrics, revenue dashboards, and competitive intelligence</p>
-            </div>
-            <div class="feature-box">
-                <h3>👥 User Management</h3>
-                <p>Approve/reject users, manage roles, and configure org settings</p>
-            </div>
-            <div class="feature-box">
-                <h3>⚙️ System Controls</h3>
-                <p>Configure system integrations, manage playbooks, and toggle features</p>
-            </div>
-            <div class="feature-box">
-                <h3>❤️ Heartbeat Monitoring</h3>
-                <p>Monitor system health, view detailed diagnostics, and trigger checks</p>
-            </div>
-            <p>Access these powerful features from the Executive Dashboard.</p>
-            <p>If you have any questions about your new role, contact the BakedBot team.</p>
-            <p>Welcome to the executive team!</p>
-            <p>— The BakedBot Team</p>
-        </div>
-        <div class="footer">
-            <p>© 2026 BakedBot. All rights reserved. | <a href="https://bakedbot.ai/privacy">Privacy Policy</a></p>
-        </div>
-    </div>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f5f0ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;background:#f5f0ff;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.07);">
+        <tr><td style="padding:28px 40px;background:#0D211D;text-align:center;">
+          <img src="https://bakedbot.ai/bakedbot-logo-horizontal.png" alt="BakedBot AI" height="32" style="display:block;margin:0 auto;">
+        </td></tr>
+        <tr><td style="padding:40px;">
+          <h2 style="margin:0 0 16px;font-size:22px;color:#1a1a1a;">🚀 You've Been Promoted!</h2>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">Hi ${userName},</p>
+          <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#333;">You've been promoted to <strong>${newRole}</strong> in BakedBot. You now have access to advanced analytics, user management, and system controls.</p>
+          <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+            <tr><td style="background:#22AD85;border-radius:8px;padding:14px 28px;">
+              <a href="https://bakedbot.ai/dashboard" style="color:#fff;font-size:15px;font-weight:700;text-decoration:none;">Open Executive Dashboard →</a>
+            </td></tr>
+          </table>
+          <p style="margin:0;font-size:14px;color:#555;">— The BakedBot Team</p>
+        </td></tr>
+        <tr><td style="padding:16px 40px;background:#f8f8f8;border-top:1px solid #eee;">
+          <p style="margin:0;font-size:11px;color:#aaa;text-align:center;">© ${new Date().getFullYear()} BakedBot AI · <a href="https://bakedbot.ai/privacy" style="color:#22AD85;">Privacy</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
 </body>
-</html>
-        `;
+</html>`;
     }
 }
 
-// Singleton instance
 const userNotification = new UserNotificationService();
-
 export { UserNotificationService, userNotification };
