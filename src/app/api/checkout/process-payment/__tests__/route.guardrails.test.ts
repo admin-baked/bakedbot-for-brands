@@ -9,7 +9,7 @@ const mockRunTransaction = jest.fn();
 const mockTransactionUpdate = jest.fn();
 const mockUserGet = jest.fn();
 const mockUserSet = jest.fn();
-const mockRecordProductSale = jest.fn();
+const mockRecordSalesForStoredOrder = jest.fn();
 const mockCannPayTransactionDetails = jest.fn();
 const mockAeropayTransactionDetails = jest.fn();
 
@@ -57,7 +57,7 @@ jest.mock('@/server/agents/deebo', () => ({
 }));
 
 jest.mock('@/server/services/order-analytics', () => ({
-    recordProductSale: (...args: unknown[]) => mockRecordProductSale(...args),
+    recordSalesForStoredOrder: (...args: unknown[]) => mockRecordSalesForStoredOrder(...args),
 }));
 
 jest.mock('@/lib/monitoring', () => ({
@@ -139,7 +139,7 @@ describe('POST /api/checkout/process-payment guardrails', () => {
             amount: 5049,
             merchantOrderId: 'order-1',
         });
-        mockRecordProductSale.mockResolvedValue(undefined);
+        mockRecordSalesForStoredOrder.mockResolvedValue(true);
 
         ({ POST } = await import('../route'));
     });
@@ -380,7 +380,7 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         const body = await response.json();
         expect(response.status).toBe(409);
         expect(body.error).toContain('already processing');
-        expect(mockRecordProductSale).not.toHaveBeenCalled();
+        expect(mockRecordSalesForStoredOrder).not.toHaveBeenCalled();
     });
 
     it('does not mark CannPay order as paid when provider reports pending despite spoofed client success', async () => {
@@ -423,7 +423,7 @@ describe('POST /api/checkout/process-payment guardrails', () => {
             'canpay.status': 'Pending',
             'canpay.transactionNumber': 'cp_tx_real',
         }));
-        expect(mockRecordProductSale).not.toHaveBeenCalled();
+        expect(mockRecordSalesForStoredOrder).not.toHaveBeenCalled();
     });
 
     it('accepts CannPay dollar-denominated amount values when they match the order total', async () => {
@@ -544,7 +544,7 @@ describe('POST /api/checkout/process-payment guardrails', () => {
             'canpay.status': 'Pending',
             'canpay.transactionNumber': 'cp_tx_real',
         }));
-        expect(mockRecordProductSale).not.toHaveBeenCalled();
+        expect(mockRecordSalesForStoredOrder).not.toHaveBeenCalled();
     });
 
     it('rejects CannPay intent mismatch between request and order', async () => {
@@ -749,7 +749,7 @@ describe('POST /api/checkout/process-payment guardrails', () => {
             paymentStatus: 'failed',
             'aeropay.status': 'declined',
         }));
-        expect(mockRecordProductSale).not.toHaveBeenCalled();
+        expect(mockRecordSalesForStoredOrder).not.toHaveBeenCalled();
     });
 
     it('rejects Aeropay finalization when transactional lock sees already processing', async () => {
@@ -798,7 +798,7 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         const body = await response.json();
         expect(response.status).toBe(409);
         expect(body.error).toContain('already processing');
-        expect(mockRecordProductSale).not.toHaveBeenCalled();
+        expect(mockRecordSalesForStoredOrder).not.toHaveBeenCalled();
     });
 
     it('rejects payment finalization for closed orders before provider calls', async () => {

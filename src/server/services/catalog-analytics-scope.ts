@@ -7,7 +7,7 @@ export interface CatalogAnalyticsScope {
   };
 }
 
-function normalizeCandidate(value: unknown): string | null {
+export function normalizeCandidate(value: unknown): string | null {
   if (typeof value !== 'string') {
     return null;
   }

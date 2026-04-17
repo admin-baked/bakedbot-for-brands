@@ -5,6 +5,7 @@ import type { BundleDeal } from '@/types/bundles';
 import type { Product } from '@/types/products';
 import { logger } from '@/lib/logger';
 import { toAnalyticsDate } from '@/server/services/catalog-analytics-source';
+import { resolveCatalogAnalyticsScope, normalizeCandidate } from '@/server/services/catalog-analytics-scope';
 import { buildTenantPosProductDocId } from '@/server/services/pos-product-doc-id';
 
 /**
@@ -32,6 +33,13 @@ type AnalyticsProductDoc = Partial<Product> & Record<string, unknown>;
 type HistoricalOrderRecord = {
     createdAt?: unknown;
     items?: Array<Record<string, unknown>>;
+    userId?: unknown;
+    orgId?: unknown;
+    brandId?: unknown;
+    amount?: unknown;
+    totals?: {
+        total?: unknown;
+    };
 };
 
 type AggregatedProductSales = {
@@ -40,6 +48,15 @@ type AggregatedProductSales = {
     salesLast30Days: number;
     lastDate: Date | null;
 };
+
+type HistoricalOrderQueryField = 'brandId' | 'orgId' | 'retailerId' | 'dispensaryId';
+
+type HistoricalOrderDocument = {
+    id: string;
+    data: HistoricalOrderRecord;
+};
+
+type HistoricalOrderQueryCandidates = Record<HistoricalOrderQueryField, string[]>;
 
 function toNonNegativeNumber(value: unknown): number {
     return typeof value === 'number' && Number.isFinite(value)
@@ -61,6 +78,7 @@ function toPositiveQuantity(value: unknown): number {
 
     return 1;
 }
+
 
 function getHistoricalItemProductId(item: Record<string, unknown>): string | null {
     const candidate = item.productId ?? item.product_id ?? item.id_item;
@@ -118,31 +136,36 @@ async function resolveAnalyticsProductTargets(
 
 async function queryHistoricalOrdersByField(
     db: FirebaseFirestore.Firestore,
-    field: 'brandId' | 'orgId' | 'retailerId',
-    orgId: string,
+    field: HistoricalOrderQueryField,
+    candidateId: string,
     lookbackDate: Date,
-): Promise<HistoricalOrderRecord[]> {
+): Promise<HistoricalOrderDocument[]> {
     try {
         const snap = await db.collection('orders')
-            .where(field, '==', orgId)
+            .where(field, '==', candidateId)
             .where('createdAt', '>=', lookbackDate)
+            .limit(10000)
             .get();
 
-        return snap.docs.map((doc) => doc.data() as HistoricalOrderRecord);
+        return snap.docs.map((doc) => ({
+            id: doc.id,
+            data: doc.data() as HistoricalOrderRecord,
+        }));
     } catch (error) {
         logger.warn('[OrderAnalytics] Historical order query failed, retrying without createdAt filter', {
-            orgId,
             field,
+            candidateId,
             error: error instanceof Error ? error.message : String(error),
         });
 
         const fallback = await db.collection('orders')
-            .where(field, '==', orgId)
+            .where(field, '==', candidateId)
+            .limit(10000)
             .get()
             .catch((fallbackError) => {
                 logger.error('[OrderAnalytics] Historical order fallback query failed', {
-                    orgId,
                     field,
+                    candidateId,
                     error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
                 });
                 return null;
@@ -153,11 +176,207 @@ async function queryHistoricalOrdersByField(
         }
 
         return fallback.docs
-            .map((doc) => doc.data() as HistoricalOrderRecord)
-            .filter((order) => {
+            .map((doc) => ({
+                id: doc.id,
+                data: doc.data() as HistoricalOrderRecord,
+            }))
+            .filter(({ data: order }) => {
                 const createdAt = toAnalyticsDate(order.createdAt);
                 return createdAt instanceof Date && createdAt >= lookbackDate;
             });
+    }
+}
+
+function buildHistoricalOrderQueryCandidates(
+    orgId: string,
+    scope: Awaited<ReturnType<typeof resolveCatalogAnalyticsScope>>,
+): HistoricalOrderQueryCandidates {
+    const brandScopedIds = new Set<string>([orgId, ...scope.rootProductQueryIds.brandId]);
+    const generalIds = new Set<string>([
+        orgId,
+        ...scope.tenantIds,
+        ...scope.rootProductQueryIds.brandId,
+    ]);
+
+    return {
+        brandId: Array.from(brandScopedIds),
+        orgId: Array.from(generalIds),
+        retailerId: Array.from(generalIds),
+        dispensaryId: Array.from(generalIds),
+    };
+}
+
+function addTargetRef(
+    targetIndex: Map<string, FirebaseFirestore.DocumentReference[]>,
+    key: unknown,
+    ref: FirebaseFirestore.DocumentReference,
+) {
+    const normalizedKey = normalizeCandidate(key);
+    if (!normalizedKey) {
+        return;
+    }
+
+    const existingTargets = targetIndex.get(normalizedKey) ?? [];
+    if (existingTargets.some((target) => target.path === ref.path)) {
+        return;
+    }
+
+    existingTargets.push(ref);
+    targetIndex.set(normalizedKey, existingTargets);
+}
+
+async function buildHistoricalBackfillTargetIndex(
+    db: FirebaseFirestore.Firestore,
+    orgId: string,
+): Promise<{
+    scope: Awaited<ReturnType<typeof resolveCatalogAnalyticsScope>>;
+    targetIndex: Map<string, FirebaseFirestore.DocumentReference[]>;
+    tenantCatalogCount: number;
+    rootCatalogCount: number;
+}> {
+    const scope = await resolveCatalogAnalyticsScope(db, orgId);
+    const targetIndex = new Map<string, FirebaseFirestore.DocumentReference[]>();
+    const tenantPaths = new Set<string>();
+    const rootPaths = new Set<string>();
+
+    await Promise.all(scope.tenantIds.map(async (tenantId) => {
+        try {
+            const snap = await db.collection('tenants')
+                .doc(tenantId)
+                .collection('publicViews')
+                .doc('products')
+                .collection('items')
+                .limit(2000)
+                .get();
+
+            for (const doc of snap.docs) {
+                tenantPaths.add(doc.ref.path);
+                addTargetRef(targetIndex, doc.id, doc.ref);
+                addTargetRef(targetIndex, doc.get('externalId'), doc.ref);
+            }
+        } catch (error) {
+            logger.warn('[OrderAnalytics] Tenant catalog query failed during backfill target load', {
+                orgId,
+                tenantId,
+                error: error instanceof Error ? error.message : String(error),
+            });
+        }
+    }));
+
+    const rootQueryPlans: Array<{
+        field: 'orgId' | 'dispensaryId' | 'brandId';
+        candidateIds: string[];
+    }> = [
+        { field: 'orgId', candidateIds: scope.rootProductQueryIds.orgId },
+        { field: 'dispensaryId', candidateIds: scope.rootProductQueryIds.dispensaryId },
+        { field: 'brandId', candidateIds: scope.rootProductQueryIds.brandId },
+    ];
+
+    await Promise.all(rootQueryPlans.flatMap(({ field, candidateIds }) => (
+        candidateIds.map(async (candidateId) => {
+            try {
+                const snap = await db.collection('products')
+                    .where(field, '==', candidateId)
+                    .limit(500)
+                    .get();
+
+                for (const doc of snap.docs) {
+                    rootPaths.add(doc.ref.path);
+                    addTargetRef(targetIndex, doc.id, doc.ref);
+                    addTargetRef(targetIndex, doc.get('externalId'), doc.ref);
+                }
+            } catch (error) {
+                logger.warn('[OrderAnalytics] Root catalog query failed during backfill target load', {
+                    orgId,
+                    field,
+                    candidateId,
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            }
+        })
+    )));
+
+    return {
+        scope,
+        targetIndex,
+        tenantCatalogCount: tenantPaths.size,
+        rootCatalogCount: rootPaths.size,
+    };
+}
+
+function getStoredOrderSalesItems(items: unknown): OrderItem[] {
+    if (!Array.isArray(items)) {
+        return [];
+    }
+
+    return items
+        .map((item) => {
+            if (!item || typeof item !== 'object') {
+                return null;
+            }
+
+            const productId = getHistoricalItemProductId(item as Record<string, unknown>);
+            if (!productId) {
+                return null;
+            }
+
+            return {
+                productId,
+                quantity: toPositiveQuantity(
+                    (item as Record<string, unknown>).qty ?? (item as Record<string, unknown>).quantity,
+                ),
+                price: toNonNegativeNumber((item as Record<string, unknown>).price),
+            };
+        })
+        .filter((item): item is OrderItem => item !== null);
+}
+
+export async function recordSalesForStoredOrder(
+    orderId: string,
+    firestore: FirebaseFirestore.Firestore = getAdminFirestore(),
+): Promise<boolean> {
+    try {
+        const orderDoc = await firestore.collection('orders').doc(orderId).get();
+        if (!orderDoc.exists) {
+            logger.warn('[OrderAnalytics] Stored order not found for sales tracking', { orderId });
+            return false;
+        }
+
+        const order = (orderDoc.data() ?? {}) as HistoricalOrderRecord;
+        const salesItems = getStoredOrderSalesItems(order.items);
+        if (salesItems.length === 0) {
+            logger.warn('[OrderAnalytics] Stored order has no valid items for sales tracking', { orderId });
+            return false;
+        }
+
+        const orgId = normalizeCandidate(order.orgId) ?? normalizeCandidate(order.brandId);
+        if (!orgId) {
+            logger.warn('[OrderAnalytics] Stored order missing orgId/brandId for sales tracking', { orderId });
+            return false;
+        }
+
+        const purchasedAt = toAnalyticsDate(order.createdAt) ?? new Date();
+        await recordProductSale(orgId, {
+            customerId: normalizeCandidate(order.userId) ?? 'checkout_customer',
+            orderId,
+            items: salesItems,
+            totalAmount: toNonNegativeNumber(order.totals?.total ?? order.amount),
+            purchasedAt,
+        });
+
+        logger.info('[OrderAnalytics] Stored order sales recorded', {
+            orderId,
+            orgId,
+            itemCount: salesItems.length,
+        });
+
+        return true;
+    } catch (error) {
+        logger.warn('[OrderAnalytics] Failed to record stored order sales', {
+            orderId,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return false;
     }
 }
 
@@ -339,42 +558,45 @@ export async function backfillHistoricalSalesData(orgId: string, lookbackDays: n
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-        const queryPlans: Array<'brandId' | 'orgId' | 'retailerId'> = ['brandId', 'orgId', 'retailerId'];
-        let orders: HistoricalOrderRecord[] = [];
-        let queryFieldUsed: 'brandId' | 'orgId' | 'retailerId' | null = null;
+        const { scope, targetIndex, tenantCatalogCount, rootCatalogCount } =
+            await buildHistoricalBackfillTargetIndex(db, orgId);
+        const orderQueryCandidates = buildHistoricalOrderQueryCandidates(orgId, scope);
+        const queryPlans: HistoricalOrderQueryField[] = ['brandId', 'orgId', 'retailerId', 'dispensaryId'];
+        const ordersById = new Map<string, HistoricalOrderRecord>();
+        const queryMatches: Array<{ field: HistoricalOrderQueryField; candidateId: string; count: number }> = [];
 
-        for (const field of queryPlans) {
-            const candidateOrders = await queryHistoricalOrdersByField(db, field, orgId, lookbackDate);
-            if (candidateOrders.length === 0) {
-                continue;
+        const allQueryPlans = queryPlans.flatMap((field) =>
+            orderQueryCandidates[field].map((candidateId) => ({ field, candidateId })),
+        );
+        const allResults = await Promise.all(
+            allQueryPlans.map(({ field, candidateId }) =>
+                queryHistoricalOrdersByField(db, field, candidateId, lookbackDate).then((orders) => ({
+                    field,
+                    candidateId,
+                    orders,
+                })),
+            ),
+        );
+
+        for (const { field, candidateId, orders: candidateOrders } of allResults) {
+            if (candidateOrders.length === 0) continue;
+            queryMatches.push({ field, candidateId, count: candidateOrders.length });
+            for (const order of candidateOrders) {
+                ordersById.set(order.id, order.data);
             }
-
-            orders = candidateOrders;
-            queryFieldUsed = field;
-            break;
         }
+
+        const orders = Array.from(ordersById.values());
 
         if (orders.length === 0) {
-            logger.info('[OrderAnalytics] No historical orders found for backfill', { orgId, lookbackDays });
+            logger.info('[OrderAnalytics] No historical orders found for backfill', {
+                orgId,
+                lookbackDays,
+                orderQueryCandidates,
+                tenantCatalogCount,
+                rootCatalogCount,
+            });
             return { processed: 0, updated: 0 };
-        }
-
-        const tenantCatalogSnapshot = await db.collection('tenants')
-            .doc(orgId)
-            .collection('publicViews')
-            .doc('products')
-            .collection('items')
-            .limit(2000)
-            .get();
-        const tenantTargets = new Map<string, FirebaseFirestore.DocumentReference>();
-
-        for (const doc of tenantCatalogSnapshot.docs) {
-            tenantTargets.set(doc.id, doc.ref);
-
-            const externalId = doc.get('externalId');
-            if (typeof externalId === 'string' && externalId.trim().length > 0) {
-                tenantTargets.set(externalId.trim(), doc.ref);
-            }
         }
 
         const productSales: Record<string, AggregatedProductSales> = {};
@@ -424,17 +646,34 @@ export async function backfillHistoricalSalesData(orgId: string, lookbackDays: n
         let batch = db.batch();
         let batchOps = 0;
         let updatedCount = 0;
+        let targetDocsUpdated = 0;
         let unresolvedProducts = 0;
+
+        const commitBatchIfNeeded = async () => {
+            if (batchOps < 400) {
+                return;
+            }
+
+            await batch.commit();
+            logger.info('[OrderAnalytics] Backfill batch committed', {
+                orgId,
+                productsUpdated: updatedCount,
+                targetDocsUpdated,
+                batchOps,
+            });
+            batch = db.batch();
+            batchOps = 0;
+        };
 
         for (const [productId, salesData] of Object.entries(productSales)) {
             if (!(salesData.lastDate instanceof Date)) {
                 continue;
             }
 
-            const tenantRef = tenantTargets.get(productId)
-                ?? tenantTargets.get(buildTenantPosProductDocId(orgId, productId));
+            const targetRefs = targetIndex.get(productId)
+                ?? targetIndex.get(buildTenantPosProductDocId(orgId, productId));
 
-            if (!tenantRef) {
+            if (!targetRefs || targetRefs.length === 0) {
                 unresolvedProducts++;
                 continue;
             }
@@ -442,28 +681,20 @@ export async function backfillHistoricalSalesData(orgId: string, lookbackDays: n
             const salesVelocity = salesData.salesLast7Days / 7;
             const isTrending = salesVelocity > 2 && salesData.lastDate > sevenDaysAgo;
 
-            batch.set(tenantRef, {
-                salesCount: salesData.count,
-                salesLast7Days: salesData.salesLast7Days,
-                salesLast30Days: salesData.salesLast30Days,
-                salesVelocity,
-                lastSaleAt: salesData.lastDate,
-                trending: isTrending,
-                updatedAt: new Date(),
-            }, { merge: true });
-            batchOps++;
-
             updatedCount++;
-
-            if (batchOps >= 400) {
-                await batch.commit();
-                logger.info('[OrderAnalytics] Backfill batch committed', {
-                    orgId,
-                    productsUpdated: updatedCount,
-                    batchOps,
-                });
-                batch = db.batch();
-                batchOps = 0;
+            for (const targetRef of targetRefs) {
+                batch.set(targetRef, {
+                    salesCount: salesData.count,
+                    salesLast7Days: salesData.salesLast7Days,
+                    salesLast30Days: salesData.salesLast30Days,
+                    salesVelocity,
+                    lastSaleAt: salesData.lastDate,
+                    trending: isTrending,
+                    updatedAt: new Date(),
+                }, { merge: true });
+                batchOps++;
+                targetDocsUpdated++;
+                await commitBatchIfNeeded();
             }
         }
 
@@ -474,11 +705,13 @@ export async function backfillHistoricalSalesData(orgId: string, lookbackDays: n
         logger.info('[OrderAnalytics] Backfill completed', {
             orgId,
             lookbackDays,
-            queryFieldUsed,
+            queryMatches,
             ordersProcessed: processedCount,
             productsUpdated: updatedCount,
+            targetDocsUpdated,
             unresolvedProducts,
-            tenantCatalogProducts: tenantCatalogSnapshot.size,
+            tenantCatalogProducts: tenantCatalogCount,
+            rootCatalogProducts: rootCatalogCount,
         });
 
         return { processed: processedCount, updated: updatedCount };

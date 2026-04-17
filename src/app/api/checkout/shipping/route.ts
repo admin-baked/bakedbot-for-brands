@@ -13,6 +13,7 @@ import { getPhoneLast4 } from '@/lib/customers/profile-derivations';
 import { sendOrderConfirmationEmail } from '@/lib/email/dispatcher';
 import { logger } from '@/lib/logger';
 import { requireUser } from '@/server/auth/auth';
+import { recordSalesForStoredOrder } from '@/server/services/order-analytics';
 import type { BillingAddress, ShippingAddress, PurchaseModel } from '@/types/orders';
 import { isShippingCheckoutEnabled } from '@/lib/feature-flags';
 import { createHash } from 'crypto';
@@ -494,6 +495,10 @@ export async function POST(req: NextRequest) {
             transactionId: paymentResult.transactionId || null,
             paymentStatus: 'paid',
             updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        setImmediate(async () => {
+            await recordSalesForStoredOrder(orderId, firestore);
         });
 
         if (appliedCoupon) {

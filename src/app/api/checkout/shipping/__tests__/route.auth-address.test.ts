@@ -5,6 +5,7 @@ const mockRequireUser = jest.fn();
 const mockCreateServerClient = jest.fn();
 const mockCreateTransaction = jest.fn();
 const mockSendOrderConfirmationEmail = jest.fn();
+const mockRecordSalesForStoredOrder = jest.fn();
 const mockOrderAdd = jest.fn();
 const mockOrderUpdate = jest.fn();
 const mockUserSet = jest.fn();
@@ -39,6 +40,10 @@ jest.mock('@/lib/email/dispatcher', () => ({
     sendOrderConfirmationEmail: (...args: unknown[]) => mockSendOrderConfirmationEmail(...args),
 }));
 
+jest.mock('@/server/services/order-analytics', () => ({
+    recordSalesForStoredOrder: (...args: unknown[]) => mockRecordSalesForStoredOrder(...args),
+}));
+
 jest.mock('@/lib/logger', () => ({
     logger: {
         info: jest.fn(),
@@ -58,12 +63,17 @@ jest.mock('firebase-admin/firestore', () => ({
 describe('POST /api/checkout/shipping auth + address hardening', () => {
     let POST: typeof import('../route').POST;
     const originalEnv = process.env;
+    const originalSetImmediate = global.setImmediate;
     let existingUserOrders: Array<{ id: string; data: () => Record<string, unknown> }>;
 
     beforeEach(async () => {
         jest.clearAllMocks();
         process.env = { ...originalEnv };
         existingUserOrders = [];
+        global.setImmediate = ((fn: any, ...args: any[]) => {
+            fn(...args);
+            return 0 as any;
+        }) as any;
 
         const orderRef = {
             id: 'order-123',
@@ -148,12 +158,14 @@ describe('POST /api/checkout/shipping auth + address hardening', () => {
             }),
         });
         mockSendOrderConfirmationEmail.mockResolvedValue(undefined);
+        mockRecordSalesForStoredOrder.mockResolvedValue(true);
 
         ({ POST } = await import('../route'));
     });
 
     afterEach(() => {
         process.env = originalEnv;
+        global.setImmediate = originalSetImmediate;
     });
 
     it('returns 503 when shipping checkout feature flag is disabled', async () => {
@@ -391,6 +403,7 @@ describe('POST /api/checkout/shipping auth + address hardening', () => {
                 city: 'Syracuse',
             }),
         }));
+        expect(mockRecordSalesForStoredOrder).toHaveBeenCalledWith('order-123', expect.anything());
     });
 
     it('reuses existing order when the same opaque payment token is replayed', async () => {

@@ -29,7 +29,7 @@ import { deeboCheckCheckout } from '@/server/agents/deebo';
 import { createServerClient } from '@/firebase/server-client';
 import { withProtection } from '@/server/middleware/with-protection';
 import { processPaymentSchema, type ProcessPaymentRequest } from '../../schemas';
-import { recordProductSale } from '@/server/services/order-analytics';
+import { recordSalesForStoredOrder } from '@/server/services/order-analytics';
 import { requireUser } from '@/server/auth/auth';
 import type { BillingAddress } from '@/types/orders';
 
@@ -159,56 +159,6 @@ function resolveAeropayProviderStatus(currentStatus: string | undefined, desired
     }
 
     return desired;
-}
-
-/**
- * Record sales analytics for a completed order (async, non-blocking)
- */
-async function recordSalesForOrder(orderId: string, firestore: any) {
-    try {
-        const orderDoc = await firestore.collection('orders').doc(orderId).get();
-        if (!orderDoc.exists) {
-            logger.warn('[CHECKOUT] Order not found for sales tracking', { orderId });
-            return;
-        }
-
-        const order = orderDoc.data();
-        if (!order?.items || order.items.length === 0) {
-            logger.warn('[CHECKOUT] Order has no items for sales tracking', { orderId });
-            return;
-        }
-
-        const orgId = order.orgId || order.brandId;
-        if (!orgId) {
-            logger.warn('[CHECKOUT] Order missing orgId/brandId for sales tracking', { orderId });
-            return;
-        }
-
-        const salesItems = order.items.map((item: any) => ({
-            productId: item.productId,
-            quantity: item.qty || item.quantity || 1,
-            price: item.price,
-        }));
-
-        const customerId = order.userId || 'checkout_customer';
-        const totalAmount = order.totals?.total || order.amount || 0;
-        const purchasedAt = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
-
-        await recordProductSale(orgId, {
-            customerId,
-            orderId,
-            items: salesItems,
-            totalAmount,
-            purchasedAt,
-        });
-
-        logger.info('[CHECKOUT] Sales recorded for order', { orderId, itemCount: order.items.length });
-    } catch (error) {
-        logger.warn('[CHECKOUT] Failed to record sales for order', {
-            orderId,
-            error: error instanceof Error ? error.message : String(error),
-        });
-    }
 }
 
 export const POST = withProtection(
@@ -348,8 +298,7 @@ export const POST = withProtection(
                     });
 
                     setImmediate(async () => {
-                        const { firestore: fs } = await createServerClient();
-                        await recordSalesForOrder(orderId, fs);
+                        await recordSalesForStoredOrder(orderId, firestore);
                     });
                 }
 
@@ -499,8 +448,7 @@ export const POST = withProtection(
 
                 if (transitionedToPaid) {
                     setImmediate(async () => {
-                        const { firestore: fs } = await createServerClient();
-                        await recordSalesForOrder(orderId, fs);
+                        await recordSalesForStoredOrder(orderId, firestore);
                     });
                 }
 
@@ -667,8 +615,7 @@ export const POST = withProtection(
 
                 if (transitionedToPaid) {
                     setImmediate(async () => {
-                        const { firestore: fs } = await createServerClient();
-                        await recordSalesForOrder(orderId, fs);
+                        await recordSalesForStoredOrder(orderId, firestore);
                     });
                 }
 
@@ -834,8 +781,7 @@ export const POST = withProtection(
                     }, { merge: true });
 
                     setImmediate(async () => {
-                        const { firestore: fs } = await createServerClient();
-                        await recordSalesForOrder(orderId, fs);
+                        await recordSalesForStoredOrder(orderId, firestore);
                     });
 
                     return NextResponse.json({
