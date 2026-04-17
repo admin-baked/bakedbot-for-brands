@@ -82,45 +82,45 @@ function buildThriveVipWelcomeEmail(context: {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${subject}</title>
 </head>
-<body style="margin:0;padding:0;background:#f4f7f2;font-family:Arial,sans-serif;color:#123524;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;background:#f4f7f2;">
+<body style="margin:0;padding:0;background:#f2f9f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;background:#f2f9f4;">
         <tr>
             <td align="center">
-                <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;">
+                <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(10,128,58,0.1);">
                     <tr>
-                        <td style="padding:36px 36px 24px;background:linear-gradient(135deg,#1d7d4d 0%,#74d693 100%);color:#ffffff;">
-                            <p style="margin:0 0 8px;font-size:13px;letter-spacing:0.18em;text-transform:uppercase;">Thrive Syracuse</p>
-                            <h1 style="margin:0;font-size:30px;line-height:1.2;">Welcome to VIP Rewards</h1>
+                        <td style="padding:28px 40px 24px;background:#0A803A;text-align:center;">
+                            <img src="https://storage.googleapis.com/bakedbot-global-assets/logos/org_thrive_syracuse/thrive-logo.svg" alt="Thrive Cannabis Marketplace" height="44" style="display:block;margin:0 auto 12px;">
+                            <p style="margin:0;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#4ade80;font-weight:600;">VIP Rewards</p>
+                        </td>
+                    </tr>
+                    <tr><td style="height:4px;background:linear-gradient(90deg,#0A803A,#4ade80,#0A803A);"></td></tr>
+                    <tr>
+                        <td style="padding:40px;">
+                            <h2 style="margin:0 0 16px;font-size:22px;color:#0d2b13;line-height:1.3;">Welcome, ${displayName}!</h2>
+                            <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">
+                                You are officially part of Thrive VIP Rewards. We will use what you share with us to make your next visit faster, smarter, and more personal.
+                            </p>
+                            <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">Here is what to expect:</p>
+                            <ul style="margin:0 0 24px 20px;padding:0;font-size:15px;line-height:1.8;color:#333;">
+                                <li>Weekly deals and VIP perks from Thrive</li>
+                                <li>Better budtender handoff before you shop</li>
+                                <li>Smokey-powered recommendations based on your favorites</li>
+                                <li>Pre-check-in from your phone — skip the wait</li>
+                            </ul>
+                            <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
+                                <tr><td style="background:#0A803A;border-radius:8px;padding:14px 32px;">
+                                    <a href="${checkinUrl}" style="color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">Pre-Check In From Your Phone →</a>
+                                </td></tr>
+                            </table>
+                            <p style="margin:0;font-size:14px;line-height:1.7;color:#555;">
+                                Keep an eye on your inbox for new drops and post-visit follow-ups.
+                            </p>
                         </td>
                     </tr>
                     <tr>
-                        <td style="padding:36px;">
-                            <p style="margin:0 0 16px;font-size:18px;line-height:1.6;">Hi ${displayName},</p>
-                            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">
-                                You are officially checked in with Thrive Syracuse VIP Rewards. We will use what you share with us to make recommendations faster, smarter, and more personal every time you come back.
-                            </p>
-                            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">
-                                Here is what you can expect:
-                            </p>
-                            <ul style="margin:0 0 24px 20px;padding:0;font-size:16px;line-height:1.8;">
-                                <li>Weekly deals from Thrive Syracuse</li>
-                                <li>Better budtender handoff before you shop</li>
-                                <li>Smokey-powered recommendations based on your feedback and favorites</li>
-                                <li>Pre-check-in from your phone before you visit — skip the wait</li>
-                            </ul>
-                            <table cellpadding="0" cellspacing="0" style="margin:0 0 24px">
-                                <tr><td style="background:#1d7d4d;border-radius:8px;padding:14px 28px">
-                                    <a href="${checkinUrl}" style="color:#fff;font-size:15px;font-weight:600;text-decoration:none">
-                                        Pre-Check In From Your Phone →
-                                    </a>
-                                </td></tr>
-                            </table>
-                            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">
-                                Keep an eye on your inbox for new drops, VIP perks, and quick follow-ups after your purchases so we can keep improving your experience.
-                            </p>
-                            <p style="margin:0;font-size:15px;line-height:1.7;color:#456a57;">
-                                Thanks for being part of Thrive VIP Rewards.
-                            </p>
+                        <td style="padding:20px 40px;background:#f2f9f4;border-top:1px solid #d1f0dc;">
+                            <p style="margin:0 0 4px;font-size:12px;color:#666;text-align:center;"><strong>Thrive Cannabis Marketplace</strong><br>3065 Erie Blvd E, Syracuse, NY 13224 · Mon–Sat 10:30 AM–8 PM · Sun 11 AM–6 PM</p>
+                            <p style="margin:8px 0 0;font-size:11px;color:#aaa;text-align:center;"><a href="https://bakedbot.ai/unsubscribe" style="color:#0A803A;">Unsubscribe</a> · <a href="https://bakedbot.ai/privacy" style="color:#0A803A;">Privacy</a></p>
                         </td>
                     </tr>
                 </table>

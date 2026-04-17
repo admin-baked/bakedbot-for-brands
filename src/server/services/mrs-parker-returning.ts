@@ -54,6 +54,38 @@ export async function sendReturningCustomerEmail(
             ? `${budtenderName} was on duty today — ask for them next time!`
             : 'Your budtender has your picks ready!';
 
+        const thriveHeader = isThrive ? `
+                    <tr>
+                        <td style="padding:28px 40px 24px;background:#0A803A;text-align:center;">
+                            <img src="https://storage.googleapis.com/bakedbot-global-assets/logos/org_thrive_syracuse/thrive-logo.svg" alt="Thrive Cannabis Marketplace" height="44" style="display:block;margin:0 auto 12px;">
+                            <p style="margin:0;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#4ade80;font-weight:600;">VIP Rewards</p>
+                        </td>
+                    </tr>
+                    <tr><td style="height:4px;background:linear-gradient(90deg,#0A803A,#4ade80,#0A803A);"></td></tr>` : `
+                    <tr>
+                        <td style="padding:36px 36px 24px;background:linear-gradient(135deg,#1d7d4d 0%,#74d693 100%);color:#ffffff;">
+                            <p style="margin:0 0 8px;font-size:13px;letter-spacing:0.18em;text-transform:uppercase;">${brandName}</p>
+                            <h1 style="margin:0;font-size:28px;line-height:1.2;">Great seeing you today${firstName ? `, ${firstName}` : ''}!</h1>
+                        </td>
+                    </tr>`;
+        const thriveFooter = isThrive ? `
+                    <tr>
+                        <td style="padding:20px 40px;background:#f2f9f4;border-top:1px solid #d1f0dc;">
+                            <p style="margin:0 0 4px;font-size:12px;color:#666;text-align:center;"><strong>Thrive Cannabis Marketplace</strong><br>3065 Erie Blvd E, Syracuse, NY 13224 · Mon–Sat 10:30 AM–8 PM · Sun 11 AM–6 PM</p>
+                            <p style="margin:8px 0 0;font-size:11px;color:#aaa;text-align:center;"><a href="https://bakedbot.ai/unsubscribe" style="color:#0A803A;">Unsubscribe</a> · <a href="https://bakedbot.ai/privacy" style="color:#0A803A;">Privacy</a></p>
+                        </td>
+                    </tr>` : `
+                    <tr>
+                        <td style="padding:20px 36px;background:#f8faf9;border-top:1px solid #e5e7eb;">
+                            <p style="margin:0;font-size:12px;color:#999;text-align:center;">
+                                © ${new Date().getFullYear()} ${brandName}. All rights reserved.<br>
+                                <a href="https://bakedbot.ai/unsubscribe" style="color:#1d7d4d;">Unsubscribe</a> · <a href="https://bakedbot.ai/privacy" style="color:#1d7d4d;">Privacy</a>
+                            </p>
+                        </td>
+                    </tr>`;
+        const ctaBg = isThrive ? '#0A803A' : 'linear-gradient(135deg,#1d7d4d,#0d5a33)';
+        const outerBg = isThrive ? '#f2f9f4' : '#f4f7f2';
+
         const htmlBody = `
 <!DOCTYPE html>
 <html>
@@ -62,60 +94,44 @@ export async function sendReturningCustomerEmail(
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${subject}</title>
 </head>
-<body style="margin:0;padding:0;background:#f4f7f2;font-family:Arial,sans-serif;color:#123524;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;background:#f4f7f2;">
+<body style="margin:0;padding:0;background:${outerBg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;background:${outerBg};">
         <tr>
             <td align="center">
-                <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;">
+                <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(10,128,58,0.1);">
+                    ${thriveHeader}
                     <tr>
-                        <td style="padding:36px 36px 24px;background:linear-gradient(135deg,#1d7d4d 0%,#74d693 100%);color:#ffffff;">
-                            <p style="margin:0 0 8px;font-size:13px;letter-spacing:0.18em;text-transform:uppercase;">${brandName}</p>
-                            <h1 style="margin:0;font-size:28px;line-height:1.2;">Great seeing you today${firstName ? `, ${firstName}` : ''}!</h1>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding:36px;">
-                            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">
-                                Thanks for stopping by${firstName ? `, ${firstName}` : ''}! We hope you're enjoying your visit.
-                            </p>
-                            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">
-                                ${budtenderLine}
+                        <td style="padding:40px;">
+                            ${isThrive ? `<h2 style="margin:0 0 16px;font-size:22px;color:#0d2b13;line-height:1.3;">Great seeing you today${firstName ? `, ${firstName}` : ''}!</h2>` : ''}
+                            <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">
+                                Thanks for stopping by${firstName ? `, ${firstName}` : ''}! ${budtenderLine}
                             </p>
                             ${moodContent ? `
-                            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">
+                            <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">
                                 ${moodContent}
                             </p>
                             ` : ''}
                             ${loyaltyPoints !== undefined && loyaltyPoints > 0 ? `
-                            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">
-                                🎁 You have <strong>${loyaltyPoints} loyalty points</strong> — earn more with every visit!
-                            </p>
-                            ` : ''}
-                            <p style="margin:0 0 24px;font-size:16px;line-height:1.7;">
-                                <strong>How was your experience?</strong> Your feedback helps us serve you better. Tap to rate your visit — it only takes a second and helps our team improve.
-                            </p>
-                            <table width="100%" cellpadding="0" cellspacing="0">
-                                <tr>
-                                    <td align="center">
-                                        <a href="https://bakedbot.ai/${isThrive ? 'thrivesyracuse' : 'rewards'}?review=1" style="display:inline-block;background:linear-gradient(135deg,#1d7d4d,#0d5a33);color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:bold;font-size:16px;">
-                                            Rate Your Visit ⭐
-                                        </a>
-                                    </td>
-                                </tr>
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background:#f2f9f4;border-radius:10px;border-left:4px solid #0A803A;">
+                                <tr><td style="padding:16px 20px;">
+                                    <p style="margin:0;font-size:15px;color:#0d2b13;line-height:1.6;">🎁 <strong>You have ${loyaltyPoints} VIP points</strong> — keep earning with every visit!</p>
+                                </td></tr>
                             </table>
-                            <p style="margin:24px 0 0;font-size:14px;color:#666;">
+                            ` : ''}
+                            <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#333;">
+                                How was your experience today? A quick rating helps our team keep improving — takes 5 seconds.
+                            </p>
+                            <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
+                                <tr><td style="background:${ctaBg};border-radius:8px;padding:14px 32px;">
+                                    <a href="https://bakedbot.ai/${isThrive ? 'thrivesyracuse' : 'rewards'}?review=1" style="color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">Rate Your Visit ⭐</a>
+                                </td></tr>
+                            </table>
+                            <p style="margin:0;font-size:14px;line-height:1.7;color:#555;">
                                 Questions? Reply to this email — we're here to help!
                             </p>
                         </td>
                     </tr>
-                    <tr>
-                        <td style="padding:20px 36px;background:#f8faf9;border-top:1px solid #e5e7eb;">
-                            <p style="margin:0;font-size:12px;color:#999;text-align:center;">
-                                © ${new Date().getFullYear()} ${brandName}. All rights reserved.<br>
-                                <a href="https://bakedbot.ai/unsubscribe" style="color:#1d7d4d;">Unsubscribe</a> · <a href="https://bakedbot.ai/privacy" style="color:#1d7d4d;">Privacy</a>
-                            </p>
-                        </td>
-                    </tr>
+                    ${thriveFooter}
                 </table>
             </td>
         </tr>

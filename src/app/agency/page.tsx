@@ -75,12 +75,6 @@ const steps = [
     { step: '04', title: 'Earn', detail: 'Revenue share on every client account you bring on. Reported monthly, paid quarterly.' },
 ];
 
-const stats = [
-    { value: '100%', label: 'Compliance reviewed' },
-    { value: '24/7', label: 'AI automation' },
-    { value: '$925+', label: 'MRR live today' },
-    { value: '1', label: 'Active pilot dispensary' },
-];
 
 export default function AgencyPage() {
     return (
@@ -142,20 +136,6 @@ export default function AgencyPage() {
                                 <Link href="#partners">Meet our launch partners</Link>
                             </Button>
                         </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Stats bar */}
-            <section className="bg-emerald-600">
-                <div className="container mx-auto px-6 max-w-6xl">
-                    <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-emerald-500">
-                        {stats.map((s) => (
-                            <div key={s.label} className="py-6 px-8 text-center text-white">
-                                <div className="text-2xl md:text-3xl font-bold">{s.value}</div>
-                                <div className="text-sm text-emerald-100 mt-1">{s.label}</div>
-                            </div>
-                        ))}
                     </div>
                 </div>
             </section>
