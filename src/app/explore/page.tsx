@@ -12,6 +12,8 @@ import {
     ArrowRight,
     Search,
     TrendingUp,
+    GraduationCap,
+    CheckCircle2,
 } from 'lucide-react';
 import { Navbar } from '@/components/landing/navbar';
 import { LandingFooter } from '@/components/landing/footer';
@@ -365,6 +367,94 @@ export default async function ExplorePage() {
                     </div>
                 </section>
 
+                {/* ── How to Read a COA ────────────────────────────────── */}
+                <section className="container mx-auto px-4 py-14 max-w-4xl">
+                    <div className="flex items-center gap-2 mb-3">
+                        <GraduationCap className="h-5 w-5 text-blue-600" />
+                        <h2 className="text-2xl font-bold">How to Read a Cannabis Certificate of Analysis</h2>
+                    </div>
+                    <p className="text-muted-foreground mb-8 max-w-2xl">
+                        A Certificate of Analysis (COA) is the lab report for every legal cannabis product. Here&apos;s what each section means.
+                    </p>
+                    <div className="grid md:grid-cols-2 gap-5">
+                        {[
+                            {
+                                title: 'Cannabinoid Potency',
+                                icon: '🌿',
+                                body: 'Lists THC%, CBD%, CBN%, and other cannabinoids as a percentage of the total weight. "Total THC" includes THCA converted during decarboxylation. A flower at 20% THC contains 200mg THC per gram.',
+                            },
+                            {
+                                title: 'Terpene Profile',
+                                icon: '💧',
+                                body: 'Shows the aromatic compounds at percentage by weight. Myrcene (earthy, sedating), limonene (citrus, uplifting), and caryophyllene (pepper, anti-inflammatory) are the most common. A terpene content above 2% is considered high.',
+                            },
+                            {
+                                title: 'Pesticide Screening',
+                                icon: '🔬',
+                                body: 'Reports pesticide residues against state action limits. A "PASS" means all detected residues are below the threshold. BakedBot surfaces COAs with pesticide pass/fail status so you can verify before purchasing.',
+                            },
+                            {
+                                title: 'Heavy Metals & Microbials',
+                                icon: '⚗️',
+                                body: 'Screens for lead, arsenic, mercury, and cadmium (heavy metals) plus mold, yeast, and bacteria (microbials). All legal cannabis must pass these screens before sale.',
+                            },
+                            {
+                                title: 'Batch & Lot Numbers',
+                                icon: '🏷️',
+                                body: 'The batch number links the product to a specific harvest or production run. If a product is recalled, the batch number is how regulators track it. Always match the batch number on the label to the COA.',
+                            },
+                            {
+                                title: 'Testing Lab & Date',
+                                icon: '📋',
+                                body: 'COAs must be from ISO-accredited third-party labs. The test date matters — potency degrades over time, especially in edibles. BakedBot shows test dates so you can verify freshness.',
+                            },
+                        ].map(item => (
+                            <div key={item.title} className="rounded-xl border bg-card p-5">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-lg">{item.icon}</span>
+                                    <h3 className="font-semibold text-sm">{item.title}</h3>
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-relaxed">{item.body}</p>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                {/* ── Cannabis Glossary ─────────────────────────────────── */}
+                <section className="bg-muted/20 border-y py-14">
+                    <div className="container mx-auto px-4 max-w-4xl">
+                        <div className="flex items-center gap-2 mb-3">
+                            <BookOpen className="h-5 w-5 text-green-600" />
+                            <h2 className="text-2xl font-bold">Cannabis 101 Glossary</h2>
+                        </div>
+                        <p className="text-muted-foreground mb-8 max-w-2xl text-sm">Key terms every cannabis consumer should know.</p>
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {[
+                                { term: 'Indica', def: 'Cannabis variety traditionally associated with relaxing, body-heavy effects. Often recommended for evening use.' },
+                                { term: 'Sativa', def: 'Cannabis variety traditionally associated with energizing, cerebral effects. Often recommended for daytime use.' },
+                                { term: 'Hybrid', def: 'Cannabis strains bred from both indica and sativa genetics, offering a spectrum of effects.' },
+                                { term: 'THC', def: 'Delta-9-tetrahydrocannabinol — the primary psychoactive compound in cannabis responsible for the "high."' },
+                                { term: 'CBD', def: 'Cannabidiol — a non-psychoactive cannabinoid studied for potential anti-inflammatory and anti-anxiety properties.' },
+                                { term: 'Terpenes', def: 'Aromatic compounds in cannabis (and all plants) that contribute to flavor, scent, and the entourage effect.' },
+                                { term: 'Entourage Effect', def: 'The theory that cannabinoids and terpenes work synergistically — the full plant creates effects greater than isolated THC alone.' },
+                                { term: 'Decarboxylation', def: 'The process of heating cannabis to activate THCA into THC. Required for edibles and necessary for potency.' },
+                                { term: 'COA', def: 'Certificate of Analysis — the third-party lab report verifying potency, terpenes, and safety of a cannabis product.' },
+                                { term: 'Flower', def: 'The smokeable bud of the cannabis plant — the most traditional consumption format.' },
+                                { term: 'Concentrate', def: 'Highly potent cannabis extract (wax, shatter, oil, live resin) with THC levels often 60-90%.' },
+                                { term: 'Microdose', def: 'Consuming a very small amount of cannabis (typically 2.5mg THC or less) to achieve mild effects without intoxication.' },
+                            ].map(item => (
+                                <div key={item.term} className="rounded-lg border bg-card p-4">
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                        <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                                        <span className="font-semibold text-sm">{item.term}</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{item.def}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
                 {/* ── FAQ ───────────────────────────────────────────────── */}
                 <section className="container mx-auto px-4 py-14 max-w-3xl">
                     <div className="flex items-center gap-2 mb-8">
@@ -410,7 +500,7 @@ export default async function ExplorePage() {
 
             <LandingFooter />
 
-            {/* Schema.org — DataCatalog + WebSite + FAQPage */}
+            {/* Schema.org — DataCatalog + FAQPage + BreadcrumbList + HowTo */}
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{
@@ -418,19 +508,22 @@ export default async function ExplorePage() {
                         {
                             '@context': 'https://schema.org',
                             '@type': 'DataCatalog',
+                            '@id': 'https://bakedbot.ai/explore#catalog',
                             name: 'BakedBot Cannabis Data Library',
                             description: `The most comprehensive open cannabis database: ${strainCount} strains, terpene profiles, lab results, and dispensary data.`,
                             url: 'https://bakedbot.ai/explore',
+                            license: 'https://creativecommons.org/licenses/by/4.0/',
                             publisher: {
                                 '@type': 'Organization',
+                                '@id': 'https://bakedbot.ai/#org',
                                 name: 'BakedBot',
                                 url: 'https://bakedbot.ai',
                             },
                             dataset: [
-                                { '@type': 'Dataset', name: 'Cannabis Strain Encyclopedia', url: 'https://bakedbot.ai/strains', description: `${strainCount} cannabis strains with THC/CBD, terpenes, and effects.` },
-                                { '@type': 'Dataset', name: 'Terpene Profiles', url: 'https://bakedbot.ai/terpenes', description: `${terpeneCount} cannabis terpene profiles with effects and strain associations.` },
-                                { '@type': 'Dataset', name: 'Cannabis Lab Results (COA)', url: 'https://bakedbot.ai/lab-results', description: 'Certificates of Analysis from licensed cannabis testing labs.' },
-                                { '@type': 'Dataset', name: 'Cannabis Desert Index', url: 'https://bakedbot.ai/data/desert-index', description: 'ZIP-level cannabis access scores across the US.' },
+                                { '@type': 'Dataset', '@id': 'https://bakedbot.ai/strains#dataset', name: 'Cannabis Strain Encyclopedia', url: 'https://bakedbot.ai/strains', description: `${strainCount} cannabis strains with THC/CBD, terpenes, and effects.` },
+                                { '@type': 'Dataset', '@id': 'https://bakedbot.ai/terpenes#dataset', name: 'Terpene Profiles', url: 'https://bakedbot.ai/terpenes', description: `${terpeneCount} cannabis terpene profiles with effects and strain associations.` },
+                                { '@type': 'Dataset', '@id': 'https://bakedbot.ai/lab-results#dataset', name: 'Cannabis Lab Results (COA)', url: 'https://bakedbot.ai/lab-results', description: 'Certificates of Analysis from licensed cannabis testing labs.' },
+                                { '@type': 'Dataset', '@id': 'https://bakedbot.ai/data/desert-index#dataset', name: 'Cannabis Desert Index', url: 'https://bakedbot.ai/data/desert-index', description: 'ZIP-level cannabis access scores across the US.' },
                             ],
                         },
                         {
@@ -439,7 +532,11 @@ export default async function ExplorePage() {
                             mainEntity: FAQ.map(item => ({
                                 '@type': 'Question',
                                 name: item.q,
-                                acceptedAnswer: { '@type': 'Answer', text: item.a },
+                                acceptedAnswer: {
+                                    '@type': 'Answer',
+                                    text: item.a,
+                                    author: { '@type': 'Organization', '@id': 'https://bakedbot.ai/#org', name: 'BakedBot' },
+                                },
                             })),
                         },
                         {
@@ -448,6 +545,22 @@ export default async function ExplorePage() {
                             itemListElement: [
                                 { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://bakedbot.ai' },
                                 { '@type': 'ListItem', position: 2, name: 'Cannabis Data Library', item: 'https://bakedbot.ai/explore' },
+                            ],
+                        },
+                        {
+                            '@context': 'https://schema.org',
+                            '@type': 'HowTo',
+                            name: 'How to Read a Cannabis Certificate of Analysis (COA)',
+                            description: 'A COA is the lab report for every legal cannabis product. This guide explains what each section means.',
+                            url: 'https://bakedbot.ai/explore#how-to-read-coa',
+                            author: { '@type': 'Organization', '@id': 'https://bakedbot.ai/#org', name: 'BakedBot' },
+                            step: [
+                                { '@type': 'HowToStep', name: 'Check Cannabinoid Potency', text: 'THC%, CBD%, and other cannabinoids are listed as a percentage of total weight. Total THC includes THCA converted during decarboxylation.' },
+                                { '@type': 'HowToStep', name: 'Review the Terpene Profile', text: 'Terpenes at 2%+ by weight is considered high. Look for myrcene, limonene, and caryophyllene as the most common cannabis terpenes.' },
+                                { '@type': 'HowToStep', name: 'Verify Pesticide Screening', text: 'A PASS result means all residues are below state action limits. BakedBot surfaces COAs with pesticide pass/fail status.' },
+                                { '@type': 'HowToStep', name: 'Check Heavy Metals & Microbials', text: 'Screens for lead, arsenic, mercury, cadmium, mold, yeast, and bacteria. All legal cannabis must pass before sale.' },
+                                { '@type': 'HowToStep', name: 'Match Batch Numbers', text: 'The batch number on the product label should match the COA. This links the product to a specific harvest or production run.' },
+                                { '@type': 'HowToStep', name: 'Verify the Testing Lab', text: 'COAs must come from ISO-accredited third-party labs. Check the test date — potency degrades over time.' },
                             ],
                         },
                     ]),

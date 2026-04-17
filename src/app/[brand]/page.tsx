@@ -8,6 +8,7 @@ import { getActiveBundles } from '@/app/actions/bundles';
 import { getHeroSlides } from '@/app/actions/hero-slides';
 import { getPublicMenuSettings } from '@/server/actions/loyalty-settings';
 import { demoProducts } from '@/lib/demo/demo-data';
+import { buildOpeningHoursSpecification } from '@/lib/agent-web/schema-org-builder';
 
 // Components
 import { MenuWithAgeGate } from '@/components/menu/menu-with-age-gate';
@@ -202,37 +203,141 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
     const address = brand.location?.address ?? (brand as any).address ?? '';
     const zip     = brand.location?.zip   ?? (brand as any).zip   ?? '';
     const canonicalUrl = `https://bakedbot.ai/${brandParam}`;
+    const storeId = `${canonicalUrl}#store`;
+    const orgId   = `${canonicalUrl}#org`;
+    const hoursSpec = buildOpeningHoursSpecification(brand);
+    const websiteUrl: string | undefined = (brand as any).website ?? undefined;
+    const brandDescription: string = (brand as any).description ?? (
+        isDispensary
+            ? `Cannabis dispensary in ${city}, ${state}`
+            : 'Premium cannabis brand'
+    );
 
-    const jsonLd = isDispensary ? {
+    // 1. Main entity — MedicalBusiness (dispensary) or Organization (brand)
+    const mainEntitySchema = isDispensary ? {
         '@context': 'https://schema.org',
         '@type': 'MedicalBusiness',
+        '@id': storeId,
         name: brand.name,
-        description: (brand as any).description ?? `Cannabis dispensary in ${city}, ${state}`,
+        description: brandDescription,
         url: canonicalUrl,
-        logo: brand.logoUrl ?? undefined,
-        telephone: phone || undefined,
-        address: address ? {
-            '@type': 'PostalAddress',
-            streetAddress: address,
-            addressLocality: city,
-            addressRegion: state,
-            postalCode: zip,
-            addressCountry: 'US',
-        } : undefined,
-        openingHours: (brand as any).hours ?? undefined,
+        ...(brand.logoUrl ? { logo: brand.logoUrl } : {}),
+        ...(phone ? { telephone: phone } : {}),
+        ...(address ? {
+            address: {
+                '@type': 'PostalAddress',
+                streetAddress: address,
+                addressLocality: city,
+                addressRegion: state,
+                postalCode: zip,
+                addressCountry: 'US',
+            },
+        } : {}),
+        ...(hoursSpec.length > 0 ? { openingHoursSpecification: hoursSpec } : {}),
         priceRange: '$$',
         currenciesAccepted: 'USD',
         paymentAccepted: 'Cash, Credit Card, Debit Card',
-        hasMap: address ? `https://maps.google.com/?q=${encodeURIComponent([address, city, state].filter(Boolean).join(', '))}` : undefined,
+        ...(address ? { hasMap: `https://maps.google.com/?q=${encodeURIComponent([address, city, state].filter(Boolean).join(', '))}` } : {}),
+        sameAs: [websiteUrl].filter(Boolean),
     } : {
         '@context': 'https://schema.org',
         '@type': 'Organization',
+        '@id': orgId,
         name: brand.name,
-        description: (brand as any).description ?? `Premium cannabis brand`,
+        description: brandDescription,
         url: canonicalUrl,
-        logo: brand.logoUrl ?? undefined,
-        sameAs: (brand as any).website ? [(brand as any).website] : [],
+        ...(brand.logoUrl ? { logo: brand.logoUrl } : {}),
+        sameAs: [websiteUrl].filter(Boolean),
     };
+
+    // 2. ProfilePage — canonical identity page signal
+    const profilePageSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'ProfilePage',
+        name: `${brand.name} ${isDispensary ? 'Cannabis Dispensary' : 'Cannabis Brand'}`,
+        url: canonicalUrl,
+        mainEntity: { '@id': isDispensary ? storeId : orgId },
+    };
+
+    // 3. BreadcrumbList
+    const breadcrumbSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://bakedbot.ai' },
+            isDispensary
+                ? { '@type': 'ListItem', position: 2, name: 'Dispensaries', item: 'https://bakedbot.ai/dispensaries' }
+                : { '@type': 'ListItem', position: 2, name: 'Brands', item: 'https://bakedbot.ai/brands' },
+            { '@type': 'ListItem', position: 3, name: brand.name, item: canonicalUrl },
+        ],
+    };
+
+    // 4. Product ItemList — top 12 products for SERP visibility
+    const topProducts = (products ?? []).slice(0, 12);
+    const productListSchema = topProducts.length > 0 ? {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: `${brand.name} Cannabis Menu`,
+        numberOfItems: (products ?? []).length,
+        itemListElement: topProducts.map((p, i) => ({
+            '@type': 'ListItem',
+            position: i + 1,
+            name: (p as any).name ?? 'Product',
+            url: `${canonicalUrl}/products/${(p as any).id}`,
+            ...((p as any).imageUrl ? { image: (p as any).imageUrl } : {}),
+        })),
+    } : null;
+
+    // 5. FAQPage — dispensaries only, factual answers only (no health/medical claims)
+    const faqItems: Record<string, unknown>[] = [];
+    if (isDispensary) {
+        if (address && city) {
+            faqItems.push({
+                '@type': 'Question',
+                name: `Where is ${brand.name} located?`,
+                acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: `${brand.name} is located at ${[address, city, state, zip].filter(Boolean).join(', ')}.`,
+                },
+            });
+        }
+        if (phone) {
+            faqItems.push({
+                '@type': 'Question',
+                name: `What is the phone number for ${brand.name}?`,
+                acceptedAnswer: { '@type': 'Answer', text: `You can reach ${brand.name} at ${phone}.` },
+            });
+        }
+        faqItems.push({
+            '@type': 'Question',
+            name: `What products does ${brand.name} carry?`,
+            acceptedAnswer: {
+                '@type': 'Answer',
+                text: `${brand.name} carries cannabis products including flower, edibles, concentrates, pre-rolls, and accessories. Browse the full menu at ${canonicalUrl}.`,
+            },
+        });
+        faqItems.push({
+            '@type': 'Question',
+            name: `Does ${brand.name} have a loyalty program?`,
+            acceptedAnswer: {
+                '@type': 'Answer',
+                text: `${brand.name} offers a VIP loyalty rewards program. Earn points on every purchase and redeem for discounts on future orders.`,
+            },
+        });
+    }
+    const faqSchema = faqItems.length > 0 ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqItems,
+    } : null;
+
+    const allSchemas = [
+        mainEntitySchema,
+        profilePageSchema,
+        breadcrumbSchema,
+        ...(productListSchema ? [productListSchema] : []),
+        ...(faqSchema ? [faqSchema] : []),
+    ];
 
     return (
         <MenuWithAgeGate
@@ -241,8 +346,10 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
         >
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(allSchemas) }}
             />
+            {/* Link to machine-readable agent API for AI crawlers */}
+            <link rel="alternate" type="application/ld+json" href={`/api/agent/${brandParam}`} />
             <main className="relative min-h-screen">
                 <BrandMenuClient
                     brand={brand}

@@ -38,6 +38,13 @@ interface SchemaGeoCoordinates {
   longitude: number;
 }
 
+export interface SchemaOpeningHoursSpecification {
+  "@type": "OpeningHoursSpecification";
+  dayOfWeek: string;
+  opens?: string;
+  closes?: string;
+}
+
 interface SchemaOffer {
   "@type": "Offer";
   price: string;
@@ -336,34 +343,63 @@ function buildGeo(brand: Brand): SchemaGeoCoordinates | undefined {
 
 // --- Hours ---
 
+const DAY_ABBREVIATIONS: Record<string, string> = {
+  monday: "Mo", tuesday: "Tu", wednesday: "We", thursday: "Th",
+  friday: "Fr", saturday: "Sa", sunday: "Su",
+  mon: "Mo", tue: "Tu", wed: "We", thu: "Th",
+  fri: "Fr", sat: "Sa", sun: "Su",
+};
+
+const DAY_OF_WEEK_URLS: Record<string, string> = {
+  monday: "https://schema.org/Monday", tuesday: "https://schema.org/Tuesday",
+  wednesday: "https://schema.org/Wednesday", thursday: "https://schema.org/Thursday",
+  friday: "https://schema.org/Friday", saturday: "https://schema.org/Saturday",
+  sunday: "https://schema.org/Sunday",
+  mon: "https://schema.org/Monday", tue: "https://schema.org/Tuesday",
+  wed: "https://schema.org/Wednesday", thu: "https://schema.org/Thursday",
+  fri: "https://schema.org/Friday", sat: "https://schema.org/Saturday",
+  sun: "https://schema.org/Sunday",
+};
+
 function buildOpeningHours(brand: Brand): string[] {
   if (!brand.hours || Object.keys(brand.hours).length === 0) return [];
 
-  const dayAbbreviations: Record<string, string> = {
-    monday: "Mo",
-    tuesday: "Tu",
-    wednesday: "We",
-    thursday: "Th",
-    friday: "Fr",
-    saturday: "Sa",
-    sunday: "Su",
-    mon: "Mo",
-    tue: "Tu",
-    wed: "We",
-    thu: "Th",
-    fri: "Fr",
-    sat: "Sa",
-    sun: "Su",
-  };
-
   const hours: string[] = [];
   for (const [day, time] of Object.entries(brand.hours)) {
-    const abbr = dayAbbreviations[day.toLowerCase()] || day;
-    // schema.org format: "Mo 09:00-17:00"
+    const abbr = DAY_ABBREVIATIONS[day.toLowerCase()] || day;
     hours.push(`${abbr} ${time}`);
   }
 
   return hours;
+}
+
+/**
+ * Builds proper OpeningHoursSpecification objects for HTML page schema.
+ * Use this instead of buildOpeningHours() for on-page JSON-LD.
+ */
+export function buildOpeningHoursSpecification(
+  brand: Brand,
+): SchemaOpeningHoursSpecification[] {
+  if (!brand.hours || Object.keys(brand.hours).length === 0) return [];
+
+  const specs: SchemaOpeningHoursSpecification[] = [];
+  for (const [day, time] of Object.entries(brand.hours)) {
+    const dayUrl = DAY_OF_WEEK_URLS[day.toLowerCase()];
+    if (!dayUrl) continue;
+    const timeStr = String(time ?? "").trim();
+    if (!timeStr || timeStr.toLowerCase() === "closed") continue;
+
+    const parts = timeStr.split("-");
+    if (parts.length === 2) {
+      specs.push({
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: dayUrl,
+        opens: parts[0].trim(),
+        closes: parts[1].trim(),
+      });
+    }
+  }
+  return specs;
 }
 
 // --- Loyalty ---

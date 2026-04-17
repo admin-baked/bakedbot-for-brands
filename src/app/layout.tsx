@@ -92,9 +92,51 @@ export default async function RootLayout({
     );
   }
 
+  const siteSchemas = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      '@id': 'https://bakedbot.ai/#website',
+      name: 'BakedBot',
+      url: 'https://bakedbot.ai',
+      description: 'AI Commerce OS for cannabis dispensaries — menus, loyalty, marketing automation, and real-time analytics.',
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: 'https://bakedbot.ai/dispensaries?q={search_term_string}',
+        },
+        'query-input': 'required name=search_term_string',
+      },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      '@id': 'https://bakedbot.ai/#org',
+      name: 'BakedBot',
+      url: 'https://bakedbot.ai',
+      logo: 'https://bakedbot.ai/assets/agents/smokey-main.png',
+      description: 'The first cannabis commerce platform built for both the human web and the agent web.',
+      sameAs: [
+        'https://instagram.com/bakedbotai',
+        'https://twitter.com/bakedbotai',
+        'https://linkedin.com/company/bakedbot',
+      ],
+      knowsAbout: [
+        { '@type': 'Thing', name: 'Cannabis dispensary software', 'sameAs': 'https://en.wikipedia.org/wiki/Cannabis_dispensary' },
+        { '@type': 'Thing', name: 'Cannabis retail technology' },
+        { '@type': 'Thing', name: 'Dispensary loyalty programs' },
+      ],
+    },
+  ];
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="font-sans min-h-screen bg-background text-foreground" suppressHydrationWarning>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteSchemas) }}
+        />
         <Providers>
           <AppLayout>
             <GoogleAnalytics />
