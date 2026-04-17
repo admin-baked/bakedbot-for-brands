@@ -245,8 +245,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         });
 
     } catch (error) {
-        logger.error('[ReplyCheck] Unexpected error', { error: String(error) });
-        return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        const errMsg = error instanceof Error ? error.message : String(error);
+        const errStack = error instanceof Error ? error.stack?.split('\n').slice(0, 3).join(' | ') : '';
+        logger.error('[ReplyCheck] Unexpected error', { error: errMsg, stack: errStack });
+        return NextResponse.json({ success: false, error: errMsg, stack: errStack }, { status: 500 });
     }
 }
 
