@@ -8,6 +8,11 @@
  */
 
 import { requireUser } from '@/server/auth/auth';
+import {
+  type ActorContextLike,
+  isValidDocumentId,
+  requireActorOrgId,
+} from '@/server/auth/actor-context';
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import {
@@ -37,38 +42,22 @@ import type {
 // HELPER FUNCTIONS
 // =============================================================================
 
-type ProfitabilityActor = {
+type ProfitabilityActor = ActorContextLike & {
   uid: string;
-  role?: string;
-  orgId?: string;
-  brandId?: string;
-  currentOrgId?: string;
 };
 
-function getOrgId(user: ProfitabilityActor): string | null {
-  return user.currentOrgId || user.orgId || user.brandId || null;
-}
-
-function isValidOrgId(orgId: string): boolean {
-  return !!orgId && !orgId.includes('/');
-}
-
-function isValidDocumentId(id: string): boolean {
-  return !!id && !id.includes('/');
-}
-
 function requireOrgId(user: ProfitabilityActor, action: string): string {
-  const orgId = getOrgId(user);
-  if (!orgId || !isValidOrgId(orgId)) {
+  try {
+    return requireActorOrgId(user, action);
+  } catch (error) {
     logger.warn('[profitability] Missing or invalid org context', {
       action,
       actor: user.uid,
       actorRole: user.role,
-      orgId,
+      error: error instanceof Error ? error.message : String(error),
     });
     throw new Error('Missing organization context');
   }
-  return orgId;
 }
 
 function getPeriodDates(period: ReportPeriod, customStart?: Date, customEnd?: Date): { start: Date; end: Date } {
@@ -766,7 +755,12 @@ export async function getThriveProfitabilityDashboard(
   const orgId = 'org_thrive_syracuse';
 
   // Check authorization
-  const userOrgId = getOrgId(user as ProfitabilityActor);
+  let userOrgId: string | null = null;
+  try {
+    userOrgId = requireActorOrgId(user as ProfitabilityActor, 'getThriveProfitabilityDashboard');
+  } catch {
+    userOrgId = null;
+  }
   if (userOrgId !== orgId && user.role !== 'super_user' && user.role !== 'super_admin') {
     throw new Error('Unauthorized access to Thrive Syracuse data');
   }

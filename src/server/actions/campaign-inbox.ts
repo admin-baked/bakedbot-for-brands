@@ -15,6 +15,13 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    isValidDocumentId,
+    isValidOrgId,
+    resolveActorOrgId,
+} from '@/server/auth/actor-context';
 import type { UserRole } from '@/types/roles';
 import { logger } from '@/lib/logger';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
@@ -42,12 +49,8 @@ import type { InboxArtifact } from '@/types/inbox';
 
 const ALLOWED_ROLES: UserRole[] = ['dispensary_admin', 'brand_admin', 'super_user', 'super_admin'];
 
-type CampaignInboxUser = {
+type CampaignInboxUser = ActorContextLike & {
     uid: string;
-    role?: string;
-    orgId?: string;
-    brandId?: string;
-    currentOrgId?: string;
 };
 
 type ActorAccess = {
@@ -56,22 +59,6 @@ type ActorAccess = {
     orgId: string | null;
     isSuper: boolean;
 };
-
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
-function getOrgId(user: CampaignInboxUser): string | null {
-    return user.currentOrgId || user.orgId || user.brandId || null;
-}
-
-function isValidDocId(id: string): boolean {
-    return !!id && !id.includes('/');
-}
-
-function isValidOrgId(orgId: string): boolean {
-    return !!orgId && !orgId.includes('/');
-}
 
 function isCronExpressionValid(cron: string): boolean {
     // Basic 5-field cron validation; executor enforces semantics later.
@@ -119,7 +106,7 @@ async function patchArtifactData(
     actor: ActorAccess,
     patch: Partial<OutreachDraftData>,
 ) {
-    if (!isValidDocId(artifactId)) return;
+    if (!isValidDocumentId(artifactId)) return;
     const db = getAdminFirestore();
     const doc = await db.collection('inbox_artifacts').doc(artifactId).get();
     if (!doc.exists) return;
@@ -308,7 +295,7 @@ export async function sendCampaignFromInbox(params: {
     let actor: ActorAccess | null = null;
     let artifactOrgId: string | null = null;
     try {
-        if (!isValidDocId(params.artifactId)) {
+        if (!isValidDocumentId(params.artifactId)) {
             return { success: false, error: 'Invalid artifact id.' };
         }
 
@@ -316,7 +303,7 @@ export async function sendCampaignFromInbox(params: {
         actor = {
             uid: user.uid,
             role: user.role,
-            orgId: getOrgId(user),
+            orgId: resolveActorOrgId(user),
             isSuper: isSuperRole(user.role),
         };
         if (!actor.isSuper && !actor.orgId) {
@@ -599,7 +586,7 @@ export async function scheduleCampaignFromInbox(params: {
     error?: string;
 }> {
     try {
-        if (!isValidDocId(params.artifactId)) {
+        if (!isValidDocumentId(params.artifactId)) {
             return { success: false, error: 'Invalid artifact id.' };
         }
 
@@ -607,7 +594,7 @@ export async function scheduleCampaignFromInbox(params: {
         const actor: ActorAccess = {
             uid: user.uid,
             role: user.role,
-            orgId: getOrgId(user),
+            orgId: resolveActorOrgId(user),
             isSuper: isSuperRole(user.role),
         };
         if (!actor.isSuper && !actor.orgId) {
@@ -768,7 +755,7 @@ export async function convertOutreachToPlaybook(params: {
     error?: string;
 }> {
     try {
-        if (!isValidDocId(params.artifactId)) {
+        if (!isValidDocumentId(params.artifactId)) {
             return { success: false, error: 'Invalid artifact id.' };
         }
 
@@ -776,7 +763,7 @@ export async function convertOutreachToPlaybook(params: {
         const actor: ActorAccess = {
             uid: user.uid,
             role: user.role,
-            orgId: getOrgId(user),
+            orgId: resolveActorOrgId(user),
             isSuper: isSuperRole(user.role),
         };
         if (!actor.isSuper && !actor.orgId) {

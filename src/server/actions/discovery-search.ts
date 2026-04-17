@@ -3,6 +3,12 @@
 import { discovery } from '@/server/services/firecrawl';
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    isValidOrgId,
+    resolveActorOrgId,
+} from '@/server/auth/actor-context';
 import { logger } from '@/lib/logger';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -20,12 +26,8 @@ export interface SearchResult {
     error?: string;
 }
 
-type DiscoveryActor = {
+type DiscoveryActor = ActorContextLike & {
     uid: string;
-    role?: string;
-    orgId?: string;
-    currentOrgId?: string;
-    brandId?: string;
 };
 
 const DISCOVERY_ROLES = [
@@ -36,18 +38,6 @@ const DISCOVERY_ROLES = [
     'super_user',
     'super_admin',
 ] as const;
-
-function getActorOrgId(user: DiscoveryActor): string | null {
-    return user.currentOrgId || user.orgId || user.brandId || null;
-}
-
-function isValidOrgId(orgId: string): boolean {
-    return !!orgId && !orgId.includes('/');
-}
-
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
 
 function normalizeHttpUrl(input: string): string {
     const parsed = new URL(input);
@@ -113,7 +103,7 @@ export async function linkEntity(entity: DiscoveryEntity) {
         // Better: Update the User's "Linked Organization"
         
         // Require explicit org context from auth claims.
-        const orgId = getActorOrgId(user as DiscoveryActor);
+        const orgId = resolveActorOrgId(user as DiscoveryActor);
         if (!orgId || !isValidOrgId(orgId)) {
             return { success: false, error: 'Missing organization context' };
         }
@@ -156,7 +146,7 @@ export async function triggerDiscoverySync(orgId: string, url: string, type: 'di
     if (!isValidOrgId(orgId)) {
         throw new Error('Invalid organization context');
     }
-    const actorOrgId = getActorOrgId(user as DiscoveryActor);
+    const actorOrgId = resolveActorOrgId(user as DiscoveryActor);
     if (!actorOrgId || !isValidOrgId(actorOrgId)) {
         throw new Error('Missing organization context');
     }

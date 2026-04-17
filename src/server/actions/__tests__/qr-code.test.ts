@@ -46,7 +46,7 @@ describe('qr-code actions: getQRCodes access control', () => {
     });
   });
 
-  it('ignores caller-provided orgId for non-super users', async () => {
+  it('blocks caller-provided orgId overrides for non-super users', async () => {
     (getServerSessionUser as jest.Mock).mockResolvedValue({
       uid: 'user-1',
       currentOrgId: 'org-a',
@@ -55,8 +55,11 @@ describe('qr-code actions: getQRCodes access control', () => {
 
     const result = await getQRCodes({ orgId: 'org-b' });
 
-    expect(result.success).toBe(true);
-    expect(query.where).toHaveBeenCalledWith('orgId', '==', 'org-a');
+    expect(result).toEqual({
+      success: false,
+      error: 'Unauthorized org context',
+    });
+    expect(query.where).not.toHaveBeenCalled();
   });
 
   it('allows super users to query a specific orgId', async () => {

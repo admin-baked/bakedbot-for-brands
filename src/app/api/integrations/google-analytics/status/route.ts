@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/auth/auth';
+import { requireActorOrgId } from '@/server/auth/actor-context';
 import { googleAnalyticsService } from '@/server/services/growth/google-analytics';
 
 /**
@@ -12,7 +13,7 @@ import { googleAnalyticsService } from '@/server/services/growth/google-analytic
 export async function GET() {
     try {
         const user = await requireUser();
-        const orgId = (user as any).brandId || (user as any).locationId || (user as any).orgId || (user as any).currentOrgId || user.uid;
+        const orgId = requireActorOrgId(user, 'googleAnalyticsStatus');
         const status = await googleAnalyticsService.getConnectionStatus(user.uid, orgId);
         return NextResponse.json(status);
     } catch (error) {

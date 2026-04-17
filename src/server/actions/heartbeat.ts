@@ -8,6 +8,10 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    requireActorOrgId,
+} from '@/server/auth/actor-context';
 import { logger } from '@/lib/logger';
 import type {
     HeartbeatConfig,
@@ -27,40 +31,29 @@ import {
     saveTenantHeartbeatConfig,
 } from '@/server/services/heartbeat';
 
-type HeartbeatActor = {
+type HeartbeatActor = ActorContextLike & {
     uid: string;
-    role?: string;
-    orgId?: string;
-    brandId?: string;
-    currentOrgId?: string;
 };
-
-function getActorTenantId(user: HeartbeatActor): string | null {
-    return user.currentOrgId || user.orgId || user.brandId || null;
-}
-
-function isValidTenantId(tenantId: string): boolean {
-    return !!tenantId && !tenantId.includes('/');
-}
 
 function resolveTenantContext(
     user: HeartbeatActor,
     action: string
 ): { tenantId: string; role: HeartbeatRole } | null {
-    const tenantId = getActorTenantId(user);
-    if (!tenantId || !isValidTenantId(tenantId)) {
+    try {
+        const tenantId = requireActorOrgId(user, action);
+        return {
+            tenantId,
+            role: determineRole(user.role ?? undefined),
+        };
+    } catch (error) {
         logger.warn('[Heartbeat] Missing or invalid tenant context', {
             action,
             actor: user.uid,
             actorRole: user.role,
-            tenantId,
+            error: error instanceof Error ? error.message : String(error),
         });
         return null;
     }
-    return {
-        tenantId,
-        role: determineRole(user.role),
-    };
 }
 
 // =============================================================================

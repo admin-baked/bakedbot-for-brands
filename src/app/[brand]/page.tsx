@@ -273,13 +273,13 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
     };
 
     // 4. Product ItemList — top 12 products for SERP visibility
-    const topProducts = (products ?? []).slice(0, 12);
+    const topProducts = ((products ?? []) as Array<{ name?: string | null; id?: string | null }>).slice(0, 12);
     const productListSchema = topProducts.length > 0 ? {
         '@context': 'https://schema.org',
         '@type': 'ItemList',
         name: `${brand.name} Cannabis Menu`,
         numberOfItems: (products ?? []).length,
-        itemListElement: topProducts.map((p, i) => ({
+        itemListElement: topProducts.map((p: { name?: string | null; id?: string | null }, i: number) => ({
             '@type': 'ListItem',
             position: i + 1,
             name: (p as any).name ?? 'Product',

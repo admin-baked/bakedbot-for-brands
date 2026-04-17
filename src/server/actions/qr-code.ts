@@ -8,6 +8,15 @@
 
 import { FieldValue } from 'firebase-admin/firestore';
 import { getAdminFirestore } from '@/firebase/admin';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    isValidDocumentId,
+    isValidOrgId,
+    requireActorOrgId,
+    resolveActorOrgId,
+    resolveScopedOrgId,
+} from '@/server/auth/actor-context';
 import { getServerSessionUser } from '@/server/auth/session';
 import { logger } from '@/lib/logger';
 import QRCode from 'qrcode';
@@ -23,29 +32,9 @@ function getDb() {
     return getAdminFirestore();
 }
 
-type SessionActor = {
+type SessionActor = ActorContextLike & {
     uid: string;
-    role?: string;
-    orgId?: string;
-    brandId?: string;
-    currentOrgId?: string;
 };
-
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
-function getActorOrgId(user: SessionActor): string | null {
-    return user.currentOrgId || user.orgId || user.brandId || null;
-}
-
-function isValidOrgId(orgId: string): boolean {
-    return !!orgId && !orgId.includes('/');
-}
-
-function isValidDocumentId(id: string): boolean {
-    return !!id && !id.includes('/');
-}
 
 function normalizeHttpUrl(input: string): string {
     const trimmed = input.trim();
@@ -61,9 +50,19 @@ function normalizeHttpUrl(input: string): string {
 }
 
 function canAccessOrg(user: SessionActor, orgId: string): boolean {
-    if (isSuperRole(user.role)) return true;
-    const actorOrgId = getActorOrgId(user);
-    return !!actorOrgId && actorOrgId === orgId;
+    if (!isValidOrgId(orgId)) {
+        return false;
+    }
+
+    try {
+        return resolveScopedOrgId({
+            actor: user,
+            requestedOrgId: orgId,
+            allowSuperOverride: true,
+        }) === orgId;
+    } catch {
+        return false;
+    }
 }
 
 // ============ QR Code Generation ============
@@ -90,11 +89,14 @@ export async function generateQRCode(input: {
             return { success: false, error: 'Unauthorized' };
         }
         const actor = user as SessionActor;
-        const orgId = getActorOrgId(actor);
-        if (!orgId || !isValidOrgId(orgId)) {
+        let orgId: string;
+        try {
+            orgId = requireActorOrgId(actor, 'generateQRCode');
+        } catch (error) {
             logger.warn('Missing org context for QR code generation', {
                 actor: actor.uid,
                 role: actor.role,
+                error: error instanceof Error ? error.message : String(error),
             });
             return { success: false, error: 'Missing organization context' };
         }
@@ -259,20 +261,26 @@ export async function getQRCodes(params?: {
             return { success: false, error: 'Unauthorized' };
         }
         const actor = user as SessionActor;
-        const actorOrgId = getActorOrgId(actor);
-        const isSuperUser = isSuperRole(actor.role);
         const requestedOrgId = params?.orgId;
 
-        const scopedOrgId = isSuperUser
-            ? (requestedOrgId || actorOrgId)
-            : actorOrgId;
-        if (!scopedOrgId || !isValidOrgId(scopedOrgId)) {
+        let scopedOrgId: string;
+        try {
+            scopedOrgId = resolveScopedOrgId({
+                actor,
+                requestedOrgId,
+                allowSuperOverride: true,
+            });
+        } catch (error) {
             logger.warn('Missing org scope for QR code query', {
                 actor: actor.uid,
                 role: actor.role,
                 requestedOrgId,
+                error: error instanceof Error ? error.message : String(error),
             });
-            return { success: false, error: 'Missing organization context' };
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Missing organization context',
+            };
         }
 
         const db = getDb();
