@@ -13,6 +13,13 @@ import type { InsightCard } from '@/types/insight-cards';
 
 // ============ Generator ============
 
+type CustomerSegmentMetrics = {
+  count?: number;
+  totalSpent?: number;
+  avgSpend?: number;
+  recentActiveCount?: number;
+};
+
 export class CustomerInsightsGenerator extends InsightGeneratorBase {
   constructor(orgId: string) {
     super(orgId, 'smokey', 'Smokey', 'customer');
@@ -30,7 +37,7 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
       // Fetch segment data, at-risk customers, and today's traffic in parallel
       const [segmentResult, atRiskResult, todayCheckins, todayMix] = await Promise.all([
         this.getSegments(),
-        getAtRiskCustomers(this.orgId, 100, true),
+        getAtRiskCustomers(this.orgId, 100, false),
         getTodayCheckins(this.orgId).catch(() => 0),
         this.getTodayNewVsReturning(),
       ]);
@@ -253,16 +260,32 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
     segments: Record<string, unknown>,
     todayTraffic?: { todayCheckins: number; todayNew: number; todayReturning: number },
   ): InsightCard {
-    // Lifetime segment counts (overall health)
-    const newCount = ((segments.new as any)?.count || 0) as number;
-    const returningCount =
-      (((segments.loyal as any)?.count || 0) +
-        ((segments.frequent as any)?.count || 0) +
-        ((segments.vip as any)?.count || 0) +
-        ((segments.regular as any)?.count || 0)) as number;
-    const totalActive = newCount + returningCount;
+    const returningSegments = ['vip', 'loyal', 'frequent', 'high_value', 'regular'] as const;
+    const getSegmentMetrics = (segmentKey: string): CustomerSegmentMetrics => {
+      const metrics = segments[segmentKey];
+      return typeof metrics === 'object' && metrics !== null
+        ? (metrics as CustomerSegmentMetrics)
+        : {};
+    };
+    const sumMetric = (
+      segmentKeys: readonly string[],
+      metric: keyof CustomerSegmentMetrics,
+    ): number => segmentKeys.reduce((sum, segmentKey) => sum + (getSegmentMetrics(segmentKey)[metric] ?? 0), 0);
+
+    const lifetimeNewCount = getSegmentMetrics('new').count ?? 0;
+    const lifetimeReturningCount = sumMetric(returningSegments, 'count');
+    const lifetimeTrackedBase = lifetimeNewCount + lifetimeReturningCount;
+
+    const activeNewCount = getSegmentMetrics('new').recentActiveCount ?? 0;
+    const activeReturningCount = sumMetric(returningSegments, 'recentActiveCount');
+    const activeThirtyDayBase = activeNewCount + activeReturningCount;
+    const hasThirtyDayBase = activeThirtyDayBase > 0;
+
+    const overallNewCount = hasThirtyDayBase ? activeNewCount : lifetimeNewCount;
+    const overallReturningCount = hasThirtyDayBase ? activeReturningCount : lifetimeReturningCount;
+    const overallBaseCount = overallNewCount + overallReturningCount;
     const returningPercent =
-      totalActive > 0 ? Math.round((returningCount / totalActive) * 100) : 0;
+      overallBaseCount > 0 ? Math.round((overallReturningCount / overallBaseCount) * 100) : 0;
 
     // Today's actual traffic — this is what changes daily
     const todayTotal = (todayTraffic?.todayNew ?? 0) + (todayTraffic?.todayReturning ?? 0);
@@ -280,7 +303,14 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
         : `Today: ${todayCheckins} check-in${todayCheckins !== 1 ? 's' : ''} so far`;
       subtextParts.push(todayLine);
     }
-    subtextParts.push(`Overall: ${newCount} new | ${returningCount} returning | ${totalActive} active (30-day window)`);
+    subtextParts.push(
+      hasThirtyDayBase
+        ? `30-day active CRM base: ${activeNewCount} new | ${activeReturningCount} returning | ${activeThirtyDayBase} total`
+        : `Tracked CRM base: ${lifetimeNewCount} new | ${lifetimeReturningCount} returning | ${lifetimeTrackedBase} total`
+    );
+    if (hasThirtyDayBase && lifetimeTrackedBase > activeThirtyDayBase) {
+      subtextParts.push(`Tracked CRM base: ${lifetimeTrackedBase} segmented customers`);
+    }
 
     return this.createInsight({
       title: 'CUSTOMER MIX',
@@ -289,25 +319,35 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
         : `${returningPercent}% returning customers`,
       subtext: subtextParts.join('\n'),
       tooltipText:
-        'Returning: ordered within the last 30 days. New: first-ever visit or no order in 30+ days. Updates every hour with live check-in and order data.',
+        'Returning: repeat customers active in the last 30 days. New: first-ever visitors or first-time buyers in that same 30-day window. Updates every hour with live check-in and order data.',
       value: hasTodayData && todayTotal > 0 ? todayTotal : returningPercent,
       unit: hasTodayData && todayTotal > 0 ? 'customers today' : '%',
       severity,
       trend,
       trendValue: hasTodayData && todayTotal > 0
         ? `${todayTraffic!.todayReturning}/${todayTotal} returning`
-        : `${returningPercent}%`,
+        : hasThirtyDayBase
+          ? `${returningPercent}% of 30-day active CRM base`
+          : `${returningPercent}% of tracked CRM base`,
       actionable: true,
       ctaLabel: 'Retention Strategy',
       threadType: 'crm_customer',
-      threadPrompt: `Analyze our customer retention metrics. Today we've had ${todayTotal} customers (${todayTraffic?.todayNew ?? 0} new, ${todayTraffic?.todayReturning ?? 0} returning). Overall: ${newCount} new and ${returningCount} returning in the last 30 days (${returningPercent}% retention). What strategies should we focus on?`,
+      threadPrompt: `Analyze our customer retention metrics. Today we've had ${todayTotal} customers (${todayTraffic?.todayNew ?? 0} new, ${todayTraffic?.todayReturning ?? 0} returning). Our ${hasThirtyDayBase ? '30-day active CRM base' : 'tracked CRM base'} is ${overallNewCount} new and ${overallReturningCount} returning (${returningPercent}% repeat). What strategies should we focus on?`,
       dataSource: 'Check-ins + orders (live) + CRM segments',
       metadata: {
         todayCheckins,
         todayNew: todayTraffic?.todayNew ?? 0,
         todayReturning: todayTraffic?.todayReturning ?? 0,
-        overallNewCount: newCount,
-        overallReturningCount: returningCount,
+        activeNewCount,
+        activeReturningCount,
+        activeThirtyDayBase,
+        lifetimeNewCount,
+        lifetimeReturningCount,
+        lifetimeTrackedBase,
+        overallNewCount,
+        overallReturningCount,
+        overallBaseCount,
+        baseWindow: hasThirtyDayBase ? '30_day_active' : 'tracked_crm',
         returningPercent,
       },
     });

@@ -752,10 +752,42 @@ export async function getAtRiskCustomers(
 
             snap.docs.forEach(doc => {
                 const data = doc.data();
+                const email = typeof data.email === 'string' ? data.email.trim() : '';
+                const nameInput = {
+                    displayName: data.displayName,
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                    email,
+                    fallbackId: doc.id,
+                };
                 const spent = data.totalSpent || 0;
                 const orders = data.orderCount || 0;
                 const avgOV = orders > 0 ? spent / orders : 0;
                 const lastDate = data.lastOrderDate?.toDate?.() || (data.lastOrderDate ? new Date(data.lastOrderDate) : null);
+
+                if (data.isTestAccount === true || typeof data.testNote === 'string') {
+                    return;
+                }
+
+                if (isPlaceholderCustomerEmail(email)) {
+                    return;
+                }
+
+                const hasPlaceholderIdentity =
+                    isPlaceholderCustomerIdentity(data.displayName, nameInput) &&
+                    isPlaceholderCustomerIdentity(
+                        [data.firstName, data.lastName].filter(Boolean).join(' '),
+                        nameInput,
+                    );
+                if (hasPlaceholderIdentity) {
+                    return;
+                }
+
+                // Without a real last-order timestamp, recency-based churn classification is not trustworthy.
+                if (!lastDate || Number.isNaN(lastDate.getTime()) || orders <= 0) {
+                    return;
+                }
+
                 const daysSince = lastDate
                     ? Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
                     : undefined;
@@ -767,14 +799,8 @@ export async function getAtRiskCustomers(
                 if (targetSegments.includes(seg)) {
                     atRiskCustomers.push({
                         id: doc.id,
-                        name: resolveCustomerDisplayName({
-                            displayName: data.displayName,
-                            firstName: data.firstName,
-                            lastName: data.lastName,
-                            email: data.email,
-                            fallbackId: doc.id,
-                        }),
-                        email: data.email || '',
+                        name: resolveCustomerDisplayName(nameInput),
+                        email,
                         segment: seg,
                         totalSpent: spent,
                         orderCount: orders,
