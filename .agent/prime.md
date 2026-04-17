@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | DayDay brand-page-seo megacron; Thrive canonical template; email preview dashboard; full brand page SEO
-**Recent work (2026-04-17):** `3b3e37adc` brand-page-seo megacron + email preview + SEO overhaul; `74a3a9390` meta/OG/JSON-LD/sitemap; `3d1acf4e9` email preview dashboard
+**Current Status:** 🟢 main green | Agent learning loop all agents; Platform Pat retro; agent-learning dashboard; 145 NY dispensaries
+**Recent work (2026-04-17):** `addecf2b9` simplify refactor; `77b1561e6` agent learning loop (all agents, Craig A/B Slack gate, Platform Pat retro, dashboard); `70edcc704` 145 NY dispensaries + CRM sync
 
 ---
 
