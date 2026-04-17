@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Deploy Cloud Scheduler Cron Jobs for Critical Revenue Systems
-# Last updated: 2026-02-20
+# Last updated: 2026-04-17
 
 set -e  # Exit on error
 
-PROJECT_ID="studio-567050101-bc6e8"
+PROJECT_ID="studio-567050101"
 LOCATION="us-central1"
-TIMEZONE="America/Chicago"
+TIMEZONE="America/New_York"
 BASE_URL="https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app"
 
 # Colors for output
@@ -103,11 +103,61 @@ create_or_update_job \
   "600s" \
   "2"
 
+# ---------------------------------------------------------------------------
+# DayDay Megacron — all jobs point to /api/cron/dayday with typed body
+# ---------------------------------------------------------------------------
+
+# 3. DayDay Discovery (Daily 6 AM ET)
+create_or_update_job \
+  "dayday-discovery" \
+  "0 11 * * *" \
+  "$BASE_URL/api/cron/dayday?type=discovery" \
+  "DayDay domestic market discovery — daily 6 AM ET (5 markets/run)" \
+  "300s" \
+  "1"
+
+# 4. DayDay International Discovery (Daily 7 AM ET)
+create_or_update_job \
+  "dayday-international-discovery" \
+  "0 12 * * *" \
+  "$BASE_URL/api/cron/dayday?type=international" \
+  "DayDay international market discovery — daily 7 AM ET (2 markets/run)" \
+  "300s" \
+  "1"
+
+# 5. DayDay SEO Report (Daily 8 AM ET)
+create_or_update_job \
+  "dayday-seo-report" \
+  "0 13 * * *" \
+  "$BASE_URL/api/cron/dayday?type=seo-report" \
+  "DayDay GSC + GA4 SEO report → Slack — daily 8 AM ET" \
+  "300s" \
+  "1"
+
+# 6. DayDay Weekly Review (Monday 8 AM ET)
+create_or_update_job \
+  "dayday-review" \
+  "0 13 * * 1" \
+  "$BASE_URL/api/cron/dayday?type=review" \
+  "DayDay weekly discovery review — Monday 8 AM ET" \
+  "300s" \
+  "1"
+
+# 7. DayDay Brand Page SEO Audit (Monday 9 AM ET)
+create_or_update_job \
+  "dayday-brand-page-seo" \
+  "0 14 * * 1" \
+  "$BASE_URL/api/cron/dayday?type=brand-page-seo" \
+  "DayDay brand page SEO audit — weekly Monday 9 AM ET (GSC impressions/clicks for all brand+dispensary pages)" \
+  "540s" \
+  "1"
+
 echo -e "${GREEN}All cron jobs deployed successfully!${NC}"
 echo ""
 echo "To verify:"
 echo "  gcloud scheduler jobs list --location=$LOCATION --project=$PROJECT_ID"
 echo ""
 echo "To test manually:"
+echo "  gcloud scheduler jobs run dayday-brand-page-seo --location=$LOCATION --project=$PROJECT_ID"
 echo "  gcloud scheduler jobs run bundle-transitions-cron --location=$LOCATION --project=$PROJECT_ID"
 echo "  gcloud scheduler jobs run churn-prediction-cron --location=$LOCATION --project=$PROJECT_ID"

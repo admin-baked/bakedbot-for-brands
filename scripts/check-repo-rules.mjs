@@ -67,6 +67,7 @@ const SUPERSEDED_CRON_ROUTES = {
     'dayday-international-discovery': 'dayday',
     'dayday-seo-report':              'dayday',
     'dayday-review':                  'dayday',
+    'dayday-brand-page-seo':          'dayday',
     // Absorbed into generate-insights megacron (src/app/api/cron/generate-insights/)
     'generate-insights-customer':           'generate-insights',
     'generate-insights-velocity':           'generate-insights',
