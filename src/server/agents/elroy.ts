@@ -29,7 +29,7 @@ import { getAtRiskCustomers, getSegmentSummary, getTodayCheckins } from '@/serve
 import { getLatestWeeklyReport } from '@/server/services/ezal/weekly-intel-report';
 import { fetchMenuProducts, normalizeProduct } from '@/server/agents/adapters/consumer-adapter';
 import { getAdminFirestore } from '@/firebase/admin';
-import { loadSlowMoverInsight } from '@/server/services/morning-briefing';
+import { loadSlowMoverInsight } from '@/server/services/slow-mover-insight';
 import { discovery } from '@/server/services/firecrawl';
 import { withCache, CachePrefix, CacheTTL } from '@/lib/cache';
 import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';

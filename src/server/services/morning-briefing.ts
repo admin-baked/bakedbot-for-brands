@@ -19,6 +19,7 @@ import { logger } from '@/lib/logger';
 import { getMarketBenchmarks } from '@/server/services/market-benchmarks';
 import { getDispensaryGreenLedgerSummary } from '@/server/services/greenledger';
 import { getOutreachStats } from '@/server/services/ny-outreach/outreach-service';
+import { loadSlowMoverInsight, type SlowMoverInsight } from '@/server/services/slow-mover-insight';
 import {
     computeCohortData,
     getLastCohortReportDate,
@@ -383,73 +384,6 @@ async function loadContentAnalyticsSnapshotForBriefing(orgId: string): Promise<C
             orgId,
             error: error instanceof Error ? error.message : String(error),
         });
-        return null;
-    }
-}
-
-export interface SlowMoverProduct {
-    name: string;
-    category: string;
-    valueAtRisk: number;
-    daysInInventory: number;
-    price?: number;
-    stockLevel?: number;
-}
-
-export interface SlowMoverInsight {
-    headline: string;
-    totalValueAtRisk: number;
-    totalSkus: number;
-    topProducts: SlowMoverProduct[];
-    categoryBreakdown: Record<string, unknown>;
-    dataFreshness: string;
-}
-
-function extractSlowMoverTotalSkus(headline: string): number {
-    const match = headline.match(/\((\d+)\s+SKUs?\)/i) ?? headline.match(/(\d+)\s+SKUs?/i);
-    if (!match) {
-        return 0;
-    }
-
-    const parsed = Number(match[1]);
-    return Number.isFinite(parsed) ? parsed : 0;
-}
-
-/**
- * Load slow-mover inventory insight from the deliberative audit pipeline.
- * Written by InventoryVelocityGenerator into tenants/{orgId}/insights.
- * Returns full insight including category breakdown and freshness for Elroy tool use.
- */
-export async function loadSlowMoverInsight(orgId: string): Promise<SlowMoverInsight | null> {
-    try {
-        const db = getAdminFirestore();
-        const docId = `${orgId}:velocity:slow_movers`;
-        const snap = await db.collection(`tenants/${orgId}/insights`).doc(docId).get();
-        if (!snap.exists) return null;
-        const d = snap.data()!;
-        const meta = (d.metadata ?? {}) as Record<string, unknown>;
-        const headline = String(d.headline ?? '');
-        const totalSkus = Number(meta.totalSkus ?? 0) || extractSlowMoverTotalSkus(headline);
-        const updatedAt = (d.updatedAt as { toDate?: () => Date } | null)?.toDate?.()?.toISOString() ?? d.updatedAt ?? null;
-        const ageHours = updatedAt ? Math.round((Date.now() - new Date(String(updatedAt)).getTime()) / 3_600_000) : null;
-        return {
-            headline,
-            totalValueAtRisk: Number(meta.totalValueAtRisk ?? 0),
-            totalSkus,
-            topProducts: ((meta.topProducts ?? []) as any[]).slice(0, 10).map((p: any) => ({
-                name: String(p.name ?? 'Unknown'),
-                category: String(p.category ?? ''),
-                valueAtRisk: Number(p.valueAtRisk ?? 0),
-                daysInInventory: Number(p.daysInInventory ?? 0),
-                price: p.price !== undefined ? Number(p.price) : undefined,
-                stockLevel: p.stockLevel !== undefined ? Number(p.stockLevel) : undefined,
-            })),
-            categoryBreakdown: (meta.categoryBreakdown as Record<string, unknown>) ?? {},
-            dataFreshness: ageHours !== null
-                ? (ageHours < 24 ? 'fresh (< 24h)' : `${Math.floor(ageHours / 24)}d old`)
-                : 'unknown',
-        };
-    } catch {
         return null;
     }
 }

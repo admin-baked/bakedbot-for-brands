@@ -41,6 +41,7 @@ type MockDocInput = {
 function makeDoc({ id, data }: MockDocInput) {
   return {
     id,
+    exists: true,
     data: () => data,
   };
 }
@@ -49,6 +50,7 @@ function makeFirestoreMock({
   tenantProducts = [],
   orgProducts = [],
   dispensaryProducts = [],
+  brandProducts = [],
   retailerOrders = [],
   brandOrders = [],
   orgOrders = [],
@@ -56,6 +58,7 @@ function makeFirestoreMock({
   tenantProducts?: MockDocInput[];
   orgProducts?: MockDocInput[];
   dispensaryProducts?: MockDocInput[];
+  brandProducts?: MockDocInput[];
   retailerOrders?: MockDocInput[];
   brandOrders?: MockDocInput[];
   orgOrders?: MockDocInput[];
@@ -73,10 +76,31 @@ function makeFirestoreMock({
     doc: jest.fn().mockReturnValue(productsDoc),
   };
   const tenantDoc = {
+    get: jest.fn().mockResolvedValue({
+      exists: false,
+      data: () => undefined,
+    }),
     collection: jest.fn().mockReturnValue(publicViewsCollection),
   };
   const tenantsCollection = {
     doc: jest.fn().mockReturnValue(tenantDoc),
+    where: jest.fn(() => ({
+      limit: jest.fn().mockReturnThis(),
+      get: jest.fn().mockResolvedValue({ docs: [] }),
+    })),
+  };
+
+  const brandsCollection = {
+    doc: jest.fn(() => ({
+      get: jest.fn().mockResolvedValue({
+        exists: false,
+        data: () => undefined,
+      }),
+    })),
+    where: jest.fn(() => ({
+      limit: jest.fn().mockReturnThis(),
+      get: jest.fn().mockResolvedValue({ docs: [] }),
+    })),
   };
 
   const orgProductsQuery = {
@@ -91,10 +115,17 @@ function makeFirestoreMock({
       docs: dispensaryProducts.map(makeDoc),
     }),
   };
+  const brandProductsQuery = {
+    limit: jest.fn().mockReturnThis(),
+    get: jest.fn().mockResolvedValue({
+      docs: brandProducts.map(makeDoc),
+    }),
+  };
   const productsCollection = {
     where: jest.fn((field: string) => {
       if (field === 'orgId') return orgProductsQuery;
       if (field === 'dispensaryId') return dispensaryProductsQuery;
+      if (field === 'brandId') return brandProductsQuery;
       throw new Error(`Unexpected products field: ${field}`);
     }),
   };
@@ -129,6 +160,7 @@ function makeFirestoreMock({
   return {
     collection: jest.fn((name: string) => {
       if (name === 'tenants') return tenantsCollection;
+      if (name === 'brands') return brandsCollection;
       if (name === 'products') return productsCollection;
       if (name === 'orders') return ordersCollection;
       throw new Error(`Unexpected collection: ${name}`);
@@ -138,6 +170,8 @@ function makeFirestoreMock({
 
 describe('dispensary analytics', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-04-16T00:00:00Z').getTime());
     jest.clearAllMocks();
     (requireUser as jest.Mock).mockResolvedValue({
       uid: 'user-1',
@@ -146,6 +180,10 @@ describe('dispensary analytics', () => {
     });
     (getMarketBenchmarks as jest.Mock).mockRejectedValue(new Error('no benchmarks'));
     (getOrdersFromAlleaves as jest.Mock).mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('merges tenant catalog products with root sales rollups and keeps velocity deterministic', async () => {
@@ -338,7 +376,6 @@ describe('dispensary analytics', () => {
   });
 
   it('uses benchmark-aligned slow-mover thresholds and ignores missing sale history', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-04-16T00:00:00Z').getTime());
     (getMarketBenchmarks as jest.Mock).mockResolvedValue({
       operations: {
         skuAgingActionDays: { watch: 30, action: 60, liquidate: 90 },

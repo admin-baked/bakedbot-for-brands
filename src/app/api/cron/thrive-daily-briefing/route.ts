@@ -35,7 +35,7 @@ import {
     type Holiday,
     type CompetitorHours,
 } from '@/server/services/holiday-hours';
-import { loadSlowMoverInsight, type SlowMoverInsight } from '@/server/services/morning-briefing';
+import { loadSlowMoverInsight, type SlowMoverInsight } from '@/server/services/slow-mover-insight';
 
 export const maxDuration = 300;
 

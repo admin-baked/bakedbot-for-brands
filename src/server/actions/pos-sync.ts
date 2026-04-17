@@ -6,8 +6,8 @@ import { ALLeavesClient, type ALLeavesConfig, type ALLeavesDiscount } from '@/li
 import { createImport } from './import-actions';
 import { logger } from '@/lib/logger';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
-import { createHash } from 'crypto';
 import { lookupCOA, coaToFirestoreLabResult } from '@/server/services/coa/coa-parser';
+import { buildTenantPosProductDocId } from '@/server/services/pos-product-doc-id';
 import type { POSProduct } from '@/lib/pos/types';
 import { normalizeCategoryName } from '@/lib/utils/product-image';
 
@@ -125,7 +125,7 @@ export async function syncPOSProducts(locationId: string, orgId: string) {
 
             for (const p of productsWithCost) {
                 if (!p.externalId) continue;
-                const docId = `prod_${createHash('sha256').update(`${orgId}:${p.externalId}`).digest('hex').slice(0, 20)}`;
+                const docId = buildTenantPosProductDocId(orgId, p.externalId);
                 const viewRef = firestore
                     .collection('tenants')
                     .doc(orgId)
@@ -661,7 +661,7 @@ async function autoLookupCOAs(
     const batch = products.slice(0, 20);
 
     for (const p of batch) {
-        const productDocId = `prod_${createHash('sha256').update(`${orgId}:${p.externalId}`).digest('hex').slice(0, 20)}`;
+        const productDocId = buildTenantPosProductDocId(orgId, p.externalId);
 
         // Check if we already have COA data cached
         const labRef = firestore

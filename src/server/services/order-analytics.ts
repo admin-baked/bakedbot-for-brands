@@ -1,9 +1,11 @@
 'use server';
 
 import { getAdminFirestore } from '@/firebase/admin';
-import { Product } from '@/types/products';
-import { BundleDeal } from '@/types/bundles';
+import type { BundleDeal } from '@/types/bundles';
+import type { Product } from '@/types/products';
 import { logger } from '@/lib/logger';
+import { toAnalyticsDate } from '@/server/services/catalog-analytics-source';
+import { buildTenantPosProductDocId } from '@/server/services/pos-product-doc-id';
 
 /**
  * Order Analytics Service
@@ -25,6 +27,140 @@ interface OrderData {
     purchasedAt: Date;
 }
 
+type AnalyticsProductDoc = Partial<Product> & Record<string, unknown>;
+
+type HistoricalOrderRecord = {
+    createdAt?: unknown;
+    items?: Array<Record<string, unknown>>;
+};
+
+type AggregatedProductSales = {
+    count: number;
+    salesLast7Days: number;
+    salesLast30Days: number;
+    lastDate: Date | null;
+};
+
+function toNonNegativeNumber(value: unknown): number {
+    return typeof value === 'number' && Number.isFinite(value)
+        ? Math.max(value, 0)
+        : 0;
+}
+
+function toPositiveQuantity(value: unknown): number {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+        return value;
+    }
+
+    if (typeof value === 'string') {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed) && parsed > 0) {
+            return parsed;
+        }
+    }
+
+    return 1;
+}
+
+function getHistoricalItemProductId(item: Record<string, unknown>): string | null {
+    const candidate = item.productId ?? item.product_id ?? item.id_item;
+    return typeof candidate === 'string' && candidate.trim().length > 0
+        ? candidate.trim()
+        : null;
+}
+
+function getHistoricalItemDate(
+    item: Record<string, unknown>,
+    order: HistoricalOrderRecord,
+): Date | null {
+    return toAnalyticsDate(item.purchasedAt) ?? toAnalyticsDate(order.createdAt);
+}
+
+async function resolveAnalyticsProductTargets(
+    db: FirebaseFirestore.Firestore,
+    orgId: string,
+    externalProductId: string,
+): Promise<Array<{
+    ref: FirebaseFirestore.DocumentReference;
+    data: AnalyticsProductDoc;
+}>> {
+    const targets: Array<{
+        ref: FirebaseFirestore.DocumentReference;
+        data: AnalyticsProductDoc;
+    }> = [];
+    const seenPaths = new Set<string>();
+
+    const candidateRefs = [
+        db.collection('tenants')
+            .doc(orgId)
+            .collection('publicViews')
+            .doc('products')
+            .collection('items')
+            .doc(buildTenantPosProductDocId(orgId, externalProductId)),
+        db.collection('products').doc(externalProductId),
+    ];
+
+    for (const ref of candidateRefs) {
+        const snap = await ref.get();
+        if (!snap.exists || seenPaths.has(ref.path)) {
+            continue;
+        }
+
+        seenPaths.add(ref.path);
+        targets.push({
+            ref,
+            data: (snap.data() ?? {}) as AnalyticsProductDoc,
+        });
+    }
+
+    return targets;
+}
+
+async function queryHistoricalOrdersByField(
+    db: FirebaseFirestore.Firestore,
+    field: 'brandId' | 'orgId' | 'retailerId',
+    orgId: string,
+    lookbackDate: Date,
+): Promise<HistoricalOrderRecord[]> {
+    try {
+        const snap = await db.collection('orders')
+            .where(field, '==', orgId)
+            .where('createdAt', '>=', lookbackDate)
+            .get();
+
+        return snap.docs.map((doc) => doc.data() as HistoricalOrderRecord);
+    } catch (error) {
+        logger.warn('[OrderAnalytics] Historical order query failed, retrying without createdAt filter', {
+            orgId,
+            field,
+            error: error instanceof Error ? error.message : String(error),
+        });
+
+        const fallback = await db.collection('orders')
+            .where(field, '==', orgId)
+            .get()
+            .catch((fallbackError) => {
+                logger.error('[OrderAnalytics] Historical order fallback query failed', {
+                    orgId,
+                    field,
+                    error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+                });
+                return null;
+            });
+
+        if (!fallback) {
+            return [];
+        }
+
+        return fallback.docs
+            .map((doc) => doc.data() as HistoricalOrderRecord)
+            .filter((order) => {
+                const createdAt = toAnalyticsDate(order.createdAt);
+                return createdAt instanceof Date && createdAt >= lookbackDate;
+            });
+    }
+}
+
 /**
  * Record a product sale and update analytics
  * Called from checkout completion and POS order sync
@@ -35,30 +171,29 @@ export async function recordProductSale(orgId: string, orderData: OrderData): Pr
         const batch = db.batch();
         const now = new Date();
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
         // Update product sales counts
         for (const item of orderData.items) {
-            const productRef = db.collection('products').doc(item.productId);
+            const targets = await resolveAnalyticsProductTargets(db, orgId, item.productId);
 
-            // Get current product data
-            const productDoc = await productRef.get();
-            const productData = productDoc.data() as Product | undefined;
+            if (targets.length === 0) {
+                logger.warn('[OrderAnalytics] No analytics product target found for sale', {
+                    orgId,
+                    productId: item.productId,
+                    orderId: orderData.orderId,
+                });
+                continue;
+            }
 
-            if (productData) {
-                // Update sales counts
-                const updatedSalesCount = (productData.salesCount || 0) + item.quantity;
-                const updatedSalesLast7Days = (productData.salesLast7Days || 0) + item.quantity;
-                const updatedSalesLast30Days = (productData.salesLast30Days || 0) + item.quantity;
+            const primary = targets[0].data;
+            const updatedSalesCount = toNonNegativeNumber(primary.salesCount) + item.quantity;
+            const updatedSalesLast7Days = toNonNegativeNumber(primary.salesLast7Days) + item.quantity;
+            const updatedSalesLast30Days = toNonNegativeNumber(primary.salesLast30Days) + item.quantity;
+            const velocity = updatedSalesLast7Days / 7;
+            const isTrending = velocity > 2 && orderData.purchasedAt > sevenDaysAgo;
 
-                // Calculate velocity (units per day over 7-day period)
-                const daysSinceSale = Math.max(1, (now.getTime() - (productData.lastSaleAt?.getTime() || now.getTime())) / (24 * 60 * 60 * 1000));
-                const velocity = updatedSalesLast7Days / 7;
-
-                // Determine if trending: high velocity (>2 units/day) + recent sales (within last 7 days)
-                const isTrending = velocity > 2 && productData.lastSaleAt && productData.lastSaleAt > sevenDaysAgo;
-
-                batch.update(productRef, {
+            for (const target of targets) {
+                batch.set(target.ref, {
                     salesCount: updatedSalesCount,
                     salesLast7Days: updatedSalesLast7Days,
                     salesLast30Days: updatedSalesLast30Days,
@@ -66,16 +201,18 @@ export async function recordProductSale(orgId: string, orderData: OrderData): Pr
                     lastSaleAt: orderData.purchasedAt,
                     trending: isTrending,
                     updatedAt: now,
-                });
-
-                // Log sale for audit trail
-                logger.info('[OrderAnalytics] Sale recorded', {
-                    productId: item.productId,
-                    quantity: item.quantity,
-                    salesVelocity: velocity,
-                    trending: isTrending,
-                });
+                }, { merge: true });
             }
+
+            logger.info('[OrderAnalytics] Sale recorded', {
+                orgId,
+                orderId: orderData.orderId,
+                productId: item.productId,
+                quantity: item.quantity,
+                targetsUpdated: targets.length,
+                salesVelocity: velocity,
+                trending: isTrending,
+            });
         }
 
         // Update bundle redemptions if present
@@ -199,40 +336,84 @@ export async function backfillHistoricalSalesData(orgId: string, lookbackDays: n
 
         const lookbackDate = new Date();
         lookbackDate.setDate(lookbackDate.getDate() - lookbackDays);
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-        // Query orders collection for this org
-        const ordersSnapshot = await db.collection('orders')
-            .where('orgId', '==', orgId)
-            .where('createdAt', '>=', lookbackDate)
-            .get()
-            .catch(async () => {
-                // Fallback: query all orders and filter
-                logger.warn('[OrderAnalytics] Complex query failed, using simple filter');
-                return db.collection('orders').where('orgId', '==', orgId).get();
-            });
+        const queryPlans: Array<'brandId' | 'orgId' | 'retailerId'> = ['brandId', 'orgId', 'retailerId'];
+        let orders: HistoricalOrderRecord[] = [];
+        let queryFieldUsed: 'brandId' | 'orgId' | 'retailerId' | null = null;
 
-        const productSales: Record<string, { count: number; lastDate: Date }> = {};
-        let processedCount = 0;
-
-        // Aggregate sales from orders
-        for (const orderDoc of ordersSnapshot.docs) {
-            const order = orderDoc.data() as any;
-
-            // Skip if older than lookback (when fallback query used)
-            if (order.createdAt && new Date(order.createdAt).getTime() < lookbackDate.getTime()) {
+        for (const field of queryPlans) {
+            const candidateOrders = await queryHistoricalOrdersByField(db, field, orgId, lookbackDate);
+            if (candidateOrders.length === 0) {
                 continue;
             }
 
+            orders = candidateOrders;
+            queryFieldUsed = field;
+            break;
+        }
+
+        if (orders.length === 0) {
+            logger.info('[OrderAnalytics] No historical orders found for backfill', { orgId, lookbackDays });
+            return { processed: 0, updated: 0 };
+        }
+
+        const tenantCatalogSnapshot = await db.collection('tenants')
+            .doc(orgId)
+            .collection('publicViews')
+            .doc('products')
+            .collection('items')
+            .limit(2000)
+            .get();
+        const tenantTargets = new Map<string, FirebaseFirestore.DocumentReference>();
+
+        for (const doc of tenantCatalogSnapshot.docs) {
+            tenantTargets.set(doc.id, doc.ref);
+
+            const externalId = doc.get('externalId');
+            if (typeof externalId === 'string' && externalId.trim().length > 0) {
+                tenantTargets.set(externalId.trim(), doc.ref);
+            }
+        }
+
+        const productSales: Record<string, AggregatedProductSales> = {};
+        let processedCount = 0;
+
+        // Aggregate sales from orders
+        for (const order of orders) {
             // Aggregate products from order items
             if (order.items && Array.isArray(order.items)) {
                 for (const item of order.items) {
-                    if (!productSales[item.productId]) {
-                        productSales[item.productId] = { count: 0, lastDate: new Date() };
+                    const productId = getHistoricalItemProductId(item);
+                    if (!productId) {
+                        continue;
                     }
-                    productSales[item.productId].count += item.quantity || 1;
-                    const itemDate = new Date(item.purchasedAt || order.createdAt);
-                    if (itemDate > productSales[item.productId].lastDate) {
-                        productSales[item.productId].lastDate = itemDate;
+
+                    const quantity = toPositiveQuantity(item.quantity ?? item.qty);
+                    const itemDate = getHistoricalItemDate(item, order);
+                    if (!itemDate) {
+                        continue;
+                    }
+
+                    if (!productSales[productId]) {
+                        productSales[productId] = {
+                            count: 0,
+                            salesLast7Days: 0,
+                            salesLast30Days: 0,
+                            lastDate: null,
+                        };
+                    }
+
+                    productSales[productId].count += quantity;
+                    if (itemDate >= sevenDaysAgo) {
+                        productSales[productId].salesLast7Days += quantity;
+                    }
+                    if (itemDate >= thirtyDaysAgo) {
+                        productSales[productId].salesLast30Days += quantity;
+                    }
+                    if (!productSales[productId].lastDate || itemDate > productSales[productId].lastDate) {
+                        productSales[productId].lastDate = itemDate;
                     }
                 }
             }
@@ -240,35 +421,65 @@ export async function backfillHistoricalSalesData(orgId: string, lookbackDays: n
         }
 
         // Update products with aggregated sales
-        const batch = db.batch();
+        let batch = db.batch();
+        let batchOps = 0;
         let updatedCount = 0;
+        let unresolvedProducts = 0;
 
         for (const [productId, salesData] of Object.entries(productSales)) {
-            const productRef = db.collection('products').doc(productId);
-            const productDoc = await productRef.get();
-            const product = productDoc.data() as Product | undefined;
+            if (!(salesData.lastDate instanceof Date)) {
+                continue;
+            }
 
-            if (product) {
-                // Only update if sales data increases existing count
-                const newSalesCount = Math.max(product.salesCount || 0, salesData.count);
+            const tenantRef = tenantTargets.get(productId)
+                ?? tenantTargets.get(buildTenantPosProductDocId(orgId, productId));
 
-                batch.update(productRef, {
-                    salesCount: newSalesCount,
-                    lastSaleAt: salesData.lastDate,
-                    updatedAt: new Date(),
+            if (!tenantRef) {
+                unresolvedProducts++;
+                continue;
+            }
+
+            const salesVelocity = salesData.salesLast7Days / 7;
+            const isTrending = salesVelocity > 2 && salesData.lastDate > sevenDaysAgo;
+
+            batch.set(tenantRef, {
+                salesCount: salesData.count,
+                salesLast7Days: salesData.salesLast7Days,
+                salesLast30Days: salesData.salesLast30Days,
+                salesVelocity,
+                lastSaleAt: salesData.lastDate,
+                trending: isTrending,
+                updatedAt: new Date(),
+            }, { merge: true });
+            batchOps++;
+
+            updatedCount++;
+
+            if (batchOps >= 400) {
+                await batch.commit();
+                logger.info('[OrderAnalytics] Backfill batch committed', {
+                    orgId,
+                    productsUpdated: updatedCount,
+                    batchOps,
                 });
-                updatedCount++;
-
-                // Batch in chunks of 500
-                if (updatedCount % 500 === 0) {
-                    await batch.commit();
-                    logger.info('[OrderAnalytics] Batch committed', { count: updatedCount });
-                }
+                batch = db.batch();
+                batchOps = 0;
             }
         }
 
-        await batch.commit();
-        logger.info('[OrderAnalytics] Backfill completed', { orgId, ordersProcessed: processedCount, productsUpdated: updatedCount });
+        if (batchOps > 0) {
+            await batch.commit();
+        }
+
+        logger.info('[OrderAnalytics] Backfill completed', {
+            orgId,
+            lookbackDays,
+            queryFieldUsed,
+            ordersProcessed: processedCount,
+            productsUpdated: updatedCount,
+            unresolvedProducts,
+            tenantCatalogProducts: tenantCatalogSnapshot.size,
+        });
 
         return { processed: processedCount, updated: updatedCount };
     } catch (error) {

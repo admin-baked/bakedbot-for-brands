@@ -1,5 +1,6 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { resolveCatalogAnalyticsScope } from './catalog-analytics-scope';
 
 interface RawCatalogProduct {
   id: string;
@@ -24,6 +25,7 @@ interface RawCatalogProduct {
   externalId?: string | null;
   sku_id?: string | null;
   orgId?: string | null;
+  brandId?: string | null;
   dispensaryId?: string | null;
 }
 
@@ -151,6 +153,7 @@ function mergeRawProducts(primary: RawCatalogProduct, secondary: RawCatalogProdu
     externalId: primary.externalId ?? secondary.externalId,
     sku_id: primary.sku_id ?? secondary.sku_id,
     orgId: primary.orgId ?? secondary.orgId,
+    brandId: primary.brandId ?? secondary.brandId,
     dispensaryId: primary.dispensaryId ?? secondary.dispensaryId,
   };
 }
@@ -187,48 +190,72 @@ function normalizeProduct(product: RawCatalogProduct): CatalogAnalyticsProduct {
 }
 
 async function queryRawProducts(
-  field: 'orgId' | 'dispensaryId',
-  orgId: string,
+  field: 'orgId' | 'dispensaryId' | 'brandId',
+  candidateIds: string[],
 ): Promise<RawCatalogProduct[]> {
   const db = getAdminFirestore();
+  const products = new Map<string, RawCatalogProduct>();
 
-  try {
-    const snap = await db.collection('products')
-      .where(field, '==', orgId)
-      .limit(500)
-      .get();
+  await Promise.all(candidateIds.map(async (candidateId) => {
+    try {
+      const snap = await db.collection('products')
+        .where(field, '==', candidateId)
+        .limit(500)
+        .get();
 
-    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as RawCatalogProduct));
-  } catch (error) {
-    logger.warn('[catalog-analytics-source] Product query failed', {
-      orgId,
-      field,
-      error: String(error),
-    });
-    return [];
-  }
+      for (const doc of snap.docs) {
+        products.set(doc.id, { id: doc.id, ...doc.data() } as RawCatalogProduct);
+      }
+    } catch (error) {
+      logger.warn('[catalog-analytics-source] Product query failed', {
+        candidateId,
+        field,
+        error: String(error),
+      });
+    }
+  }));
+
+  return Array.from(products.values());
+}
+
+async function loadTenantProducts(
+  tenantIds: string[],
+): Promise<RawCatalogProduct[]> {
+  const db = getAdminFirestore();
+  const products = new Map<string, RawCatalogProduct>();
+
+  await Promise.all(tenantIds.map(async (tenantId) => {
+    try {
+      const snap = await db.collection('tenants').doc(tenantId)
+        .collection('publicViews').doc('products')
+        .collection('items')
+        .limit(500)
+        .get();
+
+      for (const doc of snap.docs) {
+        products.set(doc.id, { id: doc.id, ...doc.data() } as RawCatalogProduct);
+      }
+    } catch (error) {
+      logger.warn('[catalog-analytics-source] Tenant product catalog query failed', {
+        tenantId,
+        error: String(error),
+      });
+    }
+  }));
+
+  return Array.from(products.values());
 }
 
 export async function loadCatalogAnalyticsProducts(orgId: string): Promise<CatalogAnalyticsProduct[]> {
   const db = getAdminFirestore();
-  const [tenantSnap, rootByOrg, rootByDispensary] = await Promise.all([
-    db.collection('tenants').doc(orgId)
-      .collection('publicViews').doc('products')
-      .collection('items')
-      .limit(500)
-      .get()
-      .catch((error) => {
-        logger.warn('[catalog-analytics-source] Tenant product catalog query failed', {
-          orgId,
-          error: String(error),
-        });
-        return null;
-      }),
-    queryRawProducts('orgId', orgId),
-    queryRawProducts('dispensaryId', orgId),
+  const scope = await resolveCatalogAnalyticsScope(db, orgId);
+  const [tenantProducts, rootByOrg, rootByDispensary, rootByBrand] = await Promise.all([
+    loadTenantProducts(scope.tenantIds),
+    queryRawProducts('orgId', scope.rootProductQueryIds.orgId),
+    queryRawProducts('dispensaryId', scope.rootProductQueryIds.dispensaryId),
+    queryRawProducts('brandId', scope.rootProductQueryIds.brandId),
   ]);
 
-  const tenantProducts = tenantSnap?.docs.map((doc) => ({ id: doc.id, ...doc.data() } as RawCatalogProduct)) ?? [];
   const mergedProducts = new Map<string, RawCatalogProduct>();
   const lookupToCanonicalId = new Map<string, string>();
 
@@ -243,7 +270,7 @@ export async function loadCatalogAnalyticsProducts(orgId: string): Promise<Catal
     registerProduct(product);
   }
 
-  for (const rawProduct of [...rootByOrg, ...rootByDispensary]) {
+  for (const rawProduct of [...rootByOrg, ...rootByDispensary, ...rootByBrand]) {
     const existingId = buildProductLookupKeys(rawProduct)
       .map((key) => lookupToCanonicalId.get(key))
       .find((value): value is string => typeof value === 'string');
@@ -267,15 +294,18 @@ export async function loadCatalogAnalyticsProducts(orgId: string): Promise<Catal
   }
 
   if (mergedProducts.size === 0) {
-    logger.info('[catalog-analytics-source] No products found for analytics', { orgId });
+    logger.info('[catalog-analytics-source] No products found for analytics', { orgId, scope });
     return [];
   }
 
   logger.info('[catalog-analytics-source] Loaded products for analytics', {
     orgId,
+    tenantIds: scope.tenantIds,
+    brandQueryIds: scope.rootProductQueryIds.brandId,
     tenantCatalogCount: tenantProducts.length,
     rootOrgCount: rootByOrg.length,
     rootDispensaryCount: rootByDispensary.length,
+    rootBrandCount: rootByBrand.length,
     mergedCount: mergedProducts.size,
   });
 
