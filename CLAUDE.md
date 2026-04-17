@@ -12,9 +12,11 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Thrive email branding (all 3 templates) + demo emails live via SES; FFF nurture megacron; bug-hunter TS fixes | **Last update:** 2026-04-17 (`2f93dfe1a`)
+**Current Status:** 🟢 main green | DayDay brand-page-seo megacron; Thrive canonical template; email preview dashboard; full brand page SEO (meta/OG/JSON-LD/sitemap) | **Last update:** 2026-04-17 (`3b3e37adc`)
 
 ---
+
+**Session Status (2026-04-17):** local actor-context contract, canonical `agent-contract.ts`, internal readiness surfacing, and drift-check hardening landed in the working tree.
 
 ## Canonical Engineering Principles (MANDATORY)
 

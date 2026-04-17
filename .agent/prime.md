@@ -28,10 +28,12 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Thrive email branding (3 templates) + demo emails SES live; FFF nurture megacron; bug-hunter TS fixes
-**Recent work (2026-04-17):** `c0a378fea` Thrive welcome/returning/nudge brand guide applied; `2f93dfe1a` bug-hunter TS fixes; `c22621b48` orgId + fromName for subdomain routing
+**Current Status:** 🟢 main green | DayDay brand-page-seo megacron; Thrive canonical template; email preview dashboard; full brand page SEO
+**Recent work (2026-04-17):** `3b3e37adc` brand-page-seo megacron + email preview + SEO overhaul; `74a3a9390` meta/OG/JSON-LD/sitemap; `3d1acf4e9` email preview dashboard
 
 ---
+
+**Session Status (2026-04-17):** local actor-context/org-scoping hardening, canonical `agent-contract.ts`, internal playbook readiness badges, and stronger drift derivation are in progress in the working tree.
 
 ## Canonical Engineering Principles (MANDATORY)
 
