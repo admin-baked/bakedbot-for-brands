@@ -1408,6 +1408,20 @@ export const defaultUniversalTools = {
 export const defaultExecutiveBoardTools = {
     ...defaultUniversalTools,
 
+    getActivePlaybooks: async () => {
+        try {
+            const { getAdminFirestore } = await import('@/firebase/admin');
+            const db = getAdminFirestore();
+            const snap = await db.collectionGroup('playbooks')
+                .where('isActive', '==', true)
+                .limit(50)
+                .get();
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e: any) {
+            return { error: `getActivePlaybooks failed: ${e.message}` };
+        }
+    },
+
     generateWeeklyCeoMemo: async () => {
         try {
             const { getPlatformAnalytics } = await import('../actions/data-actions');

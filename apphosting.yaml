@@ -440,6 +440,11 @@ env:
     secret: SLACK_MARTY_SIGNING_SECRET@1
     availability:
       - RUNTIME
+  # #ceo Slack channel ID — private channel, pinned so renames don't break routing
+  - variable: SLACK_CHANNEL_ID_CEO
+    value: "C0ASE9QLBJ5"
+    availability:
+      - RUNTIME
   # CEO Gmail access — Firebase UID of martez@bakedbot.ai super user
   - variable: CEO_GMAIL_UID
     secret: CEO_GMAIL_UID@1
