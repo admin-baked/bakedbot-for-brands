@@ -66,16 +66,27 @@ async function checkGmail(): Promise<ConnectionCheck> {
             return { ...base, status: 'not_configured', detail: 'Gmail OAuth not connected — no refresh token stored' };
         }
 
-        // Token exists — check if expired (no live API call needed for basic health)
-        const isExpired = credentials.expiry_date && credentials.expiry_date < Date.now();
-        if (isExpired && !credentials.refresh_token) {
-            return { ...base, status: 'broken', detail: 'Gmail access token expired and no refresh token — re-auth required' };
-        }
+        // Do a real API probe — getProfile is the lightest Gmail call
+        const { google } = await import('googleapis');
+        const { getOAuth2ClientAsync } = await import('@/server/integrations/gmail/oauth');
+        const authClient = await getOAuth2ClientAsync();
+        authClient.setCredentials(credentials);
+        const gmail = google.gmail({ version: 'v1', auth: authClient });
+        const profile = await gmail.users.getProfile({ userId: 'me' });
+        const email = profile.data.emailAddress ?? 'unknown';
 
-        return { ...base, status: 'connected', detail: 'OAuth tokens present' };
-    } catch (err) {
-        logger.warn('[ConnectionHealth] Gmail check failed', { error: String(err) });
-        return { ...base, status: 'broken', detail: `Check failed: ${err instanceof Error ? err.message : String(err)}` };
+        return { ...base, status: 'connected', detail: `Connected as ${email}` };
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        const isAuthErr = /login required|invalid.?credentials|token.?expired|unauthorized/i.test(msg);
+        logger.warn('[ConnectionHealth] Gmail check failed', { error: msg });
+        return {
+            ...base,
+            status: 'broken',
+            detail: isAuthErr
+                ? 'Gmail token expired — re-connect at Dashboard → Settings → Integrations → Gmail'
+                : `Check failed: ${msg}`,
+        };
     }
 }
 
