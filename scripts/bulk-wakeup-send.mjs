@@ -347,8 +347,7 @@ async function main() {
     for (const org of orgs) {
         console.log(`\n── ${org.key.toUpperCase()} ──────────────────────────────────────`);
 
-        const customers = await getCustomers(org.orgId);
-        const sentSet = await getSentSet(org.orgId);
+        const [customers, sentSet] = await Promise.all([getCustomers(org.orgId), getSentSet(org.orgId)]);
         const queue = customers.filter(c => !sentSet.has(c.email));
 
         console.log(`   ${customers.length} customers | ${sentSet.size} already sent | ${queue.length} to send`);

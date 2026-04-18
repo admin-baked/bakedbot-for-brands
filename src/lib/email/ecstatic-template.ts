@@ -1,18 +1,5 @@
 import { ECSTATIC_CUSTOMER_SENDER_NAME } from './sender-branding';
 
-/**
- * Ecstatic Edibles canonical email design system.
- *
- * Source of truth for all Ecstatic transactional + campaign emails.
- * Design approved 2026-04-18.
- *
- * Colors:
- *   RED   #e11d48 — header gradient, CTA buttons, links
- *   GOLD  #f1b200 — badge / accent pill
- *   DARK  #4a0416 — footer background, body text heading
- *   BG    #fff5f7 — outer page background
- */
-
 export const ECSTATIC = {
     DISPLAY_NAME: ECSTATIC_CUSTOMER_SENDER_NAME,
     RED: '#e11d48',
