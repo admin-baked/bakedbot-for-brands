@@ -61,13 +61,11 @@ import {
 } from '@/server/services/proactive-task-service';
 import { getResolvedProactiveSnoozeHours } from '@/server/services/proactive-settings';
 import {
-    isPlaceholderCustomerIdentity,
-    resolveCustomerDisplayName,
-} from '@/lib/customers/profile-derivations';
-import {
     buildInboxOwnerBriefingSummary,
     selectLatestOwnerBriefingArtifact,
 } from '@/server/services/inbox-owner-briefing';
+import { buildInboxThreadContext, getThreadCustomerDisplayName } from '@/server/services/inbox-thread-context';
+import { resolveCustomerDisplayName, isPlaceholderCustomerIdentity } from '@/lib/customers/profile-derivations';
 
 // ============ Firestore Collections ============
 
@@ -78,19 +76,6 @@ const INBOX_ARTIFACTS_COLLECTION = 'inbox_artifacts';
 
 function getDb() {
     return getAdminFirestore();
-}
-
-function getThreadCustomerDisplayName(thread: InboxThread): string | null {
-    if (thread.type !== 'crm_customer') {
-        return null;
-    }
-
-    const titleCandidate = (thread.title || '').replace(/\s*-\s*CRM$/i, '').trim();
-    if (!titleCandidate || /^new\s+crm_customer\s+conversation$/i.test(titleCandidate)) {
-        return null;
-    }
-
-    return titleCandidate;
 }
 
 /**
@@ -1552,7 +1537,7 @@ export async function runInboxAgentChat(
             .slice(-6);
 
         // Build context for the agent based on thread type
-        const threadContext = await buildThreadContext(thread);
+        const threadContext = await buildInboxThreadContext(thread);
 
         // === REMOTE SIDECAR ROUTING ===
         // Route heavy research agents to remote Python sidecar if available
@@ -1809,9 +1794,12 @@ export async function cancelInboxAgentJob(jobId: string): Promise<{ success: boo
 }
 
 /**
- * Build context string for the agent based on thread type
+ * @deprecated Use buildInboxThreadContext from the shared service.
  */
 async function buildThreadContext(thread: InboxThread): Promise<string> {
+    return buildInboxThreadContext(thread);
+}
+/*
     // Load project context if available
     let projectContext = '';
     if (thread.projectId) {
@@ -2195,6 +2183,7 @@ Grounding rules for inbox responses:
 
 Previous messages in this conversation: ${thread.messages.length}`;
 }
+*/
 
 /**
  * Build artifact data from parsed content

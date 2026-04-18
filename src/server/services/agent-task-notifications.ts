@@ -25,6 +25,7 @@ function stoplightLabel(stoplight: AgentTaskStoplight): string {
         gray:   'QUEUED',
         yellow: 'RUNNING',
         orange: 'ESCALATED',
+        purple: 'REVIEW',
         green:  'COMPLETE',
         red:    'FAILED',
     };

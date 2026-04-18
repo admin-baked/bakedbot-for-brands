@@ -30,15 +30,16 @@ import { createGoalAndDecompose } from '@/server/actions/revenue-goals';
 type Column = { key: AgentTaskStoplight; label: string; headerClass: string; dotClass: string };
 
 const COLUMNS: Column[] = [
-    { key: 'gray',   label: 'Queued',    headerClass: 'border-gray-300  bg-gray-50',    dotClass: 'bg-gray-400'   },
-    { key: 'yellow', label: 'Running',   headerClass: 'border-yellow-300 bg-yellow-50', dotClass: 'bg-yellow-400' },
-    { key: 'orange', label: 'Escalated', headerClass: 'border-orange-300 bg-orange-50', dotClass: 'bg-orange-400' },
-    { key: 'green',  label: 'Complete',  headerClass: 'border-green-300  bg-green-50',  dotClass: 'bg-green-500'  },
-    { key: 'red',    label: 'Failed',    headerClass: 'border-red-300    bg-red-50',    dotClass: 'bg-red-500'    },
+    { key: 'gray',   label: 'Queued',    headerClass: 'border-gray-300   bg-gray-50',    dotClass: 'bg-gray-400'    },
+    { key: 'yellow', label: 'Running',   headerClass: 'border-yellow-300 bg-yellow-50',  dotClass: 'bg-yellow-400'  },
+    { key: 'orange', label: 'Escalated', headerClass: 'border-orange-300 bg-orange-50',  dotClass: 'bg-orange-400'  },
+    { key: 'purple', label: 'Review',    headerClass: 'border-purple-300 bg-purple-50',  dotClass: 'bg-purple-500'  },
+    { key: 'green',  label: 'Complete',  headerClass: 'border-green-300  bg-green-50',   dotClass: 'bg-green-500'   },
+    { key: 'red',    label: 'Failed',    headerClass: 'border-red-300    bg-red-50',     dotClass: 'bg-red-500'     },
 ];
 
-type BoardColumns = { gray: AgentTask[]; yellow: AgentTask[]; orange: AgentTask[]; green: AgentTask[]; red: AgentTask[] };
-const EMPTY_COLUMNS: BoardColumns = { gray: [], yellow: [], orange: [], green: [], red: [] };
+type BoardColumns = { gray: AgentTask[]; yellow: AgentTask[]; orange: AgentTask[]; purple: AgentTask[]; green: AgentTask[]; red: AgentTask[] };
+const EMPTY_COLUMNS: BoardColumns = { gray: [], yellow: [], orange: [], purple: [], green: [], red: [] };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -71,8 +72,10 @@ const STEP_ICON: Record<TaskStep['status'], string> = {
 };
 
 const BUSINESS_AGENT_EMOJI: Record<string, string> = {
-    marty: '🎯', craig: '📱', smokey: '🌿', mrs_parker: '💌',
-    ezal: '👀', pops: '📊', linus: '🖥️', deebo: '⚖️',
+    // Executive Boardroom
+    marty: '🎯', jack: '💰', glenda: '📣', mike_exec: '🏦', leo: '⚙️', linus: '🖥️',
+    // Specialist agents
+    craig: '📱', smokey: '🌿', mrs_parker: '💌', ezal: '👀', pops: '📊', deebo: '⚖️',
 };
 
 // ── MRR Progress Header ───────────────────────────────────────────────────────
@@ -276,6 +279,8 @@ function TaskCard({ task, onClick }: { task: AgentTask; onClick: () => void }) {
     const completedSteps = (task.steps || []).filter(s => s.status === 'complete').length;
     const totalSteps = (task.steps || []).length;
     const agentEmoji = task.businessAgent ? (BUSINESS_AGENT_EMOJI[task.businessAgent] ?? '🔧') : null;
+    const isReview = task.status === 'awaiting_approval';
+    const hasArtifact = !!task.artifact;
 
     return (
         <button
@@ -303,6 +308,20 @@ function TaskCard({ task, onClick }: { task: AgentTask; onClick: () => void }) {
                     <span className="text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded px-1.5 py-0">
                         {fmtUSD(task.estimatedImpactUSD)}
                     </span>
+                )}
+                {isReview && hasArtifact && (
+                    <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded px-1.5 py-0">
+                        📎 {task.artifact!.type}
+                    </span>
+                )}
+                {task.subTaskIds && task.subTaskIds.length > 0 && (
+                    <span className="text-[10px] text-gray-400">↳ {task.subTaskIds.length} sub</span>
+                )}
+                {task.parentTaskId && (
+                    <span className="text-[10px] text-gray-400">↑ sub-task</span>
+                )}
+                {(task.rejectionCount ?? 0) > 0 && (
+                    <span className="text-[10px] text-red-500">↺ retry {task.rejectionCount}</span>
                 )}
             </div>
 
@@ -346,7 +365,8 @@ function TaskDrawer({ task, open, onClose, onFeedback }: {
 
     const col = COLUMNS.find(c => c.key === (task.stoplight ?? 'gray'))!;
     const hasFeedback = !!task.humanFeedback;
-    const canFeedback = !hasFeedback && (task.stoplight === 'green' || task.stoplight === 'red' || task.stoplight === 'orange');
+    const isAwaitingApproval = task.status === 'awaiting_approval';
+    const canFeedback = !hasFeedback && (isAwaitingApproval || task.stoplight === 'green' || task.stoplight === 'red' || task.stoplight === 'orange');
 
     async function submit(rating: string) {
         setSubmit(true);
@@ -420,6 +440,30 @@ function TaskDrawer({ task, open, onClose, onFeedback }: {
                         </div>
                     )}
 
+                    {task.artifact && (
+                        <div className="rounded-lg border border-purple-200 bg-purple-50 p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                                <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide">
+                                    📎 Agent Output — {task.artifact.type}
+                                </p>
+                                <span className="text-[10px] text-purple-400">by {task.artifact.generatedBy}</span>
+                            </div>
+                            <p className="text-sm font-medium text-gray-900">{task.artifact.title}</p>
+                            <pre className="text-xs bg-white border border-purple-100 rounded p-2 overflow-auto max-h-64 text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                {task.artifact.content}
+                            </pre>
+                        </div>
+                    )}
+
+                    {task.subTaskIds && task.subTaskIds.length > 0 && (
+                        <div>
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                                Sub-tasks ({task.subTaskIds.length})
+                            </p>
+                            <p className="text-xs text-gray-400">Specialists spawned to support this task.</p>
+                        </div>
+                    )}
+
                     {task.humanFeedback && (
                         <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Your Feedback</p>
@@ -433,8 +477,18 @@ function TaskDrawer({ task, open, onClose, onFeedback }: {
                     )}
 
                     {canFeedback && (
-                        <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 space-y-3">
-                            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Leave Feedback</p>
+                        <div className={cn(
+                            'rounded-lg border p-3 space-y-3',
+                            isAwaitingApproval
+                                ? 'border-purple-200 bg-purple-50'
+                                : 'border-blue-100 bg-blue-50'
+                        )}>
+                            <p className={cn('text-xs font-semibold uppercase tracking-wide', isAwaitingApproval ? 'text-purple-700' : 'text-blue-700')}>
+                                {isAwaitingApproval ? '🟣 Review Agent Output' : 'Leave Feedback'}
+                            </p>
+                            {isAwaitingApproval && (
+                                <p className="text-xs text-purple-600">Approve to mark done. Reject to re-queue with your notes — the agent will retry with your feedback.</p>
+                            )}
                             <Textarea
                                 placeholder="Optional: what went well / what should improve..."
                                 value={note}
@@ -501,6 +555,8 @@ export default function AgentBoardPage() {
             const res = await fetch('/api/admin/agent-board', { credentials: 'same-origin' });
             if (!res.ok) { setError(`Board unavailable (${res.status})`); return; }
             const data = await res.json() as { columns: BoardColumns; activeGoals?: RevenueGoal[] };
+            // Backfill purple column if not present (older API responses)
+            if (!data.columns.purple) data.columns.purple = [];
             setColumns(data.columns ?? EMPTY_COLUMNS);
             setGoals(data.activeGoals ?? []);
             setError(null);
@@ -520,7 +576,7 @@ export default function AgentBoardPage() {
 
     useEffect(() => {
         if (!selected) return;
-        const allTasks = [...columns.gray, ...columns.yellow, ...columns.orange, ...columns.green, ...columns.red];
+        const allTasks = [...columns.gray, ...columns.yellow, ...columns.orange, ...(columns.purple ?? []), ...columns.green, ...columns.red];
         const live = allTasks.find(t => t.id === selected.id);
         if (live) setSelected(live);
     }, [columns, selected?.id]);
@@ -548,6 +604,7 @@ export default function AgentBoardPage() {
         gray:   filterTasks(columns.gray),
         yellow: filterTasks(columns.yellow),
         orange: filterTasks(columns.orange),
+        purple: filterTasks(columns.purple ?? []),
         green:  filterTasks(columns.green),
         red:    filterTasks(columns.red),
     };

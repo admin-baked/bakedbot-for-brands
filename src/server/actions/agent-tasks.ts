@@ -270,6 +270,32 @@ export async function updateTaskStoplight(
     }
 }
 
+/** Agent submits completed work as an artifact — moves task to awaiting_approval */
+export async function submitArtifact(
+    taskId: string,
+    artifact: import('@/types/agent-task').AgentArtifact,
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const db = getAdminFirestore();
+        const ref = db.collection(COLLECTION).doc(taskId);
+        const doc = await ref.get();
+        if (!doc.exists) return { success: false, error: 'Task not found' };
+
+        await ref.update({
+            artifact,
+            status: 'awaiting_approval',
+            stoplight: 'purple',
+            updatedAt: new Date().toISOString(),
+        });
+
+        logger.info('[AgentTasks] Artifact submitted — awaiting approval', { taskId, type: artifact.type, generatedBy: artifact.generatedBy });
+        return { success: true };
+    } catch (err) {
+        logger.error('[AgentTasks] Failed to submit artifact', { taskId, error: err instanceof Error ? err.message : String(err) });
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+}
+
 /** Submit human feedback and log it to agent_learning_log */
 export async function submitTaskFeedback(
     taskId: string,
@@ -284,7 +310,26 @@ export async function submitTaskFeedback(
         const task = { id: doc.id, ...doc.data() } as AgentTask;
         const now = new Date().toISOString();
 
-        await ref.update({ humanFeedback: feedback, updatedAt: now });
+        // Status transitions driven by feedback rating
+        const statusUpdate: Partial<AgentTask> = { humanFeedback: feedback, updatedAt: now };
+        if (feedback.rating === 'approved' && task.status === 'awaiting_approval') {
+            statusUpdate.status = 'done';
+            statusUpdate.stoplight = 'green';
+        } else if (feedback.rating === 'rejected' && task.status === 'awaiting_approval') {
+            // Re-queue with rejection notes appended so agent can learn and retry
+            const rejectionNote = feedback.note ? `\n\n**Rejected (round ${(task.rejectionCount ?? 0) + 1}):** ${feedback.note}` : '';
+            statusUpdate.status = 'open';
+            statusUpdate.stoplight = 'gray';
+            statusUpdate.body = (task.body ?? '') + rejectionNote;
+            statusUpdate.rejectionCount = (task.rejectionCount ?? 0) + 1;
+        }
+
+        const update: Record<string, unknown> = { ...statusUpdate };
+        if (feedback.rating === 'rejected' && task.status === 'awaiting_approval') {
+            update['artifact'] = null; // clear artifact so it doesn't show stale output
+        }
+
+        await ref.update(update as FirebaseFirestore.UpdateData<AgentTask>);
 
         // Write to learning log
         import('@/server/services/agent-learning-loop').then(({ logAgentLearning }) =>
@@ -313,30 +358,33 @@ export async function submitTaskFeedback(
     }
 }
 
+export type BoardColumns = {
+    gray: AgentTask[];
+    yellow: AgentTask[];
+    orange: AgentTask[];
+    purple: AgentTask[];
+    green: AgentTask[];
+    red: AgentTask[];
+};
+
 /** Get all tasks grouped for the board, keyed by stoplight column */
 export async function getAgentBoardTasks(): Promise<{
     success: boolean;
-    columns: {
-        gray: AgentTask[];
-        yellow: AgentTask[];
-        orange: AgentTask[];
-        green: AgentTask[];
-        red: AgentTask[];
-    };
+    columns: BoardColumns;
     total: number;
     error?: string;
 }> {
-    const empty: { gray: AgentTask[]; yellow: AgentTask[]; orange: AgentTask[]; green: AgentTask[]; red: AgentTask[] } = {
-        gray: [], yellow: [], orange: [], green: [], red: [],
-    };
+    const empty: BoardColumns = { gray: [], yellow: [], orange: [], purple: [], green: [], red: [] };
     try {
         const db = getAdminFirestore();
-        // Active tasks — all non-terminal + recent terminal
-        // Note: no orderBy to avoid requiring composite index; sorted in-memory below
-        const [active, recent] = await Promise.all([
+        const [active, review, recent] = await Promise.all([
             db.collection(COLLECTION)
                 .where('status', 'in', ['open', 'claimed', 'in_progress', 'escalated'])
                 .limit(100)
+                .get(),
+            db.collection(COLLECTION)
+                .where('status', '==', 'awaiting_approval')
+                .limit(50)
                 .get(),
             db.collection(COLLECTION)
                 .where('status', 'in', ['done', 'wont_fix'])
@@ -351,21 +399,22 @@ export async function getAgentBoardTasks(): Promise<{
             if      (col === 'gray')   columns.gray.push(task);
             else if (col === 'yellow') columns.yellow.push(task);
             else if (col === 'orange') columns.orange.push(task);
+            else if (col === 'purple') columns.purple.push(task);
             else if (col === 'green')  columns.green.push(task);
             else if (col === 'red')    columns.red.push(task);
         };
 
         active.docs.forEach(pushTask);
+        review.docs.forEach(pushTask);
         recent.docs.forEach(pushTask);
 
-        // Sort each column by createdAt desc in-memory
         const byCreatedDesc = (a: AgentTask, b: AgentTask) =>
             (b.createdAt ?? '').localeCompare(a.createdAt ?? '');
-        for (const col of Object.keys(columns) as (keyof typeof columns)[]) {
+        for (const col of Object.keys(columns) as (keyof BoardColumns)[]) {
             columns[col].sort(byCreatedDesc);
         }
 
-        return { success: true, columns, total: active.size + recent.size };
+        return { success: true, columns, total: active.size + review.size + recent.size };
     } catch (err) {
         logger.error('[AgentTasks] Failed to get board tasks', { error: err instanceof Error ? err.message : String(err) });
         return { success: false, columns: empty, total: 0, error: err instanceof Error ? err.message : String(err) };

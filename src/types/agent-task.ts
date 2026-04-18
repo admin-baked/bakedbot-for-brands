@@ -11,21 +11,22 @@
 
 // --- Status ---
 
-export type AgentTaskStatus = 'open' | 'claimed' | 'in_progress' | 'escalated' | 'done' | 'wont_fix';
+export type AgentTaskStatus = 'open' | 'claimed' | 'in_progress' | 'escalated' | 'awaiting_approval' | 'done' | 'wont_fix';
 
 // --- Stoplight ---
 
 /** Visual status for the board. Derived from status but can be overridden by agents. */
-export type AgentTaskStoplight = 'gray' | 'yellow' | 'orange' | 'green' | 'red';
+export type AgentTaskStoplight = 'gray' | 'yellow' | 'orange' | 'purple' | 'green' | 'red';
 
 export function statusToStoplight(status: AgentTaskStatus): AgentTaskStoplight {
     switch (status) {
-        case 'open':        return 'gray';
+        case 'open':               return 'gray';
         case 'claimed':
-        case 'in_progress': return 'yellow';
-        case 'escalated':   return 'orange';
-        case 'done':        return 'green';
-        case 'wont_fix':    return 'red';
+        case 'in_progress':        return 'yellow';
+        case 'escalated':          return 'orange';
+        case 'awaiting_approval':  return 'purple';
+        case 'done':               return 'green';
+        case 'wont_fix':           return 'red';
     }
 }
 
@@ -33,6 +34,7 @@ export const STOPLIGHT_EMOJI: Record<AgentTaskStoplight, string> = {
     gray:   '⚪',
     yellow: '🟡',
     orange: '🟠',
+    purple: '🟣',
     green:  '🟢',
     red:    '🔴',
 };
@@ -44,6 +46,18 @@ export interface TaskStep {
     status: 'pending' | 'running' | 'complete' | 'failed';
     completedAt?: string; // ISO string
     notes?: string;
+}
+
+// --- Agent Artifact ---
+
+/** Work output an agent submits for human review before a task is marked done */
+export interface AgentArtifact {
+    type: 'document' | 'copy' | 'research' | 'analysis' | 'plan' | 'spreadsheet' | 'outreach';
+    title: string;
+    /** Markdown-formatted output content */
+    content: string;
+    generatedAt: string;  // ISO string
+    generatedBy: string;  // agentId
 }
 
 // --- Human feedback ---
@@ -136,6 +150,14 @@ export interface AgentTask {
     estimatedImpactUSD?: number;
     /** Actual impact filled in when task reaches done */
     resolvedImpactUSD?: number;
+    /** Sub-agent hierarchy: parent exec task that spawned this */
+    parentTaskId?: string;
+    /** IDs of specialist sub-tasks spawned by this exec task */
+    subTaskIds?: string[];
+    /** Work output submitted by agent for human review */
+    artifact?: AgentArtifact;
+    /** How many times this task has been rejected and re-queued */
+    rejectionCount?: number;
 
     /** Timestamps */
     createdAt: string;   // ISO string
@@ -174,6 +196,7 @@ export function renderTaskMarkdown(task: AgentTask): string {
         claimed: '[~]',
         in_progress: '[>]',
         escalated: '[!]',
+        awaiting_approval: '[?]',
         done: '[x]',
         wont_fix: '[-]',
     };
