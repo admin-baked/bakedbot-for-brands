@@ -1599,6 +1599,844 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         prompt: `We just sent a "Win Back — 90 Days Lapsed" email campaign but the segment filter was wrong and it went to ALL active customers including people who were just in the store yesterday. The email says "We miss you — it has been a while." 847 people got it who should not have. What do I do now — do I send a correction email, ignore it, or something else?`,
         expectedFocus: ['wrong segment', 'correction', 'email', 'active'],
     },
+
+    // ─── SMOKEY — PRODUCT EDUCATION (20 CASES) ─────────────────────────────────
+    {
+        id: 'smokey-wedding-cake-vs-gelato',
+        title: 'Strain comparison: Wedding Cake vs. Gelato',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `A customer is choosing between Wedding Cake and Gelato. How do you explain the difference to help them decide — profile, experience characteristics, and which type of customer usually gravitates toward each?`,
+        expectedFocus: ['Wedding Cake', 'Gelato', 'terpene', 'profile'],
+    },
+    {
+        id: 'smokey-indica-sativa-hybrid-modern',
+        title: 'Indica / Sativa / Hybrid — modern understanding',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `My budtenders are still telling customers "sativa gives you energy, indica puts you to sleep." I know this is outdated. What is the modern, science-backed way to explain the difference between indica, sativa, and hybrid to a curious customer without making medical claims?`,
+        expectedFocus: ['terpene', 'cannabinoid', 'outdated', 'experience'],
+    },
+    {
+        id: 'smokey-rosin-vs-other-concentrates',
+        title: 'What is rosin and why is it pricier?',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `Customers keep asking why rosin is so much more expensive than other concentrates. How do we explain what rosin is, how it is made, and why the price premium is justified — all without using any medical language?`,
+        expectedFocus: ['solventless', 'extraction', 'price', 'process'],
+    },
+    {
+        id: 'smokey-first-time-user-guidance',
+        title: 'First-time user product guidance',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `A customer tells the budtender: "I have never tried cannabis before. What should I start with?" Walk through how Smokey guides that conversation — which product types to suggest, what dosage approach to mention, and what talking points to use — without making any medical claims or promising specific effects.`,
+        expectedFocus: ['low dose', 'start', 'first-time', 'format'],
+        mustNotContain: ['helps with', 'relieves', 'treats', 'symptom', 'condition', 'medical', 'therapeutic', 'anxiety', 'sleep', 'depression'],
+    },
+    {
+        id: 'smokey-thc-percentage-myth',
+        title: 'THC percentage — is 30% better than 22%?',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `A customer holds up a 30% THC flower and a 22% THC flower and asks: "The 30% one is better, right? More THC means stronger?" How does Smokey explain why THC percentage alone does not tell the whole story, and what factors actually shape the experience?`,
+        expectedFocus: ['terpene', 'percentage', 'entourage', 'experience'],
+    },
+    {
+        id: 'smokey-cbg-products',
+        title: 'CBG products — what are they and how do they differ from CBD?',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `We just got a few CBG products in and customers are asking what CBG is. How do I explain CBG to a curious customer, how it differs from CBD, and what kind of shopper is a good fit for it — all without medical claims?`,
+        expectedFocus: ['CBG', 'cannabinoid', 'CBD', 'minor'],
+        mustNotContain: ['helps with', 'relieves', 'treats', 'symptom', 'condition', 'medical', 'therapeutic', 'anxiety', 'sleep', 'depression'],
+    },
+    {
+        id: 'smokey-terpene-deep-dive',
+        title: 'Terpene profile deep dive — myrcene, limonene, pinene',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `A customer is reading the product label and wants to know what the terpene percentages mean. How would Smokey explain myrcene, limonene, and beta-pinene in plain language — what each one contributes to the product experience — without making any medical claims?`,
+        expectedFocus: ['myrcene', 'limonene', 'pinene', 'aroma'],
+        mustNotContain: ['helps with', 'relieves', 'treats', 'symptom', 'condition', 'medical', 'therapeutic', 'anxiety', 'sleep', 'depression'],
+    },
+    {
+        id: 'smokey-live-resin-vs-cured-resin',
+        title: 'Live resin vs. cured resin carts — real difference',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `Customers keep asking about the difference between live resin and cured resin cartridges. How does Smokey explain it in a way that helps the customer decide which one to buy, without over-claiming?`,
+        expectedFocus: ['live resin', 'cured', 'terpene', 'harvest'],
+    },
+    {
+        id: 'smokey-rso-explanation',
+        title: 'RSO — explain the product without medical claims',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `A customer points to our RSO (Rick Simpson Oil) and asks what it is and who buys it. How does Smokey explain RSO — what it is, how it is consumed, and the customer profile — without making any medical claims?`,
+        expectedFocus: ['RSO', 'full-spectrum', 'concentrated', 'consumption'],
+        mustNotContain: ['cancer', 'cure', 'treats', 'relieves', 'symptom', 'condition', 'medical', 'therapeutic', 'pain'],
+    },
+    {
+        id: 'smokey-infused-preroll-question',
+        title: 'Infused pre-roll — what is it, is it much stronger?',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `A customer picks up an infused pre-roll and asks: "What makes this infused, and is it a lot stronger than a regular joint?" How does Smokey answer clearly and honestly without overselling potency or making medical claims?`,
+        expectedFocus: ['infused', 'concentrate', 'potency', 'regular'],
+    },
+    {
+        id: 'smokey-edibles-onset-time',
+        title: 'Edibles onset time — customer says they feel nothing',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `A customer comes back 45 minutes after purchasing a 10mg gummy and says "I don't feel anything, do I need more?" Walk through how Smokey handles this conversation — explaining onset time, why edibles metabolize differently, and what guidance to give — without making any medical promises.`,
+        expectedFocus: ['onset', 'liver', 'wait', 'metabolism'],
+        mustNotContain: ['helps with', 'relieves', 'treats', 'symptom', 'condition', 'medical', 'therapeutic'],
+    },
+    {
+        id: 'smokey-microdosing-concept',
+        title: 'Micro-dosing — how to frame low-dose products',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `We are getting more customers interested in micro-dosing. How does Smokey explain the concept of micro-dosing cannabis to a customer, what product formats work best for it, and what talking points keep the conversation legal and compliant?`,
+        expectedFocus: ['micro-dose', 'low dose', '2.5mg', 'format'],
+        mustNotContain: ['helps with', 'relieves', 'treats', 'symptom', 'condition', 'medical', 'therapeutic', 'anxiety', 'pain'],
+    },
+    {
+        id: 'smokey-full-spectrum-vs-isolate',
+        title: 'Full-spectrum vs. broad-spectrum vs. isolate',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `A customer is looking at CBD tinctures and is confused about full-spectrum vs. broad-spectrum vs. isolate. How does Smokey explain the three clearly and help the customer figure out which fits them — without making any health or medical claims?`,
+        expectedFocus: ['full-spectrum', 'broad-spectrum', 'isolate', 'cannabinoid'],
+        mustNotContain: ['helps with', 'relieves', 'treats', 'symptom', 'condition', 'medical', 'therapeutic'],
+    },
+    {
+        id: 'smokey-customer-says-product-made-sick',
+        title: 'Customer says product made them sick — budtender protocol',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `A customer comes in and says the edible they bought last week "made them sick." How does the budtender respond? What is the protocol for documenting the complaint, what we can and cannot say, and when to escalate to the manager?`,
+        expectedFocus: ['document', 'manager', 'complaint', 'protocol'],
+        mustNotContain: ['medical', 'doctor', 'treatment', 'symptom', 'diagnosis'],
+    },
+    {
+        id: 'smokey-hash-rosin-vs-flower-rosin',
+        title: 'Hash rosin vs. flower rosin — the difference',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `A customer is comparing a hash rosin and a flower rosin product and wants to know if the price difference is real. How does Smokey explain what sets hash rosin apart from flower rosin — process, input material, yield, and why collectors prefer one over the other?`,
+        expectedFocus: ['hash rosin', 'flower rosin', 'input', 'yield'],
+    },
+    {
+        id: 'smokey-thca-flower',
+        title: 'THCA flower — what is it and how does it differ?',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `A customer picks up a THCA flower product and asks how it is different from regular dispensary flower. How does Smokey explain THCA vs. THC, decarboxylation, and what this means for the customer experience — without medical claims?`,
+        expectedFocus: ['THCA', 'decarboxylation', 'heat', 'THC'],
+    },
+    {
+        id: 'smokey-distillate-vs-live-resin-cart',
+        title: 'Distillate vs. live resin cart — which is better?',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `Customer asks: "My budtender recommended a live resin cart but distillate is cheaper — which is actually better for me?" How does Smokey walk through the differences objectively so the customer can choose based on their preferences and budget?`,
+        expectedFocus: ['distillate', 'live resin', 'terpene', 'price'],
+    },
+    {
+        id: 'smokey-topicals-transdermal',
+        title: 'Topicals and transdermal patches — explain without medical language',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `We have topicals and transdermal patches in stock but budtenders struggle to explain them without drifting into medical claims. What is the budtender's talking-point script for explaining topicals vs. transdermal patches — what they are, how they work, and who might enjoy them — staying fully compliant?`,
+        expectedFocus: ['topical', 'transdermal', 'absorption', 'localized'],
+        mustNotContain: ['helps with', 'relieves', 'treats', 'symptom', 'condition', 'medical', 'therapeutic', 'pain', 'inflammation'],
+    },
+    {
+        id: 'smokey-product-return-replacement',
+        title: 'Customer returning a product they did not like — replacement guidance',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        prompt: `A customer returns with a vape cartridge they bought two days ago and says "I just didn't like it — the taste was off and it didn't do anything for me." How does Smokey handle the return conversation and guide them toward a better-fit replacement without dismissing their experience or making medical claims?`,
+        expectedFocus: ['return', 'replacement', 'taste', 'preference'],
+        mustNotContain: ['helps with', 'relieves', 'treats', 'symptom', 'condition', 'medical', 'therapeutic'],
+    },
+    {
+        id: 'smokey-indica-to-social-multi-turn',
+        title: 'Multi-turn: customer loved indica, wants something more social',
+        kind: 'multi_turn',
+        threadType: 'general',
+        primaryAgent: 'smokey',
+        history: [
+            { role: 'user', content: 'A regular customer says they bought an indica last week and absolutely loved it — they said it was smooth and easy.' },
+            { role: 'assistant', content: 'Good to hear — knowing they enjoyed the indica gives us a solid baseline. We can look at hybrids with a similar terpene base that lean a bit more uplifting without losing that smoothness.' },
+        ],
+        prompt: `They just came back and said they want "something similar but a little more social — like something I could use at a gathering." What strains or product types does Smokey recommend, and what talking points keep this compliant?`,
+        expectedFocus: ['hybrid', 'social', 'terpene', 'uplifting'],
+        mustNotContain: ['helps with', 'relieves', 'treats', 'symptom', 'condition', 'medical', 'therapeutic', 'anxiety', 'depression'],
+    },
+
+    // ─── MRS. PARKER — RETENTION & CRM (20 CASES) ──────────────────────────────
+    {
+        id: 'parker-winback-sms-sandra',
+        title: 'Win-back SMS draft for Sandra T. — 67 days inactive',
+        kind: 'data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `I need a win-back SMS for Sandra T. — 67 days inactive, LTV $412, last purchase was Blue Dream flower. She opted in to SMS. Draft a compliant, personalized win-back message under 160 characters that references her buying history and gives her a reason to come back.`,
+        expectedFocus: ['win-back', 'SMS', 'compliant', 'personalized'],
+    },
+    {
+        id: 'parker-loyalty-tier-structure',
+        title: 'Loyalty tier structure — how many tiers and thresholds?',
+        kind: 'non_data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `We are building a loyalty program and I am not sure how many tiers to have or what the visit/spend thresholds should be. What tier structure do dispensaries typically use that drives repeat visits without giving away too much margin?`,
+        expectedFocus: ['tier', 'threshold', 'visit', 'margin'],
+    },
+    {
+        id: 'parker-vip-churn-triage',
+        title: 'VIP churn triage — 3 VIPs gone 45+ days',
+        kind: 'data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `Three of our top VIP customers have not been in for 45+ days. Here is their data:
+
+| Name | Last Visit | LTV | Avg Monthly Spend | Preferred Category |
+| --- | --- | ---: | ---: | --- |
+| Marcus B. | 46 days ago | $2,840 | $380 | Concentrate |
+| Priya K. | 51 days ago | $1,920 | $240 | Edible |
+| David L. | 63 days ago | $3,100 | $410 | Flower |
+
+Prioritize outreach order and draft a unique first-touch for each — SMS or call?`,
+        expectedFocus: ['prioritize', 'outreach', 'LTV', 'first-touch'],
+    },
+    {
+        id: 'parker-birthday-marketing-compliance',
+        title: 'Birthday discount — should we and is it compliant in NY?',
+        kind: 'non_data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `We want to send customers a birthday discount offer. Is this a good retention tactic, and is it compliant under New York cannabis marketing rules? What is the right offer amount and communication channel?`,
+        expectedFocus: ['birthday', 'NY', 'compliant', 'discount'],
+    },
+    {
+        id: 'parker-segment-focus-spend',
+        title: 'Active 218 vs at-risk 44 vs dormant 31 — where to spend retention budget?',
+        kind: 'data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `Our CRM breaks down to: 218 active customers, 44 at-risk (30–60 days since last visit), 31 dormant (60+ days). We have a $300 retention budget this month. Where does Mrs. Parker recommend we focus — win-back, prevention, or VIP nurture — and what is the expected ROI logic?`,
+        expectedFocus: ['at-risk', 'segment', 'budget', 'prevention'],
+    },
+    {
+        id: 'parker-whale-three-months-inactive',
+        title: 'Whale customer $8,400 LTV — 3 months inactive',
+        kind: 'data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `Our highest-LTV customer — James W., LTV $8,400, avg spend $700/month — has not been in for 3 months. No response to our standard SMS win-back. What is the white-glove outreach plan to re-engage someone at this value level, and at what point do we accept the churn?`,
+        expectedFocus: ['white glove', 'outreach', 'LTV', 'personal'],
+    },
+    {
+        id: 'parker-repeat-returner-risk',
+        title: 'Customer with 4 returns in 3 months — loyalty risk or theft risk?',
+        kind: 'data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `Customer Dina R. has returned 4 products in the last 3 months — gummy bag (half empty), vape cart (claimed defective), flower (said it smelled wrong), and a tincture (unopened, said wrong product). Total return value: $112. She still makes purchases. Is this a loyalty signal we should support or a risk flag?`,
+        expectedFocus: ['returns', 'pattern', 'flag', 'loyalty'],
+    },
+    {
+        id: 'parker-new-customer-nurture',
+        title: 'New customer — 3 purchases in 2 weeks — nurture sequence',
+        kind: 'data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `A new customer Alex T. has visited 3 times in 2 weeks — spent $44, $67, and $89 on those visits, buying edibles both times then adding a vape. This is strong early engagement. What is the right nurture sequence to convert this early momentum into a long-term loyal customer?`,
+        expectedFocus: ['nurture', 'sequence', 'loyalty', 'early'],
+    },
+    {
+        id: 'parker-loyalty-points-expiration',
+        title: 'Should loyalty points expire? Pros and cons',
+        kind: 'non_data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `We are deciding whether to put an expiration on loyalty points. Some of our customers have been accumulating for months. What are the business pros and cons of points expiration, and what is the best practice for communicating it if we do implement it?`,
+        expectedFocus: ['expiration', 'pros', 'cons', 'communicate'],
+    },
+    {
+        id: 'parker-angry-customer-loyalty-reward',
+        title: 'Customer angry about missing loyalty reward — response',
+        kind: 'non_data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `A customer emailed us angry: "I was told I'd get a free pre-roll after my 10th visit and nobody gave it to me at visit #11. I feel cheated." How does Mrs. Parker recommend we respond and resolve this in a way that turns the complaint into retention?`,
+        expectedFocus: ['resolve', 'retention', 'response', 'trust'],
+    },
+    {
+        id: 'parker-churn-rate-multi-turn',
+        title: 'Multi-turn: churn rate question + industry benchmark',
+        kind: 'multi_turn',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        history: [
+            { role: 'user', content: 'We have 293 total customers who visited in the last 90 days. Of those, 31 have not returned in 60+ days.' },
+            { role: 'assistant', content: 'That gives you roughly a 10.6% dormant rate among your recent customer base — about 1 in 10 customers who came in during the 90-day window went quiet in the back half.' },
+        ],
+        prompt: `How does that 10.6% dormant rate compare to industry benchmarks for dispensaries, and is it a number we should be worried about?`,
+        expectedFocus: ['benchmark', 'industry', 'dormant', 'compare'],
+    },
+    {
+        id: 'parker-dormant-offer-strategy',
+        title: 'Dormant 31 customers — what offer drives return visits?',
+        kind: 'data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `We have 31 dormant customers (60+ days inactive). Their average LTV is $284 and they averaged 2.4 visits/month when active. We have tried a standard "We miss you" SMS once already with no results. What offer or message type has the best chance of bringing them back, and should we treat all 31 the same or segment them further?`,
+        expectedFocus: ['dormant', 'offer', 'segment', 'LTV'],
+    },
+    {
+        id: 'parker-referral-program-ny-compliance',
+        title: 'Referral program "bring a friend" — NY compliant?',
+        kind: 'non_data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `We want to run a "bring a friend, both get 10% off" referral promo. Is this compliant under New York OCM cannabis marketing rules? If not, what is a version that would be?`,
+        expectedFocus: ['referral', 'NY', 'OCM', 'compliant'],
+    },
+    {
+        id: 'parker-ltv-at-risk-analysis',
+        title: 'LTV table — top 10 customers, who is at risk?',
+        kind: 'data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `Here are our top 10 customers by LTV and their recent activity:
+
+| Name | LTV | Last Visit | Avg Monthly Spend | Visits Last 90d |
+| --- | ---: | --- | ---: | ---: |
+| James W. | $8,400 | 91 days ago | $700 | 0 |
+| Keisha M. | $4,210 | 8 days ago | $350 | 5 |
+| Marcus B. | $3,100 | 46 days ago | $410 | 1 |
+| Sandra T. | $2,840 | 67 days ago | $380 | 0 |
+| Priya K. | $1,920 | 51 days ago | $240 | 1 |
+| Tony R. | $1,740 | 3 days ago | $290 | 6 |
+| Nina P. | $1,620 | 14 days ago | $270 | 4 |
+| Alex T. | $1,200 | 2 days ago | $200 | 7 |
+| David L. | $980 | 22 days ago | $163 | 3 |
+| Carmen V. | $860 | 48 days ago | $144 | 1 |
+
+Flag who is at risk and give an outreach priority order.`,
+        expectedFocus: ['at risk', 'priority', 'LTV', 'outreach'],
+    },
+    {
+        id: 'parker-post-visit-survey-strategy',
+        title: 'Post-visit survey — when and how to ask for feedback',
+        kind: 'non_data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `We want to start collecting post-visit feedback. What is the best timing and format for a dispensary survey — how soon after the visit, what channel, how many questions — to maximize response rates and get actionable feedback?`,
+        expectedFocus: ['timing', 'survey', 'channel', 'response rate'],
+    },
+    {
+        id: 'parker-lost-cause-threshold',
+        title: 'At what point do we stop trying to win back a customer?',
+        kind: 'non_data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `We have customers who have been dormant for 6+ months and have not responded to two win-back attempts. At what point do we mark them lost and stop spending resources on outreach? What is the framework for making that call?`,
+        expectedFocus: ['threshold', 'dormant', 'framework', 'lost'],
+    },
+    {
+        id: 'parker-data-deletion-request',
+        title: 'Customer requests data deletion — what is the process?',
+        kind: 'non_data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `A customer emailed asking us to delete all their personal data — name, phone, purchase history, loyalty points. What is the process for handling a data deletion request, what can and cannot be deleted under NY cannabis compliance requirements, and who owns this?`,
+        expectedFocus: ['deletion', 'process', 'compliance', 'records'],
+    },
+    {
+        id: 'parker-frequency-drop-signal',
+        title: 'Customer visit frequency drop — early churn signal?',
+        kind: 'data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `Customer Tasha P. was visiting every 7 days on average for 4 months. Her last 3 visit gaps were 11 days, 16 days, 22 days. She is still coming in but the interval is growing. Is this an early churn signal and what should we do right now — before she goes fully dormant?`,
+        expectedFocus: ['frequency', 'signal', 'churn', 'early'],
+    },
+    {
+        id: 'parker-negative-google-review',
+        title: 'Negative Google review — response strategy',
+        kind: 'non_data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `A customer left a 1-star Google review: "Waited 20 minutes, budtender seemed annoyed, my order was wrong. Will not be back." It has been up for 2 days. How does Mrs. Parker recommend we respond publicly and privately to turn this into a retention opportunity?`,
+        expectedFocus: ['response', 'public', 'private', 'review'],
+    },
+    {
+        id: 'parker-vip-preview-invite',
+        title: 'VIP preview night — invite top 50 customers?',
+        kind: 'data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `We are planning a VIP product preview night next month. Should we invite our top 50 customers by LTV, our most frequent visitors, or a mix? How should we select the list, what should the invite say, and what is the expected attendance rate for a cannabis VIP event invite?`,
+        expectedFocus: ['VIP', 'invite', 'selection', 'attendance'],
+    },
+
+    // ─── POPS — REVENUE ANALYTICS (20 CASES) ───────────────────────────────────
+    {
+        id: 'pops-weekly-day-pattern',
+        title: 'Weekly revenue by day — what is the pattern?',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Here is last week's daily revenue:
+
+| Day | Revenue |
+| --- | ---: |
+| Monday | $2,104 |
+| Tuesday | $1,847 |
+| Wednesday | $2,340 |
+| Thursday | $1,910 |
+| Friday | $3,120 |
+| Saturday | $3,890 |
+| Sunday | $2,650 |
+
+Total: $17,861. What is the pattern, what do the low days tell us, and what is actionable here?`,
+        expectedFocus: ['Tuesday', 'Saturday', 'pattern', 'weekly'],
+    },
+    {
+        id: 'pops-yoy-comparison',
+        title: 'Year-over-year April comparison — are we growing?',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Year-over-year April comparison:
+
+| Week | April 2025 Revenue | April 2026 Revenue | Change |
+| --- | ---: | ---: | ---: |
+| Week 1 | $14,200 | $16,840 | +18.6% |
+| Week 2 | $13,800 | $17,210 | +24.7% |
+| Week 3 | $15,100 | $16,900 | +11.9% |
+| Week 4 | $14,600 | $17,861 | +22.3% |
+
+Are we growing meaningfully or just tracking inflation? What story does Pops tell from this data?`,
+        expectedFocus: ['YoY', 'growth', '+18', 'trend'],
+    },
+    {
+        id: 'pops-avg-ticket-decline',
+        title: 'Average ticket fell $52.10 → $44.54 — what is driving it?',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Average transaction value was $52.10 last month. This week it is $44.54. That is a $7.56 drop. We have not run any major promotions this week and foot traffic is flat. What are the most likely causes and what data should I pull to narrow it down?`,
+        expectedFocus: ['$44.54', '$7.56', 'cause', 'data'],
+    },
+    {
+        id: 'pops-category-mix-health',
+        title: 'Category mix — is this breakdown healthy?',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Our revenue category breakdown this month:
+- Flower: 42%
+- Edibles: 28%
+- Vapes: 18%
+- Pre-rolls: 8%
+- Other: 4%
+
+Is this a healthy mix for a New York dispensary, and what category shifts would indicate trouble or opportunity?`,
+        expectedFocus: ['Flower', 'category', 'mix', 'healthy'],
+    },
+    {
+        id: 'pops-time-of-day-staffing',
+        title: 'Time-of-day revenue split — staffing implications',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Revenue by time window (average weekday):
+- 10 AM – 2 PM: $840 (24% of daily)
+- 2 PM – 6 PM: $1,460 (42% of daily)
+- 6 PM – 10 PM: $1,100 (31% of daily)
+
+Total daily average: $3,400. What are the staffing and operational implications, and which window is most underpowered relative to its revenue weight?`,
+        expectedFocus: ['staffing', '2 PM', 'peak', 'window'],
+    },
+    {
+        id: 'pops-revenue-per-transaction-vs-count',
+        title: 'Revenue per transaction vs. transaction count — which to grow?',
+        kind: 'non_data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `We can either focus on increasing transaction count (more customers) or increasing revenue per transaction (upsell, bundles, higher-margin items). From a financial perspective, which lever is higher-impact for a dispensary at our stage, and how do we measure progress on each?`,
+        expectedFocus: ['AOV', 'transaction', 'upsell', 'measure'],
+    },
+    {
+        id: 'pops-promo-lift-analysis',
+        title: 'Flash sale ROI — was it worth it?',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `We ran a 3-hour flash sale last Saturday: 20% off all edibles. Results:
+- Revenue during sale window: $1,200 (baseline for that window on a normal Saturday: estimated $620)
+- Discount value given: $180 in total
+- Net revenue lift: $580 vs baseline
+
+Was this flash sale worth it from a margin and revenue perspective, and should we repeat it?`,
+        expectedFocus: ['lift', '$580', 'margin', 'ROI'],
+    },
+    {
+        id: 'pops-cohort-ltv-comparison',
+        title: 'Jan 2026 vs Jan 2025 cohort LTV — how do they compare?',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Cohort LTV at 90-day mark:
+- Jan 2025 cohort (42 customers): avg LTV $187 at 90 days
+- Jan 2026 cohort (58 customers): avg LTV $214 at 90 days
+
+What does this tell us about retention improvement, and what are the caveats before we celebrate?`,
+        expectedFocus: ['cohort', 'LTV', '$214', 'improvement'],
+    },
+    {
+        id: 'pops-breakeven-marketing-spend',
+        title: 'Break-even on $500 marketing spend',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `We are considering a $500 marketing spend on local Instagram ads. Our average transaction is $44 and our gross margin is approximately 42%. How many new transactions do we need to break even on this spend, and how does Pops frame this for a weekly owner decision?`,
+        expectedFocus: ['break-even', '$500', 'transactions', 'margin'],
+    },
+    {
+        id: 'pops-slow-day-rescue-tuesday',
+        title: 'Tuesday averages $1,400 vs Saturday $3,890 — playbook',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Our Tuesday average revenue is $1,400 vs Saturday $3,890. That is a 64% gap. We have the same operating hours and similar staffing. What is the operational and marketing playbook for moving Tuesday revenue closer to $2,000 without cannibalizing weekend revenue?`,
+        expectedFocus: ['Tuesday', 'playbook', 'gap', '$2,000'],
+    },
+    {
+        id: 'pops-seasonal-trend-forecast',
+        title: 'Monthly revenue Jan-Apr — what to expect in May-June?',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Monthly revenue this year:
+- January: $58,200
+- February: $61,400
+- March: $67,800
+- April (projected full month): $71,400
+
+Is there a seasonal pattern here, and what should we expect for May and June based on this trajectory and cannabis seasonality?`,
+        expectedFocus: ['seasonal', 'May', 'trajectory', 'projection'],
+    },
+    {
+        id: 'pops-contribution-margin',
+        title: 'Contribution margin — $38 avg retail, 40% COGS',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Our average retail per unit is $38 and our cost of goods sold is approximately 40%. What is our contribution margin per unit, what does that mean for covering operating costs, and how does it compare to what a well-run dispensary should target?`,
+        expectedFocus: ['contribution margin', '$38', '40%', 'COGS'],
+    },
+    {
+        id: 'pops-inventory-turn-rate',
+        title: 'Inventory turn rate — $45k COGS, $18k avg inventory',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Last month we had $45,000 in COGS and an average inventory value of $18,000. What is our inventory turn rate and is it healthy for a cannabis dispensary? What does a low vs. high turn rate signal about the business?`,
+        expectedFocus: ['inventory turn', '$45,000', 'COGS', 'healthy'],
+    },
+    {
+        id: 'pops-transaction-count-vs-revenue-growth',
+        title: 'Transactions +12% but revenue only +3% — what does this mean?',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `This month vs. last month: transaction count is up 12% but revenue is only up 3%. That means revenue per transaction is falling. What are the most likely explanations for this divergence and what should we investigate first?`,
+        expectedFocus: ['divergence', 'AOV', 'investigate', 'transaction'],
+    },
+    {
+        id: 'pops-tuesday-slump-multi-turn',
+        title: 'Multi-turn: weekly snapshot → Tuesday slump root cause',
+        kind: 'multi_turn',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        history: [
+            { role: 'user', content: 'Here is our weekly snapshot: Mon $2,104, Tue $1,847, Wed $2,340, Thu $1,910, Fri $3,120, Sat $3,890, Sun $2,650.' },
+            { role: 'assistant', content: 'Tuesday and Thursday are your soft spots — $1,847 and $1,910 respectively against a weekly average of $2,551. The weekend is carrying the week. Tuesday is especially worth diagnosing.' },
+        ],
+        prompt: `Is the Tuesday slump something unique to our store or is this an industry-wide pattern for cannabis dispensaries?`,
+        expectedFocus: ['Tuesday', 'industry', 'pattern', 'dispensary'],
+    },
+    {
+        id: 'pops-wednesday-discount-modeling',
+        title: 'Wednesday 15% off — how many extra transactions to break even?',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `We want to run a 15% discount on all products every Wednesday. Our current Wednesday average is $2,340 revenue across approximately 53 transactions at $44.15 avg ticket. With the 15% discount, how many additional transactions would we need to maintain the same dollar revenue, and is this a smart margin trade-off?`,
+        expectedFocus: ['break-even', 'Wednesday', 'transactions', 'discount'],
+    },
+    {
+        id: 'pops-visit-frequency-benchmark',
+        title: 'Customers average 2.1 visits/month — industry benchmark?',
+        kind: 'non_data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Our customers average 2.1 visits per month. Is that above or below industry benchmarks for a cannabis dispensary, and what does best-in-class visit frequency look like? What drives the gap and how do we improve it?`,
+        expectedFocus: ['benchmark', 'visits', 'frequency', 'industry'],
+    },
+    {
+        id: 'pops-revenue-concentration-risk',
+        title: 'Top 10% of customers = 38% of revenue — risk?',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Our top 10% of customers by spend account for 38% of total revenue. That is a meaningful concentration. Is this level of revenue concentration a risk for a dispensary, what is typical, and what would it mean for our business if we lost half of those top-tier customers?`,
+        expectedFocus: ['concentration', '38%', 'risk', 'top'],
+    },
+    {
+        id: 'pops-q2-forecast',
+        title: 'Q1 actuals — project Q2 range',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Q1 2026 actuals:
+- January: $58,200
+- February: $61,400
+- March: $67,800
+- Q1 Total: $187,400
+
+Based on this trajectory and typical cannabis seasonality (spring pickup, 4/20 lift in April), what is a realistic Q2 revenue range — conservative, base, and optimistic — and what assumptions drive each scenario?`,
+        expectedFocus: ['Q2', 'forecast', 'conservative', 'optimistic'],
+    },
+    {
+        id: 'pops-420-flash-sale-roi',
+        title: '4/20 flash sale — repeat or not?',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Last 4/20 we did $8,400 in revenue vs our daily average of $2,800. That is a 3x day. We ran a storewide 15% discount that cost us approximately $1,260 in margin. Net revenue lift over a normal day was $5,600. Should we plan the same this year, and what would Pops change to capture more of the demand without giving away as much margin?`,
+        expectedFocus: ['4/20', '$5,600', 'margin', 'repeat'],
+    },
+
+    // ── Multi-Location / Brand Management (10 cases) ─────────────────────
+    {
+        id: 'multi-loc-performance-gap',
+        title: 'Location A $3,800/day vs Location B $1,200/day — gap diagnosis',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Location A is doing $3,800/day on average. Location B is doing $1,200/day. Both opened within 3 months of each other, same brand, similar product mix.
+
+What are the most likely drivers of that 3x gap and what data should I pull to diagnose the root cause?`,
+        expectedFocus: ['gap', 'driver', 'diagnose', 'data'],
+    },
+    {
+        id: 'multi-loc-inventory-transfer',
+        title: 'Slow-moving SKU transfer from Location A to Location B',
+        kind: 'non_data',
+        threadType: 'inventory_promo',
+        primaryAgent: 'money_mike',
+        prompt: `We have 30 units of a slow-moving SKU sitting at Location A — it has not moved in 45 days. Location B is selling that same SKU at twice the velocity. Can we physically transfer those 30 units from Location A to Location B? What does that process look like in NY from a Metrc and compliance standpoint?`,
+        expectedFocus: ['transfer', 'Metrc', 'compliance', 'NY'],
+    },
+    {
+        id: 'multi-loc-staff-sharing',
+        title: 'Location A short-staffed Friday — pull from Location B?',
+        kind: 'non_data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Location A is short a budtender this Friday — one called out sick. Location B is fully staffed. Can we move a budtender from Location B to cover Location A for the day? Are there any NY cannabis labor or staffing compliance issues with moving staff between licensed locations under the same brand?`,
+        expectedFocus: ['staff', 'cover', 'compliance', 'Friday'],
+    },
+    {
+        id: 'multi-loc-pricing-consistency',
+        title: 'Should both locations price identically or can Location B run different promos?',
+        kind: 'non_data',
+        threadType: 'marketing',
+        primaryAgent: 'craig',
+        prompt: `We run two dispensary locations under the same brand. Should our pricing and promotions be identical at both locations, or can Location B run its own deals independently? What are the brand consistency risks of having different promo strategies, and what is the competitive case for letting each location adapt to its local market?`,
+        expectedFocus: ['brand', 'promo', 'consistency', 'local'],
+    },
+    {
+        id: 'multi-loc-consolidated-report',
+        title: 'Combined weekly revenue $28,400 across 2 locations — owner presentation',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `This week we did $28,400 combined across 2 locations:
+- Location A: $18,600 (418 transactions, avg ticket $44.50)
+- Location B: $9,800 (198 transactions, avg ticket $49.49)
+
+I need to present this to ownership tomorrow. How do I frame it — what is the headline number, what is the narrative, and what three questions should I expect from ownership?`,
+        expectedFocus: ['$28,400', 'ownership', 'narrative', 'headline'],
+    },
+    {
+        id: 'multi-loc-ticket-gap',
+        title: 'Location A 30% higher average ticket — what can Location B learn?',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Location A averages $62 per ticket. Location B averages $47 per ticket. Same brand, similar product mix, similar price points. The 30% gap has been consistent for 8 weeks.
+
+What are the most likely explanations — upsell training, floor layout, budtender quality, product placement? What would you change at Location B first?`,
+        expectedFocus: ['$62', '$47', 'upsell', 'Location B'],
+    },
+    {
+        id: 'multi-loc-seed-location-c',
+        title: 'Grand opening of Location C — seed inventory from Location A/B history',
+        kind: 'non_data',
+        threadType: 'inventory_promo',
+        primaryAgent: 'money_mike',
+        prompt: `We are opening Location C next month. Based on what we know from Location A and Location B, what product mix should we open with? Specifically: how many SKUs, which categories to over-index on, how much opening inventory in dollars, and what does a 30-day sell-through buffer look like for a new location?`,
+        expectedFocus: ['opening', 'SKU', 'inventory', 'buffer'],
+    },
+    {
+        id: 'multi-loc-loyalty-cross-location',
+        title: 'Loyalty points cross-location — can Location A customer redeem at Location B?',
+        kind: 'non_data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `A customer earned loyalty points at Location A and wants to redeem them at Location B. Our loyalty program is branded under the same company name. Is this cross-location redemption technically possible? What are the POS and CRM requirements, and what is the customer experience risk if we say no?`,
+        expectedFocus: ['loyalty', 'redeem', 'cross-location', 'customer'],
+    },
+    {
+        id: 'multi-loc-metrc-discrepancy-one-location',
+        title: 'Metrc discrepancy at Location A only — does it affect Location B compliance?',
+        kind: 'non_data',
+        threadType: 'compliance',
+        primaryAgent: 'deebo',
+        prompt: `Location A has a Metrc discrepancy — 4 units unaccounted for from a transfer. Location B is clean. Both operate under the same OCM license umbrella. Does Location A's discrepancy create any compliance risk or reporting obligation for Location B, or are they treated as independent entities under NY law?`,
+        expectedFocus: ['Metrc', 'compliance', 'Location B', 'license'],
+    },
+    {
+        id: 'multi-loc-brand-consistency-budtender',
+        title: 'Budtender at Location B doing their own thing — brand alignment',
+        kind: 'non_data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `A budtender at Location B has developed their own recommendation style that differs from our brand guidelines — they are suggesting products in ways that do not align with our positioning and are using unapproved language. How do I address this while keeping them motivated? What is the right mix of retraining, coaching, and accountability?`,
+        expectedFocus: ['budtender', 'brand', 'coaching', 'retraining'],
+    },
+
+    // ── Ecstatic Brand Cases (10 cases) ──────────────────────────────────
+    {
+        id: 'ecstatic-nyc-vs-syracuse-market',
+        title: 'Ecstatic NYC competitive landscape vs upstate Thrive',
+        kind: 'non_data',
+        threadType: 'competitor_intel',
+        primaryAgent: 'ezal',
+        prompt: `Ecstatic is our NYC brand. Thrive is our Syracuse brand. How does the competitive landscape differ? NYC has dozens of dispensaries within walking distance — upstate it is more spread out. What are the strategic differences in how we compete on price, experience, and brand in NYC versus Syracuse?`,
+        expectedFocus: ['NYC', 'Syracuse', 'competitive', 'strategy'],
+    },
+    {
+        id: 'ecstatic-tourist-possession-limits',
+        title: 'Ecstatic NYC tourist customers — NY possession limits guidance',
+        kind: 'non_data',
+        threadType: 'compliance',
+        primaryAgent: 'deebo',
+        prompt: `Ecstatic gets a lot of out-of-state visitors — tourists who are flying home after buying. What do they need to know about NY possession limits, and can we tell them about taking product across state lines? How do our budtenders handle the "can I take this on the plane?" question compliantly without giving legal advice?`,
+        expectedFocus: ['tourist', 'possession', 'state lines', 'budtender'],
+    },
+    {
+        id: 'ecstatic-premium-positioning',
+        title: 'Ecstatic premium menu curation — $80+ average ticket strategy',
+        kind: 'non_data',
+        threadType: 'inventory_promo',
+        primaryAgent: 'money_mike',
+        prompt: `Ecstatic targets high-end customers and we want to get to an $80+ average ticket — we are currently at $62. What menu curation strategy gets us there? Should we reduce low-price SKUs, add premium concentrates, or focus on bundle offers that lift basket size? What does a premium NYC dispensary menu look like at $80+ avg ticket?`,
+        expectedFocus: ['premium', '$80', 'menu', 'basket'],
+    },
+    {
+        id: 'ecstatic-nyc-density-differentiation',
+        title: 'NYC dispensary density — differentiate on experience vs price',
+        kind: 'non_data',
+        threadType: 'competitor_intel',
+        primaryAgent: 'ezal',
+        prompt: `There are multiple dispensaries within a 5-block radius of Ecstatic. We have chosen a premium positioning rather than competing on price. What does "competing on experience" actually mean in a NYC cannabis retail context — design, service model, product curation, events? What specifically sets Ecstatic apart when customers can walk one block and pay less?`,
+        expectedFocus: ['experience', 'NYC', 'differentiate', 'premium'],
+    },
+    {
+        id: 'ecstatic-nyc-advertising-channels',
+        title: 'Ecstatic NYC advertising channels — what works for a premium brand',
+        kind: 'non_data',
+        threadType: 'marketing',
+        primaryAgent: 'craig',
+        prompt: `What advertising and marketing channels work best for a premium NYC cannabis dispensary? We are not competing on price so we cannot just run discount ads. Think about channels that reach affluent NYC consumers — what mix of digital, out-of-home, events, influencers, and PR makes sense for Ecstatic, and which channels are off-limits under NY OCM rules?`,
+        expectedFocus: ['channel', 'NYC', 'OCM', 'premium'],
+    },
+    {
+        id: 'ecstatic-nyc-delivery-viability',
+        title: 'Cannabis delivery in Manhattan — viability and logistics',
+        kind: 'non_data',
+        threadType: 'compliance',
+        primaryAgent: 'deebo',
+        prompt: `Customers are asking if Ecstatic delivers in Manhattan. Is cannabis delivery actually viable in a dense urban market like Manhattan? What are the specific logistical challenges — traffic, building access, doorman buildings, elevator time? And what does the NY delivery license process look like for an NYC location?`,
+        expectedFocus: ['delivery', 'Manhattan', 'logistics', 'license'],
+    },
+    {
+        id: 'ecstatic-instagram-strategy',
+        title: 'Ecstatic Instagram strategy for a premium NYC brand',
+        kind: 'non_data',
+        threadType: 'marketing',
+        primaryAgent: 'craig',
+        prompt: `Design an Instagram content strategy for Ecstatic, our premium NYC cannabis brand. Given NY OCM advertising restrictions, what content is allowed? What aesthetic, content mix (product shots, lifestyle, education, behind-the-scenes), and engagement approach works for building a premium brand on Instagram without violating advertising rules?`,
+        expectedFocus: ['Instagram', 'OCM', 'content', 'premium'],
+    },
+    {
+        id: 'ecstatic-tourist-vs-local-loyalty',
+        title: 'Ecstatic loyalty strategy — tourist vs local customer base',
+        kind: 'non_data',
+        threadType: 'customer_mgmt',
+        primaryAgent: 'mrs_parker',
+        prompt: `Ecstatic has two very different customer types: NYC locals who come regularly and tourists who may only visit once. How do we build loyalty with both? A traditional points program rewards repeat visits but does not help with tourists. What is the right loyalty or retention strategy for a brand that serves a mixed resident/tourist market?`,
+        expectedFocus: ['tourist', 'local', 'loyalty', 'retention'],
+    },
+    {
+        id: 'ecstatic-holiday-event-inventory',
+        title: 'Ecstatic NYC holiday and event season — NYE and fashion week inventory',
+        kind: 'non_data',
+        threadType: 'inventory_promo',
+        primaryAgent: 'money_mike',
+        prompt: `NYC has massive tourist spikes around NYE, Fashion Week, Pride, and other events. How should Ecstatic plan inventory around these windows? Which product categories spike most with tourist/event traffic? What lead time do we need for extra stock and how do we avoid over-ordering for an event that may not deliver the expected traffic?`,
+        expectedFocus: ['NYE', 'tourist', 'inventory', 'event'],
+    },
+    {
+        id: 'ecstatic-price-point-strategy',
+        title: 'Ecstatic flower pricing — $50+/3.5g premium vs competitive $38',
+        kind: 'non_data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Should Ecstatic price flower at $50+ per 3.5g to reinforce premium brand positioning, or stay competitive at $38 like most NYC dispensaries? We have tested both and at $50+ volume drops 30% but gross margin is significantly better. Walk me through the unit economics and which approach maximizes total gross profit at our current traffic levels.`,
+        expectedFocus: ['$50', 'premium', 'margin', 'volume'],
+    },
 ];
 
 function getArg(name: string): string | undefined {

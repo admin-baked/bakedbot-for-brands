@@ -1,8 +1,8 @@
 /**
  * Deebo Compliance Agent — Multi-State Stress Test
  *
- * Tests the BakedBot Deebo compliance enforcer across 5 US cannabis markets:
- * NY, CA, CO, IL, MA. Phase 3 of the stress test expansion toward national coverage.
+ * Tests the BakedBot Deebo compliance enforcer across 9 US cannabis markets:
+ * NY, CA, CO, IL, MA, WA, NV, NJ, MI. Phase 4 of the stress test expansion toward national coverage.
  *
  * No Firebase/Firestore — purely API-driven compliance knowledge testing.
  */
@@ -19,7 +19,7 @@ dotenv.config();
 // TYPES
 // ============================================================================
 
-type ComplianceState = 'NY' | 'CA' | 'CO' | 'IL' | 'MA';
+type ComplianceState = 'NY' | 'CA' | 'CO' | 'IL' | 'MA' | 'WA' | 'NV' | 'NJ' | 'MI';
 type ComplianceCategory =
     | 'possession-limits'
     | 'advertising'
@@ -102,7 +102,7 @@ COMPLIANCE RULES (non-negotiable):
 Be direct, accurate, and helpful. A dispensary operator asking these questions needs real guidance, not vague deflections.`;
 
 // ============================================================================
-// 50 COMPLIANCE CASES — 10 per state
+// 90 COMPLIANCE CASES — 10 per state (NY, CA, CO, IL, MA, WA, NV, NJ, MI)
 // ============================================================================
 
 const COMPLIANCE_CASES: ComplianceCase[] = [
@@ -620,6 +620,418 @@ const COMPLIANCE_CASES: ComplianceCase[] = [
         mustReference: ['Metrc', 'CCC'],
         difficulty: 'intermediate',
     },
+
+    // ─── WASHINGTON (WA) — 10 cases ──────────────────────────────────────────
+    {
+        id: 'wa-possession-limits',
+        title: 'WA adult recreational possession limits',
+        state: 'WA',
+        category: 'possession-limits',
+        question: 'What are the adult recreational cannabis possession limits in Washington State?',
+        expectedTopics: ['1 ounce', 'usable', '16 ounces', 'solid', '72 ounces', 'liquid', 'infused', 'adult', '21'],
+        mustReference: ['1 ounce', 'ounce'],
+        mustNotContain: ['3 ounces', 'I cannot provide'],
+        difficulty: 'basic',
+    },
+    {
+        id: 'wa-license-types',
+        title: 'WA retailer license vs. medical marijuana endorsement',
+        state: 'WA',
+        category: 'licensing',
+        question: 'In Washington State, what is the difference between a standard cannabis retailer license and a medical marijuana endorsement? Do we need both to serve medical patients?',
+        expectedTopics: ['LCB', 'retailer license', 'medical marijuana endorsement', 'authorization', 'patient', 'adult-use'],
+        mustReference: ['LCB', 'endorsement'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'wa-advertising-restrictions',
+        title: 'WA cannabis advertising platform and content rules',
+        state: 'WA',
+        category: 'advertising',
+        question: 'What advertising restrictions apply to cannabis retailers in Washington State? What platforms and content rules must we follow?',
+        expectedTopics: ['LCB', 'age-gating', 'minors', '21+', 'outdoor', 'social media', 'content restrictions', 'false claims'],
+        mustReference: ['LCB', 'advertising'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'wa-required-testing',
+        title: 'WA mandatory testing panels before retail sale',
+        state: 'WA',
+        category: 'testing',
+        question: 'What testing panels are mandatory in Washington State before cannabis products can be sold at retail?',
+        expectedTopics: ['LCB', 'potency', 'pesticides', 'microbials', 'residual solvents', 'heavy metals', 'lab', 'accredited'],
+        mustReference: ['LCB', 'testing'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'wa-labeling-requirements',
+        title: 'WA cannabis label requirements',
+        state: 'WA',
+        category: 'packaging',
+        question: 'What information is required on cannabis product labels in Washington State? What does our packaging need to include?',
+        expectedTopics: ['LCB', 'THC content', 'warning', 'universal symbol', 'licensee', 'weight', 'batch number'],
+        mustReference: ['LCB', 'warning'],
+        difficulty: 'basic',
+    },
+    {
+        id: 'wa-excise-tax',
+        title: 'WA cannabis excise tax structure',
+        state: 'WA',
+        category: 'tax',
+        question: 'What is Washington State\'s cannabis excise tax rate and how does it work? What does a retailer collect at the point of sale?',
+        expectedTopics: ['37%', 'excise', 'retail price', 'LCB', 'DOR', 'sales tax', 'retailer'],
+        mustReference: ['37%', 'excise'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'wa-biotrack-traceability',
+        title: 'WA BioTrack seed-to-sale traceability requirements',
+        state: 'WA',
+        category: 'operations',
+        question: 'Washington uses BioTrack for seed-to-sale traceability. What does our retail dispensary need to track and report in BioTrack?',
+        expectedTopics: ['BioTrack', 'LCB', 'inventory', 'transfer', 'sale', 'manifest', 'package', 'seed-to-sale'],
+        mustReference: ['BioTrack', 'LCB'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'wa-delivery-rules',
+        title: 'WA cannabis delivery — legality and requirements',
+        state: 'WA',
+        category: 'delivery',
+        question: 'Is cannabis home delivery legal in Washington State? What are the rules and requirements for a retailer wanting to offer delivery?',
+        expectedTopics: ['LCB', 'delivery', 'license', 'age verification', 'municipality', 'vehicle', 'endorsement'],
+        mustReference: ['LCB', 'delivery'],
+        difficulty: 'advanced',
+    },
+    {
+        id: 'wa-employer-drug-testing',
+        title: 'WA employer cannabis drug testing rights',
+        state: 'WA',
+        category: 'employment',
+        question: 'In Washington State, can employers test employees for cannabis? Can they terminate employees for a positive cannabis test?',
+        expectedTopics: ['employer', 'drug testing', 'off-duty', 'impairment', 'Washington', 'termination', 'policy'],
+        mustReference: ['employer', 'WA'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'wa-vertical-integration',
+        title: 'WA vertical integration limits for retailers',
+        state: 'WA',
+        category: 'operations',
+        question: 'Can a cannabis retailer in Washington State also hold a producer or processor license? What are the vertical integration restrictions?',
+        expectedTopics: ['LCB', 'vertical integration', 'producer', 'processor', 'retailer', 'license', 'restrictions', 'separate entity'],
+        mustReference: ['LCB', 'vertical'],
+        difficulty: 'advanced',
+    },
+
+    // ─── NEVADA (NV) — 10 cases ──────────────────────────────────────────────
+    {
+        id: 'nv-possession-limits',
+        title: 'NV adult recreational possession limits',
+        state: 'NV',
+        category: 'possession-limits',
+        question: 'What are the adult recreational cannabis possession limits in Nevada?',
+        expectedTopics: ['1 ounce', 'flower', '1/8 ounce', 'concentrate', 'adult', '21', 'CCB'],
+        mustReference: ['1 ounce', 'concentrate'],
+        mustNotContain: ['3 ounces', 'I cannot provide'],
+        difficulty: 'basic',
+    },
+    {
+        id: 'nv-license-types',
+        title: 'NV dispensary retail vs. medical license types',
+        state: 'NV',
+        category: 'licensing',
+        question: 'What are the different dispensary license types in Nevada? What is the difference between a retail store license and a medical dispensary license?',
+        expectedTopics: ['CCB', 'retail store', 'medical dispensary', 'dual-use', 'license', 'Nevada'],
+        mustReference: ['CCB', 'license'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'nv-advertising-restrictions',
+        title: 'NV cannabis advertising restrictions',
+        state: 'NV',
+        category: 'advertising',
+        question: 'What advertising restrictions apply to cannabis retailers in Nevada? What are the key rules for digital and print advertising?',
+        expectedTopics: ['CCB', 'age-gating', 'minors', '21+', 'false claims', 'outdoor', 'restrictions', 'social media'],
+        mustReference: ['CCB', 'advertising'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'nv-tax-structure',
+        title: 'NV cannabis tax structure — excise, retail, and sales',
+        state: 'NV',
+        category: 'tax',
+        question: 'What is Nevada\'s cannabis tax structure? I\'ve heard there\'s an excise tax, a retail tax, and sales tax — how do they all work together?',
+        expectedTopics: ['15%', 'excise', '10%', 'retail', 'sales tax', 'CCB', 'DTC', 'Nevada'],
+        mustReference: ['excise', 'tax'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'nv-delivery-license',
+        title: 'NV home delivery — legality and license requirements',
+        state: 'NV',
+        category: 'delivery',
+        question: 'Is cannabis home delivery legal in Nevada? What does a retailer need to offer delivery services?',
+        expectedTopics: ['CCB', 'delivery', 'license', 'age verification', 'vehicle', 'tracking', 'Nevada'],
+        mustReference: ['CCB', 'delivery'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'nv-lab-testing-panels',
+        title: 'NV required lab testing panels for retail products',
+        state: 'NV',
+        category: 'testing',
+        question: 'What lab testing is required in Nevada before cannabis products can be sold at retail?',
+        expectedTopics: ['CCB', 'potency', 'pesticides', 'microbials', 'residual solvents', 'heavy metals', 'accredited lab', 'certificate of analysis'],
+        mustReference: ['CCB', 'testing'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'nv-packaging-labeling',
+        title: 'NV child-resistant packaging and labeling requirements',
+        state: 'NV',
+        category: 'packaging',
+        question: 'What are Nevada\'s child-resistant packaging and labeling requirements for cannabis products at the retail level?',
+        expectedTopics: ['CCB', 'child-resistant', 'opaque', 'THC content', 'warning', 'universal symbol', 'batch', 'licensee'],
+        mustReference: ['CCB', 'child-resistant'],
+        difficulty: 'basic',
+    },
+    {
+        id: 'nv-seed-to-sale-tracking',
+        title: 'NV seed-to-sale tracking system requirements',
+        state: 'NV',
+        category: 'operations',
+        question: 'What seed-to-sale tracking system does Nevada use, and what are the key retailer obligations?',
+        expectedTopics: ['CCB', 'seed-to-sale', 'Metrc', 'inventory', 'manifest', 'package tag', 'transfer', 'retail sale'],
+        mustReference: ['CCB', 'tracking'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'nv-cannabis-workers-protection',
+        title: 'NV cannabis workers protection act and employer obligations',
+        state: 'NV',
+        category: 'employment',
+        question: 'What does Nevada\'s cannabis workers protection act require of cannabis retailers as employers? What are our obligations around employee cannabis use?',
+        expectedTopics: ['Nevada', 'employer', 'off-duty', 'protection', 'termination', 'impairment', 'testing', 'worker'],
+        mustReference: ['employer', 'NV'],
+        difficulty: 'advanced',
+    },
+    {
+        id: 'nv-consumption-lounge',
+        title: 'NV consumption lounge licensing — who can apply?',
+        state: 'NV',
+        category: 'operations',
+        question: 'What is a Nevada cannabis consumption lounge license and who is eligible to apply? Can an existing dispensary add a consumption lounge?',
+        expectedTopics: ['CCB', 'consumption lounge', 'license', 'on-site', 'eligible', 'retailer', 'Nevada', 'municipality'],
+        mustReference: ['CCB', 'consumption lounge'],
+        difficulty: 'advanced',
+    },
+
+    // ─── NEW JERSEY (NJ) — 10 cases ──────────────────────────────────────────
+    {
+        id: 'nj-possession-limits',
+        title: 'NJ adult recreational possession limits',
+        state: 'NJ',
+        category: 'possession-limits',
+        question: 'What are the adult recreational cannabis possession limits in New Jersey?',
+        expectedTopics: ['6 ounces', 'flower', 'adult', '21', 'CRC', 'New Jersey'],
+        mustReference: ['6 ounce', 'ounce'],
+        mustNotContain: ['1 ounce', '3 ounces', 'I cannot provide'],
+        difficulty: 'basic',
+    },
+    {
+        id: 'nj-license-classes',
+        title: 'NJ Class 5 retailer vs. other license classes',
+        state: 'NJ',
+        category: 'licensing',
+        question: 'What is a New Jersey Class 5 cannabis retailer license and how does it differ from the other license classes under the CRC?',
+        expectedTopics: ['CRC', 'Class 5', 'retailer', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'license', 'New Jersey'],
+        mustReference: ['CRC', 'Class 5'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'nj-advertising-rules',
+        title: 'NJ cannabis advertising rules for retailers',
+        state: 'NJ',
+        category: 'advertising',
+        question: 'What are New Jersey\'s cannabis advertising rules for dispensaries? What content and placement restrictions apply?',
+        expectedTopics: ['CRC', 'age-gating', 'minors', '21+', 'false claims', 'outdoor', 'social media', 'content restrictions'],
+        mustReference: ['CRC', 'advertising'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'nj-tax-structure',
+        title: 'NJ cannabis tax structure — social equity excise and local taxes',
+        state: 'NJ',
+        category: 'tax',
+        question: 'How does New Jersey\'s cannabis tax structure work? What is the social equity excise fee, and how do local taxes factor in?',
+        expectedTopics: ['CRC', 'social equity excise fee', 'transfer fee', 'local tax', 'municipality', 'New Jersey', 'retailer'],
+        mustReference: ['excise', 'tax'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'nj-seed-to-sale-tracking',
+        title: 'NJ seed-to-sale tracking requirements',
+        state: 'NJ',
+        category: 'operations',
+        question: 'What seed-to-sale tracking system does New Jersey require, and what must a retailer track and report?',
+        expectedTopics: ['CRC', 'seed-to-sale', 'Metrc', 'inventory', 'manifest', 'package', 'transfer', 'retail'],
+        mustReference: ['CRC', 'tracking'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'nj-packaging-labeling',
+        title: 'NJ packaging and labeling requirements',
+        state: 'NJ',
+        category: 'packaging',
+        question: 'What are New Jersey\'s cannabis packaging and labeling requirements for retail dispensaries?',
+        expectedTopics: ['CRC', 'child-resistant', 'THC content', 'warning', 'universal symbol', 'opaque', 'batch number', 'licensee'],
+        mustReference: ['CRC', 'packaging'],
+        difficulty: 'basic',
+    },
+    {
+        id: 'nj-employment-off-duty',
+        title: 'NJ employment protections for cannabis users — off-duty use',
+        state: 'NJ',
+        category: 'employment',
+        question: 'In New Jersey, can an employer fire someone for off-duty cannabis use? What employment protections exist for cannabis users?',
+        expectedTopics: ['CRC', 'employer', 'off-duty', 'protection', 'impairment', 'termination', 'reasonable suspicion', 'New Jersey'],
+        mustReference: ['employer', 'NJ'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'nj-delivery-requirements',
+        title: 'NJ cannabis delivery — legality and requirements',
+        state: 'NJ',
+        category: 'delivery',
+        question: 'Is cannabis delivery legal in New Jersey? What does a dispensary need to offer delivery services?',
+        expectedTopics: ['CRC', 'delivery', 'license', 'age verification', 'vehicle', 'tracking', 'New Jersey'],
+        mustReference: ['CRC', 'delivery'],
+        difficulty: 'advanced',
+    },
+    {
+        id: 'nj-social-equity-criteria',
+        title: 'NJ social equity applicant criteria and benefits',
+        state: 'NJ',
+        category: 'licensing',
+        question: 'What qualifies someone as a social equity applicant in New Jersey, and what benefits or advantages does that status provide?',
+        expectedTopics: ['CRC', 'social equity', 'impact zone', 'ownership', 'priority', 'fee reduction', 'license', 'disproportionately impacted'],
+        mustReference: ['CRC', 'social equity'],
+        difficulty: 'advanced',
+    },
+    {
+        id: 'nj-conditional-vs-annual-license',
+        title: 'NJ conditional vs. annual license — conversion process',
+        state: 'NJ',
+        category: 'operations',
+        question: 'What is the difference between a New Jersey conditional cannabis license and an annual license? How does the conversion process work and what is the timeline?',
+        expectedTopics: ['CRC', 'conditional license', 'annual license', 'conversion', 'timeline', 'compliance', 'New Jersey'],
+        mustReference: ['CRC', 'conditional'],
+        difficulty: 'advanced',
+    },
+
+    // ─── MICHIGAN (MI) — 10 cases ─────────────────────────────────────────────
+    {
+        id: 'mi-possession-limits',
+        title: 'MI adult recreational possession limits',
+        state: 'MI',
+        category: 'possession-limits',
+        question: 'What are the adult recreational cannabis possession limits in Michigan? I\'ve heard there are different limits for public and at home.',
+        expectedTopics: ['2.5 ounces', 'public', '10 ounces', 'home', 'adult', '21', 'MRA', 'Michigan'],
+        mustReference: ['2.5', 'ounce'],
+        mustNotContain: ['1 ounce', '6 ounces', 'I cannot provide'],
+        difficulty: 'basic',
+    },
+    {
+        id: 'mi-license-types',
+        title: 'MI license types — Class A/B/C grower vs. retailer',
+        state: 'MI',
+        category: 'licensing',
+        question: 'What are the different cannabis license types in Michigan? What is the difference between a Class A, Class B, and Class C grower license vs. a retailer license?',
+        expectedTopics: ['MRA', 'Class A', 'Class B', 'Class C', 'grower', 'retailer', 'canopy', 'license', 'Michigan'],
+        mustReference: ['MRA', 'retailer'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'mi-advertising-restrictions',
+        title: 'MI cannabis advertising restrictions',
+        state: 'MI',
+        category: 'advertising',
+        question: 'What advertising restrictions apply to cannabis retailers in Michigan? What content and placement rules must we follow?',
+        expectedTopics: ['MRA', 'age-gating', 'minors', '21+', 'false claims', 'outdoor', 'social media', 'content restrictions'],
+        mustReference: ['MRA', 'advertising'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'mi-tax-structure',
+        title: 'MI cannabis tax structure — excise and sales tax',
+        state: 'MI',
+        category: 'tax',
+        question: 'What is Michigan\'s cannabis tax structure? What excise tax and sales tax does a retailer collect?',
+        expectedTopics: ['10%', 'excise', '6%', 'sales tax', 'MRA', 'Michigan', 'retailer', 'remit'],
+        mustReference: ['10%', 'tax'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'mi-metrc-requirements',
+        title: 'MI METRC seed-to-sale requirements for retailers',
+        state: 'MI',
+        category: 'operations',
+        question: 'What does Michigan require for METRC compliance at the retail dispensary level? What must we track and report?',
+        expectedTopics: ['METRC', 'MRA', 'seed-to-sale', 'inventory', 'manifest', 'package tag', 'transfer', 'retail sale'],
+        mustReference: ['METRC', 'MRA'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'mi-packaging-labeling',
+        title: 'MI packaging and labeling requirements',
+        state: 'MI',
+        category: 'packaging',
+        question: 'What are Michigan\'s cannabis packaging and labeling requirements for retail dispensaries?',
+        expectedTopics: ['MRA', 'child-resistant', 'THC content', 'warning', 'universal symbol', 'opaque', 'batch number', 'licensee'],
+        mustReference: ['MRA', 'packaging'],
+        difficulty: 'basic',
+    },
+    {
+        id: 'mi-delivery-rules',
+        title: 'MI cannabis delivery — legality and rules',
+        state: 'MI',
+        category: 'delivery',
+        question: 'Is cannabis home delivery legal in Michigan? What are the requirements for a retailer that wants to offer delivery?',
+        expectedTopics: ['MRA', 'delivery', 'license', 'age verification', 'vehicle', 'tracking', 'Michigan'],
+        mustReference: ['MRA', 'delivery'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'mi-employer-cannabis-testing',
+        title: 'MI employer rights regarding cannabis testing',
+        state: 'MI',
+        category: 'employment',
+        question: 'What are Michigan employers\' rights around cannabis drug testing? Can we terminate an employee for a positive cannabis test?',
+        expectedTopics: ['MRA', 'employer', 'drug testing', 'off-duty', 'impairment', 'termination', 'Michigan', 'policy'],
+        mustReference: ['employer', 'MI'],
+        difficulty: 'intermediate',
+    },
+    {
+        id: 'mi-social-equity-program',
+        title: 'MI social equity program criteria and benefits',
+        state: 'MI',
+        category: 'licensing',
+        question: 'What are the criteria for Michigan\'s cannabis social equity program and what benefits does it provide to eligible applicants?',
+        expectedTopics: ['MRA', 'social equity', 'disproportionately impacted', 'priority review', 'fee waiver', 'ownership', 'Michigan'],
+        mustReference: ['MRA', 'social equity'],
+        difficulty: 'advanced',
+    },
+    {
+        id: 'mi-municipal-opt-out',
+        title: 'MI municipal opt-out rules and local restrictions',
+        state: 'MI',
+        category: 'operations',
+        question: 'Can Michigan municipalities opt out of allowing cannabis retail? What restrictions can local governments impose on dispensaries?',
+        expectedTopics: ['MRA', 'municipality', 'opt-out', 'local ordinance', 'zoning', 'restrict', 'Michigan', 'township'],
+        mustReference: ['MRA', 'municipality'],
+        difficulty: 'advanced',
+    },
 ];
 
 // ============================================================================
@@ -769,6 +1181,10 @@ const stateNames: Record<ComplianceState, string> = {
     CO: 'Colorado',
     IL: 'Illinois',
     MA: 'Massachusetts',
+    WA: 'Washington',
+    NV: 'Nevada',
+    NJ: 'New Jersey',
+    MI: 'Michigan',
 };
 
 function parseGradeJson(raw: string): GradeResult | null {
@@ -892,7 +1308,7 @@ function toMarkdown(results: CaseResult[], generatedAt: string, filters: { state
     }).join('\n');
 
     // State breakdown
-    const states: ComplianceState[] = ['NY', 'CA', 'CO', 'IL', 'MA'];
+    const states: ComplianceState[] = ['NY', 'CA', 'CO', 'IL', 'MA', 'WA', 'NV', 'NJ', 'MI'];
     const stateBreakdown = states.map((s) => {
         const stateResults = results.filter((r) => r.state === s);
         if (!stateResults.length) return '';
@@ -952,7 +1368,7 @@ async function main() {
     if (categoryArg) cases = cases.filter((c) => c.category === categoryArg);
     if (limitArg) cases = cases.slice(0, Math.max(1, Math.min(cases.length, Number(limitArg))));
 
-    const stateCount = stateArg ? `${cases.length} case(s) for ${stateArg}` : `${cases.length} case(s) across 5 states`;
+    const stateCount = stateArg ? `${cases.length} case(s) for ${stateArg}` : `${cases.length} case(s) across 9 states`;
     console.log(`Running Deebo compliance stress test — ${stateCount}`);
     if (difficultyArg) console.log(`Filter: difficulty=${difficultyArg}`);
     if (categoryArg) console.log(`Filter: category=${categoryArg}`);
