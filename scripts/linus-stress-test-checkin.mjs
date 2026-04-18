@@ -521,7 +521,7 @@ async function suite6_customers(results) {
     const thriveIds = new Set(thriveCusts.docs.map(d => d.id));
     const body = r.body;
     const leaked = Array.isArray(body?.customers)
-      ? body.customers.filter((c: { id?: string }) => c.id && thriveIds.has(c.id))
+      ? body.customers.filter((c) => c.id && thriveIds.has(c.id))
       : [];
     rec('Multi-org isolation — Thrive data not leaked', leaked.length === 0,
       leaked.length ? `CRITICAL: ${leaked.length} Thrive customer(s) in wrong-org response` : `orgId=${WRONG_ORG} → HTTP ${r.status}`);
