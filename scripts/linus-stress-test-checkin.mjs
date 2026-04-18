@@ -90,6 +90,8 @@ async function cleanupTestPicks() {
 }
 
 async function getApiKey() {
+  // Prefer env var (fast); fall back to Firestore lookup
+  if (process.env.THRIVE_STRESS_TEST_API_KEY) return process.env.THRIVE_STRESS_TEST_API_KEY;
   const snap = await db.collection('api_keys')
     .where('orgId', '==', ORG)
     .where('permissions', 'array-contains', 'read:customers')
