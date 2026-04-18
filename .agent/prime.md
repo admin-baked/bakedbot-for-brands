@@ -51,8 +51,8 @@ Agent IDs: `claude` | `codex` | `gemini` | `linus`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Fireworks on kiosk order notification; campaigns Timestamp serialization fix
-**Recent work (2026-04-18):** `395332cd2` pageRenderCheck RSC crash detection + Elroy ground rules + hexToRgba simplify; `981d151b2` campaigns Timestamp serialization fix
+**Current Status:** 🟢 main green | Inbox 70/71 (98.6%) + Elroy 34-36/39 (87-92%) stress suites; 50 new inbox cases; applyMustChecks grader override
+**Recent work (2026-04-18):** `3ec00f975` Elroy rule 8 scope/stale-intel/mustReference override; `e1c63a6bc` inbox 70/71 + 50 new cases + operator role injection
 
 ---
 
