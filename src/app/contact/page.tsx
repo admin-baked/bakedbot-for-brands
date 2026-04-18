@@ -17,6 +17,28 @@ import { CheckCircle, Loader2 } from 'lucide-react';
 
 type InquiryType = 'dispensary' | 'brand' | 'partnership' | 'other';
 
+const SITE_SCHEMA_JSON = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': ['Organization', 'LocalBusiness'],
+    name: 'BakedBot AI',
+    url: 'https://bakedbot.ai',
+    logo: 'https://bakedbot.ai/logo.png',
+    description: 'AI-powered commerce operating system for cannabis dispensaries. Capture first-party customer data, activate with welcome flows, and retain customers through compliant lifecycle playbooks.',
+    address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Detroit',
+        addressRegion: 'MI',
+        addressCountry: 'US',
+    },
+    contactPoint: [
+        { '@type': 'ContactPoint', email: 'sales@bakedbot.ai', contactType: 'sales' },
+        { '@type': 'ContactPoint', email: 'support@bakedbot.ai', contactType: 'customer support' },
+    ],
+    sameAs: ['https://www.linkedin.com/company/bakedbot'],
+    areaServed: ['US'],
+    knowsAbout: ['cannabis marketing', 'dispensary retention', 'cannabis CRM', 'cannabis compliance', 'dispensary software'],
+});
+
 const INQUIRY_OPTIONS: { value: InquiryType; label: string }[] = [
     { value: 'dispensary', label: 'I own / operate a dispensary' },
     { value: 'brand', label: 'I represent a cannabis brand' },
@@ -257,6 +279,8 @@ export default function ContactPage() {
             </main>
 
             <LandingFooter />
+
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: SITE_SCHEMA_JSON }} />
         </div>
     );
 }

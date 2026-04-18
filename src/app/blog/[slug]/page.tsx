@@ -463,7 +463,8 @@ export default async function PlatformBlogPostPage({ params }: BlogPostPageProps
                         '@type': 'BlogPosting',
                         headline: post.title,
                         description: post.excerpt,
-                        image: post.featuredImage?.url,
+                        url: `https://bakedbot.ai/blog/${post.seo.slug}`,
+                        image: post.featuredImage?.url ?? `https://bakedbot.ai/og-default.png`,
                         datePublished: post.publishedAt?.toDate().toISOString(),
                         dateModified: post.updatedAt?.toDate().toISOString(),
                         author: {
@@ -475,6 +476,10 @@ export default async function PlatformBlogPostPage({ params }: BlogPostPageProps
                             '@type': 'Organization',
                             name: 'BakedBot AI',
                             url: 'https://bakedbot.ai',
+                            logo: {
+                                '@type': 'ImageObject',
+                                url: 'https://bakedbot.ai/logo.png',
+                            },
                         },
                         mainEntityOfPage: {
                             '@type': 'WebPage',
