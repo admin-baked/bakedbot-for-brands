@@ -2,6 +2,11 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
+import {
+    isSuperRole,
+    isValidDocumentId,
+    resolveActorOrgId,
+} from '@/server/auth/actor-context';
 import { DEFAULT_PLAYBOOKS } from '@/config/default-playbooks';
 import { extractJsonPayload } from '@/lib/utils/extract-json';
 import { Playbook, PlaybookStep, PlaybookCategory, PlaybookTrigger } from '@/types/playbook';
@@ -10,46 +15,18 @@ import { FieldValue } from 'firebase-admin/firestore';
 // Actions that require approval when targeting customers (not logged-in user)
 const CUSTOMER_EMAIL_ACTIONS = ['gmail.send', 'gmail.send_batch', 'email.send', 'notify'];
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
-function isValidDocumentId(value: unknown): value is string {
-    return (
-        typeof value === 'string' &&
-        value.length >= 3 &&
-        value.length <= 128 &&
-        !/[\/\\?#\[\]]/.test(value)
-    );
-}
-
-function getActorOrgId(user: unknown): string | null {
-    if (!user || typeof user !== 'object') return null;
-    const token = user as {
-        currentOrgId?: string;
-        orgId?: string;
-        brandId?: string;
-        tenantId?: string;
-        organizationId?: string;
-        uid?: string;
-    };
-    return (
-        token.currentOrgId ||
-        token.orgId ||
-        token.brandId ||
-        token.tenantId ||
-        token.organizationId ||
-        null
-    );
-}
-
 function assertBrandAccess(user: unknown, brandId: string): void {
     const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
     if (isSuperRole(role)) {
         return;
     }
 
-    const actorOrgId = getActorOrgId(user);
+    const actorOrgId = resolveActorOrgId(user as {
+        currentOrgId?: string | null;
+        orgId?: string | null;
+        brandId?: string | null;
+        role?: string | string[] | null;
+    });
     if (!actorOrgId || actorOrgId !== brandId) {
         throw new Error('Unauthorized');
     }

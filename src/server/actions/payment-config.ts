@@ -12,6 +12,13 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
+import {
+  type ActorContextLike,
+  isSuperRole,
+  isValidDocumentId,
+  resolveActorOrgId,
+  resolveActorOrgIdWithLegacyAliases,
+} from '@/server/auth/actor-context';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
@@ -48,29 +55,10 @@ const UpdatePaymentMethodSchema = z.object({
   enabled: z.boolean(),
 });
 
-function isSuperRole(role: unknown): boolean {
-  if (Array.isArray(role)) {
-    return role.includes('super_user') || role.includes('super_admin');
-  }
-  return role === 'super_user' || role === 'super_admin';
-}
-
-function isValidDocId(id: string): boolean {
-  return !!id && !id.includes('/');
-}
-
-function getActorOrgId(user: unknown): string | null {
-  if (!user || typeof user !== 'object') return null;
-  const actor = user as {
-    currentOrgId?: string;
-    orgId?: string;
-    brandId?: string;
-  };
-
-  const candidate = actor.currentOrgId || actor.orgId || actor.brandId || null;
-  if (!candidate || !isValidDocId(candidate)) return null;
-  return candidate;
-}
+type PaymentConfigActor = ActorContextLike & {
+  locationId?: string | null;
+  dispensaryId?: string | null;
+};
 
 // ============================================================================
 // Server Actions
@@ -87,7 +75,7 @@ export async function getPaymentConfig(locationId: string): Promise<{
   try {
     const user = await requireUser(['super_user', 'dispensary', 'brand']);
     const normalizedLocationId = locationId.trim();
-    if (!isValidDocId(normalizedLocationId)) {
+    if (!isValidDocumentId(normalizedLocationId)) {
       return { success: false, error: 'Invalid location id' };
     }
 
@@ -101,14 +89,15 @@ export async function getPaymentConfig(locationId: string): Promise<{
 
     const locationData = locationDoc.data();
     const locationOrgId = typeof locationData?.orgId === 'string' ? locationData.orgId : null;
-    const actorOrgId = getActorOrgId(user);
-    const actorLocationId = typeof user.locationId === 'string' ? user.locationId : null;
+    const actor = user as PaymentConfigActor;
+    const actorOrgId = resolveActorOrgId(actor);
+    const actorLocationId = typeof actor.locationId === 'string' ? actor.locationId : null;
     const sameOrg = !!actorOrgId && !!locationOrgId && actorOrgId === locationOrgId;
     const hasActorOrgClaim = !!actorOrgId;
     const sameLocationWithoutOrgClaim = !hasActorOrgClaim && actorLocationId === normalizedLocationId;
 
     if (
-      !isSuperRole((user as { role?: unknown }).role) &&
+      !isSuperRole(actor.role) &&
       !sameOrg &&
       !sameLocationWithoutOrgClaim
     ) {
@@ -137,7 +126,7 @@ export async function updatePaymentMethod(input: z.infer<typeof UpdatePaymentMet
     const user = await requireUser(['super_user', 'dispensary']);
     const validated = UpdatePaymentMethodSchema.parse(input);
     const normalizedLocationId = validated.locationId.trim();
-    if (!isValidDocId(normalizedLocationId)) {
+    if (!isValidDocumentId(normalizedLocationId)) {
       return { success: false, error: 'Invalid location id' };
     }
 
@@ -152,14 +141,15 @@ export async function updatePaymentMethod(input: z.infer<typeof UpdatePaymentMet
 
     const locationData = locationDoc.data();
     const locationOrgId = typeof locationData?.orgId === 'string' ? locationData.orgId : null;
-    const actorOrgId = getActorOrgId(user);
-    const actorLocationId = typeof user.locationId === 'string' ? user.locationId : null;
+    const actor = user as PaymentConfigActor;
+    const actorOrgId = resolveActorOrgId(actor);
+    const actorLocationId = typeof actor.locationId === 'string' ? actor.locationId : null;
     const sameOrg = !!actorOrgId && !!locationOrgId && actorOrgId === locationOrgId;
     const hasActorOrgClaim = !!actorOrgId;
     const sameLocationWithoutOrgClaim = !hasActorOrgClaim && actorLocationId === normalizedLocationId;
 
     if (
-      !isSuperRole((user as { role?: unknown }).role) &&
+      !isSuperRole(actor.role) &&
       !sameOrg &&
       !sameLocationWithoutOrgClaim
     ) {
@@ -266,14 +256,14 @@ export async function getCurrentUserLocationId(): Promise<{
   try {
     const user = await requireUser(['super_user', 'dispensary', 'brand']);
     const { firestore } = await createServerClient();
+    const actor = user as PaymentConfigActor;
 
     // Try direct locationId from user claims
-    if (user.locationId) {
-      return { success: true, locationId: user.locationId };
+    if (actor.locationId) {
+      return { success: true, locationId: actor.locationId };
     }
 
-    // Try orgId or currentOrgId
-    const orgId = (user as any).orgId || (user as any).currentOrgId;
+    const orgId = resolveActorOrgId(actor);
     if (orgId) {
       const locSnap = await firestore
         .collection('locations')
@@ -289,7 +279,10 @@ export async function getCurrentUserLocationId(): Promise<{
     // Fallback: check user document
     const userDoc = await firestore.collection('users').doc(user.uid).get();
     const userData = userDoc.data();
-    const profileOrgId = userData?.orgId || userData?.currentOrgId || userData?.dispensaryId;
+    const profileOrgId = resolveActorOrgIdWithLegacyAliases(
+      (userData ?? {}) as PaymentConfigActor,
+      [userData?.dispensaryId ?? null],
+    );
 
     if (profileOrgId) {
       const locSnap = await firestore

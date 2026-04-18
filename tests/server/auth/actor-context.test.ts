@@ -106,6 +106,7 @@ describe('actor-context', () => {
     it('identifies super roles', () => {
         expect(isSuperRole('super_user')).toBe(true);
         expect(isSuperRole('super_admin')).toBe(true);
+        expect(isSuperRole(['dispensary_admin', 'super_user'])).toBe(true);
         expect(isSuperRole('brand_admin')).toBe(false);
     });
 });

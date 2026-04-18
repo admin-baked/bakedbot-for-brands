@@ -2,7 +2,7 @@ export const PLATFORM_ORG_ID = 'bakedbot_super_admin';
 
 export type ActorContextLike = {
     uid?: string | null;
-    role?: string | null;
+    role?: string | string[] | null;
     currentOrgId?: string | null;
     orgId?: string | null;
     brandId?: string | null;
@@ -22,6 +22,10 @@ function normalizeIdCandidate(value: unknown): string | null {
 }
 
 export function isSuperRole(role: unknown): boolean {
+    if (Array.isArray(role)) {
+        return role.includes('super_user') || role.includes('super_admin');
+    }
+
     return role === 'super_user' || role === 'super_admin';
 }
 

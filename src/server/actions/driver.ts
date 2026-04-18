@@ -15,50 +15,34 @@ import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import type { Driver, DriverStatus, VehicleType } from '@/types/delivery';
 import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    isValidDocumentId,
+    resolveActorOrgIdWithLegacyAliases,
+} from '@/server/auth/actor-context';
 import { DISPENSARY_ADMIN_ROLES } from '@/types/roles';
 
 const DRIVER_ADMIN_ROLES = [...DISPENSARY_ADMIN_ROLES, 'super_user', 'super_admin'] as const;
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
-function isValidDocumentId(value: unknown): value is string {
-    return (
-        typeof value === 'string' &&
-        value.length >= 3 &&
-        value.length <= 128 &&
-        !/[\/\\?#\[\]]/.test(value)
-    );
-}
-
-function getActorOrgId(user: unknown): string | null {
-    if (!user || typeof user !== 'object') return null;
-    const token = user as {
-        currentOrgId?: string;
-        orgId?: string;
-        brandId?: string;
-        dispensaryId?: string;
-        tenantId?: string;
-        organizationId?: string;
-    };
-    return (
-        token.currentOrgId ||
-        token.orgId ||
-        token.brandId ||
-        token.dispensaryId ||
-        token.tenantId ||
-        token.organizationId ||
-        null
-    );
-}
+type DriverActor = ActorContextLike & {
+    dispensaryId?: string | null;
+    tenantId?: string | null;
+    organizationId?: string | null;
+};
 
 function assertOrgAccess(user: unknown, orgId: string): void {
     const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
     if (isSuperRole(role)) {
         return;
     }
-    const actorOrgId = getActorOrgId(user);
+
+    const actor = (user ?? {}) as DriverActor;
+    const actorOrgId = resolveActorOrgIdWithLegacyAliases(actor, [
+        actor.dispensaryId ?? null,
+        actor.tenantId ?? null,
+        actor.organizationId ?? null,
+    ]);
     if (!actorOrgId || actorOrgId !== orgId) {
         throw new Error('Unauthorized');
     }

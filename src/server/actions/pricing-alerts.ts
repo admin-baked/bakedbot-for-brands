@@ -16,20 +16,18 @@ import {
 } from '@/server/services/pricing-alerts';
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/server/auth/auth';
+import {
+  type ActorContextLike,
+  isSuperRole,
+  isValidDocumentId,
+  resolveActorOrgIdWithLegacyAliases,
+} from '@/server/auth/actor-context';
 import { logger } from '@/lib/logger';
 
-function isSuperRole(role: unknown): boolean {
-  return role === 'super_user' || role === 'super_admin';
-}
-
-function isValidDocumentId(value: unknown): value is string {
-  return (
-    typeof value === 'string' &&
-    value.length >= 3 &&
-    value.length <= 128 &&
-    !/[\/\\?#\[\]]/.test(value)
-  );
-}
+type PricingAlertsActor = ActorContextLike & {
+  tenantId?: string | null;
+  organizationId?: string | null;
+};
 
 function clampLimit(limit: number, fallback: number, max: number): number {
   if (!Number.isFinite(limit)) return fallback;
@@ -41,25 +39,6 @@ function clampDays(days: number, fallback: number): number {
   return Math.min(365, Math.max(1, Math.floor(days)));
 }
 
-function getActorOrgId(user: unknown): string | null {
-  if (!user || typeof user !== 'object') return null;
-  const token = user as {
-    currentOrgId?: string;
-    orgId?: string;
-    brandId?: string;
-    tenantId?: string;
-    organizationId?: string;
-  };
-  return (
-    token.currentOrgId ||
-    token.orgId ||
-    token.brandId ||
-    token.tenantId ||
-    token.organizationId ||
-    null
-  );
-}
-
 async function assertTenantAccess(tenantId: string): Promise<void> {
   const user = await requireUser();
   const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
@@ -67,7 +46,11 @@ async function assertTenantAccess(tenantId: string): Promise<void> {
     return;
   }
 
-  const actorOrgId = getActorOrgId(user);
+  const actor = (user ?? {}) as PricingAlertsActor;
+  const actorOrgId = resolveActorOrgIdWithLegacyAliases(actor, [
+    actor.tenantId ?? null,
+    actor.organizationId ?? null,
+  ]);
   if (!actorOrgId || actorOrgId !== tenantId) {
     throw new Error('Unauthorized');
   }

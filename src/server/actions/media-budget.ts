@@ -2,47 +2,31 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    isValidDocumentId,
+    resolveActorOrgIdWithLegacyAliases,
+} from '@/server/auth/actor-context';
 import { MediaBudget, MediaCostAlert } from '@/types/media-generation';
 import { logger } from '@/lib/logger';
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
-function isValidDocumentId(value: unknown): value is string {
-    return (
-        typeof value === 'string' &&
-        value.length >= 3 &&
-        value.length <= 128 &&
-        !/[\/\\?#\[\]]/.test(value)
-    );
-}
-
-function getActorOrgId(user: unknown): string | null {
-    if (!user || typeof user !== 'object') return null;
-    const token = user as {
-        currentOrgId?: string;
-        orgId?: string;
-        brandId?: string;
-        tenantId?: string;
-        organizationId?: string;
-    };
-    return (
-        token.currentOrgId ||
-        token.orgId ||
-        token.brandId ||
-        token.tenantId ||
-        token.organizationId ||
-        null
-    );
-}
+type MediaBudgetActor = ActorContextLike & {
+    tenantId?: string | null;
+    organizationId?: string | null;
+};
 
 function assertTenantAccess(user: unknown, tenantId: string): void {
     const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
     if (isSuperRole(role)) {
         return;
     }
-    const actorOrgId = getActorOrgId(user);
+
+    const actor = (user ?? {}) as MediaBudgetActor;
+    const actorOrgId = resolveActorOrgIdWithLegacyAliases(actor, [
+        actor.tenantId ?? null,
+        actor.organizationId ?? null,
+    ]);
     if (!actorOrgId || actorOrgId !== tenantId) {
         throw new Error('Unauthorized');
     }

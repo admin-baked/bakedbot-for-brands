@@ -10,6 +10,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/server/auth/auth';
 import {
     type ActorContextLike,
+    isSuperRole,
     requireActorOrgId,
 } from '@/server/auth/actor-context';
 import { logger } from '@/lib/logger';
@@ -703,15 +704,18 @@ export async function configureSlackWebhook(
 // HELPERS
 // =============================================================================
 
-function determineRole(userRole: string | undefined): HeartbeatRole {
+function determineRole(userRole: string | string[] | undefined): HeartbeatRole {
     if (!userRole) return 'dispensary';
 
-    if (userRole === 'super_user' || userRole === 'super_admin' || userRole === 'admin') {
+    if (isSuperRole(userRole) || userRole === 'admin' || (Array.isArray(userRole) && userRole.includes('admin'))) {
         return 'super_user';
     }
-    if (userRole === 'brand' || userRole === 'brand_admin' || userRole === 'brand_manager') {
+
+    const roles = Array.isArray(userRole) ? userRole : [userRole];
+    if (roles.includes('brand') || roles.includes('brand_admin') || roles.includes('brand_manager')) {
         return 'brand';
     }
+
     return 'dispensary';
 }
 

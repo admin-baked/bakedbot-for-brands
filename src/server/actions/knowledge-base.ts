@@ -23,6 +23,11 @@ import {
     UpdateKnowledgeBaseSchema
 } from '@/types/knowledge-base';
 import { requireUser, isSuperUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    resolveActorOrgIdWithLegacyAliases,
+} from '@/server/auth/actor-context';
 
 /**
  * Text Embedding Model
@@ -31,30 +36,11 @@ import { requireUser, isSuperUser } from '@/server/auth/auth';
 
 // --- HELPER FUNCTIONS ---
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
-function getActorOrgId(user: unknown): string | null {
-    if (!user || typeof user !== 'object') return null;
-    const token = user as {
-        currentOrgId?: string;
-        orgId?: string;
-        brandId?: string;
-        dispensaryId?: string;
-        tenantId?: string;
-        organizationId?: string;
-    };
-    return (
-        token.currentOrgId ||
-        token.orgId ||
-        token.brandId ||
-        token.dispensaryId ||
-        token.tenantId ||
-        token.organizationId ||
-        null
-    );
-}
+type KnowledgeBaseActor = ActorContextLike & {
+    dispensaryId?: string | null;
+    tenantId?: string | null;
+    organizationId?: string | null;
+};
 
 function isPrivateDiscoveryHost(hostname: string): boolean {
     const host = hostname.trim().toLowerCase();
@@ -98,7 +84,12 @@ async function assertKnowledgeOwnerAccess(
         throw new Error('Unauthorized: Only super admins can access system Knowledge Bases.');
     }
 
-    const actorOrgId = getActorOrgId(user);
+    const actor = (user ?? {}) as KnowledgeBaseActor;
+    const actorOrgId = resolveActorOrgIdWithLegacyAliases(actor, [
+        actor.dispensaryId ?? null,
+        actor.tenantId ?? null,
+        actor.organizationId ?? null,
+    ]);
     if (!actorOrgId || actorOrgId !== ownerId) {
         throw new Error('Unauthorized: Cannot access another organization\'s Knowledge Base.');
     }
@@ -157,7 +148,12 @@ export async function createKnowledgeBaseAction(input: z.infer<typeof CreateKnow
 
         // Security: Brand/Dispensary must match user's org
         if ((input.ownerType === 'brand' || input.ownerType === 'dispensary') && !isSuper) {
-            const userOrgId = getActorOrgId(user);
+            const actor = user as KnowledgeBaseActor;
+            const userOrgId = resolveActorOrgIdWithLegacyAliases(actor, [
+                actor.dispensaryId ?? null,
+                actor.tenantId ?? null,
+                actor.organizationId ?? null,
+            ]);
             if (input.ownerId !== userOrgId) {
                 throw new Error('Unauthorized: Cannot create KB for another organization.');
             }
