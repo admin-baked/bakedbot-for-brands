@@ -4,7 +4,7 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth, initializeAuth, browserLocalPersistence } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, Firestore } from 'firebase/firestore';
 
 import { logger } from '@/lib/logger';
 export { FirebaseProvider, useFirebase, useAuth, useFirestore, useFirebaseApp } from './provider';
@@ -59,9 +59,21 @@ export function getSdks(firebaseApp: FirebaseApp): FirebaseSdks {
     }
   }
 
+  let firestore: Firestore;
+  try {
+    // experimentalAutoDetectLongPolling prevents Firestore's WebChannel transport
+    // from injecting a Content-Security-Policy-Report-Only: connect-src 'none' probe
+    // that floods the browser console with hundreds of false CSP violations.
+    firestore = initializeFirestore(firebaseApp, {
+      experimentalAutoDetectLongPolling: true,
+    });
+  } catch {
+    firestore = getFirestore(firebaseApp);
+  }
+
   return {
     firebaseApp,
     auth,
-    firestore: getFirestore(firebaseApp)
+    firestore,
   };
 }
