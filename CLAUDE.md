@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Campaigns auth fix (redirect vs throw); slow-mover-metrics library (retail/cost/units); actor-context role-array support + canonical org helpers | **Last update:** 2026-04-18 (`4e56cdc0b`)
+**Current Status:** 🟢 main green | Build fix (3 TS errors in email pipeline); bulk wake-up email sender; email inbox page + SES inbound webhook | **Last update:** 2026-04-18 (`e7a53d29b`)
 
 ---
 

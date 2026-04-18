@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Campaigns auth fix (redirect vs throw); slow-mover-metrics library; actor-context role-array + canonical org helpers
-**Recent work (2026-04-18):** `67a0c1c5f` campaigns auth fix; `227a156f3` slow-mover-metrics; `c087ed053` actor-context refactor; `4e56cdc0b` tests/embed/scripts
+**Current Status:** 🟢 main green | Build fix (3 TS errors in email pipeline); bulk wake-up email sender (`bulk-wakeup-send.mjs`); email inbox page + SES inbound webhook
+**Recent work (2026-04-18):** `593230b81` build fix (SesInboundSnsPayload type + email-inbox auth import); `e7a53d29b` bulk-wakeup-send.mjs + Thrive test template update
 
 ---
 
