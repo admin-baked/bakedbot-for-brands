@@ -3,40 +3,18 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    isValidDocumentId,
+    resolveActorOrgIdWithLegacyAliases,
+} from '@/server/auth/actor-context';
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
-function isValidDocumentId(value: unknown): value is string {
-    return (
-        typeof value === 'string' &&
-        value.length >= 3 &&
-        value.length <= 128 &&
-        !/[\/\\?#\[\]]/.test(value)
-    );
-}
-
-function getActorOrgId(user: unknown): string | null {
-    if (!user || typeof user !== 'object') return null;
-    const token = user as {
-        currentOrgId?: string;
-        orgId?: string;
-        brandId?: string;
-        dispensaryId?: string;
-        tenantId?: string;
-        organizationId?: string;
-    };
-    return (
-        token.currentOrgId ||
-        token.orgId ||
-        token.brandId ||
-        token.dispensaryId ||
-        token.tenantId ||
-        token.organizationId ||
-        null
-    );
-}
+type DynamicPromptsActor = ActorContextLike & {
+    dispensaryId?: string | null;
+    tenantId?: string | null;
+    organizationId?: string | null;
+};
 
 /**
  * getDynamicPromptSuggestions
@@ -63,7 +41,12 @@ export async function getDynamicPromptSuggestions(orgId: string, userId?: string
     try {
         const user = await requireUser();
         const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
-        const actorOrgId = getActorOrgId(user);
+        const actor = (user ?? {}) as DynamicPromptsActor;
+        const actorOrgId = resolveActorOrgIdWithLegacyAliases(actor, [
+            actor.dispensaryId ?? null,
+            actor.tenantId ?? null,
+            actor.organizationId ?? null,
+        ]);
         const actorUid =
             typeof user === 'object' && user && typeof (user as { uid?: unknown }).uid === 'string'
                 ? (user as { uid: string }).uid

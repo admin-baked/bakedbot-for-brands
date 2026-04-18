@@ -10,6 +10,12 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    isValidDocumentId,
+    resolveActorOrgIdWithLegacyAliases,
+} from '@/server/auth/actor-context';
 import { Timestamp, FieldValue } from '@google-cloud/firestore';
 import { generateQrToken } from '@/lib/delivery-qr';
 import { sendDriverAssignmentPush } from '@/server/services/delivery-fcm';
@@ -32,41 +38,12 @@ import type {
 } from '@/types/delivery';
 import type { ShippingAddress } from '@/types/orders';
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
-function isValidDocumentId(value: unknown): value is string {
-    return (
-        typeof value === 'string' &&
-        value.length >= 3 &&
-        value.length <= 128 &&
-        !/[\/\\?#\[\]]/.test(value)
-    );
-}
-
-function getActorOrgId(user: unknown): string | null {
-    if (!user || typeof user !== 'object') return null;
-    const token = user as {
-        currentOrgId?: string;
-        orgId?: string;
-        brandId?: string;
-        dispensaryId?: string;
-        tenantId?: string;
-        organizationId?: string;
-        locationId?: string;
-    };
-    return (
-        token.currentOrgId ||
-        token.orgId ||
-        token.brandId ||
-        token.dispensaryId ||
-        token.tenantId ||
-        token.organizationId ||
-        token.locationId ||
-        null
-    );
-}
+type DeliveryActor = ActorContextLike & {
+    dispensaryId?: string | null;
+    tenantId?: string | null;
+    organizationId?: string | null;
+    locationId?: string | null;
+};
 
 function normalizeToOrgId(scopeId: string | null | undefined): string | null {
     if (!scopeId) return null;
@@ -82,7 +59,13 @@ function assertOrgAccess(user: unknown, targetOrgOrLocationId: string): void {
         return;
     }
 
-    const actorOrgId = normalizeToOrgId(getActorOrgId(user));
+    const actor = (user ?? {}) as DeliveryActor;
+    const actorOrgId = normalizeToOrgId(resolveActorOrgIdWithLegacyAliases(actor, [
+        actor.dispensaryId ?? null,
+        actor.tenantId ?? null,
+        actor.organizationId ?? null,
+        actor.locationId ?? null,
+    ]));
     const targetOrgId = normalizeToOrgId(targetOrgOrLocationId);
     if (!actorOrgId || !targetOrgId || actorOrgId !== targetOrgId) {
         throw new Error('Unauthorized');
