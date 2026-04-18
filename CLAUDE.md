@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Founder headshots on /book + blog_authors; martez.png + jack.png in /public/images; Firestore avatarUrl + headshot patched | **Last update:** 2026-04-17 (`a48647cdc`)
+**Current Status:** 🟢 main green | Thrive kiosk UX polish (tier picks, product detail modal, Checkout CTA, real-time order notifications); 7 mood videos rendered + cached in Firestore | **Last update:** 2026-04-18 (`0d9e4e2f9`)
 
 ---
 
