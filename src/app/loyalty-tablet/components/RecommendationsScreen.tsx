@@ -608,72 +608,54 @@ export function RecommendationsScreen({
                     </button>
                 </div>
 
-                {/* ── Quick Chips & Full Menu ── */}
-                <div className="flex w-full items-center gap-2 overflow-x-auto pb-2 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
+                {/* ── Quick Chips & Category Browse — single scrollable row ── */}
+                <div className="flex w-full items-center gap-2 overflow-x-auto pb-1 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <button
                         onClick={() => { setAssistantQuery(''); handleAssistantSearch('', true); resetIdleTimer(); }}
                         className="shrink-0 flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-bold bg-white transition hover:opacity-90 active:scale-95 shadow-sm"
                         style={{ borderColor: brandTheme.colors.primary, color: brandTheme.colors.primary }}
                     >
-                        Browse Full Menu
+                        Full Menu
                     </button>
-                    {['Show Sativas', 'Help me sleep', 'Under $30', 'High THC'].map(chip => (
+                    {availableCategories.slice(0, 5).map(cat => (
                         <button
-                            key={chip}
-                            onClick={() => { setAssistantQuery(chip); handleAssistantSearch(chip, true); resetIdleTimer(); }}
-                            className="shrink-0 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 active:scale-95"
+                            key={cat}
+                            onClick={() => { onCategoryBrowse(cat); resetIdleTimer(); }}
+                            className="shrink-0 rounded-full border px-3 py-2 text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.97]"
+                            style={{ borderColor: brandTheme.colors.primary, color: brandTheme.colors.primary, backgroundColor: 'rgba(255,255,255,0.9)' }}
                         >
-                            {chip}
+                            {cat}
+                        </button>
+                    ))}
+                    {[
+                        { label: '☀️ Sativas', query: 'sativa' },
+                        { label: '🌙 Indicas', query: 'indica' },
+                        { label: '🔀 Hybrids', query: 'hybrid' },
+                        { label: '💰 Under $25', query: 'show me products under $25' },
+                        { label: '⭐ Premium', query: 'show me premium top-shelf products' },
+                    ].map(chip => (
+                        <button
+                            key={chip.label}
+                            onClick={() => { handleAssistantSearch(chip.query, true); resetIdleTimer(); }}
+                            className="shrink-0 rounded-full border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 active:scale-95"
+                        >
+                            {chip.label}
                         </button>
                     ))}
                 </div>
             </div>
 
-            {/* ── Quick-browse chips ── */}
-            {availableCategories.length > 0 && (
-                <div className="w-full flex flex-col gap-2">
-                    <div className="flex flex-wrap gap-2">
-                        {availableCategories.slice(0, 5).map(cat => (
-                            <button
-                                key={cat}
-                                onClick={() => { onCategoryBrowse(cat); resetIdleTimer(); }}
-                                className="rounded-full px-3 py-1.5 text-xs font-semibold border transition-all hover:opacity-90 active:scale-[0.97]"
-                                style={{ borderColor: brandTheme.colors.primary, color: brandTheme.colors.primary, backgroundColor: 'rgba(255,255,255,0.85)' }}
-                            >
-                                {cat}
-                            </button>
-                        ))}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        {[
-                            { label: '☀️ All Sativas', query: 'show me sativa strains' },
-                            { label: '🌙 All Indicas', query: 'show me indica strains' },
-                            { label: '🔀 Hybrids', query: 'show me hybrid strains' },
-                            { label: '💰 Under $25', query: 'show me products under $25' },
-                            { label: '⭐ Premium', query: 'show me premium top-shelf products' },
-                        ].map(chip => (
-                            <button
-                                key={chip.label}
-                                onClick={() => { handleAssistantSearch(chip.query); resetIdleTimer(); }}
-                                className="rounded-full px-3 py-1.5 text-xs font-semibold border transition-all hover:opacity-90 active:scale-[0.97]"
-                                style={{ borderColor: '#d1d5db', color: '#374151', backgroundColor: 'rgba(255,255,255,0.85)' }}
-                            >
-                                {chip.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-
             {/* ── Product cards ── */}
-            <div className={(!bundle && products.length > 3) 
-                ? "w-full grid grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto max-h-[60vh] pb-8 pr-1" 
-                : "w-full flex gap-4 overflow-x-auto snap-x pb-4 px-1"}
-                style={{ WebkitOverflowScrolling: 'touch' }}
+            {(() => {
+                const isGrid = !bundle && products.length >= 4;
+                return (
+            <div className={isGrid
+                ? "w-full grid grid-cols-3 gap-2 overflow-y-auto pb-28 pr-1"
+                : "w-full flex gap-3 overflow-x-auto snap-x pb-28 px-1"}
+                style={{ WebkitOverflowScrolling: 'touch', maxHeight: isGrid ? '65vh' : undefined }}
             >
                 {products.map(product => {
                     const inCart = cart.includes(product.productId);
-                    // Adapt TabletProduct to domain Product for the OversizedProductCard
                     const domainProduct = {
                         id: product.productId,
                         name: product.name,
@@ -687,7 +669,7 @@ export function RecommendationsScreen({
                         description: product.reason,
                     };
                     return (
-                        <div key={product.productId} className={(!bundle && products.length > 3) ? "h-full" : "min-w-[280px] sm:min-w-[320px] snap-center shrink-0 h-full"}>
+                        <div key={product.productId} className={isGrid ? '' : 'min-w-[240px] snap-center shrink-0'}>
                             <OversizedProductCard
                                 product={domainProduct as any}
                                 onAddToCart={() => { toggleCart(product.productId); resetIdleTimer(); }}
@@ -695,7 +677,7 @@ export function RecommendationsScreen({
                                 inCart={inCart ? 1 : 0}
                                 primaryColor={brandTheme.colors.primary}
                                 showQuickAdd={true}
-                                size="normal"
+                                size="compact"
                                 isTouchDevice={true}
                                 dealBadge={product.tier === 'premium' ? 'Top Tier' : undefined}
                             />
@@ -703,6 +685,8 @@ export function RecommendationsScreen({
                     );
                 })}
             </div>
+                );
+            })()}
 
             {/* ── Bundle ── */}
             {bundle && (
@@ -745,7 +729,7 @@ export function RecommendationsScreen({
             )}
 
             {error && <p className="text-center text-sm text-red-500">{error}</p>}
-            <button onClick={() => setStep('mood')} className="text-sm hover:opacity-70 pb-28" style={{ color: faintTextColor }}>&larr; Change feeling</button>
+            <button onClick={() => setStep('mood')} className="text-sm hover:opacity-70 pb-4" style={{ color: faintTextColor }}>&larr; Change feeling</button>
         </motion.div>
 
         {/* ── Sticky Checkout bar — always visible in viewport ── */}

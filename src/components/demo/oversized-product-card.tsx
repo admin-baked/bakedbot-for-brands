@@ -59,7 +59,7 @@ interface OversizedProductCardProps {
   inCart?: number;
   primaryColor?: string;
   showQuickAdd?: boolean;
-  size?: 'normal' | 'large' | 'xlarge';
+  size?: 'normal' | 'large' | 'xlarge' | 'compact';
   dealBadge?: string;
   onClick?: () => void;
   brandName?: string;
@@ -74,7 +74,7 @@ export function OversizedProductCard({
   inCart = 0,
   primaryColor = '#16a34a',
   showQuickAdd = true,
-  size = 'large',
+  size = 'large' as const,
   dealBadge,
   onClick,
   brandName,
@@ -120,6 +120,7 @@ export function OversizedProductCard({
     normal: 'aspect-square',
     large: 'aspect-[4/3]',
     xlarge: 'aspect-[3/2]',
+    compact: 'h-[130px]',
   };
 
   // Strain type colors
@@ -168,22 +169,22 @@ export function OversizedProductCard({
     <Card
       className={cn(
         'group overflow-hidden cursor-pointer hover:shadow-xl transition-all duration-300 flex flex-col',
-        sizeClasses[size]
+        (sizeClasses as Record<string, string>)[size] ?? 'w-full'
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={onClick}
     >
       {/* Image Container */}
-      <div className={cn('relative overflow-hidden', imageSizeClasses[size], isPlaceholder ? getCategoryBgColor(product.category) : 'bg-muted')}>
+      <div className={cn('relative overflow-hidden', imageSizeClasses[size], isPlaceholder ? getCategoryBgColor(product.category) : 'bg-white')}>
         {imageUrl ? (
           <Image
             src={imageUrl}
             alt={product.name}
             fill
             className={cn(
-              'object-cover transition-transform duration-500',
-              isHovered && 'scale-110'
+              'object-contain transition-transform duration-500',
+              isHovered && 'scale-105'
             )}
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             onError={() => setImageFailed(true)}
@@ -279,8 +280,8 @@ export function OversizedProductCard({
         {showQuickAdd && (
           <div
             className={cn(
-              'absolute bottom-0 left-0 right-0 p-4 transition-transform duration-300 z-20',
-              isTouchDevice ? 'translate-y-0 relative pb-0 pt-2 bg-transparent' : 'transform translate-y-full group-hover:translate-y-0'
+              'absolute bottom-0 left-0 right-0 p-3 transition-transform duration-300 z-20',
+              isTouchDevice ? 'translate-y-0 bg-gradient-to-t from-black/75 via-black/40 to-transparent' : 'transform translate-y-full group-hover:translate-y-0'
             )}
           >
             {isComingSoon ? (
@@ -367,13 +368,13 @@ export function OversizedProductCard({
       </div>
 
       {/* Content */}
-      <div className="p-4 flex-1 flex flex-col">
+      <div className={cn('flex-1 flex flex-col', size === 'compact' ? 'p-2.5' : 'p-4')}>
         {/* Category + Weight row */}
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between mb-0.5">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">
             {product.category}
           </p>
-          {product.weight && (
+          {product.weight && size !== 'compact' && (
             <p className="text-xs text-muted-foreground font-medium">
               {product.weight}{product.weightUnit || 'g'}
             </p>
@@ -381,19 +382,22 @@ export function OversizedProductCard({
         </div>
 
         {/* Brand name */}
-        {(brandName || product.brandName) && (
+        {(brandName || product.brandName) && size !== 'compact' && (
           <p className="text-xs font-semibold mb-1" style={{ color: primaryColor }}>
             {brandName || product.brandName}
           </p>
         )}
 
         {/* Name */}
-        <h3 className="font-bold text-lg leading-tight mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+        <h3 className={cn(
+          'font-bold leading-tight line-clamp-2 group-hover:text-primary transition-colors',
+          size === 'compact' ? 'text-sm mb-1' : 'text-lg mb-2'
+        )}>
           {product.name}
         </h3>
 
         {/* Description */}
-        {product.description && (
+        {product.description && size !== 'compact' && (
           <p className="text-sm text-muted-foreground line-clamp-2 mb-3 flex-1">
             {product.description}
           </p>
@@ -431,9 +435,9 @@ export function OversizedProductCard({
         )}
 
         {/* Price & Cart Status */}
-        <div className="flex items-center justify-between mt-auto pt-3 border-t">
+        <div className={cn('flex items-center justify-between mt-auto border-t', size === 'compact' ? 'pt-1.5' : 'pt-3')}>
           <div>
-            <span className="text-2xl font-bold" style={{ color: primaryColor }}>
+            <span className={cn('font-bold', size === 'compact' ? 'text-base' : 'text-2xl')} style={{ color: primaryColor }}>
               ${(product.price ?? 0).toFixed(2)}
             </span>
           </div>
@@ -441,7 +445,7 @@ export function OversizedProductCard({
           {inCart > 0 && (
             <Badge variant="secondary" className="gap-1">
               <ShoppingCart className="h-3 w-3" />
-              {inCart} in cart
+              ✓
             </Badge>
           )}
         </div>

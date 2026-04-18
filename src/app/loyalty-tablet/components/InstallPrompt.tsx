@@ -128,7 +128,7 @@ export function InstallPrompt() {
                             setShowManualGuide(true);
                         }
                     }}
-                    className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl bg-emerald-600 px-6 py-4 text-white text-base font-bold shadow-2xl hover:bg-emerald-700 active:scale-95 transition-all animate-pulse"
+                    className="fixed bottom-24 right-4 z-50 flex items-center gap-3 rounded-2xl bg-emerald-600 px-5 py-3 text-white text-sm font-bold shadow-2xl hover:bg-emerald-700 active:scale-95 transition-all"
                     aria-label="Install app on tablet"
                 >
                     <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">

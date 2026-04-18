@@ -745,6 +745,32 @@ export async function getTabletAvailableCategories(orgId: string): Promise<strin
     }
 }
 
+/**
+ * Return all in-stock products for a given category, sorted by price desc.
+ * Used by quick-pill category browsing — bypasses Smokey/LLM for instant results.
+ * Returns up to 30 products so the full menu is browseable.
+ */
+export async function browseTabletCategory(
+    orgId: string,
+    category: string,
+): Promise<{ success: boolean; products: TabletProduct[]; total: number }> {
+    try {
+        const all = await getCachedMenuProducts(orgId);
+        const needle = normalizeCategoryName(category);
+        const inCategory = dedupeProducts(all.filter(p => {
+            if (!isLikelyInStock(p)) return false;
+            const cat = getProductCategory(p); // already normalized via normalizeCategoryName
+            return cat.includes(needle) || needle.includes(cat);
+        }));
+        inCategory.sort((a, b) => (getProductPrice(b) ?? 0) - (getProductPrice(a) ?? 0));
+        const config = createQueryRecommendationConfig(category, null);
+        const products = inCategory.slice(0, 30).map(p => toTabletProduct(p, config));
+        return { success: true, products, total: products.length };
+    } catch {
+        return { success: false, products: [], total: 0 };
+    }
+}
+
 export async function searchTabletRecommendations(
     orgId: string,
     query: string,

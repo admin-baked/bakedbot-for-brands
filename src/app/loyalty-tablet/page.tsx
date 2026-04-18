@@ -334,6 +334,7 @@ export default function LoyaltyTabletPage() {
             <div className="mt-12 text-center">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: faintTextColor }}>
                     Powered by <span style={{ color: flow.brandTheme.colors.primary }}>BakedBot</span>
+                    <span className="ml-3 opacity-40">v0.1.2</span>
                 </p>
             </div>
         </div>

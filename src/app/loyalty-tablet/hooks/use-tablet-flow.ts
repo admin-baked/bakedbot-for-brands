@@ -5,6 +5,7 @@ import {
     captureTabletLead,
     getMoodRecommendations,
     searchTabletRecommendations,
+    browseTabletCategory,
     quickLookupByPhoneLast4,
     getTabletOffer,
     getCustomerBudtenderContext,
@@ -110,6 +111,9 @@ export function useTabletFlow(orgId: string) {
     // TTS for proactive voice guidance
     const voiceOutput = useVoiceOutput();
     const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Generation counter — incremented each time a new mood rec fetch starts.
+    // handleCategoryBrowse bumps it so any in-flight mood rec ignores its result.
+    const recsGenRef = useRef(0);
 
     const resetToWelcome = useCallback(() => {
         smokeyVoice.stopAutoListen();
@@ -419,6 +423,7 @@ export function useTabletFlow(orgId: string) {
         if (recsLoading || step === 'recommendations') return;
         resetIdleTimer();
         smokeyVoice.cancel();
+        smokeyVoice.stopAutoListen();
         voiceOutput.stop();
         setSelectedMood(moodId);
         setError('');
@@ -429,65 +434,66 @@ export function useTabletFlow(orgId: string) {
         setBundle(null);
         setRecsLoading(true);
         setStep('recommendations');
-        // Fetch categories in background so loading screen can show quick-access pills immediately
+        // Bump generation so any later category browse can ignore this result
+        recsGenRef.current += 1;
+        const myGen = recsGenRef.current;
+        // Fetch categories in background so loading screen shows quick-access pills immediately
         void getTabletAvailableCategories(orgId).then(cats => { if (cats.length) setAvailableCategories(cats); });
-        const recsFallbackMsg = 'Could not load recommendations - your budtender can help!';
+        const recsFallbackMsg = 'Could not load recommendations — tap a category below to browse.';
         let timeoutId: ReturnType<typeof setTimeout> | null = null;
         try {
             const timeoutPromise = new Promise<never>((_, reject) => {
-                timeoutId = setTimeout(() => reject(new Error('timeout')), 30_000);
+                timeoutId = setTimeout(() => reject(new Error('timeout')), 15_000);
             });
             const response = await Promise.race([getMoodRecommendations(orgId, moodId), timeoutPromise]);
+            // Drop result if a category browse already took over
+            if (recsGenRef.current !== myGen) return;
             if (response.success && response.products) {
                 setProducts(response.products);
                 setBundle(response.bundle ?? null);
                 setVideoUrl(response.videoUrl ?? null);
                 const moodLabel = getTabletMoodById(moodId)?.label ?? '';
-                const budtender = budtenderName.trim();
                 const greeting = firstName
-                    ? `Hey ${firstName}! I'm Smokey, your AI budtender.${budtender ? ` ${budtender} is ready for you.` : ''} Here are my top picks for ${moodLabel}. Your budtender can help you narrow it down.`
-                    : `Welcome! I'm Smokey, your AI budtender. Here are my top picks for ${moodLabel}.`;
+                    ? `Hey ${firstName}! Here are my top picks for ${moodLabel}.`
+                    : `Here are my top picks for ${moodLabel}.`;
+                setAssistantSummary(greeting);
                 if (voiceOutput.isEnabled && voiceOutput.isSupported) {
                     voiceOutput.speak(greeting);
-                }
-                setAssistantSummary(greeting);
-
-                // Auto-start listening after greeting — request mic permission then start auto-listen
-                if (smokeyVoice.isSupported) {
-                    // Small delay to let TTS greeting start first
-                    setTimeout(() => {
-                        navigator.mediaDevices.getUserMedia({ audio: true })
-                            .then(stream => {
-                                stream.getTracks().forEach(t => t.stop());
-                                setMicPermission('granted');
-                                // Start auto-listen after greeting plays (or 3s, whichever is sooner)
-                                setTimeout(() => {
-                                    smokeyVoice.startAutoListen();
-                                }, 3000);
-                            })
-                            .catch(() => {
-                                setMicPermission('denied');
-                            });
-                    }, 500);
                 }
             } else {
                 setError(recsFallbackMsg);
             }
         } catch {
-            setError(recsFallbackMsg);
+            if (recsGenRef.current === myGen) setError(recsFallbackMsg);
         } finally {
             if (timeoutId) clearTimeout(timeoutId);
-            setRecsLoading(false);
+            if (recsGenRef.current === myGen) setRecsLoading(false);
         }
     };
 
-    // Called when customer taps a category pill on the loading screen.
-    // Immediately clears the loading spinner and triggers a category search.
+    // Called when customer taps a category pill. Bypasses Smokey/LLM for instant results.
     const handleCategoryBrowse = useCallback((category: string) => {
         resetIdleTimer();
+        recsGenRef.current += 1;
+        const myGen = recsGenRef.current;
         setRecsLoading(false);
-        void handleAssistantSearch(category);
-    }, [resetIdleTimer, handleAssistantSearch]);
+        setAssistantLoading(true);
+        setAssistantError('');
+        void browseTabletCategory(orgId, category).then(res => {
+            if (recsGenRef.current !== myGen) return;
+            if (res.success && res.products.length) {
+                setProducts(res.products);
+                setBundle(null);
+                setAssistantSummary(`${res.total} ${category} products on the menu.`);
+            } else {
+                void handleAssistantSearch(category);
+            }
+        }).catch(() => {
+            if (recsGenRef.current === myGen) void handleAssistantSearch(category);
+        }).finally(() => {
+            if (recsGenRef.current === myGen) setAssistantLoading(false);
+        });
+    }, [resetIdleTimer, orgId, handleAssistantSearch]);
 
     const handleVoiceToggle = () => {
         resetIdleTimer();
