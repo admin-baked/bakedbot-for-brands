@@ -141,7 +141,9 @@ export async function syncAlleavesCustomersForOrg(orgId: string): Promise<Alleav
             if (!alleaves) continue;
 
             matched++;
-            if (data.alleaves_id === alleaves.alleaves_id && data.alleaves_synced) continue;
+            // Do not skip already-synced customers — LTV fields (orderCount, lastOrderDate,
+            // totalSpent) change daily as customers make new purchases. Always refresh so
+            // the cohort analytics and segment calculations stay accurate.
 
             const totalSpent  = alleaves.totalSpent  > 0 ? alleaves.totalSpent  : ((data.totalSpent  as number) || 0);
             const orderCount  = alleaves.orderCount  > 0 ? alleaves.orderCount  : ((data.orderCount  as number) || 0);

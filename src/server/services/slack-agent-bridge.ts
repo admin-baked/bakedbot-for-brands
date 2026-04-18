@@ -820,7 +820,12 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
 
         // 9. Format as Slack Block Kit and post.
         // Strip any leading "Name: " prefix the LLM may have added — we prepend it ourselves.
-        const cleanContent = result.content.replace(personaPrefixRe, '').trim();
+        // Normalize markdown bold (**text**) to Slack mrkdwn bold (*text*) — models trained on
+        // markdown frequently use double asterisks regardless of prompt instructions.
+        const cleanContent = result.content
+            .replace(personaPrefixRe, '')
+            .replace(/\*\*([^*]+)\*\*/g, '*$1*')
+            .trim();
         const blocks = SlackService.formatAgentResponse(cleanContent, personaId);
         const fallbackText = `${personaName}: ${cleanContent.slice(0, 200)}`;
 

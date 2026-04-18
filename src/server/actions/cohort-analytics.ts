@@ -123,15 +123,17 @@ export async function computeCohortData(
             .get();
     }
 
-    // Filter to customers active in the period
+    // Filter to customers active in the period — POS orders OR check-in visits
     const activeDocs = snap.docs.filter(doc => {
         const data = doc.data();
         if (data.archived === true) return false;
-        // Include if lastOrderDate >= cutoff OR firstOrderDate >= cutoff
         const lastOrder = firestoreTimestampToDate(data.lastOrderDate);
         const firstOrder = firestoreTimestampToDate(data.firstOrderDate);
         if (lastOrder && lastOrder >= cutoff) return true;
         if (firstOrder && firstOrder >= cutoff) return true;
+        // Also count check-in activity (tablet/kiosk visits without POS orders)
+        const lastCheckin = firestoreTimestampToDate(data.lastCheckinAt);
+        if (lastCheckin && lastCheckin >= cutoff) return true;
         return false;
     });
 
@@ -155,16 +157,18 @@ export async function computeCohortData(
             topDropoffVisit: 1,
             topDropoffPct: 0,
             repeatCustomerRate: 0,
-            summary: 'No customer visit data available for this period. Connect your POS system to enable cohort analysis.',
+            summary: 'No customer activity found in this period. Data will appear once customers check in or place orders.',
             generatedAt: now.toISOString(),
         };
     }
 
-    // Bucket by orderCount: 1, 2, 3, 4, 5+
+    // Bucket by activity count: POS orderCount OR check-in visitCount, whichever is higher.
+    // This ensures tablet-only customers (no POS orders yet) still appear in the funnel.
     const counts = [0, 0, 0, 0, 0]; // index 0=1visit, 1=2visits, 2=3visits, 3=4visits, 4=5+
     for (const doc of activeDocs) {
-        const orderCount = (doc.data().orderCount as number) || 1;
-        const idx = Math.min(orderCount, 5) - 1;
+        const data = doc.data();
+        const activityCount = Math.max((data.orderCount as number) || 0, (data.visitCount as number) || 0) || 1;
+        const idx = Math.min(activityCount, 5) - 1;
         counts[idx]++;
     }
 

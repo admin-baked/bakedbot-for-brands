@@ -92,6 +92,11 @@ export function isPlaceholderCustomerEmail(value: string | null | undefined): bo
         return true;
     }
 
+    // Internal BakedBot team and test accounts — never surface in customer-facing lists
+    if (domain === 'bakedbot.ai') {
+        return true;
+    }
+
     return domain === 'alleaves.local' && isSyntheticCustomerToken(localPart);
 }
 

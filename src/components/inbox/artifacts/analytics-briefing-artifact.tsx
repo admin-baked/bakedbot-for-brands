@@ -9,7 +9,17 @@
  */
 
 import React from 'react';
-import { TrendingUp, TrendingDown, Minus, ExternalLink, AlertTriangle, MapPin, Calendar, Mail, Info } from 'lucide-react';
+import {
+    TrendingUp,
+    TrendingDown,
+    Minus,
+    ExternalLink,
+    AlertTriangle,
+    MapPin,
+    Calendar,
+    Mail,
+    Info,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
     Tooltip,
@@ -18,7 +28,13 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import type { InboxArtifact, AnalyticsBriefing, BriefingMetric } from '@/types/inbox';
+import type {
+    InboxArtifact,
+    AnalyticsBriefing,
+    BriefingMetric,
+    BriefingMeeting,
+    BriefingNewsItem,
+} from '@/types/inbox';
 
 interface Props {
     artifact: InboxArtifact;
@@ -27,14 +43,14 @@ interface Props {
 
 const URGENCY_CONFIG = {
     critical: { label: 'Critical', className: 'bg-red-500/20 text-red-400 border-red-500/30' },
-    warning:  { label: 'Needs Attention', className: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
-    info:     { label: 'FYI', className: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-    clean:    { label: 'All Clear', className: 'bg-green-500/20 text-green-400 border-green-500/30' },
-};
+    warning: { label: 'Needs Attention', className: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+    info: { label: 'FYI', className: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+    clean: { label: 'All Clear', className: 'bg-green-500/20 text-green-400 border-green-500/30' },
+} as const;
 
 const STATUS_DOT: Record<BriefingMetric['status'], string> = {
-    good:     'bg-green-500',
-    warning:  'bg-amber-500',
+    good: 'bg-green-500',
+    warning: 'bg-amber-500',
     critical: 'bg-red-500',
 };
 
@@ -64,7 +80,7 @@ function MetricCard({ metric }: { metric: BriefingMetric }) {
 
     return (
         <TooltipProvider>
-            <div className="p-3 rounded-lg bg-white/5 border border-white/8 space-y-1">
+            <div className="space-y-1 rounded-lg border border-white/8 bg-white/5 p-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1">
                         <span className="text-xs text-muted-foreground">{metric.title}</span>
@@ -120,7 +136,7 @@ function MetricCard({ metric }: { metric: BriefingMetric }) {
                     <p className="text-[11px] text-muted-foreground">{selectedOption.coverageNote}</p>
                 )}
                 {metric.actionable && (
-                    <p className="text-xs text-amber-400 italic mt-1">{metric.actionable}</p>
+                    <p className="mt-1 text-xs italic text-amber-400">{metric.actionable}</p>
                 )}
             </div>
         </TooltipProvider>
@@ -129,30 +145,55 @@ function MetricCard({ metric }: { metric: BriefingMetric }) {
 
 function formatDate(dateStr: string): string {
     try {
-        const d = new Date(dateStr + 'T12:00:00Z');
+        const d = new Date(`${dateStr}T12:00:00Z`);
+        if (Number.isNaN(d.getTime())) {
+            return dateStr;
+        }
         return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     } catch {
         return dateStr;
     }
 }
 
-export function AnalyticsBriefingArtifact({ artifact, className }: Props) {
-    const data = artifact.data as AnalyticsBriefing;
-    const urgency = URGENCY_CONFIG[data.urgencyLevel];
+function toMetrics(data: Partial<AnalyticsBriefing>): BriefingMetric[] {
+    return Array.isArray(data.metrics) ? data.metrics : [];
+}
 
-    const pulseLabel = data.pulseType === 'midday'
+function toNewsItems(data: Partial<AnalyticsBriefing>): BriefingNewsItem[] {
+    return Array.isArray(data.newsItems) ? data.newsItems : [];
+}
+
+function toMeetings(data: Partial<AnalyticsBriefing>): BriefingMeeting[] {
+    return Array.isArray(data.meetings) ? data.meetings : [];
+}
+
+export function AnalyticsBriefingArtifact({ artifact, className }: Props) {
+    const data = (artifact.data ?? {}) as Partial<AnalyticsBriefing>;
+    const metrics = toMetrics(data);
+    const newsItems = toNewsItems(data);
+    const meetings = toMeetings(data);
+    const topEmails = Array.isArray(data.emailDigest?.topEmails) ? data.emailDigest.topEmails : [];
+    const urgencyLevel = data.urgencyLevel && data.urgencyLevel in URGENCY_CONFIG
+        ? data.urgencyLevel
+        : 'info';
+    const urgency = URGENCY_CONFIG[urgencyLevel];
+    const pulseType = data.pulseType ?? 'morning';
+    const pulseLabel = pulseType === 'midday'
         ? 'Midday Check-In'
-        : data.pulseType === 'evening'
-        ? "Tomorrow's Preview"
-        : `${data.dayOfWeek}'s Briefing`;
+        : pulseType === 'evening'
+            ? "Tomorrow's Preview"
+            : `${data.dayOfWeek || 'Today'}'s Briefing`;
+    const dateLabel = typeof data.date === 'string' && data.date.trim()
+        ? formatDate(data.date)
+        : 'Today';
+    const unreadCount = typeof data.emailDigest?.unreadCount === 'number' ? data.emailDigest.unreadCount : 0;
 
     return (
         <div className={cn('space-y-4', className)}>
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h3 className="font-semibold text-sm">
-                        {pulseLabel} · {formatDate(data.date)}
+                        {pulseLabel} - {dateLabel}
                     </h3>
                 </div>
                 <Badge variant="outline" className={cn('text-xs font-medium', urgency.className)}>
@@ -160,47 +201,46 @@ export function AnalyticsBriefingArtifact({ artifact, className }: Props) {
                 </Badge>
             </div>
 
-            {/* Top Alert */}
             {data.topAlert && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-400">
-                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                     <span>{data.topAlert}</span>
                 </div>
             )}
 
-            {/* Metrics Grid */}
-            {data.metrics.length > 0 && (
+            {metrics.length > 0 && (
                 <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Key Metrics</p>
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Key Metrics</p>
                     <div className="grid grid-cols-2 gap-2">
-                        {data.metrics.map((metric, i) => (
-                            <MetricCard key={i} metric={metric} />
+                        {metrics.map((metric, index) => (
+                            <MetricCard key={index} metric={metric} />
                         ))}
                     </div>
                 </div>
             )}
 
-            {/* Industry Headlines */}
-            {data.newsItems.length > 0 && (
+            {newsItems.length > 0 && (
                 <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Industry Headlines</p>
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Industry Headlines</p>
                     <div className="space-y-2">
-                        {data.newsItems.map((item, i) => (
-                            <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg bg-white/4 border border-white/6">
-                                <span className={cn(
-                                    'h-1.5 w-1.5 rounded-full shrink-0 mt-1.5',
-                                    item.relevance === 'high' ? 'bg-amber-400' : 'bg-muted-foreground/50'
-                                )} />
+                        {newsItems.map((item, index) => (
+                            <div key={index} className="flex items-start gap-2 rounded-lg border border-white/6 bg-white/4 p-2.5">
+                                <span
+                                    className={cn(
+                                        'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
+                                        item.relevance === 'high' ? 'bg-amber-400' : 'bg-muted-foreground/50'
+                                    )}
+                                />
                                 <div className="min-w-0 flex-1">
                                     {item.url ? (
                                         <a
                                             href={item.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="text-xs font-medium hover:text-primary transition-colors flex items-center gap-1"
+                                            className="flex items-center gap-1 text-xs font-medium transition-colors hover:text-primary"
                                         >
                                             {item.headline}
-                                            <ExternalLink className="h-3 w-3 opacity-60 shrink-0" />
+                                            <ExternalLink className="h-3 w-3 shrink-0 opacity-60" />
                                         </a>
                                     ) : (
                                         <p className="text-xs font-medium">{item.headline}</p>
@@ -213,33 +253,34 @@ export function AnalyticsBriefingArtifact({ artifact, className }: Props) {
                 </div>
             )}
 
-            {/* Today's / Tomorrow's Meetings */}
-            {data.meetings && data.meetings.length > 0 && (
+            {meetings.length > 0 && (
                 <div className="space-y-2">
                     <div className="flex items-center gap-1.5">
                         <Calendar className="h-3 w-3 text-muted-foreground" />
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                            {data.pulseType === 'evening' ? "Tomorrow's Meetings" : "Today's Meetings"}
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            {pulseType === 'evening' ? "Tomorrow's Meetings" : "Today's Meetings"}
                         </p>
                     </div>
                     <div className="space-y-1.5">
-                        {data.meetings.map((meeting, i) => (
-                            <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-white/4 border border-white/6">
-                                <span className="text-xs font-mono text-muted-foreground w-16 shrink-0">
-                                    {meeting.startTime}
+                        {meetings.map((meeting, index) => (
+                            <div key={index} className="flex items-center gap-2 rounded-md border border-white/6 bg-white/4 p-2">
+                                <span className="w-16 shrink-0 text-xs font-mono text-muted-foreground">
+                                    {meeting.startTime || 'TBD'}
                                 </span>
-                                <span className="text-xs font-medium flex-1 truncate">{meeting.title}</span>
+                                <span className="flex-1 truncate text-xs font-medium">{meeting.title || 'Untitled meeting'}</span>
                                 {meeting.attendee && (
-                                    <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+                                    <span className="max-w-[100px] truncate text-xs text-muted-foreground">
                                         {meeting.attendee}
                                     </span>
                                 )}
-                                <span className={cn(
-                                    'text-xs px-1.5 py-0.5 rounded-full font-medium shrink-0',
-                                    meeting.source === 'bakedbot'
-                                        ? 'bg-primary/20 text-primary'
-                                        : 'bg-blue-500/20 text-blue-400'
-                                )}>
+                                <span
+                                    className={cn(
+                                        'shrink-0 rounded-full px-1.5 py-0.5 text-xs font-medium',
+                                        meeting.source === 'bakedbot'
+                                            ? 'bg-primary/20 text-primary'
+                                            : 'bg-blue-500/20 text-blue-400'
+                                    )}
+                                >
                                     {meeting.source === 'bakedbot' ? 'BB' : 'GCal'}
                                 </span>
                             </div>
@@ -248,21 +289,20 @@ export function AnalyticsBriefingArtifact({ artifact, className }: Props) {
                 </div>
             )}
 
-            {/* Email Digest */}
             {data.emailDigest && (
                 <div className="space-y-2">
                     <div className="flex items-center gap-1.5">
                         <Mail className="h-3 w-3 text-muted-foreground" />
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                            Inbox · {data.emailDigest.unreadCount} unread
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            Inbox - {unreadCount} unread
                         </p>
                     </div>
-                    {data.emailDigest.topEmails.length > 0 ? (
+                    {topEmails.length > 0 ? (
                         <div className="space-y-1.5">
-                            {data.emailDigest.topEmails.map((email, i) => (
-                                <div key={i} className="p-2 rounded-md bg-white/4 border border-white/6">
-                                    <p className="text-xs font-medium truncate">{email.subject}</p>
-                                    <p className="text-xs text-muted-foreground truncate">{email.from}</p>
+                            {topEmails.map((email, index) => (
+                                <div key={index} className="rounded-md border border-white/6 bg-white/4 p-2">
+                                    <p className="truncate text-xs font-medium">{email.subject}</p>
+                                    <p className="truncate text-xs text-muted-foreground">{email.from}</p>
                                 </div>
                             ))}
                         </div>
@@ -272,11 +312,12 @@ export function AnalyticsBriefingArtifact({ artifact, className }: Props) {
                 </div>
             )}
 
-            {/* Market Context Pill */}
-            <div className="flex items-center gap-1.5 pt-1">
-                <MapPin className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">{data.marketContext}</span>
-            </div>
+            {data.marketContext && (
+                <div className="flex items-center gap-1.5 pt-1">
+                    <MapPin className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">{data.marketContext}</span>
+                </div>
+            )}
         </div>
     );
 }
