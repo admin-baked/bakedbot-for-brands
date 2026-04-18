@@ -47,6 +47,7 @@ const TIER_LABELS: Record<string, { label: string; bg: string; text: string }> =
 interface RecommendationsScreenProps {
     brandTheme: PublicBrandTheme;
     recsLoading: boolean;
+    isReturningCustomer?: boolean;
     selectedMoodDef: any;
     budtenderContext: BudtenderContext | null;
     budtenderName: string;
@@ -66,7 +67,7 @@ interface RecommendationsScreenProps {
     handleAutoListenToggle: () => void;
     assistantQuery: string;
     setAssistantQuery: (query: string) => void;
-    handleAssistantSearch: (rawQuery?: string) => void;
+    handleAssistantSearch: (rawQuery?: string, unlimited?: boolean) => void;
     assistantLoading: boolean;
     handleVoiceToggle: () => void;
     products: TabletProduct[];
@@ -278,6 +279,7 @@ function ProductDetailModal({
 export function RecommendationsScreen({
     brandTheme,
     recsLoading,
+    isReturningCustomer,
     selectedMoodDef,
     budtenderContext,
     budtenderName,
@@ -470,7 +472,7 @@ export function RecommendationsScreen({
                 </div>
             )}
 
-            {!budtenderContext && (
+            {!budtenderContext && isReturningCustomer && (
                 <div className="w-full flex items-center gap-3 rounded-[20px] border px-4 py-2" style={panelStyle}>
                     <Users className="h-4 w-4 shrink-0" style={{ color: mutedTextColor }} />
                     <input
@@ -603,6 +605,26 @@ export function RecommendationsScreen({
                     >
                         {voiceOutput.isEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
                     </button>
+                </div>
+
+                {/* ── Quick Chips & Full Menu ── */}
+                <div className="flex w-full items-center gap-2 overflow-x-auto pb-2 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
+                    <button
+                        onClick={() => { setAssistantQuery(''); handleAssistantSearch('', true); resetIdleTimer(); }}
+                        className="shrink-0 flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-bold bg-white transition hover:opacity-90 active:scale-95 shadow-sm"
+                        style={{ borderColor: brandTheme.colors.primary, color: brandTheme.colors.primary }}
+                    >
+                        Browse Full Menu
+                    </button>
+                    {['Show Sativas', 'Help me sleep', 'Under $30', 'High THC'].map(chip => (
+                        <button
+                            key={chip}
+                            onClick={() => { setAssistantQuery(chip); handleAssistantSearch(chip, true); resetIdleTimer(); }}
+                            className="shrink-0 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 active:scale-95"
+                        >
+                            {chip}
+                        </button>
+                    ))}
                 </div>
             </div>
 

@@ -114,7 +114,7 @@ export default function LoyaltyTabletPage() {
 
     return (
         <div
-            className="flex min-h-screen w-full flex-col p-4 sm:p-8 overflow-x-hidden font-sans select-none"
+            className="flex min-h-[100dvh] w-full flex-col p-4 sm:p-8 pb-32 sm:pb-8 overflow-x-hidden overflow-y-auto font-sans select-none"
             style={shellStyle}
         >
             <InstallPrompt />
@@ -128,10 +128,10 @@ export default function LoyaltyTabletPage() {
                         mutedTextColor={mutedTextColor}
                         faintTextColor={faintTextColor}
                         primaryButtonStyle={primaryButtonStyle}
-                        onCheckIn={() => { flow.setQuickDigits(''); flow.setQuickMatches([]); flow.setStep('quick_lookup'); }}
-                        onJoinClub={() => flow.setStep('phone')}
-                        onFindPass={() => { flow.setQuickDigits(''); flow.setQuickMatches([]); flow.setStep('quick_lookup'); }}
-                        onAskSmokey={() => flow.setStep('mood')}
+                        onCheckIn={() => { flow.setIntent('checkin'); flow.setQuickDigits(''); flow.setQuickMatches([]); flow.setStep('quick_lookup'); }}
+                        onJoinClub={() => { flow.setIntent('checkin'); flow.setStep('phone'); }}
+                        onOrderPickup={() => { flow.setIntent('pickup'); flow.setQuickDigits(''); flow.setQuickMatches([]); flow.setStep('quick_lookup'); }}
+                        onAskSmokey={() => { flow.setIntent('checkin'); flow.setStep('mood'); }}
                     />
                 )}
 
@@ -261,6 +261,7 @@ export default function LoyaltyTabletPage() {
                     <RecommendationsScreen
                         brandTheme={flow.brandTheme}
                         recsLoading={flow.recsLoading}
+                        isReturningCustomer={flow.isReturningCustomer}
                         selectedMoodDef={selectedMoodDef}
                         budtenderContext={flow.budtenderContext}
                         budtenderName={flow.budtenderName}
@@ -313,6 +314,7 @@ export default function LoyaltyTabletPage() {
                     <SuccessScreen
                         brandTheme={flow.brandTheme}
                         firstName={flow.firstName}
+                        intent={flow.intent}
                         result={flow.result}
                         budtenderName={flow.budtenderName}
                         cartCount={cartCount}

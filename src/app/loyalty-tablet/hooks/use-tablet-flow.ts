@@ -44,6 +44,7 @@ export function useTabletFlow(orgId: string) {
     const [email, setEmail] = useState('');
     const [emailConsent, setEmailConsent] = useState(false);
     const [smsConsent, setSmsConsent] = useState(false);
+    const [intent, setIntent] = useState<'checkin' | 'pickup'>('checkin');
 
     // Personalization dossier
     const [birthday, setBirthday] = useState('');
@@ -151,6 +152,7 @@ export function useTabletFlow(orgId: string) {
         setAlleavesCandidates([]);
         setCandidateLoading(false);
         setAvailableCategories([]);
+        setIntent('checkin');
     }, [smokeyVoice, voiceOutput]);
 
     const resetIdleTimer = useCallback(() => {
@@ -175,10 +177,10 @@ export function useTabletFlow(orgId: string) {
         setAssistantSummary(smokeyVoice.transcript);
     }, [smokeyVoice.transcript]);
 
-    const handleAssistantSearch = useCallback(async (rawQuery?: string) => {
+    const handleAssistantSearch = useCallback(async (rawQuery?: string, unlimited?: boolean) => {
         const query = (rawQuery ?? assistantQuery).trim();
         resetIdleTimer();
-        if (query.length < 3) {
+        if (query.length < 3 && !unlimited) {
             setAssistantError('Tell Smokey a little more so we can narrow the menu down.');
             return;
         }
@@ -187,7 +189,7 @@ export function useTabletFlow(orgId: string) {
         setError('');
         voiceOutput.stop();
         try {
-            const response = await searchTabletRecommendations(orgId, query, selectedMood);
+            const response = await searchTabletRecommendations(orgId, query, selectedMood, customerId, unlimited);
             if (!response.success || !response.products?.length) {
                 setAssistantError(response.error || 'Smokey could not narrow the menu down yet.');
                 return;
@@ -203,7 +205,7 @@ export function useTabletFlow(orgId: string) {
         } finally {
             setAssistantLoading(false);
         }
-    }, [orgId, assistantQuery, selectedMood, resetIdleTimer, voiceOutput]);
+    }, [orgId, assistantQuery, selectedMood, customerId, resetIdleTimer, voiceOutput]);
 
     useEffect(() => {
         if (!smokeyVoice.inputTranscript || smokeyVoice.state !== 'speaking') return;
@@ -286,7 +288,12 @@ export function useTabletFlow(orgId: string) {
                 void getCustomerBudtenderContext(orgId, m.customerId).then(ctx => {
                     if (ctx.success && ctx.context) setBudtenderContext(ctx.context);
                 });
-                setStep('mood');
+                
+                if (intent === 'pickup') {
+                    void handleSubmit({ customerId: m.customerId, firstName: m.firstName, isPickup: true });
+                } else {
+                    setStep('mood');
+                }
             } else if (result.found && result.matches.length > 1) {
                 setQuickMatches(result.matches);
             } else {
@@ -310,7 +317,12 @@ export function useTabletFlow(orgId: string) {
         void getCustomerBudtenderContext(orgId, match.customerId).then(res => {
             if (res.success && res.context) setBudtenderContext(res.context);
         });
-        setStep('mood');
+        
+        if (intent === 'pickup') {
+            void handleSubmit({ customerId: match.customerId, firstName: match.firstName, isPickup: true });
+        } else {
+            setStep('mood');
+        }
     };
 
     const handlePhoneSubmit = () => {
@@ -320,6 +332,12 @@ export function useTabletFlow(orgId: string) {
             setError('Please enter a valid 10-digit phone number');
             return;
         }
+        
+        if (intent === 'pickup') {
+            void handleSubmit({ isPickup: true });
+            return;
+        }
+
         if (isReturningCustomer) {
             setStep('mood');
             return;
@@ -539,7 +557,7 @@ export function useTabletFlow(orgId: string) {
         setCart(prev => prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]);
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (overrideArgs?: { customerId?: string; firstName?: string; isPickup?: boolean }) => {
         resetIdleTimer();
         setError('');
         setLoading(true);
@@ -551,18 +569,20 @@ export function useTabletFlow(orgId: string) {
             const res = await Promise.race([
                 captureTabletLead({
                     orgId,
-                    firstName,
+                    firstName: overrideArgs?.firstName || firstName,
                     email: email || undefined,
                     phone: phone || undefined,
                     emailConsent,
                     smsConsent,
-                    mood: selectedMood ?? undefined,
+                    mood: (overrideArgs?.isPickup || intent === 'pickup') ? undefined : (selectedMood ?? undefined),
                     cartProductIds: [...new Set([...cart, ...(bundleAdded && bundle ? bundle.products.map((p: TabletProduct) => p.productId) : [])])],
                     bundleAdded,
                     birthday: birthday || undefined,
-                    visitPreferences: visitPreferences.length ? visitPreferences : undefined,
+                    visitPreferences: (overrideArgs?.isPickup || intent === 'pickup') 
+                        ? ['Order Pickup'] 
+                        : (visitPreferences.length ? visitPreferences : undefined),
                     offerProductId: offerClaimed && tabletOffer ? tabletOffer.productId : undefined,
-                    customerId: customerId || undefined,
+                    customerId: overrideArgs?.customerId || customerId || undefined,
                 }),
                 timeoutPromise,
             ]);
@@ -583,6 +603,7 @@ export function useTabletFlow(orgId: string) {
 
     return {
         step, setStep,
+        intent, setIntent,
         firstName, setFirstName,
         phone, setPhone,
         email, setEmail,

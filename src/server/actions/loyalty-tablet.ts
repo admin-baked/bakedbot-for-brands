@@ -750,6 +750,7 @@ export async function searchTabletRecommendations(
     query: string,
     moodId?: string | null,
     customerId?: string | null,
+    unlimited?: boolean
 ): Promise<TabletSearchRecommendationsResult> {
     // ── Org-level access guard ─────────────────────────────────────────
     try {
@@ -771,7 +772,7 @@ export async function searchTabletRecommendations(
     }
 
     const trimmedQuery = query.trim();
-    if (trimmedQuery.length < 3) {
+    if (trimmedQuery.length < 3 && !unlimited) {
         return {
             success: false,
             error: 'Tell Smokey a little more so I can narrow the menu down.',
@@ -799,6 +800,18 @@ export async function searchTabletRecommendations(
 
         const mood = getTabletMoodById(moodId);
         const moodConfig = mood ? MOOD_RECOMMENDATION_CONFIGS[mood.id] : undefined;
+        const config = createQueryRecommendationConfig(trimmedQuery || "the full menu", mood?.label ?? null);
+
+        if (unlimited && trimmedQuery.length === 0) {
+            const allProducts = dedupeProducts(products.filter(isLikelyInStock)).map(p => toTabletProduct(p, config));
+            return {
+                success: true,
+                query: 'Full Menu',
+                summary: `I've loaded ${allProducts.length} items from the live menu.`,
+                products: allProducts,
+            };
+        }
+
         const pool = buildSearchPool(products, enrichedQuery, moodConfig);
         if (!pool.length) {
             logger.info('[LoyaltyTablet] Freeform search had no matches', {
@@ -817,8 +830,9 @@ export async function searchTabletRecommendations(
             };
         }
 
-        const config = createQueryRecommendationConfig(trimmedQuery, mood?.label ?? null);
-        const recommendationSet = buildRecommendationSet(pool, config);
+        const recommendationSet = unlimited 
+            ? { products: pool.map(p => toTabletProduct(p, config)), bundle: undefined }
+            : buildRecommendationSet(pool, config);
 
         logger.info('[LoyaltyTablet] Freeform search recommendations generated', {
             orgId,

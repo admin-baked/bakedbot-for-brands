@@ -68,7 +68,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // SNS subscription confirmation — auto-confirm
-    if (payload.Type === 'SubscriptionConfirmation') {
+    if ((payload as any).Type === 'SubscriptionConfirmation') {
         const p = payload as unknown as { SubscribeURL: string };
         logger.info('[SES-Inbound] SNS subscription confirmation — confirm manually via SubscribeURL', {
             url: p.SubscribeURL,

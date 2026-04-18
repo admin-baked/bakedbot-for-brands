@@ -12,6 +12,7 @@ interface SuccessScreenProps {
     firstName: string;
     result: { isNewLead: boolean; loyaltyPoints: number; queuePosition?: number; visitId?: string } | null;
     budtenderName: string;
+    intent?: 'checkin' | 'pickup';
     cartCount: number;
     customerId: string | null;
     orgId: string;
@@ -27,6 +28,7 @@ export function SuccessScreen({
     firstName,
     result,
     budtenderName,
+    intent,
     cartCount,
     customerId,
     orgId,
@@ -61,20 +63,24 @@ export function SuccessScreen({
 
             <div>
                 <h1 className="mb-3 text-3xl font-black text-gray-900 sm:text-5xl">
-                    {firstName
-                        ? `You're checked out, ${firstName}!`
-                        : result?.isNewLead
-                            ? 'You\'re all checked in!'
-                            : 'Welcome back!'}
+                    {intent === 'pickup'
+                        ? firstName ? `You're checked in for pickup, ${firstName}!` : 'You\'re checked in for pickup!'
+                        : firstName
+                            ? `You're checked out, ${firstName}!`
+                            : result?.isNewLead
+                                ? 'You\'re all checked in!'
+                                : 'Welcome back!'}
                 </h1>
                 <p className="text-base sm:text-xl" style={{ color: mutedTextColor }}>
-                    {budtenderName
-                        ? `${budtenderName} has your order ready — head to the counter!`
-                        : cartCount > 0
-                            ? 'Show this screen at the counter to complete your order.'
-                            : result?.isNewLead
-                                ? 'Your follow-ups are set if you opted in.'
-                                : 'Your loyalty balance is ready.'}
+                    {intent === 'pickup'
+                        ? 'A budtender will grab your order shortly — head to the counter!'
+                        : budtenderName
+                            ? `${budtenderName} has your order ready — head to the counter!`
+                            : cartCount > 0
+                                ? 'Show this screen at the counter to complete your order.'
+                                : result?.isNewLead
+                                    ? 'Your follow-ups are set if you opted in.'
+                                    : 'Your loyalty balance is ready.'}
                 </p>
             </div>
 
