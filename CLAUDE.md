@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Fireworks on kiosk order notification (canvas, 6 shells, physics particles); Campaigns timestamp serialization fix | **Last update:** 2026-04-18 (`5f95b9e25`)
+**Current Status:** 🟢 main green | pageRenderCheck RSC crash detection in stress test; Elroy data-integrity ground rules; campaigns page render + 5-page parallel sweep | **Last update:** 2026-04-18 (`395332cd2`)
 
 ---
 

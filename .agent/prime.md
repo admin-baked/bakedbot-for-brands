@@ -52,7 +52,7 @@ Agent IDs: `claude` | `codex` | `gemini` | `linus`
 ```
 
 **Current Status:** 🟢 main green | Fireworks on kiosk order notification; campaigns Timestamp serialization fix
-**Recent work (2026-04-18):** `5f95b9e25` fireworks canvas on kiosk checkout notification + hexToRgba reuse; `981d151b2` campaigns Firestore Timestamp serialization fix
+**Recent work (2026-04-18):** `395332cd2` pageRenderCheck RSC crash detection + Elroy ground rules + hexToRgba simplify; `981d151b2` campaigns Timestamp serialization fix
 
 ---
 
