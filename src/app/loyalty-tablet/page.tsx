@@ -16,6 +16,7 @@
 import { useState, useMemo, useEffect, useCallback, type SyntheticEvent } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { getTabletMoodById, SMOKEY_FALLBACK_IMAGE } from '@/lib/checkin/loyalty-tablet-shared';
+import { APP_VERSION_DISPLAY } from '@/lib/version';
 
 import { InstallPrompt } from './components/InstallPrompt';
 import { WelcomeScreen } from './components/WelcomeScreen';
@@ -334,7 +335,7 @@ export default function LoyaltyTabletPage() {
             <div className="mt-12 text-center">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: faintTextColor }}>
                     Powered by <span style={{ color: flow.brandTheme.colors.primary }}>BakedBot</span>
-                    <span className="ml-3 opacity-40">v4.10.7-CL</span>
+                    <span className="ml-3 opacity-40">{APP_VERSION_DISPLAY}</span>
                 </p>
             </div>
         </div>

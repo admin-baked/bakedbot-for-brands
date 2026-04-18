@@ -1,7 +1,7 @@
 /**
- * Application Version
- * This is the single source of truth for the app version displayed in footers and admin panels.
- * Update this value when deploying new versions.
+ * Single source of truth for app version.
+ * Format: MAJOR.MINOR.PATCH-AGENT (CL=Claude, GEM=Gemini, COD=Codex)
+ * Bump on every push — see AGENTS.md → Versioning Convention.
  */
-export const APP_VERSION = '4.10.4';
+export const APP_VERSION = '4.10.7-CL';
 export const APP_VERSION_DISPLAY = `v${APP_VERSION}`;
