@@ -43,6 +43,20 @@ function lockId(file) {
 }
 
 const LOCK_TTL_MS = 2 * 60 * 60 * 1000;
+const COORD_CHANNEL = '#agent-coordination';
+const AGENT_EMOJI = { claude: '🤖', codex: '💡', gemini: '✨', linus: '🖥️' };
+
+async function slackPost(text) {
+  const token = process.env.SLACK_BOT_TOKEN;
+  if (!token) return;
+  try {
+    await fetch('https://slack.com/api/chat.postMessage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ channel: COORD_CHANNEL, text }),
+    });
+  } catch { /* non-fatal */ }
+}
 
 function fmt(ts) {
   if (!ts) return '?';
@@ -120,6 +134,7 @@ async function cmdClaim() {
     const existing = snap.data();
     const expired = existing.expiresAt?.toDate ? existing.expiresAt.toDate() < new Date() : false;
     if (!expired && existing.agent !== agent) {
+      await slackPost(`⚠️ *${agent}* tried to claim \`${file}\` — already held by *${existing.agent}*\n> Their intent: ${existing.intent}`);
       console.log(`\n⚠️  CONFLICT: ${existing.agent} already holds ${file}`);
       console.log(`   Intent: ${existing.intent}`);
       console.log(`\n   Options:`);
@@ -136,6 +151,8 @@ async function cmdClaim() {
     claimedAt: FieldValue.serverTimestamp(),
     expiresAt: new Date(now + LOCK_TTL_MS),
   });
+  const agentEmoji = AGENT_EMOJI[agent] ?? '🔧';
+  await slackPost(`${agentEmoji} *${agent}* claimed \`${file}\`\n> ${intent}`);
   console.log(`\n✅ Claimed: ${file}`);
   console.log(`   Agent:  ${agent}`);
   console.log(`   Intent: ${intent}`);
@@ -157,6 +174,7 @@ async function cmdRelease() {
   if (data.agent !== agent) { console.log(`  Lock is held by ${data.agent}, not ${agent}. Cannot release.`); return; }
 
   await ref.delete();
+  await slackPost(`🔓 *${agent}* released \`${file}\``);
   console.log(`\n🔓 Released: ${file}\n`);
 }
 
@@ -168,14 +186,17 @@ async function cmdStart() {
 
   initFirebase();
   const db = getFirestore();
+  const files = filesRaw ? filesRaw.split(',').map(f => f.trim()) : [];
   await db.collection('agent_status').doc(agent).set({
     agent,
     task,
-    files: filesRaw ? filesRaw.split(',').map(f => f.trim()) : [],
+    files,
     phase: 'in-progress',
     startedAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
+  const fileList = files.length ? `  |  \`${files.join('`, `')}\`` : '';
+  await slackPost(`${AGENT_EMOJI[agent] ?? '🔧'} *${agent}* → in-progress  |  ${task}${fileList}`);
   console.log(`\n🔧 ${agent} → in-progress: ${task}\n`);
 }
 
@@ -185,7 +206,6 @@ async function cmdDone() {
 
   initFirebase();
   const db = getFirestore();
-  // Release all locks held by this agent
   const locks = await db.collection('agent_locks').where('agent', '==', agent).get();
   const batch = db.batch();
   for (const d of locks.docs) batch.delete(d.ref);
@@ -194,6 +214,7 @@ async function cmdDone() {
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
   await batch.commit();
+  await slackPost(`✅ *${agent}* marked done — ${locks.size} lock${locks.size !== 1 ? 's' : ''} released`);
   console.log(`\n✅ ${agent} marked done. ${locks.size} lock(s) released.\n`);
 }
 
@@ -238,6 +259,8 @@ async function cmdMessage() {
   initFirebase();
   const db = getFirestore();
   const ref = await db.collection('agent_messages').add({ from, to, re, body, ts: FieldValue.serverTimestamp(), read: false });
+  const target = to === 'all' ? 'everyone' : `*${to}*`;
+  await slackPost(`${AGENT_EMOJI[from] ?? '🔧'} *${from}* → ${target}  |  re: \`${re}\`\n> ${body}`);
   console.log(`\n✉️  Message sent [${ref.id}]\n   From: ${from} → ${to}  Re: ${re}\n   ${body}\n`);
 }
 

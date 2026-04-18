@@ -1,6 +1,7 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
+import { SlackService } from './communications/slack';
 
 // Builder agents that write code in this repo
 export type BuilderAgent = 'claude' | 'codex' | 'gemini' | 'linus' | string;
@@ -34,6 +35,24 @@ export interface AgentStatus {
 }
 
 const LOCK_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+const COORD_CHANNEL = '#agent-coordination';
+
+const AGENT_EMOJI: Record<string, string> = {
+  claude: '🤖',
+  codex: '💡',
+  gemini: '✨',
+  linus: '🖥️',
+};
+
+function emoji(agent: string) {
+  return AGENT_EMOJI[agent] ?? '🔧';
+}
+
+let slack: SlackService | null = null;
+function getSlack() {
+  if (!slack) slack = new SlackService();
+  return slack;
+}
 
 function db() {
   return getAdminFirestore();
@@ -45,7 +64,7 @@ function lockId(file: string) {
 
 /**
  * Claim exclusive intent on a file before modifying it.
- * Returns { claimed: true } if successful, { claimed: false, lock } if already held.
+ * Returns { claimed: true } if successful, { claimed: false, lock } if conflict.
  */
 export async function claimFile(
   agent: string,
@@ -55,14 +74,12 @@ export async function claimFile(
   const ref = db().collection('agent_locks').doc(lockId(file));
   const now = Date.now();
 
-  return db().runTransaction(async (tx) => {
+  const result = await db().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (snap.exists) {
       const existing = snap.data() as AgentLock;
-      // Expired lock — overwrite it
-      if (existing.expiresAt.toMillis() < now) {
-        logger.info('[AGENT_COORD] Overwriting expired lock', { file, expiredAgent: existing.agent, newAgent: agent });
-      } else if (existing.agent !== agent) {
+      const expired = existing.expiresAt.toMillis() < now;
+      if (!expired && existing.agent !== agent) {
         return { claimed: false as const, lock: existing };
       }
     }
@@ -75,6 +92,23 @@ export async function claimFile(
     });
     return { claimed: true as const };
   });
+
+  if (result.claimed) {
+    logger.info('[AGENT_COORD] File claimed', { agent, file, intent });
+    getSlack().postMessage(
+      COORD_CHANNEL,
+      `${emoji(agent)} *${agent}* claimed \`${file}\`\n> ${intent}`
+    ).catch(() => {/* non-fatal */});
+  } else {
+    const holder = (result as { claimed: false; lock: AgentLock }).lock;
+    logger.warn('[AGENT_COORD] Claim conflict', { agent, file, holder: holder.agent });
+    getSlack().postMessage(
+      COORD_CHANNEL,
+      `⚠️ *${agent}* tried to claim \`${file}\` — already held by *${holder.agent}*\n> Their intent: ${holder.intent}\n> Send them a message: \`node scripts/agent-coord.mjs message --from ${agent} --to ${holder.agent} --re "${file}" --body "..."\``
+    ).catch(() => {/* non-fatal */});
+  }
+
+  return result;
 }
 
 /**
@@ -83,9 +117,10 @@ export async function claimFile(
 export async function releaseFile(agent: string, file: string): Promise<void> {
   const ref = db().collection('agent_locks').doc(lockId(file));
   const snap = await ref.get();
-  if (snap.exists && (snap.data() as AgentLock).agent === agent) {
-    await ref.delete();
-  }
+  if (!snap.exists || (snap.data() as AgentLock).agent !== agent) return;
+  await ref.delete();
+  logger.info('[AGENT_COORD] File released', { agent, file });
+  getSlack().postMessage(COORD_CHANNEL, `🔓 *${agent}* released \`${file}\``).catch(() => {/* non-fatal */});
 }
 
 /**
@@ -100,7 +135,7 @@ export async function getActiveLocks(): Promise<AgentLock[]> {
 }
 
 /**
- * Send a message to another agent (or 'all').
+ * Send a message to another agent (or 'all'). Mirrors to #agent-coordination.
  */
 export async function sendMessage(
   from: string,
@@ -116,7 +151,14 @@ export async function sendMessage(
     ts: FieldValue.serverTimestamp(),
     read: false,
   });
+
+  const target = to === 'all' ? 'everyone' : `*${to}*`;
   logger.info('[AGENT_COORD] Message sent', { from, to, re });
+  getSlack().postMessage(
+    COORD_CHANNEL,
+    `${emoji(from)} *${from}* → ${target}  |  re: \`${re}\`\n> ${body}`
+  ).catch(() => {/* non-fatal */});
+
   return ref.id;
 }
 
@@ -147,7 +189,7 @@ export async function markRead(messageIds: string[]): Promise<void> {
 }
 
 /**
- * Update the current agent's working status.
+ * Update the current agent's working status. Posts to Slack on phase transitions.
  */
 export async function updateStatus(
   agent: string,
@@ -163,6 +205,36 @@ export async function updateStatus(
     updatedAt: FieldValue.serverTimestamp(),
     ...(phase === 'planning' || phase === 'in-progress' ? { startedAt: FieldValue.serverTimestamp() } : {}),
   }, { merge: true });
+
+  const icons: Record<AgentPhase, string> = { planning: '📋', 'in-progress': '🔧', done: '✅', blocked: '🚫' };
+  const fileList = files.length ? `  |  \`${files.join('`, `')}\`` : '';
+  getSlack().postMessage(
+    COORD_CHANNEL,
+    `${icons[phase]} *${agent}* → ${phase}  |  ${task}${fileList}`
+  ).catch(() => {/* non-fatal */});
+}
+
+/**
+ * Release all locks for an agent and mark status done.
+ */
+export async function markDone(agent: string): Promise<number> {
+  const locks = await db().collection('agent_locks').where('agent', '==', agent).get();
+  const batch = db().batch();
+  for (const d of locks.docs) batch.delete(d.ref);
+  batch.set(db().collection('agent_status').doc(agent), {
+    phase: 'done',
+    updatedAt: FieldValue.serverTimestamp(),
+  }, { merge: true });
+  await batch.commit();
+
+  const count = locks.size;
+  logger.info('[AGENT_COORD] Agent done', { agent, locksReleased: count });
+  getSlack().postMessage(
+    COORD_CHANNEL,
+    `✅ *${agent}* marked done — ${count} lock${count !== 1 ? 's' : ''} released`
+  ).catch(() => {/* non-fatal */});
+
+  return count;
 }
 
 /**
