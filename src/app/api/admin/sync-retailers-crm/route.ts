@@ -17,7 +17,10 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
-import { syncCRMDispensariesToOutreachQueue } from '@/server/services/ny-outreach/crm-queue-sync';
+import {
+    normalizeCRMQueueSyncLimit,
+    syncCRMDispensariesToOutreachQueue,
+} from '@/server/services/ny-outreach/crm-queue-sync';
 import { logger } from '@/lib/logger';
 import { requireUser } from '@/server/auth/auth';
 
@@ -40,14 +43,15 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json().catch(() => ({}));
         const { state, limit = 200 } = body as { state?: string; limit?: number };
+        const normalizedLimit = normalizeCRMQueueSyncLimit(limit);
 
         const db = getAdminFirestore();
         const now = Date.now();
 
         // ── Step 1: retailers → crm_dispensaries ───────────────────────────
         let retailersQ = state
-            ? db.collection('retailers').where('state', '==', state).limit(limit)
-            : db.collection('retailers').limit(limit);
+            ? db.collection('retailers').where('state', '==', state).limit(normalizedLimit)
+            : db.collection('retailers').limit(normalizedLimit);
 
         const [retailersSnap, crmSnap] = await Promise.all([
             retailersQ.get(),
@@ -106,11 +110,12 @@ export async function POST(request: NextRequest) {
         // ── Step 2: crm_dispensaries → ny_dispensary_leads ─────────────────
         const queueResult = await syncCRMDispensariesToOutreachQueue({
             states: state ? [state] : undefined,
-            limit: Math.min(limit, 100),
+            limit: normalizedLimit,
         });
 
         logger.info('[SyncRetailersCRM] Sync complete', {
             state,
+            limit: normalizedLimit,
             retailersScanned: retailersSnap.size,
             crmCreated,
             queueCreated: queueResult.created,

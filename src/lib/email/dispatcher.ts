@@ -517,7 +517,21 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
     }
 
     // ── Route 5: Platform Mailjet / SendGrid (last resort) ────────────
-    result = await sendViaPlatformMailjet(normalizedData);
+    // For paid orgs (orgId present + SES available), surface the failure instead of silently
+    // routing to Mailjet with a tenant subdomain that Mailjet won't accept as a sender.
+    if (!isFreeOrg && normalizedData.orgId && process.env.AWS_SES_ACCESS_KEY_ID) {
+        logger.error('[Dispatcher] SES failed for paid org — refusing Mailjet fallback to prevent invalid sender rejection', {
+            orgId: normalizedData.orgId,
+            subject: normalizedData.subject,
+        });
+        return { success: false, error: 'SES unavailable for paid org — check SES credentials and verified domain' };
+    }
+    // Strip tenant subdomain fromEmail before platform Mailjet send — platform account only validates hello@bakedbot.ai
+    const platformData: GenericEmailData = {
+        ...normalizedData,
+        fromEmail: normalizedData.fromEmail?.endsWith('.bakedbot.ai') ? undefined : normalizedData.fromEmail,
+    };
+    result = await sendViaPlatformMailjet(platformData);
     logCrm(result, normalizedData, 'mailjet_platform');
     return result;
 }

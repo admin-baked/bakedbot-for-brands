@@ -50,6 +50,7 @@ jest.mock('@/server/services/ny-outreach/lead-enrichment', () => ({
 }));
 
 jest.mock('@/server/services/ny-outreach/crm-queue-sync', () => ({
+    MAX_CRM_QUEUE_SYNC_LIMIT: 500,
     syncCRMDispensariesToOutreachQueue: jest.fn(),
 }));
 
@@ -269,6 +270,30 @@ describe('ny-outreach-dashboard actions', () => {
             uid: 'user-1',
             email: 'martez@bakedbot.ai',
         });
+        (getAdminFirestore as jest.Mock).mockReturnValue({
+            batch: jest.fn(() => ({
+                set: jest.fn(),
+                commit: jest.fn().mockResolvedValue(undefined),
+            })),
+            collection: jest.fn((name: string) => {
+                if (name === 'retailers') {
+                    return {
+                        limit: jest.fn(() => ({
+                            get: jest.fn().mockResolvedValue({ docs: [] }),
+                        })),
+                    };
+                }
+
+                if (name === 'crm_dispensaries') {
+                    return {
+                        get: jest.fn().mockResolvedValue({ docs: [] }),
+                        doc: jest.fn((id: string) => ({ id })),
+                    };
+                }
+
+                throw new Error(`Unexpected collection: ${name}`);
+            }),
+        });
         (syncCRMDispensariesToOutreachQueue as jest.Mock).mockResolvedValue({
             states: ['NY', 'MI', 'IL'],
             scanned: 12,
@@ -280,8 +305,8 @@ describe('ny-outreach-dashboard actions', () => {
 
         const result = await triggerCRMLeadSync();
 
-        expect(syncCRMDispensariesToOutreachQueue).toHaveBeenCalledWith({ limit: 30 });
-        expect(result).toEqual({
+        expect(syncCRMDispensariesToOutreachQueue).toHaveBeenCalledWith({ limit: 500 });
+        expect(result).toMatchObject({
             success: true,
             created: 5,
             updated: 2,

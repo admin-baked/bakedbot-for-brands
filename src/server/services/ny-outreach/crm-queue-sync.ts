@@ -1,7 +1,8 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 
-const DEFAULT_SYNC_LIMIT = 30;
+export const DEFAULT_CRM_QUEUE_SYNC_LIMIT = 30;
+export const MAX_CRM_QUEUE_SYNC_LIMIT = 500;
 export const DEFAULT_OUTREACH_TARGET_STATES = ['NY', 'MI', 'IL'] as const;
 
 type CRMDispensarySeed = {
@@ -37,6 +38,14 @@ export interface CRMQueueSyncResult {
     updated: number;
     skipped: number;
     createdLeadIds: string[];
+}
+
+export function normalizeCRMQueueSyncLimit(requestedLimit?: unknown): number {
+    const parsedLimit = typeof requestedLimit === 'number' && Number.isFinite(requestedLimit)
+        ? Math.trunc(requestedLimit)
+        : DEFAULT_CRM_QUEUE_SYNC_LIMIT;
+
+    return Math.max(1, Math.min(parsedLimit, MAX_CRM_QUEUE_SYNC_LIMIT));
 }
 
 function normalizeState(value: unknown): string | null {
@@ -119,7 +128,7 @@ export async function syncCRMDispensariesToOutreachQueue(
             .map(state => normalizeState(state))
             .filter((state): state is string => Boolean(state))
     ));
-    const limit = Math.max(1, Math.min(options.limit ?? DEFAULT_SYNC_LIMIT, 100));
+    const limit = normalizeCRMQueueSyncLimit(options.limit);
 
     if (states.length === 0) {
         return {

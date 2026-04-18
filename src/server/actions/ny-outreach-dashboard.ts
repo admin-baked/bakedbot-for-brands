@@ -1002,8 +1002,11 @@ export async function triggerCRMLeadSync(): Promise<{
         if (batchCount > 0) await batch.commit();
 
         // Step 2: Sync crm_dispensaries → ny_dispensary_leads
-        const { syncCRMDispensariesToOutreachQueue } = await import('@/server/services/ny-outreach/crm-queue-sync');
-        const result = await syncCRMDispensariesToOutreachQueue({ limit: 50 });
+        const {
+            MAX_CRM_QUEUE_SYNC_LIMIT,
+            syncCRMDispensariesToOutreachQueue,
+        } = await import('@/server/services/ny-outreach/crm-queue-sync');
+        const result = await syncCRMDispensariesToOutreachQueue({ limit: MAX_CRM_QUEUE_SYNC_LIMIT });
 
         logger.info('[OutreachDashboard] CRM lead sync complete', {
             retailersCRMCreated,

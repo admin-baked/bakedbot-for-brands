@@ -250,4 +250,63 @@ describe('syncCRMDispensariesToOutreachQueue', () => {
         expect(batch.update).not.toHaveBeenCalled();
         expect(batch.commit).not.toHaveBeenCalled();
     });
+
+    it('respects large requested batch sizes above the legacy 100-item cap', async () => {
+        const batch = {
+            set: jest.fn(),
+            update: jest.fn(),
+            commit: jest.fn().mockResolvedValue(undefined),
+        };
+
+        const crmDocs = Array.from({ length: 120 }, (_, index) => makeDoc(`crm-ny-${index + 1}`, {
+            name: `Albany Store ${index + 1}`,
+            city: 'Albany',
+            state: 'NY',
+            claimStatus: 'unclaimed',
+            source: 'import',
+        }));
+
+        let generatedDocCount = 0;
+        const db = {
+            batch: jest.fn(() => batch),
+            collection: jest.fn((name: string) => {
+                if (name === 'ny_dispensary_leads') {
+                    return {
+                        where: jest.fn(() => ({
+                            get: jest.fn().mockResolvedValue(makeSnapshot([])),
+                        })),
+                        doc: jest.fn(() => ({ id: `lead-${++generatedDocCount}` })),
+                    };
+                }
+
+                if (name === 'crm_dispensaries') {
+                    return {
+                        where: jest.fn(() => ({
+                            get: jest.fn().mockResolvedValue(makeSnapshot(crmDocs)),
+                        })),
+                    };
+                }
+
+                throw new Error(`Unexpected collection: ${name}`);
+            }),
+        };
+
+        (getAdminFirestore as jest.Mock).mockReturnValue(db);
+
+        const result = await syncCRMDispensariesToOutreachQueue({
+            limit: 120,
+            states: ['NY'],
+        });
+
+        expect(result).toMatchObject({
+            states: ['NY'],
+            scanned: 120,
+            created: 120,
+            updated: 0,
+            skipped: 0,
+        });
+        expect(result.createdLeadIds).toHaveLength(120);
+        expect(batch.set).toHaveBeenCalledTimes(120);
+        expect(batch.commit).toHaveBeenCalledTimes(1);
+    });
 });
