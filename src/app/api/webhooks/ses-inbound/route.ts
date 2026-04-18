@@ -1,20 +1,7 @@
-/**
- * SES Inbound Email Webhook
- *
- * Receives inbound emails forwarded by AWS SES receiving rules via SNS.
- * Flow: Customer replies → SES receives → SNS publishes → this endpoint
- *
- * Matches the reply to an existing email_thread via In-Reply-To header,
- * then appends it. Creates a new thread if no match (cold inbound).
- *
- * Covered domains:
- *   - *@thrive.bakedbot.ai      → org scope (org_thrive_syracuse)
- *   - *@ecstatic.bakedbot.ai    → org scope (org_ecstatic_edibles)
- *   - *@outreach.bakedbot.ai    → outreach scope (super user inbox)
- */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { getAdminFirestore } from '@/firebase/admin';
 import {
     getThreadBySesMessageId,
     appendInboundMessage,
@@ -22,18 +9,31 @@ import {
 } from '@/server/services/email-thread-service';
 import type { SesInboundSnsPayload, SesInboundRecord } from '@/types/email-thread';
 
-// Map receiving addresses to orgIds
-const DOMAIN_ORG_MAP: Record<string, string> = {
-    'thrive.bakedbot.ai': 'org_thrive_syracuse',
-    'ecstatic.bakedbot.ai': 'org_ecstatic_edibles',
-};
+// In-process cache: subdomain → orgId, refreshed every 5 min
+let domainMapCache: Record<string, string> = {};
+let domainMapExpiry = 0;
 
-function extractDomain(email: string): string {
-    return email.split('@')[1]?.toLowerCase() ?? '';
-}
-
-function resolveOrgId(toAddress: string): string | undefined {
-    return DOMAIN_ORG_MAP[extractDomain(toAddress)];
+async function resolveOrgId(toAddress: string): Promise<string | undefined> {
+    const domain = toAddress.split('@')[1]?.toLowerCase() ?? '';
+    const now = Date.now();
+    if (now > domainMapExpiry) {
+        try {
+            const snap = await getAdminFirestore()
+                .collection('organizations')
+                .where('bakedBotSubdomain', '!=', null)
+                .get();
+            const map: Record<string, string> = {};
+            snap.docs.forEach(d => {
+                const sub = d.data().bakedBotSubdomain as string | undefined;
+                if (sub) map[`${sub}.bakedbot.ai`] = d.id;
+            });
+            domainMapCache = map;
+            domainMapExpiry = now + 5 * 60 * 1000;
+        } catch (e) {
+            logger.warn('[SES-Inbound] Failed to refresh domain map', { error: String(e) });
+        }
+    }
+    return domainMapCache[domain];
 }
 
 /** Extract plain text from raw email body (strips quoted reply text) */
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const inReplyTo = mail.commonHeaders.inReplyTo;
     const sesMessageId = mail.messageId;
     const bodyText = extractBodyText(record.content?.data);
-    const orgId = resolveOrgId(toHeader);
+    const orgId = await resolveOrgId(toHeader);
 
     logger.info('[SES-Inbound] Received email', {
         from: fromHeader,
@@ -112,27 +112,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     try {
-        // Try to match to existing thread via In-Reply-To
-        let matched = false;
-        if (inReplyTo) {
-            const found = await getThreadBySesMessageId(inReplyTo);
-            if (found) {
-                await appendInboundMessage({
-                    threadId: found.threadId,
-                    sesMessageId,
-                    inReplyTo,
-                    from: fromHeader,
-                    to: toHeader,
-                    subject,
-                    bodyText,
-                });
-                matched = true;
-                logger.info('[SES-Inbound] Matched to existing thread', { threadId: found.threadId });
-            }
+        // Deduplicate: SNS delivers at-least-once; skip if we already processed this message
+        const alreadyProcessed = await getThreadBySesMessageId(sesMessageId);
+        if (alreadyProcessed) {
+            logger.info('[SES-Inbound] Duplicate delivery, skipping', { sesMessageId });
+            return NextResponse.json({ ok: true });
         }
 
-        if (!matched) {
-            // Cold inbound or reply to a thread we don't have indexed
+        const parentThread = inReplyTo ? await getThreadBySesMessageId(inReplyTo) : null;
+
+        if (parentThread) {
+            await appendInboundMessage({
+                threadId: parentThread.threadId,
+                sesMessageId,
+                inReplyTo: inReplyTo!,
+                from: fromHeader,
+                to: toHeader,
+                subject,
+                bodyText,
+            });
+            logger.info('[SES-Inbound] Matched to existing thread', { threadId: parentThread.threadId });
+        } else {
             const threadId = await createInboundThread({
                 sesMessageId,
                 inReplyTo,

@@ -49,6 +49,15 @@ env:
     value: "us-east-1"
     availability:
       - RUNTIME
+  # Cloudflare DNS — system token for managing bakedbot.ai subdomains
+  - variable: CLOUDFLARE_API_TOKEN
+    secret: CLOUDFLARE_API_TOKEN@1
+    availability:
+      - RUNTIME
+  - variable: CLOUDFLARE_ZONE_ID
+    secret: CLOUDFLARE_ZONE_ID@1
+    availability:
+      - RUNTIME
   # Email — SendGrid (legacy fallback)
   - variable: SENDGRID_API_KEY
     secret: SENDGRID_API_KEY@2

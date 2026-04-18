@@ -1,16 +1,3 @@
-/**
- * Email Thread Service
- *
- * Manages bidirectional email conversations in Firestore.
- * Collection: `email_threads`
- *
- * Key operations:
- * - createOutboundThread  — called by dispatcher on every outbound send
- * - appendInboundMessage  — called by inbound webhook on reply
- * - getThreads            — paginated list for dashboard (role-aware)
- * - getThreadBySesId      — match inbound reply to original sent thread
- */
-
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type {
@@ -228,12 +215,11 @@ export async function getEmailThreads(opts: GetThreadsOptions = {}): Promise<Ema
     const db = getAdminFirestore();
     let query = db.collection(COLLECTION).orderBy('lastActivityAt', 'desc');
 
+    // Firestore type narrowing requires casts when chaining conditionally
     if (opts.scope) query = query.where('scope', '==', opts.scope) as typeof query;
     if (opts.orgId) query = query.where('orgId', '==', opts.orgId) as typeof query;
     if (opts.status) query = query.where('status', '==', opts.status) as typeof query;
-    if (opts.before) {
-        query = query.startAfter(new Date(opts.before)) as typeof query;
-    }
+    if (opts.before) query = query.startAfter(new Date(opts.before)) as typeof query;
 
     const snap = await query.limit(opts.limit ?? 50).get();
     return snap.docs.map(d => {

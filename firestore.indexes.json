@@ -4,26 +4,50 @@
             "collectionGroup": "slack_digest_buffer",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "flushed", "order": "ASCENDING" },
-                { "fieldPath": "date", "order": "ASCENDING" }
+                {
+                    "fieldPath": "flushed",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "date",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "orders",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "orgId", "order": "ASCENDING" },
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "playbooks",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "orgId", "order": "ASCENDING" },
-                { "fieldPath": "isCustom", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "isCustom",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
@@ -1622,390 +1646,796 @@
             "collectionGroup": "meeting_bookings",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "startAt", "order": "ASCENDING" },
-                { "fieldPath": "__name__", "order": "ASCENDING" }
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "startAt",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "__name__",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "meeting_bookings",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "profileSlug", "order": "ASCENDING" },
-                { "fieldPath": "startAt", "order": "ASCENDING" },
-                { "fieldPath": "status", "order": "ASCENDING" }
+                {
+                    "fieldPath": "profileSlug",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "startAt",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "meeting_bookings",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "profileSlug", "order": "ASCENDING" },
-                { "fieldPath": "startAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "profileSlug",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "startAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "meeting_bookings",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "prepBriefGenerated", "order": "ASCENDING" },
-                { "fieldPath": "startAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "prepBriefGenerated",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "startAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "meeting_bookings",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "followUpSentAt", "order": "ASCENDING" },
-                { "fieldPath": "endAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "followUpSentAt",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "endAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "greenledger_offers",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "brandOrgId", "order": "ASCENDING" },
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "brandOrgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "greenledger_offers",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "eligibility", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "eligibility",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "greenledger_advances",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "brandOrgId", "order": "ASCENDING" },
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "brandOrgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "greenledger_advances",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "dispensaryOrgId", "order": "ASCENDING" },
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "dispensaryOrgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "greenledger_advances",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "autoRefundAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "autoRefundAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "greenledger_transactions",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "brandOrgId", "order": "ASCENDING" },
-                { "fieldPath": "type", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "brandOrgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "type",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "greenledger_transactions",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "dispensaryOrgId", "order": "ASCENDING" },
-                { "fieldPath": "type", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "dispensaryOrgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "type",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "email_leads",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "source", "order": "ASCENDING" },
-                { "fieldPath": "capturedAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "source",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "capturedAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "email_leads",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "state", "order": "ASCENDING" },
-                { "fieldPath": "capturedAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "state",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "capturedAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "email_leads",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "emailConsent", "order": "ASCENDING" },
-                { "fieldPath": "capturedAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "emailConsent",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "capturedAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "ny_dispensary_leads",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "outreachSent", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "outreachSent",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "ny_dispensary_leads",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "outreachSent", "order": "ASCENDING" },
-                { "fieldPath": "sentAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "outreachSent",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "sentAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "price_points_competitive",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "productRef", "order": "ASCENDING" },
-                { "fieldPath": "capturedAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "productRef",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "capturedAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "competitor_price_history",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "tenantId", "order": "ASCENDING" },
-                { "fieldPath": "productId", "order": "ASCENDING" },
-                { "fieldPath": "timestamp", "order": "DESCENDING" }
+                {
+                    "fieldPath": "tenantId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "productId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "timestamp",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "ny_outreach_drafts",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "ny_outreach_log",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "emailSent", "order": "ASCENDING" },
-                { "fieldPath": "timestamp", "order": "ASCENDING" }
+                {
+                    "fieldPath": "emailSent",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "timestamp",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "scheduled_emails",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "email", "order": "ASCENDING" },
-                { "fieldPath": "orgId", "order": "ASCENDING" },
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "scheduledFor", "order": "ASCENDING" }
+                {
+                    "fieldPath": "email",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "scheduledFor",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "scheduled_emails",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "email", "order": "ASCENDING" },
-                { "fieldPath": "orgId", "order": "ASCENDING" },
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "sendAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "email",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "sendAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "agent_telemetry",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "_date", "order": "ASCENDING" },
-                { "fieldPath": "costEstimateUsd", "order": "DESCENDING" }
+                {
+                    "fieldPath": "_date",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "costEstimateUsd",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "agent_telemetry",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "_agentName", "order": "ASCENDING" },
-                { "fieldPath": "timestamp", "order": "ASCENDING" }
+                {
+                    "fieldPath": "_agentName",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "timestamp",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "response_feedback",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "rating", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "rating",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "learning_deltas",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "proposedAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "proposedAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "proactive_approvals",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "organizationId", "order": "ASCENDING" },
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "organizationId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "checkin_visits",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "orgId", "order": "ASCENDING" },
-                { "fieldPath": "visitedAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "visitedAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "checkin_visits",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "orgId", "order": "ASCENDING" },
-                { "fieldPath": "visitedAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "visitedAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "checkin_visits",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "orgId", "order": "ASCENDING" },
-                { "fieldPath": "reviewSequence.status", "order": "ASCENDING" }
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "reviewSequence.status",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "orders",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "brandId", "order": "ASCENDING" },
-                { "fieldPath": "phoneLast4", "order": "ASCENDING" }
+                {
+                    "fieldPath": "brandId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "phoneLast4",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "orders",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "retailerId", "order": "ASCENDING" },
-                { "fieldPath": "phoneLast4", "order": "ASCENDING" }
+                {
+                    "fieldPath": "retailerId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "phoneLast4",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "orders",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "orgId", "order": "ASCENDING" },
-                { "fieldPath": "phoneLast4", "order": "ASCENDING" }
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "phoneLast4",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "orders",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "brandId", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "brandId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "orders",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "brandId", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "brandId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "products",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "orgId", "order": "ASCENDING" },
-                { "fieldPath": "salesLast7Days", "order": "DESCENDING" }
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "salesLast7Days",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "orders",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "orgId", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "ASCENDING" },
-                { "fieldPath": "status", "order": "ASCENDING" }
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "orders",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "dispensaryId", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "dispensaryId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "competitor_profiles",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "orgId", "order": "ASCENDING" },
-                { "fieldPath": "competitorName", "order": "ASCENDING" },
-                { "fieldPath": "scrapedAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "competitorName",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "scrapedAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "playbook_assignments",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "nextRunAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "nextRunAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "claude_code_tasks",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "priority", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "priority",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "claude_code_tasks",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "prodTestedAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "prodTestedAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "competitive_reports",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "orgId", "order": "ASCENDING" },
-                { "fieldPath": "generatedAt", "order": "DESCENDING" }
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "generatedAt",
+                    "order": "DESCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "tickets",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "errorDigest", "order": "ASCENDING" },
-                { "fieldPath": "createdAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "errorDigest",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "ASCENDING"
+                }
             ]
         },
         {
             "collectionGroup": "customer_communications",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "orgId", "order": "ASCENDING" },
-                { "fieldPath": "channel", "order": "ASCENDING" },
-                { "fieldPath": "sentAt", "order": "ASCENDING" }
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "channel",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "sentAt",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "email_threads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "scope",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "lastActivityAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "email_threads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "scope",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "lastActivityAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "email_threads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "scope",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "lastActivityAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "email_threads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "_sesMessageIds",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "lastActivityAt",
+                    "order": "DESCENDING"
+                }
             ]
         }
     ],

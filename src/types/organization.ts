@@ -20,6 +20,19 @@ export interface Organization {
         planId?: string;
     };
 
+    // BakedBot-managed subdomain for email (e.g. "thrive" → thrive.bakedbot.ai)
+    bakedBotSubdomain?: string;
+
+    // Provisioning state — tracks which onboarding steps have been completed
+    provisioning?: {
+        sesVerified?: boolean;
+        sesReceiptRule?: boolean;
+        mxRecord?: boolean;
+        posSync?: boolean;
+        ezalSeeded?: boolean;
+        completedAt?: any;
+    };
+
     // Future: Integrations at Org Level (e.g. Brand-wide CRM)
     integrations?: Record<string, any>;
 }

@@ -1,6 +1,36 @@
 {
     "features": [
         {
+            "id": "feat_one_click_org_provisioning",
+            "title": "1-Click Org Provisioning — Full Stack Onboarding for Dispensaries & Brands",
+            "status": "pending",
+            "priority": "high",
+            "description": "Single button in the super admin dashboard to fully wire up a new dispensary or brand pilot. Replaces scattered manual steps across AWS, Cloudflare, Firestore, and third-party integrations with one automated flow. Should complete in under 2 minutes with a live status log.",
+            "acceptance_tests": [
+                "Clicking 'Provision' for a new org creates: SES domain identity, SES receipt rule, Cloudflare MX record, Firestore org doc, integrations/ses doc, and Ezal competitive intel seed",
+                "Alleaves POS toggle: if enabled, creates POS integration doc + triggers first inventory sync",
+                "Brand provisioning path: skips POS, adds brand Firestore doc + brand guide scaffold",
+                "Progress shown in real-time (server-sent events or polling) — each step check/fail visible",
+                "Idempotent: re-running provision on an existing org skips already-complete steps",
+                "Errors surface per-step with actionable message, not a generic failure"
+            ],
+            "scope": [
+                "UI: /dashboard/admin/orgs → 'Provision' button per org row (or new org wizard)",
+                "Server action: provisionOrg(orgId) — orchestrates all steps in order",
+                "Step 1: SES domain verification (provision-org-email.mjs logic, server-side)",
+                "Step 2: Cloudflare MX record via API (CLOUDFLARE_API_TOKEN + CLOUDFLARE_ZONE_ID)",
+                "Step 3: Firestore org doc + integrations/ses doc with fromEmail/fromName",
+                "Step 4: Update DOMAIN_ORG_MAP (or migrate to Firestore-driven lookup)",
+                "Step 5 (conditional): Alleaves POS integration doc + first /api/cron/pos-sync trigger",
+                "Step 6: Ezal competitive intel seed — queue first dispensary scrape for org's market",
+                "Step 7: Send welcome/onboarding email to org contact via SES",
+                "DOMAIN_ORG_MAP refactor: move from hardcoded map in ses-inbound/route.ts to Firestore orgs collection (bakedBotSubdomain field) — enables dynamic provisioning without redeploys"
+            ],
+            "owner": "ai_builder_swarm",
+            "area": "onboarding",
+            "created_at": "2026-04-18T00:00:00Z"
+        },
+        {
             "id": "task_test_insight_suppression",
             "title": "Unit Test: Insight Slack Suppression",
             "status": "pending",

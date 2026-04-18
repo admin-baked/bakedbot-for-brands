@@ -60,6 +60,7 @@ import {
     Code,
     Database,
     Youtube,
+    Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
@@ -333,6 +334,14 @@ export function SuperAdminSidebar() {
                                         <Link href="/dashboard/settings/connections">
                                             <Chrome />
                                             <span>Social Connections</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/admin/org-provisioning')}>
+                                        <Link href="/dashboard/admin/org-provisioning">
+                                            <Zap />
+                                            <span>Org Provisioning</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
