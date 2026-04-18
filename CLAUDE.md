@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Firestore CSP probe fix (no more connect-src 'none' spam) | **Last update:** 2026-04-18 (`000f9abb2`)
+**Current Status:** 🟢 main green | Inbox 24/25 + Elroy 29-31/39 stress test suites live; persona hardening (Smokey/Craig/Pops/Puff/Mrs. Parker); Slack bold normalization | **Last update:** 2026-04-18 (`2756fc3a0`)
 
 ---
 

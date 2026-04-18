@@ -51,8 +51,8 @@ Agent IDs: `claude` | `codex` | `gemini` | `linus`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Firestore CSP probe fix (no more connect-src 'none' spam)
-**Recent work (2026-04-18):** `000f9abb2` initializeFirestore+experimentalAutoDetectLongPolling stops WebChannel CSP probe; `7dfd15a75` Ecstatic email brand colors
+**Current Status:** 🟢 main green | Inbox 24/25 + Elroy 29-31/39 stress suites live; persona hardening across all 5 inbox agents; Slack bold normalization
+**Recent work (2026-04-18):** `2756fc3a0` inbox+elroy stress test suites + Elroy DATA INTEGRITY rules + persona hardening (Smokey/Craig/Pops/Mrs.Parker/Puff); `000f9abb2` Firestore CSP probe fix
 
 ---
 
