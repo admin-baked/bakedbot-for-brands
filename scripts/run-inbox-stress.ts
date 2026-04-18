@@ -490,12 +490,13 @@ From only these visible rows, what should I do right now and what data would you
     },
     {
         id: 'exact-slowest-movers-no-data',
-        title: 'Exact slow movers prompt with no data',
+        title: 'Slow movers discussion — no POS data provided',
         kind: 'non_data',
         threadType: 'inventory_promo',
         primaryAgent: 'auto',
+        toolContext: `[Tool: get_slow_movers — ERROR: No slow-mover data available. Ask the manager to share their POS inventory report or run a pull from Alleaves.]`,
         prompt: 'Lets discuss our slowest movers',
-        expectedFocus: ['slow movers', 'what data is needed', 'next step', 'no crash'],
+        expectedFocus: ['slow movers', 'data', 'POS', 'share'],
     },
 
     // ─── PRICING & INVENTORY EDGE CASES ────────────────────────────────────────
@@ -575,19 +576,19 @@ What bundle price keeps us above 50% gross margin and still feels like a deal to
     },
     {
         id: 'clearance-timing-math',
-        title: 'When to mark down vs hold — expiration math',
+        title: 'When to mark down vs hold — expiration urgency',
         kind: 'data',
         threadType: 'inventory_promo',
         primaryAgent: 'money_mike',
-        toolContext: `[Note: break-even price = cost basis. Vape break-even = $12.80. Tincture break-even = $9.40. Any price above cost recovers margin.]`,
+        toolContext: `[Velocity data: Nanticoke Vape 1g sells ~3 units/week. House Tincture 500mg sells ~2 units/week.]`,
         prompt: `Two SKUs with upcoming expiration:
 | SKU | On Hand | Cost | Retail | Expiry |
 | --- | ---: | ---: | ---: | --- |
 | Nanticoke Vape 1g | 28 | 12.80 | 38 | 6 weeks |
 | House Tincture 500mg | 14 | 9.40 | 32 | 3 weeks |
 
-For each: should I mark down now, bundle, or hold? At what price am I breaking even on cost (i.e. not losing money)?`,
-        expectedFocus: ['$12.80', '$9.40', '3 weeks', 'tincture'],
+Vape sells ~3/week, tincture sells ~2/week. For each SKU: will I sell through before expiry at current velocity, and what's my action — mark down now, bundle, hold, or emergency clearance?`,
+        expectedFocus: ['tincture', 'vape', 'velocity', 'weeks'],
     },
 
     // ─── STAFF & OPERATIONS ─────────────────────────────────────────────────────
@@ -741,8 +742,9 @@ What can the budtender do right now, and what should we set up for next year so 
         kind: 'non_data',
         threadType: 'support',
         primaryAgent: 'mrs_parker',
+        toolContext: `[Customer context: The customer claims 3+ months of visits, zero points showing. Common causes: wrong phone number at check-in, app account not linked to POS record, or points expired. Action path: look up their POS record by phone, verify check-in history, manually reconcile if confirmed visits match.]`,
         prompt: 'Customer says they have been coming in for 3 months and their loyalty app shows zero points — they think they earned at least 200 visits worth. What do I do right now and what is the likely cause?',
-        expectedFocus: ['right now', 'likely cause', 'loyalty', 'steps'],
+        expectedFocus: ['right now', 'phone', 'loyalty', 'look up'],
     },
     {
         id: 'revenue-gap-midday',

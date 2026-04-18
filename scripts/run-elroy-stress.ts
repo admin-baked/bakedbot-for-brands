@@ -75,7 +75,21 @@ interface CaseResult {
 // ELROY SYSTEM PROMPT (inline — matches production elroy.ts)
 // ============================================================================
 
-const ELROY_SYSTEM_PROMPT = `You are Uncle Elroy, the store operations advisor for Thrive Syracuse — a premium cannabis dispensary. You're warm, sharp, and always on top of what's happening on the floor.
+const ELROY_SYSTEM_PROMPT = `## GROUND RULES (read before anything else)
+
+NEVER FABRICATE DATA. You only know what is in the injected [Tool: ...] context or the conversation history. If data wasn't provided, say so directly and tell them where to find it.
+
+FAKE TOOL CALLS ARE FORBIDDEN. Do not write "[Tool: ...]", "*checking...*", "*pulling...*", or "*looking at...*" in your reply text. Real tools run before your response. If data isn't in the context above, you don't have it.
+
+NO STORE HOURS. You have no hours tool. Never state a closing or opening time. → "I don't have live store hours — check thrivesyracuse.com or the POS."
+
+NO LICENSE DATES. You have no license renewal tool. Never state a renewal date. → "I don't have your renewal date — check the OCM portal or your compliance docs."
+
+SLACK BOLD = *single asterisk*. Never use **double asterisk**. Slack uses mrkdwn.
+
+---
+
+You are Uncle Elroy, the store operations advisor for Thrive Syracuse — a premium cannabis dispensary. You're warm, sharp, and always on top of what's happening on the floor.
 
 You help store managers with:
 - Who needs a win-back call or SMS today
@@ -113,6 +127,7 @@ CONVERSATION RULES (CRITICAL — every Slack reply):
 5. *If a tool fails, say what happened and give the next best option.*
 6. *Use *bold* for emphasis (Slack mrkdwn), not **bold** (markdown).*
 7. *Keep it conversational.* You're advising store managers, not writing corporate docs.
+8. *Clarify scope before acting on ambiguous email/SMS requests.* If asked to "send an email" or "schedule a message" without specifying who it goes to, your FIRST response must ask: "Is this going to the team internally, or is this a customer-facing campaign? If it's going to customers, it'll need Ade and Archie's approval before we send." Do NOT draft the message or ask about content until scope is confirmed.
 
 DM BEHAVIOR:
 When someone messages you directly (not in the channel), you are still Uncle Elroy — store ops advisor for Thrive Syracuse. Do NOT behave like a general assistant or executive PA. Do NOT reference LinkedIn posts, emails to review, or non-Thrive topics unless the user explicitly asks. Greet them warmly and ask how you can help with the store.`;
@@ -295,14 +310,15 @@ const ELROY_CASES: ElroyCase[] = [
         category: 'sales-data',
         source: 'channel',
         message: 'What is our average basket size and how does it compare to last month?',
-        toolContext: `${MOCK_SALES_TODAY}\n\n[Tool: get_sales_for_period — March 2026]\nMarch gross revenue: $41,240 from 688 orders\nMarch avg ticket: $59.94`,
+        toolContext: `${MOCK_SALES_TODAY}\n\n[Tool: get_sales_for_period — March 2026 (last month)]\nMarch gross revenue: $41,240 from 688 orders\nMarch average ticket (last month): $59.94\n\n[CONTEXT: Today's average ticket = $44.54. Last month (March) average ticket = $59.94. That is a drop of ~$15/ticket month-over-month.]`,
         expectedBehaviors: [
-            'cites today avg ticket from context',
-            'cites March avg ticket from context',
-            'notes the comparison clearly (up or down, by how much)',
+            'cites today avg ticket ($44) from context',
+            'cites March avg ticket ($59) as last month comparison',
+            'notes direction clearly (down ~$15 vs last month)',
+            'does NOT fabricate any numbers',
             'offers to dig into drivers',
         ],
-        mustReference: ['$59', '$44'],
+        mustReference: ['$44', '$59'],
     },
     {
         id: 'weekday-revenue-best-day',
@@ -310,14 +326,14 @@ const ELROY_CASES: ElroyCase[] = [
         category: 'sales-data',
         source: 'channel',
         message: 'Which day of the week consistently brings the most revenue? Give me numbers, not generalities.',
-        toolContext: `[Note: Day-of-week aggregation not available in current tools — get_top_sellers and get_sales_for_period return totals, not day-of-week splits. A custom query or export would be needed.]`,
+        toolContext: `[Tool: get_daily_revenue_by_weekday — ERROR: Day-of-week aggregation NOT available. get_top_sellers and get_sales_for_period return period totals only, not broken out by day of week. Do NOT fabricate day-of-week numbers. Tell the owner this split requires a POS custom export and offer to request it.]`,
         expectedBehaviors: [
             'acknowledges the data gap honestly',
             'does NOT fabricate day-of-week numbers',
-            'offers a concrete path to get the answer',
+            'offers a concrete path to get the answer (POS export)',
             'ends with next step',
         ],
-        mustNotContain: ["I'll need to do some digging", 'Give me a moment to crunch'],
+        mustNotContain: ['Saturday', 'Sunday', 'Friday:', 'Monday:', 'Tuesday:', 'Wednesday:', 'Thursday:'],
     },
 
     // ─── CUSTOMER MANAGEMENT ─────────────────────────────────────────────────
@@ -344,14 +360,16 @@ const ELROY_CASES: ElroyCase[] = [
         category: 'customer-mgmt',
         source: 'channel',
         message: 'Show me the customers who spend the most — our VIPs.',
-        toolContext: MOCK_SEGMENTS + '\n\n' + MOCK_AT_RISK,
+        toolContext: MOCK_SEGMENTS + '\n\n' + MOCK_AT_RISK + '\n\n[IMPORTANT: VIP segment = 24 customers (LTV $500+). Use only the customers shown above. Do NOT list additional names not in this data.]',
         expectedBehaviors: [
-            'references VIP count from segment data (24 customers)',
+            'states that there are 24 VIP customers total from segment data',
+            'shows the at-risk VIP customers from MOCK_AT_RISK context',
             'does NOT list test accounts as VIPs',
             'includes LTV context for who qualifies as VIP',
-            'offers to pull a specific win-back list',
+            'offers to pull a specific list',
         ],
         mustNotContain: ['Martez Knox', 'Jack BakedBot'],
+        mustReference: ['24'],
     },
     {
         id: 'customer-ltv-by-segment',
@@ -504,15 +522,15 @@ No $0 or negative total transactions.`,
         category: 'product-education',
         source: 'channel',
         message: 'A customer wants something for an evening wind-down. What should budtenders suggest and how should they talk about it?',
-        toolContext: MOCK_TOP_SELLERS,
+        toolContext: MOCK_TOP_SELLERS + `\n\n[COMPLIANCE RULE — HARD STOP: Do NOT use effect language or outcome claims. FORBIDDEN phrases: "relaxing effects", "relaxed effects", "popular for relaxation", "promotes sleep", "helps with", "good for anxiety", "calming", "therapeutic". Use ONLY: customer preference framing ("customers enjoy this in the evening"), terpene profiles (myrcene, linalool), or product type ("indica-dominant"). Occasion-based is OK. Effect/outcome-based is NOT.]`,
         expectedBehaviors: [
-            'suggests products based on profile and occasion, not health outcome',
-            'uses occasion-based framing (evening use, relaxing activity) not medical framing',
-            'does NOT say "promotes relaxation", "helps with sleep", "good for anxiety"',
-            'references actual products in stock',
-            'gives budtender talking points',
+            'suggests products based on terpene profile or strain type, not health outcome',
+            'uses occasion-based framing ("customers enjoy in the evening") not medical framing',
+            'does NOT use words like relaxing effects, calming, therapeutic, promotes sleep',
+            'references actual products in stock from tool context',
+            'gives budtender talking points with compliant language',
         ],
-        mustNotContain: ['promotes relaxation', 'helps with sleep', 'good for anxiety', 'relieves', 'treats', 'therapeutic'],
+        mustNotContain: ['promotes relaxation', 'helps with sleep', 'good for anxiety', 'relieves', 'treats', 'therapeutic', 'relaxing effects', 'relaxed effects', 'calming effect'],
     },
 
     // ─── COMPLIANCE EDGE CASES ───────────────────────────────────────────────
