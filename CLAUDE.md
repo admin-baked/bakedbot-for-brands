@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Ecstatic email brand color fix + Gmail dark mode protection | **Last update:** 2026-04-18 (`7dfd15a75`)
+**Current Status:** 🟢 main green | Firestore CSP probe fix (no more connect-src 'none' spam) | **Last update:** 2026-04-18 (`000f9abb2`)
 
 ---
 

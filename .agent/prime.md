@@ -51,8 +51,8 @@ Agent IDs: `claude` | `codex` | `gemini` | `linus`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Ecstatic email brand color fix + Gmail dark mode protection
-**Recent work (2026-04-18):** `7dfd15a75` Ecstatic email red brand colors + color-scheme:light meta; `7fc1eb419` AgentArtifact + HITL loop
+**Current Status:** 🟢 main green | Firestore CSP probe fix (no more connect-src 'none' spam)
+**Recent work (2026-04-18):** `000f9abb2` initializeFirestore+experimentalAutoDetectLongPolling stops WebChannel CSP probe; `7dfd15a75` Ecstatic email brand colors
 
 ---
 
