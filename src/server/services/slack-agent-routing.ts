@@ -29,7 +29,7 @@ const IGNORED_MESSAGE_SUBTYPES = new Set([
 const KEYWORD_MAP: Array<{ keywords: string[]; personaId: string }> = [
   { keywords: ['marty', 'ceo', 'strategy', 'north star', 'arr goal'], personaId: 'marty' },
   { keywords: ['leo', 'coo', 'operations', 'ops'], personaId: 'leo' },
-  { keywords: ['linus', 'cto', 'tech', 'build', 'code', 'deploy', 'bug', 'error', 'fix', 'broken', 'timeout', 'slow', 'latency'], personaId: 'linus' },
+  { keywords: ['linus', 'cto', 'tech', 'build', 'code', 'deploy', 'bug', 'error', 'fix', 'broken', 'timeout', 'slow', 'latency', 'stress', 'stress test', 'platform health', 'run test', 'health check'], personaId: 'linus' },
   { keywords: ['jack', 'cro', 'revenue', 'sales', 'pipeline', 'deal'], personaId: 'jack' },
   { keywords: ['glenda', 'cmo', 'brand', 'marketing'], personaId: 'glenda' },
   { keywords: ['ezal', 'intel', 'competitive', 'lookout', 'competitor'], personaId: 'ezal' },

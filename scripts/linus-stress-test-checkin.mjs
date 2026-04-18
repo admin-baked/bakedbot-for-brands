@@ -6,6 +6,7 @@
  *   1. Check-in flow      4. POS/Inventory    7. Playbooks        10. Email config
  *   2. Loyalty/Rewards    5. Campaigns        8. Analytics        11. Kiosk tablet
  *   3. Recommendations    6. Customer CRM     9. Morning briefing 12. Manager dashboard
+ *      (Suite 6: +multi-org isolation; Suite 12: +CEO/email-inbox render, +admin auth, +cron auth sweep)
  *
  * Page render checks (pageRenderCheck) detect RSC crashes on all major dashboard routes.
  * Any 5xx or "An error occurred in the Server Components render" in the HTML fires a bug.
@@ -510,6 +511,23 @@ async function suite6_customers(results) {
     if (r.crashDetected) await fileAgentBug('[CRM] /dashboard/customers RSC crash',
       `pageRenderCheck returned crashDetected=true: ${r.notes}\nURL: ${PROD_URL}/dashboard/customers`, 'critical');
   } catch (e) { results.push({ suite: label, name: 'Customers page render', pass: false, notes: e.message }); }
+
+  // Multi-org isolation: checkin API rejects requests for wrong org
+  try {
+    const WRONG_ORG = 'org_ecstatic_edibles';
+    const r = await apiGet(`/api/checkin/lookup?orgId=${WRONG_ORG}&phoneLast4=0522`);
+    // Should return 200 (org exists, no match) or 401 (org not found/unauthed) — NOT Thrive's customer data
+    const thriveCusts = await db.collection('customers').where('orgId', '==', ORG).limit(5).get();
+    const thriveIds = new Set(thriveCusts.docs.map(d => d.id));
+    const body = r.body;
+    const leaked = Array.isArray(body?.customers)
+      ? body.customers.filter((c: { id?: string }) => c.id && thriveIds.has(c.id))
+      : [];
+    rec('Multi-org isolation — Thrive data not leaked', leaked.length === 0,
+      leaked.length ? `CRITICAL: ${leaked.length} Thrive customer(s) in wrong-org response` : `orgId=${WRONG_ORG} → HTTP ${r.status}`);
+    if (leaked.length > 0) await fileAgentBug('[SECURITY] Multi-org data leak detected',
+      `Customers from ${ORG} appeared in API response for ${WRONG_ORG}. Org isolation breach.`, 'critical');
+  } catch (e) { results.push({ suite: label, name: 'Multi-org isolation', pass: false, notes: e.message }); }
 }
 
 async function suite7_playbooks(results) {
@@ -716,6 +734,57 @@ async function suite12_dashboard(results) {
       if (r.crashDetected) await fileAgentBug(`${tag} ${label2} RSC crash`,
         `pageRenderCheck detected crash at ${PROD_URL}${path}\n${r.notes}`, 'critical');
     } catch (e) { results.push({ suite: label, name: `${label2} render`, pass: false, notes: e.message }); }
+  }));
+
+  // CEO boardroom page render
+  try {
+    const r = await pageRenderCheck('/dashboard/ceo');
+    rec('Page /dashboard/ceo — no RSC crash', !r.crashDetected, r.notes);
+    if (r.crashDetected) await fileAgentBug('[DASHBOARD] /dashboard/ceo RSC crash',
+      `pageRenderCheck detected crash at ${PROD_URL}/dashboard/ceo\n${r.notes}`, 'critical');
+  } catch (e) { results.push({ suite: label, name: 'CEO boardroom render', pass: false, notes: e.message }); }
+
+  // Email inbox page render
+  try {
+    const r = await pageRenderCheck('/dashboard/email-inbox');
+    rec('Page /dashboard/email-inbox — no RSC crash', !r.crashDetected, r.notes);
+    if (r.crashDetected) await fileAgentBug('[DASHBOARD] /dashboard/email-inbox RSC crash',
+      `pageRenderCheck detected crash at ${PROD_URL}/dashboard/email-inbox\n${r.notes}`, 'critical');
+  } catch (e) { results.push({ suite: label, name: 'Email inbox render', pass: false, notes: e.message }); }
+
+  // Admin endpoints require auth (no session → 401)
+  try {
+    const adminRoutes = [
+      '/api/admin/platform-health',
+      '/api/admin/run-stress-test',
+      '/api/admin/seed',
+    ];
+    await Promise.all(adminRoutes.map(async (path) => {
+      try {
+        const r = await apiGet(path, null);
+        const pass = r.status === 401 || r.status === 403 || r.status === 405;
+        rec(`Admin ${path} — auth required`, pass, `HTTP ${r.status}`);
+        if (!pass && r.status < 400) await fileAgentBug(`[SECURITY] ${path} returned ${r.status} without auth`,
+          `Admin endpoint should require authentication. Got ${r.status}.`, 'critical');
+      } catch (e) { results.push({ suite: label, name: `Admin ${path} auth`, pass: false, notes: e.message }); }
+    }));
+  } catch (e) { results.push({ suite: label, name: 'Admin endpoints auth sweep', pass: false, notes: e.message }); }
+
+  // Cron auth sweep — additional crons beyond morning-briefing
+  const cronRoutes = [
+    '/api/cron/daily-executive-cadence',
+    '/api/cron/pos-sync',
+    '/api/cron/weekly-friday-memo',
+    '/api/cron/generate-insights',
+  ];
+  await Promise.all(cronRoutes.map(async (path) => {
+    try {
+      const r = await apiGet(path, null);
+      const pass = r.status === 401 || r.status === 403 || r.status === 405 || r.status === 307;
+      rec(`Cron ${path} — auth required`, pass, `HTTP ${r.status}`);
+      if (!pass && r.status < 400) await fileAgentBug(`[SECURITY] ${path} unprotected`,
+        `Cron endpoint returned ${r.status} without auth. Expected 401/403.`, 'critical');
+    } catch (e) { results.push({ suite: label, name: `Cron ${path} auth`, pass: false, notes: e.message }); }
   }));
 
   // Recent checkin visits accessible
