@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | requireUser() fully safe — all auth/role failures redirect (never throw); campaigns page crash fixed end-to-end | **Last update:** 2026-04-18 (`5db31941a`)
+**Current Status:** 🟢 main green | campaigns RSC crash fixed end-to-end (page-level try-catch); requireUser() throws for API/action compatibility; Thrive claims patched | **Last update:** 2026-04-18 (`35981f23c`)
 
 ---
 

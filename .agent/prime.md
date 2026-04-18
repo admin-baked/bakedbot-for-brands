@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | requireUser() fully safe — all auth/role failures redirect (never throw); campaigns page crash fixed end-to-end
-**Recent work (2026-04-18):** `5db31941a` requireUser redirect for role/approval failures; `67a0c1c5f` campaigns auth fix (missing/invalid session)
+**Current Status:** 🟢 main green | campaigns RSC crash fixed (page-level try-catch, not shared primitive); Thrive claims patched
+**Recent work (2026-04-18):** `35981f23c` campaigns page auth try-catch; `5db31941a` requireUser redirect; `24b93d09c` Codex restored throws for API/action compat
 
 ---
 
