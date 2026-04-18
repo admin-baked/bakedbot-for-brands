@@ -1,22 +1,32 @@
 import { requireUser } from '@/server/auth/auth';
 import { getActorOrgId } from '@/server/auth/org-context';
+import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { CampaignsDashboard } from './components/campaigns-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AgentOwnerBadge } from '@/components/dashboard/agent-owner-badge';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CampaignsPage() {
-    const user = await requireUser([
-        'dispensary',
-        'dispensary_admin',
-        'dispensary_staff',
-        'brand',
-        'brand_admin',
-        'brand_member',
-        'super_user',
-    ]);
+    let user: DecodedIdToken;
+    try {
+        user = await requireUser([
+            'dispensary',
+            'dispensary_admin',
+            'dispensary_staff',
+            'brand',
+            'brand_admin',
+            'brand_member',
+            'super_user',
+        ]);
+    } catch (err) {
+        // Re-throw Next.js redirect errors so /login redirects from requireUser still work
+        if ((err as { digest?: string })?.digest?.startsWith('NEXT_REDIRECT')) throw err;
+        // Role/approval failures → send to dashboard rather than crashing
+        redirect('/dashboard');
+    }
 
     const userRole = (user as { role?: string }).role ?? '';
     const orgId = getActorOrgId(user as {
