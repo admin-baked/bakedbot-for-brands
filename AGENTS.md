@@ -501,3 +501,39 @@ This section provides expanded, per-agent context to give the AI-management team
 
 ### Notes
 This expanded per-agent context is intended to improve cross-domain understanding. Per-agent example interactions can be added in follow-up updates.
+
+---
+
+## 🔢 Versioning Convention (MANDATORY)
+
+Every push **must** bump `package.json` version and the kiosk footer (`src/app/loyalty-tablet/page.tsx`). The agent that pushes the commit owns the version number — estimate the size of work, sign it, commit both files.
+
+### Format: `MAJOR.MINOR.PATCH-AGENT`
+
+| Segment | Rule |
+|---------|------|
+| `MAJOR` | Breaking change or platform milestone |
+| `MINOR` | Significant feature set (5+ files, new user-facing capability) |
+| `PATCH` | Size of work — see decision guide below |
+| `AGENT` | Builder who pushed: **CL** (Claude Code), **GEM** (Gemini), **COD** (Codex) |
+
+### Agent signature is mandatory
+The last segment identifies who shipped the build. Required for code review tracing and incident attribution.
+
+```
+4.10.7-CL   ← Claude shipped a major kiosk UX overhaul (patch +3 from 4.10.4)
+4.10.8-COD  ← Codex pushed a small bug fix (+1)
+4.11.0-GEM  ← Gemini shipped a new major feature
+```
+
+### Decision guide — how much to bump PATCH
+| Work size | Bump |
+|-----------|------|
+| Typo / 1-line fix | +1 |
+| Single component fix | +1 |
+| Multi-file bug fix | +2 |
+| New feature (1 screen or flow) | +3 |
+| Major refactor or multi-feature session | +5 |
+| Full subsystem overhaul | +7–10 |
+
+When in doubt, round up. Under-versioning causes confusion in code review. Over-versioning is free.

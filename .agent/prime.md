@@ -152,6 +152,23 @@ All 5 in `.gitignore`. For secret management: `.agent/refs/firebase-secrets.md`
 
 ---
 
+
+---
+
+## Version Bump (MANDATORY on every push)
+
+Before every , bump  + kiosk footer () using format ****.
+
+| Agent | Suffix | Example |
+|-------|--------|---------|
+| Claude Code |  |  |
+| Gemini |  |  |
+| Codex |  |  |
+
+Patch bump guide: +1 small fix · +2 multi-file · +3 new feature · +5 refactor · +7-10 subsystem overhaul
+
+**Current version: 4.10.7-CL** — Full rules: AGENTS.md Versioning Convention
+
 ## Key Directories
 
 ```

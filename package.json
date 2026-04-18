@@ -1,6 +1,6 @@
 {
   "name": "nextn",
-  "version": "0.1.2",
+  "version": "4.10.7-CL",
   "private": true,
   "engines": {
     "node": "20"
@@ -93,6 +93,7 @@
     "stress:inbox": "node ./scripts/run-inbox-stress.cjs",
     "stress:elroy": "node ./scripts/run-elroy-stress.cjs",
     "stress:loop": "node ./scripts/run-combined-stress-loop.cjs",
+    "stress:compliance": "node ./scripts/run-compliance-stress.cjs",
     "smoke:analytics": "node --env-file=.env.local scripts/smoke-analytics.mjs",
     "prerender:mood-videos": "node scripts/prerender-mood-videos.mjs",
     "firebase:apphosting": "node scripts/firebase-apphosting.mjs",
