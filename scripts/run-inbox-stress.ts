@@ -24,6 +24,9 @@ interface StressCase {
     prompt: string;
     expectedFocus: string[];
     history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+    toolContext?: string;
+    mustNotContain?: string[];
+    mustReference?: string[];
 }
 
 interface GradeDimensions {
@@ -2437,6 +2440,280 @@ What are the most likely explanations — upsell training, floor layout, budtend
         prompt: `Should Ecstatic price flower at $50+ per 3.5g to reinforce premium brand positioning, or stay competitive at $38 like most NYC dispensaries? We have tested both and at $50+ volume drops 30% but gross margin is significantly better. Walk me through the unit economics and which approach maximizes total gross profit at our current traffic levels.`,
         expectedFocus: ['$50', 'premium', 'margin', 'volume'],
     },
+    // CATEGORY A: Regulator Visit (8 cases)
+    {
+        id: 'regulator-unannounced-inspection',
+        title: 'Unannounced state compliance inspection',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `A New York OCM compliance officer just walked in unannounced and is asking to inspect our premises, inventory records, and employee certifications. Manager is panicking. What do we do RIGHT NOW — what are our rights, what must we provide, what can we refuse, and what common mistakes do dispensaries make during unannounced inspections?`,
+        expectedFocus: ['rights', 'cooperate', 'inspection', 'OCM', 'inventory', 'records', 'certification'],
+    },
+    {
+        id: 'regulator-advertising-noc-response',
+        title: 'OCM Notice of Non-Compliance — advertising violation response',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `We received an OCM Notice of Non-Compliance today. It cites our Instagram post from last week showing a product discount ("Purple Punch 20% off") as a violation of NY advertising rules. We have 15 days to respond. What should our response include, do we need a lawyer, what remediation steps do we take immediately, and what are the likely penalty ranges for a first offense?`,
+        expectedFocus: ['OCM', 'advertising', 'response', 'violation', 'penalty', 'remediation', 'lawyer'],
+    },
+    {
+        id: 'regulator-metrc-physical-audit',
+        title: 'METRC physical inventory audit by inspector',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `State inspector wants to reconcile our METRC records against physical inventory right now. Our last physical count was 3 days ago. We have 4 known small discrepancies we have not yet reported (all under 1g). Should we disclose the known discrepancies proactively before the audit begins? What does the audit process look like, and what happens if variances are found?`,
+        expectedFocus: ['METRC', 'audit', 'discrepancy', 'proactive', 'disclosure', 'variance', 'reporting'],
+    },
+    {
+        id: 'regulator-age-verification-failure-response',
+        title: 'Failed mystery shopper — immediate response plan',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `A state investigator posing as a customer (who showed a valid ID but was 20 years old) just successfully purchased cannabis from us without being ID checked. The investigator identified themselves after the sale and issued a notice of violation. What do we do in the next 24 hours, what is the likely penalty for a first offense, and what training and operational changes prevent recurrence?`,
+        expectedFocus: ['age verification', 'ID', 'penalty', 'violation', 'training', 'corrective action', 'first offense'],
+    },
+    {
+        id: 'regulator-employee-records-request',
+        title: 'Inspector requests employee training certifications',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `During an inspection, the OCM officer is asking for proof that all our cannabis handlers have completed the required responsible vendor training program. We have 12 employees. Three of them may be overdue for renewal. What records must we produce, what happens if some are expired, and can we get an extension to produce records we cannot find on the spot?`,
+        expectedFocus: ['OCM', 'training', 'certification', 'responsible vendor', 'records', 'expired', 'extension'],
+    },
+    {
+        id: 'regulator-fine-appeal-process',
+        title: 'Disputing a $7,500 OCM fine — appeal process',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `We received a $7,500 fine from OCM for an advertising violation we believe was mischaracterized. The fine seems disproportionate and we believe we have a strong defense. Walk us through the OCM appeal process: what are the timelines, do we need to pay the fine while appealing, what grounds support a successful appeal, and when is it worth fighting vs paying?`,
+        expectedFocus: ['OCM', 'appeal', 'fine', 'dispute', 'timeline', 'defense', 'hearing'],
+    },
+    {
+        id: 'regulator-license-condition-violation',
+        title: 'Operating outside license conditions',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `Our OCM license has a condition that says we must close by 9 PM. Last Saturday a manager let a customer stay until 9:23 PM during a busy period. No inspector was present, but we logged the transaction in METRC at 9:18 PM. Do we have a self-disclosure obligation, how serious is a first-time license condition violation, and what proactive steps minimize our exposure?`,
+        expectedFocus: ['OCM', 'license condition', 'self-disclosure', 'violation', 'hours', 'METRC', 'exposure'],
+    },
+    {
+        id: 'regulator-competitor-complaint-response',
+        title: 'Competitor filed regulatory complaint against us',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `A competitor dispensary filed a complaint with OCM claiming our window signage contains product images that appeal to minors. OCM has opened an inquiry. Our signage shows stylized cannabis leaf graphics in a branded design. What is the standard for "appealing to minors" in NY, how do we prepare our response, and should we proactively modify the signage during the inquiry?`,
+        expectedFocus: ['OCM', 'complaint', 'minors', 'signage', 'advertising', 'inquiry', 'response'],
+    },
+    // CATEGORY B: Financial Compliance (8 cases)
+    {
+        id: 'finance-280e-explained',
+        title: '280E tax burden explanation for owner',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `Our owner is furious — the accountant just told them we owe $420,000 in federal taxes on $1.2M in gross profit. The owner cannot understand why we pay taxes on money we did not take home after rent, salaries, and overhead. Can you explain IRS Section 280E in plain terms, why it applies to us, what we can legitimately deduct (COGS), and what our accountant should be doing to minimize our exposure?`,
+        expectedFocus: ['280E', 'IRS', 'COGS', 'deductions', 'cannabis', 'federal', 'tax'],
+    },
+    {
+        id: 'finance-currency-transaction-report',
+        title: 'Customer paying $12,000 cash — CTR obligations',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `A wholesale buyer wants to purchase $12,000 worth of product for cash. Our bookkeeper says we need to file something. Do we need to file a Currency Transaction Report (CTR), what information must we collect from the customer, does the customer have to comply, and what is structuring and how do we avoid any implication that we encouraged it?`,
+        expectedFocus: ['CTR', 'Bank Secrecy Act', 'cash', '$10,000', 'structuring', 'FinCEN', 'customer information'],
+    },
+    {
+        id: 'finance-bank-account-closed',
+        title: 'Bank closed our account — cash management options',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `Our bank just closed our business account with 30 days notice, citing "reputational risk." This is our second closure in 18 months. We have $340,000 in vault cash and weekly vendor payments to make. What legitimate banking alternatives exist for cannabis retailers, what cash management protocols are required, and what regulatory reporting applies to our cash-intensive operation?`,
+        expectedFocus: ['banking', 'cash', 'account closure', 'cannabis', 'vault', 'alternatives', 'compliance'],
+    },
+    {
+        id: 'finance-cogs-allocation-strategy',
+        title: 'Maximizing COGS under 280E — what qualifies',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `Our CPA says we can fight 280E by maximizing our COGS allocation. He wants to classify budtender wages, security costs, and part of our rent as COGS. The IRS has challenged aggressive COGS allocations in cannabis audits. What expenses legitimately qualify as COGS for a cannabis retailer, what allocation methods survive IRS scrutiny, and what documentation do we need to defend our position?`,
+        expectedFocus: ['280E', 'COGS', 'IRS', 'allocation', 'wages', 'documentation', 'audit'],
+    },
+    {
+        id: 'finance-vendor-cash-only',
+        title: 'Vendor insists on cash payment — compliance risks',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `One of our cannabis vendors refuses to accept anything but cash payment and wants us to pay $85,000 for a large order in cash. They claim they cannot accept bank transfers due to banking issues. What are the compliance and legal risks of making a large cash payment to a vendor, what documentation must we maintain, and are there any FinCEN reporting requirements on our side?`,
+        expectedFocus: ['cash', 'vendor', 'compliance', 'FinCEN', 'documentation', 'risk', 'BSA'],
+    },
+    {
+        id: 'finance-armored-car-vault-limit',
+        title: 'Vault at capacity — insurance and security protocols',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `Our vault is holding $480,000 in cash and the armored car service is not coming until Friday (4 days away). Our insurance policy covers up to $250,000 in vault cash. We are significantly over coverage. What are the security protocol requirements for holding large cash amounts, what is our insurance liability exposure, and are there any regulatory reporting requirements for vault holdings above certain thresholds?`,
+        expectedFocus: ['vault', 'cash', 'insurance', 'security', 'protocol', 'coverage', 'regulatory'],
+    },
+    {
+        id: 'finance-investor-financial-disclosure',
+        title: 'Investor due diligence — what financial data is protected',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `A potential investor is requesting full financial disclosure as part of due diligence: customer sales data, supplier costs, margin by product category, and employee salaries. What financial information do we have an obligation to provide in a due diligence process, what should we protect with an NDA before sharing, and are there any OCM disclosure rules about who can have access to our financial records?`,
+        expectedFocus: ['investor', 'due diligence', 'NDA', 'financial', 'disclosure', 'OCM', 'protect'],
+    },
+    {
+        id: 'finance-quarterly-tax-estimate',
+        title: 'Quarterly estimated tax calculation under 280E',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `We missed our Q2 federal estimated tax payment and it is now 60 days overdue. Under 280E, our effective federal tax rate is around 70% of gross profit. The IRS has underpayment penalties. What is the penalty for missing a quarterly estimated payment as a cannabis business, can we pay the overdue amount now to limit penalties, and what is the safe harbor calculation to avoid underpayment penalties going forward?`,
+        expectedFocus: ['280E', 'estimated tax', 'penalty', 'quarterly', 'IRS', 'safe harbor', 'underpayment'],
+    },
+    // CATEGORY C: Crisis Management (8 cases)
+    {
+        id: 'crisis-pesticide-recall-active',
+        title: 'Pesticide contamination — product already sold to customers',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `We just got a call from our cultivator: a batch of flower we received and have been selling for 2 weeks tested positive for bifenazate (a banned pesticide). We have sold approximately 180 units from this batch to real customers. What must we do in the next 24 hours, how do we notify customers, what do we say to avoid creating panic, and what are our regulatory reporting obligations to OCM?`,
+        expectedFocus: ['recall', 'OCM', 'pesticide', 'notify customers', 'quarantine', 'report', '24 hours'],
+    },
+    {
+        id: 'crisis-robbery-reporting',
+        title: 'Armed robbery — regulatory reporting obligations',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `Our dispensary was robbed at gunpoint last night. Two armed individuals took approximately $45,000 in cash from the vault and 15 packages of product from the display case. Police have been called. What are our regulatory reporting obligations to OCM and in what timeframe, what METRC adjustments must be made for the stolen product, and does our license have any additional notification requirements?`,
+        expectedFocus: ['OCM', 'reporting', 'METRC', 'robbery', 'stolen', 'timeframe', 'notification'],
+    },
+    {
+        id: 'crisis-customer-medical-emergency',
+        title: 'Customer overconsumption medical emergency in store',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `A customer collapsed in our waiting room. Staff called 911. The customer had purchased an edible 20 minutes earlier and appears to be experiencing an adverse reaction. Paramedics are on the way. What should our manager say and NOT say to the paramedics about what the customer consumed, what documentation must we create, and what is our liability exposure if the customer or their family pursues legal action?`,
+        expectedFocus: ['emergency', 'liability', 'documentation', 'medical', 'customer', 'adverse reaction', 'legal'],
+    },
+    {
+        id: 'crisis-employee-theft-metrc',
+        title: 'Suspected employee theft — METRC investigation',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `We have two months of METRC data showing consistent 2-4g discrepancies in flower packages opened by a specific budtender. The discrepancies started right after they were hired and have occurred 18 times. What is the internal investigation procedure, at what point do we have an obligation to report to OCM, and how do we terminate the employee while preserving our ability to pursue legal action and regulatory cooperation?`,
+        expectedFocus: ['METRC', 'theft', 'investigation', 'OCM', 'reporting', 'termination', 'legal'],
+    },
+    {
+        id: 'crisis-license-suspension-72hr',
+        title: '72-hour emergency license suspension notice received',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `We just received an emergency 72-hour license suspension notice from OCM citing a pattern of METRC reporting violations. We must cease sales in 72 hours unless we successfully request a stay. What emergency legal options do we have, what grounds support a stay request, can we continue operating while pursuing an administrative hearing, and what customer and staff communications should we prepare?`,
+        expectedFocus: ['OCM', 'suspension', 'stay', 'administrative', 'hearing', 'cease', 'operations'],
+    },
+    {
+        id: 'crisis-social-media-viral-incident',
+        title: 'Viral social media post exposing internal operations',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `A disgruntled former employee posted a TikTok video (now at 200,000 views) showing our back-of-house operations including what appears to be an unlocked METRC terminal and staff smoking on the premises. OCM has been tagged in replies. What do we do in the next 4 hours, do we need to proactively contact OCM before they contact us, and what legal action can we take against the former employee?`,
+        expectedFocus: ['social media', 'OCM', 'proactive', 'response', 'legal', 'former employee', 'reputation'],
+    },
+    {
+        id: 'crisis-data-breach-customer-pos',
+        title: 'POS customer data breach — notification requirements',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `Our POS vendor just notified us that a security breach may have exposed transaction data for approximately 8,400 customers over the past 6 months. Data exposed may include names, email addresses, phone numbers, and purchase histories. What are our legal notification obligations under NY data breach laws, is cannabis purchase history specially protected, and what is the timeline for customer notification?`,
+        expectedFocus: ['data breach', 'notification', 'NY law', 'customer', 'purchase history', 'privacy', 'timeline'],
+    },
+    {
+        id: 'crisis-power-outage-temperature',
+        title: 'Extended power outage — temperature excursion on inventory',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `We had a 9-hour power outage and our temperature-controlled storage area reached 94°F for approximately 6 hours. We have 300 units of edibles (chocolate products) and 50 vape cartridges that may have been compromised. The edibles show melting/re-solidification. What are our testing obligations for temperature-excursion products, can we continue to sell them, and what METRC and OCM reporting applies to product we must destroy?`,
+        expectedFocus: ['temperature', 'excursion', 'testing', 'destroy', 'METRC', 'OCM', 'edibles', 'quality'],
+    },
+    // CATEGORY D: Operational Deep Dives — Regulator Traps (6 cases)
+    {
+        id: 'ops-expired-product-on-shelf',
+        title: 'Expired products discovered on retail shelf',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `During a routine shelf audit, a manager found 22 units of edibles with best-by dates from 3 weeks ago still in our retail display case. These have potentially been sold to customers since expiry. What are our immediate obligations, do we have a reporting obligation to OCM for having sold expired cannabis products, what documentation is required for the destruction of the remaining units, and what process prevents recurrence?`,
+        expectedFocus: ['expired', 'destroy', 'METRC', 'OCM', 'reporting', 'documentation', 'retail'],
+    },
+    {
+        id: 'ops-vendor-sample-policy',
+        title: 'Vendor leaving product samples — compliance rules',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `A licensed cannabis vendor wants to leave 5 sample units of their new concentrate line for our staff to try so we can give informed recommendations. Under NY OCM rules, what are the compliance requirements for receiving cannabis product samples, must samples be entered into METRC, does this count as a transfer under our license, and can staff consume samples at the workplace?`,
+        expectedFocus: ['OCM', 'sample', 'METRC', 'transfer', 'staff', 'consumption', 'workplace'],
+    },
+    {
+        id: 'ops-large-cash-purchase-protocol',
+        title: 'Customer paying $9,500 cash — structuring concerns',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `A regular customer wants to pay $9,500 in cash for a bulk purchase. This is just under the $10,000 CTR threshold. We have never seen them make a purchase this large before. One of our staff mentioned the customer specifically said they wanted to stay under $10,000. This sounds like structuring. What do we do: refuse the sale, file a Suspicious Activity Report (SAR), or proceed normally?`,
+        expectedFocus: ['structuring', 'CTR', 'SAR', 'FinCEN', 'cash', 'suspicious', 'BSA'],
+    },
+    {
+        id: 'ops-gift-card-escheatment',
+        title: 'Unredeemed gift cards — escheatment law',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `We have $95,000 in unredeemed gift card balances on our books from the past 3 years. Our accountant mentioned something about "escheatment" — turning unclaimed property over to the state. Does New York's unclaimed property law apply to cannabis dispensary gift cards, what is the dormancy period before funds must be remitted to the state, and can we charge dormancy fees to reduce the liability?`,
+        expectedFocus: ['gift card', 'escheatment', 'unclaimed property', 'NY', 'dormancy', 'state', 'liability'],
+    },
+    {
+        id: 'ops-employee-cannabis-use-positive-test',
+        title: 'Budtender tests positive for THC — termination rules',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `A drug test we conducted after a workplace incident came back positive for THC for one of our budtenders. Under New York's cannabis employee protection laws (MRTA), can we discipline or terminate an employee for testing positive for THC on a drug test? Does it matter that they are in a safety-sensitive role, what accommodations are required, and what documentation protects us from a wrongful termination claim?`,
+        expectedFocus: ['MRTA', 'employee', 'drug test', 'THC', 'termination', 'protection', 'safety-sensitive'],
+    },
+    {
+        id: 'ops-out-of-state-id-verification',
+        title: 'Out-of-state ID verification — acceptance rules',
+        kind: 'non_data',
+        threadType: 'operator',
+        primaryAgent: 'deebo',
+        prompt: `We have customers regularly presenting out-of-state IDs from Florida, Texas, and international passports. Some staff are refusing international customers due to uncertainty. What forms of ID are OCM-approved for age verification in New York, are foreign passports acceptable, what do we do if an ID appears to be altered, and does accepting out-of-state IDs create any additional compliance risk?`,
+        expectedFocus: ['OCM', 'ID', 'out-of-state', 'passport', 'age verification', 'international', 'staff training'],
+    },
 ];
 
 function getArg(name: string): string | undefined {
@@ -2641,6 +2918,21 @@ function heuristicGrade(testCase: StressCase, response: string, error?: string):
         actionability -= 8;
         issues.push('The response does not clearly structure next steps.');
         suggestedFixes.push('Use a short ranked list or action plan when the owner needs decisions.');
+    }
+
+    if (testCase.mustNotContain?.some((s) => lower.includes(s.toLowerCase()))) {
+        const hit = testCase.mustNotContain.find((s) => lower.includes(s.toLowerCase()));
+        compliance = Math.min(compliance, 10);
+        launchReadiness = Math.min(launchReadiness, 10);
+        issues.push(`Response contained forbidden string: "${hit}"`);
+        suggestedFixes.push(`Remove or rephrase the forbidden content.`);
+    }
+
+    if (testCase.mustReference && testCase.mustReference.every((s) => !lower.includes(s.toLowerCase()))) {
+        actionability -= 20;
+        launchReadiness -= 15;
+        issues.push(`Response did not reference required content: ${testCase.mustReference.join(', ')}`);
+        suggestedFixes.push(`Explicitly reference: ${testCase.mustReference.join(', ')}`);
     }
 
     const average = Math.round((grounding + actionability + completeness + compliance + tone + launchReadiness) / 6);
