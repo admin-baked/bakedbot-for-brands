@@ -1080,6 +1080,9 @@ export async function getTabletOffer(orgId: string): Promise<{ success: boolean;
     }
 
     try {
+        const { getOrgProfileWithFallback } = await import('@/server/services/org-profile');
+        const orgProfile = await getOrgProfileWithFallback(orgId).catch(() => null);
+
         const products = await getCachedMenuProducts(orgId);
         if (!products.length) return { success: false };
 
@@ -1092,13 +1095,33 @@ export async function getTabletOffer(orgId: string): Promise<{ success: boolean;
         });
 
         const all = products.map(normalize).filter(p => p.id && p.name && p.price > 0);
-        // Prefer pre-rolls (cheapest first)
-        const prerolls = all
-            .filter(p => p.category.toLowerCase().includes('pre') || p.name.toLowerCase().includes('pre-roll') || p.name.toLowerCase().includes('preroll'))
-            .sort((a, b) => a.price - b.price);
+        
+        let pick: ReturnType<typeof normalize> | undefined = undefined;
 
-        const pick = prerolls[0] ?? all.sort((a, b) => a.price - b.price)[0];
+        // 1. Check for a clearance hero product configured in the dashboard
+        if (orgProfile?.operations?.heroProducts) {
+            const clearanceHero = orgProfile.operations.heroProducts.find(h => h.role === 'clearance');
+            if (clearanceHero) {
+                pick = all.find(p => p.id === clearanceHero.skuId);
+                // Fallback to searching by exact name if SKU mapping is misaligned
+                if (!pick) {
+                    pick = all.find(p => p.name.toLowerCase() === clearanceHero.name.toLowerCase());
+                }
+            }
+        }
+
+        // 2. Fallback to cheapest pre-roll
+        if (!pick) {
+            const prerolls = all
+                .filter(p => p.category.toLowerCase().includes('pre') || p.name.toLowerCase().includes('pre-roll') || p.name.toLowerCase().includes('preroll'))
+                .sort((a, b) => a.price - b.price);
+            
+            pick = prerolls[0] ?? all.sort((a, b) => a.price - b.price)[0];
+        }
+
         if (!pick) return { success: false };
+
+        const isClearanceHero = orgProfile?.operations?.heroProducts?.find(h => h.skuId === pick?.id)?.role === 'clearance';
 
         return {
             success: true,
@@ -1109,7 +1132,7 @@ export async function getTabletOffer(orgId: string): Promise<{ success: boolean;
                 originalPrice: pick.price,
                 dealPrice: 1.00,
                 imageUrl: pick.imageUrl,
-                reason: 'End-of-shelf special — grab it while it lasts!',
+                reason: isClearanceHero ? "Today's special offer — grab it while it lasts!" : 'End-of-shelf special — grab it while it lasts!',
             },
         };
     } catch (error) {

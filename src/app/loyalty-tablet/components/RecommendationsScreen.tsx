@@ -28,6 +28,7 @@ import {
 import { slideVariants, hexToRgba, AMBER, AMBER_DARK, ASK_SMOKEY_PLACEHOLDER } from './shared';
 import { getCategoryIconName, getCategoryIconColor } from '@/lib/utils/product-image';
 import * as LucideIcons from 'lucide-react';
+import { OversizedProductCard } from '@/components/demo/oversized-product-card';
 
 function CategoryIconPlaceholder({ category, size = 'md' }: { category: string; size?: 'md' | 'lg' }) {
     const iconName = getCategoryIconName(category);
@@ -665,87 +666,39 @@ export function RecommendationsScreen({
             )}
 
             {/* ── Product cards ── */}
-            <div className="w-full space-y-3">
+            <div className={(!bundle && products.length > 3) 
+                ? "w-full grid grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto max-h-[60vh] pb-8 pr-1" 
+                : "w-full flex gap-4 overflow-x-auto snap-x pb-4 px-1"}
+                style={{ WebkitOverflowScrolling: 'touch' }}
+            >
                 {products.map(product => {
                     const inCart = cart.includes(product.productId);
-                    const tier = product.tier ? TIER_LABELS[product.tier] : null;
+                    // Adapt TabletProduct to domain Product for the OversizedProductCard
+                    const domainProduct = {
+                        id: product.productId,
+                        name: product.name,
+                        category: product.category,
+                        price: product.price ?? 0,
+                        imageUrl: product.imageUrl,
+                        brandName: product.brandName,
+                        thcPercent: product.thcPercent,
+                        cbdPercent: product.cbdPercent,
+                        strainType: product.strainType,
+                        description: product.reason,
+                    };
                     return (
-                        <div
-                            key={product.productId}
-                            className="flex flex-col gap-4 rounded-[28px] border p-4 transition-all sm:flex-row sm:items-center"
-                            style={inCart ? accentPanelStyle : panelStyle}
-                        >
-                            {/* Tappable product image → opens detail */}
-                            <button
+                        <div key={product.productId} className={(!bundle && products.length > 3) ? "h-full" : "min-w-[280px] sm:min-w-[320px] snap-center shrink-0 h-full"}>
+                            <OversizedProductCard
+                                product={domainProduct as any}
+                                onAddToCart={() => { toggleCart(product.productId); resetIdleTimer(); }}
                                 onClick={() => { setSelectedProduct(product); resetIdleTimer(); }}
-                                className="relative h-24 w-full overflow-hidden rounded-[22px] border sm:h-28 sm:w-28 sm:shrink-0 bg-muted/30 focus:outline-none"
-                                style={{ borderColor: '#e5e7eb' }}
-                                aria-label={`View details for ${product.name}`}
-                            >
-                                {product.imageUrl ? (
-                                    <img
-                                        src={product.imageUrl}
-                                        alt={product.name}
-                                        className="h-full w-full object-cover transition-opacity duration-300"
-                                        onError={handleProductImageError}
-                                        loading="lazy"
-                                        decoding="async"
-                                    />
-                                ) : (
-                                    <div className="flex h-full w-full items-center justify-center">
-                                        {(() => {
-                                            const iconName = getCategoryIconName(product.category);
-                                            // @ts-ignore
-                                            const CategoryIcon = LucideIcons[iconName] || LucideIcons.Leaf;
-                                            const iconColor = getCategoryIconColor(product.category);
-                                            return <CategoryIcon className={`h-12 w-12 ${iconColor}`} strokeWidth={1.5} />;
-                                        })()}
-                                    </div>
-                                )}
-                                {/* Tap hint overlay */}
-                                <div className="absolute inset-0 flex items-end justify-center pb-1 opacity-0 hover:opacity-100 transition-opacity">
-                                    <span className="rounded-full bg-black/50 px-2 py-0.5 text-[10px] text-white">Details</span>
-                                </div>
-                            </button>
-
-                            <div className="min-w-0 flex-1">
-                                <div className="flex items-start gap-2 mb-0.5">
-                                    <button
-                                        onClick={() => { setSelectedProduct(product); resetIdleTimer(); }}
-                                        className="truncate text-lg font-bold text-gray-900 sm:text-xl text-left hover:underline focus:outline-none"
-                                    >
-                                        {product.name}
-                                    </button>
-                                    {tier && (
-                                        <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide" style={{ backgroundColor: tier.bg, color: tier.text }}>
-                                            {tier.label}
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="mt-0.5 truncate text-sm font-medium" style={{ color: brandTheme.colors.primary }}>
-                                    {product.category}{product.brandName ? ` - ${product.brandName}` : ''}
-                                </p>
-                                {(product.thcPercent || product.cbdPercent) && (
-                                    <p className="mt-1 text-xs font-medium text-emerald-700">
-                                        {product.thcPercent ? `THC ${product.thcPercent}%` : ''}
-                                        {product.thcPercent && product.cbdPercent ? ' · ' : ''}
-                                        {product.cbdPercent ? `CBD ${product.cbdPercent}%` : ''}
-                                        {product.strainType ? ` · ${product.strainType}` : ''}
-                                    </p>
-                                )}
-                                <p className="mt-2 text-sm leading-relaxed line-clamp-2" style={{ color: mutedTextColor }}>{product.reason}</p>
-                            </div>
-
-                            <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:justify-center">
-                                <p className="text-2xl font-black text-gray-900">${product.price.toFixed(2)}</p>
-                                <button
-                                    onClick={() => { toggleCart(product.productId); resetIdleTimer(); }}
-                                    className="rounded-[18px] px-4 py-2 text-sm font-bold transition-all hover:opacity-95 active:scale-[0.99]"
-                                    style={inCart ? secondaryButtonStyle : primaryButtonStyle}
-                                >
-                                    {inCart ? 'Added ✓' : '+ Add'}
-                                </button>
-                            </div>
+                                inCart={inCart ? 1 : 0}
+                                primaryColor={brandTheme.colors.primary}
+                                showQuickAdd={true}
+                                size="normal"
+                                isTouchDevice={true}
+                                dealBadge={product.tier === 'premium' ? 'Top Tier' : undefined}
+                            />
                         </div>
                     );
                 })}

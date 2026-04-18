@@ -63,6 +63,7 @@ interface OversizedProductCardProps {
   dealBadge?: string;
   onClick?: () => void;
   brandName?: string;
+  isTouchDevice?: boolean;
 }
 
 export function OversizedProductCard({
@@ -77,6 +78,7 @@ export function OversizedProductCard({
   dealBadge,
   onClick,
   brandName,
+  isTouchDevice = false,
 }: OversizedProductCardProps) {
   const [quantity, setQuantity] = useState(1);
   const [isHovered, setIsHovered] = useState(false);
@@ -273,11 +275,12 @@ export function OversizedProductCard({
           />
         </Button>
 
-        {/* Quick Add / Notify Overlay (shown on hover) */}
+        {/* Quick Add / Notify Overlay */}
         {showQuickAdd && (
           <div
             className={cn(
-              'absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-20'
+              'absolute bottom-0 left-0 right-0 p-4 transition-transform duration-300 z-20',
+              isTouchDevice ? 'translate-y-0 relative pb-0 pt-2 bg-transparent' : 'transform translate-y-full group-hover:translate-y-0'
             )}
           >
             {isComingSoon ? (
