@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Build fix (3 TS errors in email pipeline); bulk wake-up email sender; email inbox page + SES inbound webhook | **Last update:** 2026-04-18 (`e7a53d29b`)
+**Current Status:** 🟢 main green | requireUser() fully safe — all auth/role failures redirect (never throw); campaigns page crash fixed end-to-end | **Last update:** 2026-04-18 (`5db31941a`)
 
 ---
 

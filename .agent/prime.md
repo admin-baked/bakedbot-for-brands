@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Build fix (3 TS errors in email pipeline); bulk wake-up email sender (`bulk-wakeup-send.mjs`); email inbox page + SES inbound webhook
-**Recent work (2026-04-18):** `593230b81` build fix (SesInboundSnsPayload type + email-inbox auth import); `e7a53d29b` bulk-wakeup-send.mjs + Thrive test template update
+**Current Status:** 🟢 main green | requireUser() fully safe — all auth/role failures redirect (never throw); campaigns page crash fixed end-to-end
+**Recent work (2026-04-18):** `5db31941a` requireUser redirect for role/approval failures; `67a0c1c5f` campaigns auth fix (missing/invalid session)
 
 ---
 
