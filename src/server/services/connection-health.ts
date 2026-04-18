@@ -50,7 +50,7 @@ async function checkGmail(): Promise<ConnectionCheck> {
     const base: Omit<ConnectionCheck, 'status' | 'detail'> = {
         name: 'Gmail (CEO Inbox)',
         id: 'gmail',
-        reconnectUrl: 'bakedbot.ai/dashboard/ceo?tab=settings',
+        reconnectUrl: '/dashboard/settings?tab=integrations',
     };
 
     const ceoUid = process.env.CEO_GMAIL_UID;
@@ -94,7 +94,7 @@ async function checkGoogleCalendar(): Promise<ConnectionCheck> {
     const base: Omit<ConnectionCheck, 'status' | 'detail'> = {
         name: 'Google Calendar (Booking Sync)',
         id: 'google_calendar',
-        reconnectUrl: 'bakedbot.ai/dashboard/ceo?tab=calendar',
+        reconnectUrl: '/dashboard/settings?tab=integrations',
     };
 
     try {
@@ -121,7 +121,7 @@ async function checkBlackleaf(): Promise<ConnectionCheck> {
     const base: Omit<ConnectionCheck, 'status' | 'detail'> = {
         name: 'Blackleaf SMS',
         id: 'blackleaf',
-        reconnectUrl: 'bakedbot.ai/dashboard/ceo?tab=settings',
+        reconnectUrl: '/dashboard/settings?tab=integrations',
     };
 
     const apiKey = process.env.BLACKLEAF_API_KEY;
@@ -135,7 +135,7 @@ async function checkMailjet(): Promise<ConnectionCheck> {
     const base: Omit<ConnectionCheck, 'status' | 'detail'> = {
         name: 'Mailjet Email',
         id: 'mailjet',
-        reconnectUrl: 'bakedbot.ai/dashboard/ceo?tab=settings',
+        reconnectUrl: '/dashboard/settings?tab=integrations',
     };
 
     const apiKey = process.env.MAILJET_API_KEY;
@@ -154,7 +154,7 @@ async function checkLetta(): Promise<ConnectionCheck> {
     const base: Omit<ConnectionCheck, 'status' | 'detail'> = {
         name: 'Letta Memory (Hive Mind)',
         id: 'letta',
-        reconnectUrl: 'bakedbot.ai/dashboard/ceo?tab=settings',
+        reconnectUrl: '/dashboard/settings?tab=integrations',
     };
 
     const apiKey = process.env.LETTA_API_KEY;

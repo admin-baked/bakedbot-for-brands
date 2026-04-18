@@ -39,6 +39,7 @@ import type { PlatformAIBudgetStatus, AgentTelemetrySummary } from '@/server/act
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { HeartbeatDiagnosticPanel } from '@/components/system/heartbeat-diagnostic-panel';
 import { PlatformStressTestWidget } from './platform-stress-test-widget';
+import { IntegrationStatusWidget } from './integration-status-widget';
 
 function AISpendSection({
   spendToday,
@@ -369,6 +370,9 @@ export default function SystemHealthTab() {
           ))}
         </div>
       )}
+
+      {/* Integration Status */}
+      <IntegrationStatusWidget />
 
       {/* Heartbeat Diagnostic */}
       <HeartbeatDiagnosticPanel />
