@@ -12,10 +12,12 @@ import { resolveEmailSenderName } from './sender-branding';
 import Mailjet from 'node-mailjet';
 
 // ─────────────────────────────────────────────────────────────
-// Email type routing
-// ALL types → BakedBot Mail (AWS SES primary, company + tenant wide default)
-// Fallbacks: Workspace (personal) · Mailjet (bulk) · Platform legacy
-// Orgs can override primary channel to 'workspace' (e.g. when domain DNS is pending)
+// Email routing — AWS SES is the default for ALL plans
+// Route 1: SES (all plans, when AWS credentials present)
+// Route 2: Org Google Workspace (paid legacy fallback)
+// Route 3: Org Mailjet (bulk fallback, if configured)
+// Route 4: User Gmail (personal, internal)
+// Route 5: Platform Mailjet/SendGrid (free org final fallback)
 // ─────────────────────────────────────────────────────────────
 const BULK_TYPES = new Set(['campaign', 'winback', 'birthday', 'loyalty']);
 
@@ -425,26 +427,13 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
     const isFreeOrg = normalizedData.orgId ? await isOrgOnFreePlan(normalizedData.orgId) : true;
 
     // ══════════════════════════════════════════════════════════════════
-    // FREE PLAN: Mailjet only (platform 6k/month free tier)
-    // No SES, no Workspace, no Gmail — simple single-channel path.
-    // ══════════════════════════════════════════════════════════════════
-    if (isFreeOrg && normalizedData.communicationType !== 'welcome') {
-        logger.info('[Dispatcher] Free org → Mailjet path', { orgId: normalizedData.orgId, type: normalizedData.communicationType });
-        result = await sendViaPlatformMailjet(normalizedData);
-        logCrm(result, normalizedData, 'mailjet_free');
-        return result;
-    }
-
-    // ══════════════════════════════════════════════════════════════════
-    // PAID PLANS: route based on org primary channel preference
-    // Default ('ses'): SES → Workspace → Mailjet → Platform
-    // Workspace-first: Workspace → SES → Mailjet → Platform
-    //   (used when org has Workspace connected but SES domain DNS is pending)
+    // ALL PLANS: SES is the default for all sends when credentials are present.
+    // Free orgs fall back to Mailjet only if SES is unavailable.
     // ══════════════════════════════════════════════════════════════════
 
     const primaryChannel = normalizedData.orgId ? await getOrgPrimaryChannel(normalizedData.orgId) : 'ses';
 
-    // ── Route 1: BakedBot Mail (Absolute Primary, All tiers) ───────────────
+    // ── Route 1: BakedBot Mail (AWS SES — default for all plans) ──────────
     if (process.env.AWS_SES_ACCESS_KEY_ID && process.env.AWS_SES_SECRET_ACCESS_KEY) {
         try {
             const sesFrom = await resolveOrgSesFrom(normalizedData.orgId, normalizedData.fromEmail, normalizedData.fromName);
@@ -529,10 +518,11 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
     }
 
     // ── Route 5: Platform Mailjet / SendGrid (last resort) ────────────
-    // For paid orgs (orgId present + SES available), surface the failure instead of silently
-    // routing to Mailjet with a tenant subdomain that Mailjet won't accept as a sender.
+    // Surface SES failure for paid orgs instead of silently falling back to Mailjet
+    // (Mailjet rejects tenant subdomain senders like hello@thrive.bakedbot.ai).
+    // Free orgs without Workspace/Gmail are allowed to fall through to platform Mailjet.
     if (!isFreeOrg && normalizedData.orgId && process.env.AWS_SES_ACCESS_KEY_ID) {
-        logger.error('[Dispatcher] SES failed for paid org — refusing Mailjet fallback to prevent invalid sender rejection', {
+        logger.error('[Dispatcher] SES failed for paid org — refusing Mailjet fallback to prevent sender rejection', {
             orgId: normalizedData.orgId,
             subject: normalizedData.subject,
         });
