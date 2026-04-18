@@ -1342,7 +1342,54 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         },
         category: 'read',
         requiredPermission: 'manage:brand' // Linus/Admins only
-    }
+    },
+
+    // ===================================
+    // Hive Mind — Collective Learning
+    // ===================================
+    'hive.getComplianceContext': {
+        name: 'hive.getComplianceContext',
+        description: 'Query verified cannabis compliance facts for a US state and topic from the BakedBot Hive Mind (Deebo-verified).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                state: { type: 'string', description: 'Two-letter US state code (NY, CA, CO, IL, MA, WA, NV, NJ, MI)' },
+                topic: { type: 'string', description: 'Compliance topic: advertising, possession-limits, packaging, delivery, tax, licensing, testing, employment, operations' },
+            },
+            required: ['state', 'topic'],
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics',
+    },
+    'hive.shareWithHive': {
+        name: 'hive.shareWithHive',
+        description: 'Share a novel discovery (competitor behavior, compliance update, market trend, product insight) with all BakedBot agents. NEVER share: customer PII, BakedBot pricing strategy, internal financials, or proprietary methods.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                fact: { type: 'string', description: 'The insight or discovery to share' },
+                category: { type: 'string', enum: ['compliance', 'competitor_intel', 'product_knowledge', 'customer_behavior', 'market_trend', 'operational', 'platform_update'] },
+                confidence: { type: 'string', enum: ['observed', 'inferred', 'verified'] },
+            },
+            required: ['fact', 'category', 'confidence'],
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics',
+    },
+    'hive.getHiveKnowledge': {
+        name: 'hive.getHiveKnowledge',
+        description: 'Query the BakedBot Hive Mind for shared knowledge on any topic (competitors, trends, product knowledge, operational best practices).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                query: { type: 'string', description: 'Natural language query' },
+                category: { type: 'string', enum: ['compliance', 'competitor_intel', 'product_knowledge', 'customer_behavior', 'market_trend', 'operational', 'platform_update'], description: 'Optional category filter' },
+            },
+            required: ['query'],
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics',
+    },
 };
 
 /**

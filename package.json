@@ -57,6 +57,7 @@
     "seed:test": "node scripts/seed-test-data.mjs",
     "seed:test:clean": "node scripts/seed-test-data.mjs --clean",
     "seed:super-user-playbooks": "node scripts/seed-super-user-playbooks.mjs",
+    "seed:compliance-kb": "node ./scripts/seed-compliance-kb.cjs",
     "generate:component": "node scripts/generate.mjs component",
     "generate:action": "node scripts/generate.mjs action",
     "generate:route": "node scripts/generate.mjs route",

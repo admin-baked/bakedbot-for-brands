@@ -78,15 +78,8 @@ export class LettaClient {
                 name,
                 system: systemInstructions,
                 block_ids: blockIds || [],
-                llm_config: {
-                    model: 'gpt-4o-mini',
-                    model_endpoint_type: 'openai',
-                    context_window: 128000
-                },
-                embedding_config: {
-                    model: 'text-embedding-ada-002',
-                    model_endpoint_type: 'openai'
-                }
+                model: 'openai/gpt-4o-mini',
+                embedding_model: 'openai/text-embedding-ada-002',
             })
         });
     }
@@ -204,7 +197,7 @@ export class LettaClient {
     async insertPassage(agentId: string, content: string): Promise<any> {
         return this.request(`/agents/${agentId}/archival-memory`, {
             method: 'POST',
-            body: JSON.stringify({ content })
+            body: JSON.stringify({ text: content })
         });
     }
 

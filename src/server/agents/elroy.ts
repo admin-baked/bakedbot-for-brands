@@ -49,6 +49,7 @@ import {
     SYRACUSE_COMPETITORS,
 } from '@/server/services/holiday-hours';
 import { isDreamModel } from '@/server/services/letta/dream-loop';
+import { HIVE_MIND_TOOLS, executeGetComplianceContext, executeShareWithHive, executeGetHiveKnowledge } from '@/server/tools/hive-mind';
 
 const ORG_ID = 'org_thrive_syracuse';
 const elroyLearningTools = makeLearningLoopToolsImpl({
@@ -409,6 +410,7 @@ const ELROY_TOOLS: ClaudeTool[] = [
             required: [],
         },
     },
+    ...HIVE_MIND_TOOLS,
 ];
 
 // ============================================================================
@@ -960,6 +962,28 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
             };
         }
 
+        case 'get_compliance_context': {
+            const state = String(input.state ?? '').toUpperCase().trim();
+            const topic = String(input.topic ?? '').toLowerCase().trim();
+            if (!state || !topic) return { error: 'state and topic are required' };
+            return await executeGetComplianceContext(state, topic, ORG_ID);
+        }
+
+        case 'share_with_hive': {
+            const fact = String(input.fact ?? '').trim();
+            const category = String(input.category ?? 'operational');
+            const confidence = String(input.confidence ?? 'observed');
+            if (!fact) return { error: 'fact is required' };
+            return await executeShareWithHive(fact, category, confidence, 'elroy', ORG_ID);
+        }
+
+        case 'get_hive_knowledge': {
+            const query = String(input.query ?? '').trim();
+            const category = input.category ? String(input.category) : undefined;
+            if (!query) return { error: 'query is required' };
+            return await executeGetHiveKnowledge(query, category, ORG_ID);
+        }
+
         default:
             return { error: `Unknown tool: ${toolName}` };
     }
@@ -1018,7 +1042,13 @@ DATA INTEGRITY (non-negotiable):
 COMPLIANCE (non-negotiable):
 - NEVER make medical claims or imply health outcomes. Do not say "helps with", "good for pain/anxiety/sleep", "relieves", "treats", "promotes relaxation", "therapeutic", "reported therapeutic benefits", or "helps with unwinding".
 - For product education (RSO, terpenes, concentrates, pairings), describe process, characteristics, and occasion only — never outcomes.
-- For compliance/legal questions (Metrc, possession limits, licensing), give the best general guidance you have and recommend they verify with their compliance officer. Do NOT refuse to engage entirely.
+- For compliance/legal questions (Metrc, possession limits, licensing, advertising, packaging, delivery, tax), call get_compliance_context FIRST — it pulls Deebo's verified facts from the Hive Mind. Then give the best general guidance and recommend verifying with their compliance officer. Do NOT refuse to engage entirely.
+
+HIVE MIND:
+- When you learn something novel and genuinely useful to other BakedBot agents or operators (a competitor behavior, a market trend, an operational best practice), call share_with_hive.
+- For broad market or industry knowledge (not store-specific data), call get_hive_knowledge to check what the squad already knows before answering.
+- SAFE to share: competitor behavior, industry trends, compliance updates, product knowledge, anonymized customer behavior patterns, operational best practices.
+- NEVER share via Hive Mind: BakedBot pricing strategy, customer PII (names/phones/addresses), internal financial targets, or proprietary methods.
 
 SLACK FORMATTING (non-negotiable):
 - Use *bold* (single asterisk) for emphasis — NEVER **bold** (double asterisk). Slack uses mrkdwn, not markdown.
@@ -1278,6 +1308,12 @@ function buildElroyProgressMessage(toolName: string, input: Record<string, unkno
             return '_Uncle Elroy is opening a learning-loop escalation for Linus and Marty..._';
         case 'elroy_dream':
             return '_Uncle Elroy is dreaming — reflecting on store ops, Slack quality, and fixes..._';
+        case 'get_compliance_context':
+            return `_Uncle Elroy is checking the Hive Mind compliance knowledge for ${String(input.state ?? '').toUpperCase()} / ${String(input.topic ?? '')}..._`;
+        case 'share_with_hive':
+            return '_Uncle Elroy is sharing a discovery with the BakedBot squad..._';
+        case 'get_hive_knowledge':
+            return `_Uncle Elroy is querying the Hive Mind for "${String(input.query ?? '').slice(0, 40)}"..._`;
         default:
             return `_Uncle Elroy is checking ${toolName.replace(/_/g, ' ')}..._`;
     }
