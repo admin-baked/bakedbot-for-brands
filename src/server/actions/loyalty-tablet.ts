@@ -720,6 +720,29 @@ export async function getMoodRecommendations(
  * Reuses the same deterministic menu-search heuristics as the mood flow so the
  * tablet voice/text assistant stays grounded in the live inventory.
  */
+
+/**
+ * Returns distinct in-stock categories from the cached inventory, sorted by count.
+ * Called in parallel with getMoodRecommendations so the loading screen can show
+ * category quick-access pills without waiting for AI scoring to complete.
+ */
+export async function getTabletAvailableCategories(orgId: string): Promise<string[]> {
+    try {
+        const products = await getCachedMenuProducts(orgId);
+        const counts = new Map<string, number>();
+        for (const p of products) {
+            if (!isLikelyInStock(p)) continue;
+            const cat = getProductCategory(p);
+            if (cat && cat !== 'Other') counts.set(cat, (counts.get(cat) ?? 0) + 1);
+        }
+        return [...counts.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .map(([cat]) => cat);
+    } catch {
+        return [];
+    }
+}
+
 export async function searchTabletRecommendations(
     orgId: string,
     query: string,

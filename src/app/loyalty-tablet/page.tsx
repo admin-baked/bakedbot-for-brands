@@ -303,6 +303,8 @@ export default function LoyaltyTabletPage() {
                         primaryButtonStyle={primaryButtonStyle}
                         secondaryButtonStyle={secondaryButtonStyle}
                         handleProductImageError={handleProductImageError}
+                        availableCategories={flow.availableCategories}
+                        onCategoryBrowse={flow.handleCategoryBrowse}
                     />
                 )}
 

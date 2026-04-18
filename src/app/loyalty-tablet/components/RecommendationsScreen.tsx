@@ -89,6 +89,8 @@ interface RecommendationsScreenProps {
     primaryButtonStyle: CSSProperties;
     secondaryButtonStyle: CSSProperties;
     handleProductImageError: (e: SyntheticEvent<HTMLImageElement>) => void;
+    availableCategories: string[];
+    onCategoryBrowse: (category: string) => void;
 }
 
 function ProductDetailModal({
@@ -317,7 +319,9 @@ export function RecommendationsScreen({
     accentPanelStyle,
     primaryButtonStyle,
     secondaryButtonStyle,
-    handleProductImageError
+    handleProductImageError,
+    availableCategories,
+    onCategoryBrowse
 }: RecommendationsScreenProps) {
     const [selectedProduct, setSelectedProduct] = useState<TabletProduct | null>(null);
 
@@ -333,9 +337,9 @@ export function RecommendationsScreen({
                 variants={slideVariants}
                 initial="enter" animate="center" exit="exit"
                 transition={{ duration: 0.25 }}
-                className="relative z-10 mx-auto flex flex-col items-center gap-5 w-full max-w-4xl"
+                className="relative z-10 mx-auto flex flex-col items-center gap-6 w-full max-w-2xl"
             >
-                <div className="flex flex-col items-center gap-6 py-8 sm:py-12">
+                <div className="flex flex-col items-center gap-5 pt-8 sm:pt-12">
                     <div className="relative flex items-center justify-center">
                         <div className="absolute h-40 w-40 rounded-full animate-ping opacity-20" style={{ backgroundColor: brandTheme.colors.primary }} />
                         <div className="absolute h-32 w-32 rounded-full animate-pulse opacity-30" style={{ backgroundColor: brandTheme.colors.primary }} />
@@ -350,11 +354,35 @@ export function RecommendationsScreen({
                         <p className="text-xl sm:text-2xl font-bold text-gray-900">
                             Smokey is finding your perfect match...
                         </p>
-                        <p className="mt-2" style={{ color: mutedTextColor }}>
+                        <p className="mt-1" style={{ color: mutedTextColor }}>
                             {selectedMoodDef?.emoji} {selectedMoodDef?.label}
                         </p>
                     </div>
                 </div>
+
+                {availableCategories.length > 0 && (
+                    <div className="w-full flex flex-col items-center gap-3 pb-8">
+                        <p className="text-sm font-medium" style={{ color: mutedTextColor }}>
+                            Or browse the full menu while you wait:
+                        </p>
+                        <div className="flex flex-wrap justify-center gap-2">
+                            {availableCategories.map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => onCategoryBrowse(cat)}
+                                    className="rounded-full px-4 py-2 text-sm font-semibold border transition-all hover:opacity-90 active:scale-[0.97]"
+                                    style={{
+                                        borderColor: brandTheme.colors.primary,
+                                        color: brandTheme.colors.primary,
+                                        backgroundColor: 'rgba(255,255,255,0.8)',
+                                    }}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </motion.div>
         );
     }

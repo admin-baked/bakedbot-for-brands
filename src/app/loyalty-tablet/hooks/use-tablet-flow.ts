@@ -9,6 +9,7 @@ import {
     getTabletOffer,
     getCustomerBudtenderContext,
     prefetchTabletInventory,
+    getTabletAvailableCategories,
     lookupCustomerByPhone,
     findAlleavesCandidatesByName,
     linkCustomerToAlleaves,
@@ -84,6 +85,9 @@ export function useTabletFlow(orgId: string) {
     const [quickLookupLoading, setQuickLookupLoading] = useState(false);
     const [quickMatches, setQuickMatches] = useState<QuickLookupResult['matches']>([]);
 
+    // Category quick-access pills shown during the Smokey loading state
+    const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+
     // Full-flow returning-customer detection (phone pre-fill + offer skip)
     const [isReturningCustomer, setIsReturningCustomer] = useState(false);
     const [enteredViaQuickLookup, setEnteredViaQuickLookup] = useState(false);
@@ -146,6 +150,7 @@ export function useTabletFlow(orgId: string) {
         setEnteredViaQuickLookup(false);
         setAlleavesCandidates([]);
         setCandidateLoading(false);
+        setAvailableCategories([]);
     }, [smokeyVoice, voiceOutput]);
 
     const resetIdleTimer = useCallback(() => {
@@ -406,6 +411,8 @@ export function useTabletFlow(orgId: string) {
         setBundle(null);
         setRecsLoading(true);
         setStep('recommendations');
+        // Fetch categories in background so loading screen can show quick-access pills immediately
+        void getTabletAvailableCategories(orgId).then(cats => { if (cats.length) setAvailableCategories(cats); });
         const recsFallbackMsg = 'Could not load recommendations - your budtender can help!';
         let timeoutId: ReturnType<typeof setTimeout> | null = null;
         try {
@@ -455,6 +462,14 @@ export function useTabletFlow(orgId: string) {
             setRecsLoading(false);
         }
     };
+
+    // Called when customer taps a category pill on the loading screen.
+    // Immediately clears the loading spinner and triggers a category search.
+    const handleCategoryBrowse = useCallback((category: string) => {
+        resetIdleTimer();
+        setRecsLoading(false);
+        void handleAssistantSearch(category);
+    }, [resetIdleTimer, handleAssistantSearch]);
 
     const handleVoiceToggle = () => {
         resetIdleTimer();
@@ -615,6 +630,7 @@ export function useTabletFlow(orgId: string) {
         toggleVisitPreference, handleMoodSelect,
         handleAssistantSearch, handleVoiceToggle,
         handleMicPointerDown, handleMicPointerUp, handleAutoListenToggle,
-        handleRequestMicPermission, toggleCart, handleSubmit
+        handleRequestMicPermission, toggleCart, handleSubmit,
+        availableCategories, handleCategoryBrowse
     };
 }
