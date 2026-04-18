@@ -1,21 +1,22 @@
 #!/usr/bin/env node
 /**
- * Linus Stress Test — Thrive Syracuse Full Platform
+ * Linus Stress Test — Full Platform (all active tenants)
  *
- * Covers all 12 system areas:
+ * Covers all 12 system areas for the primary org + per-tenant baseline for every active org:
  *   1. Check-in flow      4. POS/Inventory    7. Playbooks        10. Email config
  *   2. Loyalty/Rewards    5. Campaigns        8. Analytics        11. Kiosk tablet
  *   3. Recommendations    6. Customer CRM     9. Morning briefing 12. Manager dashboard
- *      (Suite 6: +multi-org isolation; Suite 12: +CEO/email-inbox render, +admin auth, +cron auth sweep)
+ *   T. Tenant baseline — runs automatically for every org in organizations(status=active)
  *
- * Page render checks (pageRenderCheck) detect RSC crashes on all major dashboard routes.
- * Any 5xx or "An error occurred in the Server Components render" in the HTML fires a bug.
+ * New tenants are picked up automatically — no manual changes needed.
+ * New dashboard routes: add to DASHBOARD_PAGES below.
  *
  * Usage:
  *   node scripts/linus-stress-test-checkin.mjs              # single batch
  *   node scripts/linus-stress-test-checkin.mjs --loop       # 25/hr × 4 hours
  *   node scripts/linus-stress-test-checkin.mjs --dry-run    # no Firestore writes
  *   node scripts/linus-stress-test-checkin.mjs --suite=1,3  # run specific suites only
+ *   node scripts/linus-stress-test-checkin.mjs --org=org_x  # override primary org
  */
 
 import admin from 'firebase-admin';
@@ -25,10 +26,23 @@ dotenv.config({ path: '.env.local' });
 const isDryRun  = process.argv.includes('--dry-run');
 const isLoop    = process.argv.includes('--loop');
 const suiteArg  = process.argv.find(a => a.startsWith('--suite='));
+const orgArg    = process.argv.find(a => a.startsWith('--org='));
 const SUITES    = suiteArg ? new Set(suiteArg.replace('--suite=','').split(',').map(Number)) : null;
 const PROD_URL  = process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai';
-const ORG       = 'org_thrive_syracuse';
+const ORG       = orgArg ? orgArg.replace('--org=', '') : 'org_thrive_syracuse';
 const AGENT     = 'linus';
+
+// ── Dashboard pages checked on every run ─────────────────────────────────────
+// ADD new routes here when they ship — they will be tested automatically.
+const DASHBOARD_PAGES = [
+  ['/dashboard/campaigns',   '[CAMPAIGNS]',   'Campaigns page'],
+  ['/dashboard/customers',   '[CRM]',         'Customers CRM page'],
+  ['/dashboard/playbooks',   '[PLAYBOOKS]',   'Playbooks page'],
+  ['/dashboard/analytics',   '[ANALYTICS]',   'Analytics page'],
+  ['/dashboard/inbox',       '[INBOX]',       'Inbox page'],
+  ['/dashboard/ceo',         '[CEO]',         'CEO boardroom page'],
+  ['/dashboard/email-inbox', '[EMAIL-INBOX]', 'Email inbox page'],
+];
 const MAX_HOURS = 4;
 const TESTS_PER_HOUR = 25;
 const INTERVAL_MS = Math.floor(3600_000 / TESTS_PER_HOUR);
@@ -113,6 +127,69 @@ async function getApiKey() {
   const snap = await db.collection('api_keys')
     .where('orgId', '==', ORG).where('permissions', 'array-contains', 'read:customers').limit(1).get();
   return snap.empty ? null : snap.docs[0].data().key;
+}
+
+// Returns all active orgs from Firestore — new tenants are picked up automatically.
+async function getActiveOrgs() {
+  try {
+    const snap = await db.collection('organizations').where('status', '==', 'active').limit(50).get();
+    return snap.docs.map(d => ({ id: d.id, name: d.data().name || d.id }));
+  } catch (e) {
+    console.log(`  ⚠️  getActiveOrgs failed: ${e.message}`);
+    return [];
+  }
+}
+
+// Generic tenant health baseline — runs for every active org automatically.
+// Covers the minimum bar for a dispensary to be "live" on the platform.
+async function suiteTenantBaseline(results, org) {
+  const label = `T. ${org.name}`;
+  function rec(name, pass, notes = '') {
+    results.push({ suite: label, name, pass, notes });
+    console.log(`  ${pass ? '✅' : '❌'} [${label}] ${name}${notes ? ' — ' + notes : ''}`);
+  }
+
+  // Customer data exists
+  try {
+    const snap = await db.collection('customers').where('orgId', '==', org.id).limit(5).get();
+    rec('Customers exist', snap.size > 0, snap.size > 0 ? `${snap.size}+ customers` : 'EMPTY — onboarding incomplete?');
+    if (snap.size === 0) await fileAgentBug(`[TENANT:${org.name}] No customers found`,
+      `organizations/${org.id} is active but has 0 customers. Check onboarding.`);
+  } catch (e) { rec('Customers exist', false, e.message); }
+
+  // Inventory exists
+  try {
+    const snap = await db.collection('tenants').doc(org.id)
+      .collection('publicViews').doc('products').collection('items')
+      .where('source', '==', 'pos').limit(10).get();
+    rec('POS inventory exists', snap.size > 0, snap.size > 0 ? `${snap.size}+ products` : 'EMPTY — POS sync needed');
+    if (snap.size === 0) await fileAgentBug(`[TENANT:${org.name}] No POS inventory`,
+      `tenants/${org.id}/publicViews/products has 0 source=pos items. Menu will be empty.`);
+  } catch (e) { rec('POS inventory exists', false, e.message); }
+
+  // Kiosk page responds (unauthenticated)
+  try {
+    const r = await apiGet(`/loyalty-tablet?orgId=${org.id}`);
+    const pass = r.status === 200 || r.status === 307 || r.status === 308;
+    rec('Kiosk page responds', pass, `HTTP ${r.status}`);
+    if (!pass) await fileAgentBug(`[TENANT:${org.name}] Kiosk page not responding`,
+      `/loyalty-tablet?orgId=${org.id} → HTTP ${r.status}`, 'high');
+  } catch (e) { rec('Kiosk page responds', false, e.message); }
+
+  // No sample/test products leaking into tenant catalog
+  try {
+    const snap = await db.collection('tenants').doc(org.id)
+      .collection('publicViews').doc('products').collection('items').limit(100).get();
+    const junk = snap.docs.filter(d => {
+      const n = (d.data().name || '').toLowerCase();
+      const p = d.data().price;
+      return n.includes('sample') || n.includes('test') || (typeof p === 'number' && p > 0 && p < 1);
+    });
+    rec('No sample/test products in catalog', junk.length === 0,
+      junk.length ? `${junk.length} dirty items found` : `${snap.size} checked`);
+    if (junk.length > 0) await fileAgentBug(`[TENANT:${org.name}] Sample/test products in catalog`,
+      `Found ${junk.length} items: ${junk.slice(0,3).map(d => d.data().name).join(', ')}`);
+  } catch (e) { rec('No sample/test products', false, e.message); }
 }
 
 async function submitTestArtifact(runNumber, allResults) {
@@ -720,13 +797,7 @@ async function suite12_dashboard(results) {
   } catch (e) { results.push({ suite: label, name: 'Dashboard root', pass: false, notes: e.message }); }
 
   // Page render checks — detect RSC crashes on all major dashboard routes (parallel)
-  const DASHBOARD_PAGES = [
-    ['/dashboard/campaigns',   '[CAMPAIGNS]',  'Campaigns page'],
-    ['/dashboard/customers',   '[CRM]',        'Customers CRM page'],
-    ['/dashboard/playbooks',   '[PLAYBOOKS]',  'Playbooks page'],
-    ['/dashboard/analytics',   '[ANALYTICS]',  'Analytics page'],
-    ['/dashboard/inbox',       '[INBOX]',      'Inbox page'],
-  ];
+  // Source of truth: DASHBOARD_PAGES at top of file — add new routes there.
   await Promise.all(DASHBOARD_PAGES.map(async ([path, tag, label2]) => {
     try {
       const r = await pageRenderCheck(path);
@@ -735,22 +806,6 @@ async function suite12_dashboard(results) {
         `pageRenderCheck detected crash at ${PROD_URL}${path}\n${r.notes}`, 'critical');
     } catch (e) { results.push({ suite: label, name: `${label2} render`, pass: false, notes: e.message }); }
   }));
-
-  // CEO boardroom page render
-  try {
-    const r = await pageRenderCheck('/dashboard/ceo');
-    rec('Page /dashboard/ceo — no RSC crash', !r.crashDetected, r.notes);
-    if (r.crashDetected) await fileAgentBug('[DASHBOARD] /dashboard/ceo RSC crash',
-      `pageRenderCheck detected crash at ${PROD_URL}/dashboard/ceo\n${r.notes}`, 'critical');
-  } catch (e) { results.push({ suite: label, name: 'CEO boardroom render', pass: false, notes: e.message }); }
-
-  // Email inbox page render
-  try {
-    const r = await pageRenderCheck('/dashboard/email-inbox');
-    rec('Page /dashboard/email-inbox — no RSC crash', !r.crashDetected, r.notes);
-    if (r.crashDetected) await fileAgentBug('[DASHBOARD] /dashboard/email-inbox RSC crash',
-      `pageRenderCheck detected crash at ${PROD_URL}/dashboard/email-inbox\n${r.notes}`, 'critical');
-  } catch (e) { results.push({ suite: label, name: 'Email inbox render', pass: false, notes: e.message }); }
 
   // Admin endpoints require auth (no session → 401)
   try {
@@ -826,7 +881,21 @@ async function runBatch(runNumber, apiKey) {
   await run(9,  suite9_morningBriefing, apiKey); console.log('');
   await run(10, suite10_email);              console.log('');
   await run(11, suite11_kiosk);              console.log('');
-  await run(12, suite12_dashboard);
+  await run(12, suite12_dashboard);          console.log('');
+
+  // Per-tenant baseline — auto-discovers all active orgs, runs 4 health checks each.
+  // New tenants are picked up automatically — no changes needed here.
+  if (!SUITES || SUITES.has(0)) {
+    const orgs = await getActiveOrgs();
+    const otherOrgs = orgs.filter(o => o.id !== ORG);
+    if (otherOrgs.length > 0) {
+      console.log(`\n── Tenant Baseline (${otherOrgs.length} other orgs) ──`);
+      for (const org of otherOrgs) {
+        await suiteTenantBaseline(allResults, org);
+        console.log('');
+      }
+    }
+  }
 
   if (!isDryRun) await cleanupTestDocs().catch(() => {});
 
