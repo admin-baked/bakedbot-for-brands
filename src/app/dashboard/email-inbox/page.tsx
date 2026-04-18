@@ -1,15 +1,15 @@
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
-import { requireAuth } from '@/server/auth/auth-helpers';
+import { requireUser } from '@/server/auth/auth';
 import { getEmailThreads } from '@/server/services/email-thread-service';
 import { EmailInboxClient } from './email-inbox-client';
 export const dynamic = 'force-dynamic';
 
 export default async function EmailInboxPage() {
-    const { user } = await requireAuth();
-    const role = user.role ?? '';
+    const user = await requireUser();
+    const role = typeof user.role === 'string' ? user.role : '';
     const isSuperUser = role === 'super_user' || role === 'super_admin';
-    const orgId = isSuperUser ? undefined : user.orgId;
+    const orgId = isSuperUser ? undefined : (typeof user.orgId === 'string' ? user.orgId : undefined);
 
     const [outreachThreads, orgThreads] = await Promise.all([
         isSuperUser ? getEmailThreads({ scope: 'outreach', limit: 100 }) : Promise.resolve([]),

@@ -108,7 +108,7 @@ export interface SesInboundRecord {
 }
 
 export interface SesInboundSnsPayload {
-    Type: 'Notification';
+    Type: 'Notification' | 'SubscriptionConfirmation' | 'UnsubscribeConfirmation';
     TopicArn: string;
     Message: string; // JSON string containing SesInboundRecord
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, MailOpen, RefreshCw, ChevronRight, Badge } from 'lucide-react';
+import { Mail, MailOpen, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { EmailThread } from '@/types/email-thread';
 
