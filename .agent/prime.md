@@ -51,8 +51,8 @@ Agent IDs: `claude` | `codex` | `gemini` | `linus`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | campaigns RSC crash fixed (page-level try-catch, not shared primitive); Thrive claims patched
-**Recent work (2026-04-18):** `35981f23c` campaigns page auth try-catch; `5db31941a` requireUser redirect; `24b93d09c` Codex restored throws for API/action compat
+**Current Status:** 🟢 main green | Multi-agent coordination system live; Thrive kiosk UX + mood videos shipped
+**Recent work (2026-04-18):** `381eeec2b` agent coord (Firestore locks + inbox + CLI); `242b0388c` sticky Checkout bar; `0d9e4e2f9` kiosk UX polish
 
 ---
 

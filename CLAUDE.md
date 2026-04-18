@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | campaigns RSC crash fixed end-to-end (page-level try-catch); requireUser() throws for API/action compatibility; Thrive claims patched | **Last update:** 2026-04-18 (`35981f23c`)
+**Current Status:** 🟢 main green | Multi-agent coordination system (Firestore locks + inbox + status board); agent:status/claim/done CLI | **Last update:** 2026-04-18 (`381eeec2b`)
 
 ---
 
