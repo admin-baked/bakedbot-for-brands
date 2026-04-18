@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireSuperUser } from '@/server/auth/auth';
 import { getAgentBoardTasks } from '@/server/actions/agent-tasks';
 import { getAgentFeedbackSummary } from '@/server/services/agent-learning-loop';
+import { getActiveRevenueGoals } from '@/server/actions/revenue-goals';
 import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -27,7 +28,10 @@ export async function GET(req: NextRequest) {
     const orgId   = req.nextUrl.searchParams.get('orgId')   || undefined;
 
     try {
-        const boardResult = await getAgentBoardTasks();
+        const [boardResult, activeGoals] = await Promise.all([
+            getAgentBoardTasks(),
+            getActiveRevenueGoals(),
+        ]);
 
         // Apply filters if provided
         if (agentId || orgId) {
@@ -59,6 +63,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({
             ...boardResult,
             feedbackSummaries,
+            activeGoals,
             generatedAt: new Date().toISOString(),
         });
     } catch (err) {

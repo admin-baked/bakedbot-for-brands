@@ -125,6 +125,18 @@ export interface AgentTask {
     /** Optional: resolution note (markdown) */
     resolutionNote?: string;
 
+    // ── Revenue / Goal fields ──────────────────────────────────────────────
+    /** Links this task to a revenue_goals doc */
+    goalId?: string;
+    /** Business agent who owns the outcome (marty, craig, smokey, etc.) */
+    businessAgent?: string;
+    /** Existing playbook to trigger when this task is claimed */
+    playbookId?: string;
+    /** Marty's estimate of revenue impact at decomp time */
+    estimatedImpactUSD?: number;
+    /** Actual impact filled in when task reaches done */
+    resolvedImpactUSD?: number;
+
     /** Timestamps */
     createdAt: string;   // ISO string
     updatedAt: string;   // ISO string
@@ -147,6 +159,11 @@ export interface CreateAgentTaskInput {
     filePath?: string;
     errorSnippet?: string;
     relatedCommit?: string;
+    // Revenue fields
+    goalId?: string;
+    businessAgent?: string;
+    playbookId?: string;
+    estimatedImpactUSD?: number;
 }
 
 // --- Rendered markdown (for dashboard display) ---

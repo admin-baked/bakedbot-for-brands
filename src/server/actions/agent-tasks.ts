@@ -53,6 +53,11 @@ export async function createTaskInternal(
             errorSnippet: input.errorSnippet,
             relatedCommit: input.relatedCommit,
             steps: [],
+            // Revenue fields (optional)
+            ...(input.goalId            && { goalId: input.goalId }),
+            ...(input.businessAgent     && { businessAgent: input.businessAgent }),
+            ...(input.playbookId        && { playbookId: input.playbookId }),
+            ...(input.estimatedImpactUSD !== undefined && { estimatedImpactUSD: input.estimatedImpactUSD }),
             createdAt: now,
             updatedAt: now,
         };
