@@ -107,13 +107,25 @@ export interface SlowMovingInventoryItem {
     productName: string;
     category: string;
     price: number;
+    cost?: number;
     daysInInventory: number;
     daysSinceLastSale: number;
     stockLevel: number;
     salesVelocity: number;
     estimatedAtRisk: number;
+    estimatedCostBasis?: number | null;
     action: 'markdown' | 'liquidate';
     expiryDate?: Date;
+}
+
+export interface SlowMovingInventoryAudit {
+    items: SlowMovingInventoryItem[];
+    skippedMissingLastSale: number;
+    skippedExcludedProducts: number;
+    thresholds: {
+        actionDays: number;
+        liquidateDays: number;
+    };
 }
 
 /**
@@ -127,6 +139,14 @@ export async function getSlowMovingInventory(
     orgId: string,
     minDays: number = 30
 ): Promise<SlowMovingInventoryItem[]> {
+    const audit = await getSlowMovingInventoryAudit(orgId, minDays);
+    return audit.items;
+}
+
+export async function getSlowMovingInventoryAudit(
+    orgId: string,
+    minDays: number = 30
+): Promise<SlowMovingInventoryAudit> {
     try {
         const [products, benchmarks] = await Promise.all([
             loadCatalogAnalyticsProducts(orgId),
@@ -152,11 +172,13 @@ export async function getSlowMovingInventory(
             productName: item.name,
             category: item.category,
             price: item.price,
+            ...(typeof item.cost === 'number' ? { cost: item.cost } : {}),
             daysInInventory: item.daysSinceLastSale,
             daysSinceLastSale: item.daysSinceLastSale,
             stockLevel: item.stockLevel,
             salesVelocity: item.salesVelocity,
             estimatedAtRisk: item.estimatedAtRisk,
+            estimatedCostBasis: item.estimatedCostBasis,
             action: item.action,
         }));
 
@@ -168,12 +190,29 @@ export async function getSlowMovingInventory(
             actionDays: thresholds.actionDays,
             liquidateDays: thresholds.liquidateDays,
             skippedMissingLastSale: slowMoverAudit.skippedMissingLastSale,
+            skippedExcludedProducts: slowMoverAudit.skippedExcludedProducts,
         });
 
-        return slowMoving;
+        return {
+            items: slowMoving,
+            skippedMissingLastSale: slowMoverAudit.skippedMissingLastSale,
+            skippedExcludedProducts: slowMoverAudit.skippedExcludedProducts,
+            thresholds: {
+                actionDays: thresholds.actionDays,
+                liquidateDays: thresholds.liquidateDays,
+            },
+        };
     } catch (error) {
         logger.error('[INVENTORY_INTEL] Error fetching slow-moving inventory', { orgId, error });
-        return [];
+        return {
+            items: [],
+            skippedMissingLastSale: 0,
+            skippedExcludedProducts: 0,
+            thresholds: {
+                actionDays: minDays,
+                liquidateDays: minDays,
+            },
+        };
     }
 }
 

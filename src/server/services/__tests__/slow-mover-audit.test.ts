@@ -42,8 +42,10 @@ describe('slow-mover-audit', () => {
       productId: 'flag',
       action: 'liquidate',
       estimatedAtRisk: 240,
+      estimatedCostBasis: null,
       daysSinceLastSale: 91,
     });
+    expect(result.skippedExcludedProducts).toBe(0);
   });
 
   it('skips products with missing last-sale telemetry to avoid inflated counts', () => {
@@ -66,6 +68,7 @@ describe('slow-mover-audit', () => {
 
     expect(result.items).toEqual([]);
     expect(result.skippedMissingLastSale).toBe(1);
+    expect(result.skippedExcludedProducts).toBe(0);
   });
 
   it('sorts by dollars at risk and respects the provided limit', () => {
@@ -101,5 +104,45 @@ describe('slow-mover-audit', () => {
 
     expect(result.items).toHaveLength(1);
     expect(result.items[0].productId).toBe('high');
+  });
+
+  it('excludes gift cards from slow-mover inventory totals', () => {
+    const result = buildSlowMoverAudit([
+      {
+        id: 'gift-card',
+        name: 'Gift Card - $100',
+        category: 'Gift Cards',
+        price: 108,
+        stock: 10,
+        salesLast7Days: 0,
+        salesLast30Days: 0,
+        salesVelocity: 0,
+        lastSaleAt: new Date('2025-12-15T00:00:00Z'),
+        dynamicPricingApplied: false,
+      },
+      {
+        id: 'flower',
+        name: 'Dormant Flower',
+        category: 'Flower',
+        price: 40,
+        cost: 18,
+        stock: 6,
+        salesLast7Days: 0,
+        salesLast30Days: 0,
+        salesVelocity: 0,
+        lastSaleAt: new Date('2025-12-15T00:00:00Z'),
+        dynamicPricingApplied: false,
+      },
+    ], thresholds, {
+      now: new Date('2026-04-16T00:00:00Z'),
+    });
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toMatchObject({
+      productId: 'flower',
+      estimatedAtRisk: 240,
+      estimatedCostBasis: 108,
+    });
+    expect(result.skippedExcludedProducts).toBe(1);
   });
 });

@@ -8,10 +8,15 @@
 import { InsightGeneratorBase } from '../insight-generator-base';
 import {
   getExpiringInventory,
-  getSlowMovingInventory,
+  getSlowMovingInventoryAudit,
   type SlowMovingInventoryItem,
 } from '../../alleaves/inventory-intelligence';
 import { ALLeavesClient } from '@/lib/pos/adapters/alleaves';
+import {
+  buildSlowMoverMetricBundle,
+  formatSlowMoverMetricValue,
+  getSlowMoverMetric,
+} from '@/lib/slow-mover-metrics';
 import { logger } from '@/lib/logger';
 import type { InsightCard } from '@/types/insight-cards';
 import { getAlleavesClientForOrg } from '@/server/services/alleaves/client';
@@ -70,7 +75,8 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
       }
 
       // 3. Slow Movers insight — enriched with product names, categories, prices
-      const slowMovers = await getSlowMovingInventory(this.orgId, 60);
+      const slowMoverAudit = await getSlowMovingInventoryAudit(this.orgId, 60);
+      const slowMovers = slowMoverAudit.items;
       if (slowMovers.length > 0) {
         // Build menu lookup for enrichment (reuse client if available)
         let menuLookup: Map<string, { name: string; category: string; price: number | null }> | undefined;
@@ -90,7 +96,11 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
         } catch {
           // Menu enrichment is best-effort — card still works without it
         }
-        const slowMoverInsight = this.createSlowMoverInsight(slowMovers, menuLookup);
+        const slowMoverInsight = this.createSlowMoverInsight(
+          slowMovers,
+          menuLookup,
+          slowMoverAudit.skippedExcludedProducts,
+        );
         insights.push(slowMoverInsight);
       }
 
@@ -360,9 +370,8 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
   private createSlowMoverInsight(
     products: SlowMovingInventoryItem[],
     menuLookup?: Map<string, { name: string; category: string; price: number | null }>,
+    excludedNonInventoryCount: number = 0,
   ): InsightCard {
-    const totalStock = products.reduce((sum, p) => sum + p.stockLevel, 0);
-
     const normalizedProducts = products.map((product) => {
       const fallback = menuLookup?.get(product.productId);
       return {
@@ -372,8 +381,17 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
         category: product.category || fallback?.category || 'Other',
         price: product.price ?? fallback?.price ?? 0,
         daysInInventory: product.daysSinceLastSale,
+        estimatedCostBasis: product.estimatedCostBasis ?? null,
       };
     });
+
+    const metricBundle = buildSlowMoverMetricBundle(normalizedProducts, {
+      excludedNonInventoryCount,
+    });
+    const defaultMetric = getSlowMoverMetric(metricBundle, metricBundle.defaultMetricId);
+    const retailMetric = metricBundle.metrics.find((metric) => metric.id === 'retail_value');
+    const costMetric = metricBundle.metrics.find((metric) => metric.id === 'cost_basis');
+    const totalRetailValue = retailMetric?.value ?? 0;
 
     const byCategory = new Map<string, { count: number; stock: number; value: number }>();
     for (const product of normalizedProducts) {
@@ -400,25 +418,27 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
       .map((p) => `${p.name} — $${p.price!.toFixed(0)} × ${p.stockLevel} units (${p.daysInInventory}d stale)`)
       .join('; ');
 
-    const totalValue = normalizedProducts.reduce((sum, p) => sum + ((p.price ?? 0) * p.stockLevel), 0);
-
-    const headline = totalValue > 0
-      ? `$${Math.round(totalValue).toLocaleString()} in slow-moving inventory (${products.length} SKUs)`
-      : `${products.length} slow-moving products`;
-
-    const subtextParts = [categoryLines];
+    const subtextParts = [metricBundle.summaryLine, categoryLines];
     if (productLines) {
       subtextParts.push(`Top: ${productLines}`);
     }
 
+    const tooltipDetails = [
+      defaultMetric?.description,
+      'Switch between retail value, cost basis, and units. Gift cards are excluded from this audit.',
+      costMetric?.coverage?.note,
+    ].filter(Boolean).join(' ');
+    const totalValue = totalRetailValue;
+    const totalStock = metricBundle.totalUnits;
+
     return this.createInsight({
       title: 'SLOW MOVERS',
-      tooltipText: 'Products with 60+ days since last sale and near-zero velocity, grouped by category to prioritize markdowns or liquidation.',
-      headline,
+      tooltipText: tooltipDetails,
+      headline: `${defaultMetric ? formatSlowMoverMetricValue(defaultMetric) : `${products.length} slow-moving products`} across ${products.length} slow-moving SKUs`,
       subtext: subtextParts.join('\n'),
       value: products.length,
       unit: 'products',
-      severity: totalValue > 5000 ? 'warning' : products.length > 20 ? 'warning' : 'info',
+      severity: totalRetailValue > 5000 ? 'warning' : products.length > 20 ? 'warning' : 'info',
       actionable: true,
       ctaLabel: top5.length > 0 ? 'Review & Discount' : 'Create Bundle or Discount',
       threadType: 'inventory_promo',
@@ -428,6 +448,10 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
       dataSource: 'Inventory age + catalog (Alleaves)',
       metadata: {
         totalSkus: products.length,
+        totalUnits: metricBundle.totalUnits,
+        totalValueAtRisk: totalValue,
+        excludedNonInventoryCount,
+        metricBundle,
         categoryBreakdown: Object.fromEntries(byCategory),
         topProducts: top5.map((p) => ({
           productId: p.productId,
@@ -436,9 +460,10 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
           price: p.price,
           stockLevel: p.stockLevel,
           daysInInventory: p.daysInInventory,
-          valueAtRisk: (p.price ?? 0) * p.stockLevel,
+          valueAtRisk: p.estimatedAtRisk,
+          retailValueAtRisk: p.estimatedAtRisk,
+          costBasis: p.estimatedCostBasis ?? null,
         })),
-        totalValueAtRisk: totalValue,
       },
     });
   }

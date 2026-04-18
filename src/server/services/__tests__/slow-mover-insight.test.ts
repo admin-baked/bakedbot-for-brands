@@ -28,12 +28,33 @@ describe('slow-mover-insight', () => {
               },
               metadata: {
                 totalSkus: 24,
+                totalUnits: 96,
                 totalValueAtRisk: 12500,
+                excludedNonInventoryCount: 3,
+                metricBundle: {
+                  defaultMetricId: 'retail_value',
+                  totalSkus: 24,
+                  totalUnits: 96,
+                  excludedNonInventoryCount: 3,
+                  summaryLine: '24 SKUs | 96 units | 3 gift cards excluded',
+                  metrics: [
+                    {
+                      id: 'retail_value',
+                      label: 'Retail Value',
+                      shortLabel: 'Retail',
+                      description: 'Retail carry value',
+                      value: 12500,
+                      format: 'currency',
+                    },
+                  ],
+                },
                 topProducts: [
                   {
                     name: 'Old Flower',
                     category: 'Flower',
                     valueAtRisk: 1800,
+                    retailValueAtRisk: 1800,
+                    costBasis: 720,
                     daysInInventory: 74,
                     price: 45,
                     stockLevel: 40,
@@ -50,17 +71,38 @@ describe('slow-mover-insight', () => {
       headline: '$12,500 in slow-moving inventory (341 SKUs)',
       totalValueAtRisk: 12500,
       totalSkus: 24,
+      totalUnits: 96,
       topProducts: [
         {
           name: 'Old Flower',
           category: 'Flower',
           valueAtRisk: 1800,
+          retailValueAtRisk: 1800,
+          costBasis: 720,
           daysInInventory: 74,
           price: 45,
           stockLevel: 40,
         },
       ],
       categoryBreakdown: {},
+      excludedNonInventoryCount: 3,
+      metricBundle: {
+        defaultMetricId: 'retail_value',
+        totalSkus: 24,
+        totalUnits: 96,
+        excludedNonInventoryCount: 3,
+        summaryLine: '24 SKUs | 96 units | 3 gift cards excluded',
+        metrics: [
+          {
+            id: 'retail_value',
+            label: 'Retail Value',
+            shortLabel: 'Retail',
+            description: 'Retail carry value',
+            value: 12500,
+            format: 'currency',
+          },
+        ],
+      },
       dataFreshness: 'fresh (< 24h)',
     });
   });

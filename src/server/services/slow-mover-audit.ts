@@ -1,4 +1,5 @@
 import type { MarketBenchmarks } from '@/types/market-benchmarks';
+import { isGiftCardProductLike } from '@/lib/slow-mover-metrics';
 import type { CatalogAnalyticsProduct } from './catalog-analytics-source';
 import { toAnalyticsDate } from './catalog-analytics-source';
 
@@ -14,6 +15,7 @@ export interface SlowMoverAuditItem {
   name: string;
   category: string;
   price: number;
+  cost?: number;
   stockLevel: number;
   daysSinceLastSale: number;
   salesVelocity: number;
@@ -21,11 +23,13 @@ export interface SlowMoverAuditItem {
   salesLast30Days: number;
   action: 'markdown' | 'liquidate';
   estimatedAtRisk: number;
+  estimatedCostBasis?: number | null;
 }
 
 export interface SlowMoverAuditResult {
   items: SlowMoverAuditItem[];
   skippedMissingLastSale: number;
+  skippedExcludedProducts: number;
   thresholds: SlowMoverAuditThresholds;
 }
 
@@ -56,10 +60,16 @@ export function buildSlowMoverAudit(
 ): SlowMoverAuditResult {
   const now = options?.now ?? new Date();
   let skippedMissingLastSale = 0;
+  let skippedExcludedProducts = 0;
 
   const items = products
     .flatMap((product) => {
       if ((product.stock ?? 0) <= 0) {
+        return [];
+      }
+
+      if (isGiftCardProductLike(product)) {
+        skippedExcludedProducts += 1;
         return [];
       }
 
@@ -88,12 +98,16 @@ export function buildSlowMoverAudit(
       }
 
       const estimatedAtRisk = Math.round(product.price * product.stock);
+      const estimatedCostBasis = typeof product.cost === 'number'
+        ? Math.round(product.cost * product.stock)
+        : null;
 
       return [{
         productId: product.id,
         name: product.name,
         category: product.category,
         price: product.price,
+        ...(typeof product.cost === 'number' ? { cost: product.cost } : {}),
         stockLevel: product.stock,
         daysSinceLastSale,
         salesVelocity,
@@ -101,6 +115,7 @@ export function buildSlowMoverAudit(
         salesLast30Days: product.salesLast30Days,
         action: (daysSinceLastSale >= thresholds.liquidateDays ? 'liquidate' : 'markdown') as 'liquidate' | 'markdown',
         estimatedAtRisk,
+        estimatedCostBasis,
       }];
     })
     .sort((a, b) => (
@@ -112,6 +127,7 @@ export function buildSlowMoverAudit(
   return {
     items: typeof options?.limit === 'number' ? items.slice(0, options.limit) : items,
     skippedMissingLastSale,
+    skippedExcludedProducts,
     thresholds,
   };
 }
