@@ -16,6 +16,7 @@ import {
     type TabletSearchRecommendationsResult,
     type TabletMoodId,
     type TabletProduct,
+    type ProductTier,
 } from '@/lib/checkin/loyalty-tablet-shared';
 
 export type { TabletProduct, TabletBundle };
@@ -221,6 +222,8 @@ type RawMenuProduct = {
     cbd_percent?: number;
     cbd?: number;
     effects?: string[];
+    terpenes?: string[];
+    terpenoids?: string[];
 };
 
 // Categories scanned from purchase history text to infer customer preferences
@@ -440,11 +443,21 @@ function buildPopularPicksFallback(products: RawMenuProduct[]): TabletProduct[] 
     return picks;
 }
 
-function getProductPotency(product: RawMenuProduct): Pick<TabletProduct, 'thcPercent' | 'cbdPercent' | 'strainType' | 'effects'> {
+function classifyProductTier(price: number): ProductTier {
+    if (price < 20) return 'budget';
+    if (price <= 50) return 'mid';
+    return 'premium';
+}
+
+function getProductPotency(product: RawMenuProduct): Pick<TabletProduct, 'thcPercent' | 'cbdPercent' | 'strainType' | 'effects' | 'terpenes' | 'description'> {
     const thcRaw = product.thcPercent ?? product.thc_percent ?? product.thc;
     const cbdRaw = product.cbdPercent ?? product.cbd_percent ?? product.cbd;
     const strainType = typeof product.strainType === 'string' ? product.strainType
         : typeof product.strain_type === 'string' ? product.strain_type
+        : undefined;
+    const rawTerpenes = product.terpenes ?? product.terpenoids;
+    const description = typeof product.description === 'string' && product.description.trim()
+        ? product.description.trim()
         : undefined;
     return {
         thcPercent: typeof thcRaw === 'number' && thcRaw > 0 ? thcRaw : undefined,
@@ -453,19 +466,25 @@ function getProductPotency(product: RawMenuProduct): Pick<TabletProduct, 'thcPer
         effects: Array.isArray(product.effects) && product.effects.length > 0
             ? product.effects as string[]
             : undefined,
+        terpenes: Array.isArray(rawTerpenes) && rawTerpenes.length > 0
+            ? rawTerpenes as string[]
+            : undefined,
+        description,
     };
 }
 
 function toTabletProduct(product: RawMenuProduct, config: MoodRecommendationConfig): TabletProduct {
     const category = getProductCategory(product);
+    const price = getProductPrice(product);
     return {
         productId: getProductId(product),
         name: getProductName(product),
-        price: getProductPrice(product),
+        price,
         category,
         brandName: getProductBrandName(product),
         imageUrl: getProductImageUrl(product),
         reason: buildProductReason(config, category),
+        tier: classifyProductTier(price),
         ...getProductPotency(product),
     };
 }
@@ -498,7 +517,33 @@ function buildBundle(pool: RawMenuProduct[], config: MoodRecommendationConfig): 
 }
 
 function buildRecommendationSet(pool: RawMenuProduct[], config: MoodRecommendationConfig): RecommendationSet {
-    const products = pool.slice(0, 3).map((product) => toTabletProduct(product, config));
+    // Prefer one product per price tier (premium/mid/budget) so the customer
+    // always sees a range. Fall back to top-scored if a tier has no match.
+    const tiers: Array<'premium' | 'mid' | 'budget'> = ['premium', 'mid', 'budget'];
+    const picked: RawMenuProduct[] = [];
+    const usedIds = new Set<string>();
+
+    for (const tier of tiers) {
+        const match = pool.find((p) => {
+            if (usedIds.has(getProductId(p))) return false;
+            return classifyProductTier(getProductPrice(p)) === tier;
+        });
+        if (match) {
+            picked.push(match);
+            usedIds.add(getProductId(match));
+        }
+    }
+
+    // Backfill with top-scored products if we have fewer than 3
+    for (const p of pool) {
+        if (picked.length >= 3) break;
+        if (!usedIds.has(getProductId(p))) {
+            picked.push(p);
+            usedIds.add(getProductId(p));
+        }
+    }
+
+    const products = picked.map((product) => toTabletProduct(product, config));
     const bundle = buildBundle(pool, config) ?? undefined;
 
     return {
@@ -632,23 +677,23 @@ export async function getMoodRecommendations(
             };
         }
 
-        // 4. Look up pre-rendered mood video (instant — no Lambda render)
-        const videoUrl = await getCachedMoodVideoUrl(orgId, mood.id).catch(() => null) ?? undefined;
-
         logger.info('[LoyaltyTablet] Mood recommendations generated', {
             orgId,
             moodId,
             productCount: recommendationSet.products.length,
             bundleProductCount: recommendationSet.bundle?.products.length ?? 0,
-            hasVideo: !!videoUrl,
             inventoryCount: products.length,
             strategy: 'deterministic_menu_search',
         });
 
+        // Video URL is a nice-to-have — fire-and-forget so it never blocks the kiosk.
+        // The client can re-fetch or ignore if null.
+        void getCachedMoodVideoUrl(orgId, mood.id).catch(() => null);
+
         return {
             success: true,
             ...recommendationSet,
-            videoUrl,
+            videoUrl: undefined,
         };
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : 'Failed to get recommendations';

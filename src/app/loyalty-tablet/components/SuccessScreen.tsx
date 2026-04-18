@@ -62,17 +62,19 @@ export function SuccessScreen({
             <div>
                 <h1 className="mb-3 text-3xl font-black text-gray-900 sm:text-5xl">
                     {firstName
-                        ? `See you next time, ${firstName}!`
+                        ? `You're checked out, ${firstName}!`
                         : result?.isNewLead
                             ? 'You\'re all checked in!'
                             : 'Welcome back!'}
                 </h1>
                 <p className="text-base sm:text-xl" style={{ color: mutedTextColor }}>
                     {budtenderName
-                        ? `${budtenderName} has your picks ready — enjoy!`
-                        : result?.isNewLead
-                            ? 'Your follow-ups are set if you opted in.'
-                            : 'Your loyalty balance is ready.'}
+                        ? `${budtenderName} has your order ready — head to the counter!`
+                        : cartCount > 0
+                            ? 'Show this screen at the counter to complete your order.'
+                            : result?.isNewLead
+                                ? 'Your follow-ups are set if you opted in.'
+                                : 'Your loyalty balance is ready.'}
                 </p>
             </div>
 
@@ -101,10 +103,13 @@ export function SuccessScreen({
             )}
 
             {cartCount > 0 && (
-                <div className="flex items-center gap-3 rounded-[28px] border px-8 py-4" style={panelStyle}>
-                    <ShoppingCart className="h-8 w-8" style={{ color: brandTheme.colors.primary }} />
-                    <p className="font-bold text-gray-900">
-                        {cartCount} item{cartCount !== 1 ? 's' : ''} selected — show your budtender!
+                <div className="flex flex-col items-center gap-2 rounded-[28px] border px-8 py-5 text-center" style={{ ...panelStyle, borderColor: 'rgba(16,185,129,0.35)', backgroundColor: 'rgba(16,185,129,0.06)' }}>
+                    <ShoppingCart className="h-9 w-9" style={{ color: brandTheme.colors.primary }} />
+                    <p className="text-lg font-black text-gray-900">
+                        {cartCount} item{cartCount !== 1 ? 's' : ''} queued for your budtender
+                    </p>
+                    <p className="text-sm" style={{ color: mutedTextColor }}>
+                        Your picks are ready — show this screen at the counter to check out.
                     </p>
                 </div>
             )}

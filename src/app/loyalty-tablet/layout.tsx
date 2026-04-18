@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 
 export default function LoyaltyTabletLayout({ children }: { children: React.ReactNode }) {
     return (
-        <div className="fixed inset-0 bg-[#0f0f1a] text-white overflow-hidden">
+        <div className="fixed inset-0 bg-[#0f0f1a] text-white overflow-y-auto overflow-x-hidden">
             {/* Explicit manifest link — guarantees Chrome sees tablet-manifest.json
                 even if Next.js metadata merging falls back to root manifest.json */}
             <link rel="manifest" href="/tablet-manifest.json" />

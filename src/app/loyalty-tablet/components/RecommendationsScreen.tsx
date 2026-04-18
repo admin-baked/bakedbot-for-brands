@@ -1,30 +1,48 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { 
-    Users, 
-    Mic, 
-    MicOff, 
-    Search, 
-    Sparkles, 
-    Volume2, 
-    VolumeX, 
-    Loader2, 
-    ShoppingCart, 
-    Star, 
-    ChevronRight 
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    Users,
+    Mic,
+    MicOff,
+    Search,
+    Sparkles,
+    Volume2,
+    VolumeX,
+    Loader2,
+    ShoppingCart,
+    Star,
+    ChevronRight,
+    X,
+    Leaf,
+    Zap,
+    Wind,
 } from 'lucide-react';
-import { CSSProperties, SyntheticEvent } from 'react';
+import { CSSProperties, SyntheticEvent, useState } from 'react';
 import { PublicBrandTheme } from '@/lib/checkin/checkin-management-shared';
-import { 
-    BudtenderContext, 
-    TabletProduct, 
-    TabletBundle 
+import {
+    BudtenderContext,
+    TabletProduct,
+    TabletBundle
 } from '@/server/actions/loyalty-tablet';
-import { TabletMoodId } from '@/lib/checkin/loyalty-tablet-shared';
-import { slideVariants, hexToRgba, AMBER, AMBER_DARK, SMOKEY_FALLBACK_IMAGE, ASK_SMOKEY_PLACEHOLDER } from './shared';
+import { slideVariants, hexToRgba, AMBER, AMBER_DARK, ASK_SMOKEY_PLACEHOLDER } from './shared';
 import { getCategoryIconName, getCategoryIconColor } from '@/lib/utils/product-image';
 import * as LucideIcons from 'lucide-react';
+
+function CategoryIconPlaceholder({ category, size = 'md' }: { category: string; size?: 'md' | 'lg' }) {
+    const iconName = getCategoryIconName(category);
+    // @ts-ignore - Dynamic lucide icon access — established pattern (getCategoryIconName guarantees a valid name)
+    const Icon = LucideIcons[iconName] || LucideIcons.Leaf;
+    const colorClass = getCategoryIconColor(category);
+    const sizeClass = size === 'lg' ? 'h-20 w-20 opacity-40' : 'h-12 w-12';
+    return <Icon className={`${sizeClass} ${colorClass}`} strokeWidth={1.5} />;
+}
+
+const TIER_LABELS: Record<string, { label: string; bg: string; text: string }> = {
+    budget: { label: 'Value', bg: 'rgba(34,197,94,0.12)', text: '#15803d' },
+    mid:    { label: 'Mid',   bg: 'rgba(59,130,246,0.12)', text: '#1d4ed8' },
+    premium: { label: 'Premium', bg: 'rgba(245,158,11,0.12)', text: '#b45309' },
+};
 
 interface RecommendationsScreenProps {
     brandTheme: PublicBrandTheme;
@@ -48,7 +66,7 @@ interface RecommendationsScreenProps {
     handleAutoListenToggle: () => void;
     assistantQuery: string;
     setAssistantQuery: (query: string) => void;
-    handleAssistantSearch: () => void;
+    handleAssistantSearch: (rawQuery?: string) => void;
     assistantLoading: boolean;
     handleVoiceToggle: () => void;
     products: TabletProduct[];
@@ -71,6 +89,188 @@ interface RecommendationsScreenProps {
     primaryButtonStyle: CSSProperties;
     secondaryButtonStyle: CSSProperties;
     handleProductImageError: (e: SyntheticEvent<HTMLImageElement>) => void;
+}
+
+function ProductDetailModal({
+    product,
+    inCart,
+    onClose,
+    onToggleCart,
+    onFindMore,
+    brandTheme,
+    mutedTextColor,
+    faintTextColor,
+    panelStyle,
+    primaryButtonStyle,
+    secondaryButtonStyle,
+}: {
+    product: TabletProduct;
+    inCart: boolean;
+    onClose: () => void;
+    onToggleCart: () => void;
+    onFindMore: (query: string) => void;
+    brandTheme: PublicBrandTheme;
+    mutedTextColor: string;
+    faintTextColor: string;
+    panelStyle: CSSProperties;
+    primaryButtonStyle: CSSProperties;
+    secondaryButtonStyle: CSSProperties;
+}) {
+    const tier = product.tier ? TIER_LABELS[product.tier] : null;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+            onClick={onClose}
+        >
+            <motion.div
+                initial={{ y: 60, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 60, opacity: 0 }}
+                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                className="w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
+                style={{ backgroundColor: 'white' }}
+                onClick={e => e.stopPropagation()}
+            >
+                {/* Product image */}
+                <div className="relative aspect-video w-full bg-gray-100">
+                    {product.imageUrl ? (
+                        <img
+                            src={product.imageUrl}
+                            alt={product.name}
+                            className="h-full w-full object-cover"
+                        />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gray-50">
+                            {(() => {
+                                const iconName = getCategoryIconName(product.category);
+                                // @ts-ignore
+                                const CategoryIcon = LucideIcons[iconName] || LucideIcons.Leaf;
+                                const iconColor = getCategoryIconColor(product.category);
+                                return <CategoryIcon className={`h-20 w-20 ${iconColor} opacity-40`} strokeWidth={1.5} />;
+                            })()}
+                        </div>
+                    )}
+                    <button
+                        onClick={onClose}
+                        className="absolute top-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                    {tier && (
+                        <span
+                            className="absolute top-3 left-3 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide"
+                            style={{ backgroundColor: tier.bg, color: tier.text }}
+                        >
+                            {tier.label}
+                        </span>
+                    )}
+                </div>
+
+                <div className="p-5 space-y-4">
+                    {/* Header */}
+                    <div>
+                        <h2 className="text-xl font-black text-gray-900 leading-tight">{product.name}</h2>
+                        {product.brandName && (
+                            <p className="mt-0.5 text-sm font-medium" style={{ color: brandTheme.colors.primary }}>
+                                {product.brandName}
+                            </p>
+                        )}
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">{product.category}</span>
+                            <span className="text-2xl font-black text-gray-900">${product.price.toFixed(2)}</span>
+                            {product.strainType && (
+                                <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600 capitalize">{product.strainType}</span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Potency */}
+                    {(product.thcPercent || product.cbdPercent) && (
+                        <div className="flex gap-3">
+                            {product.thcPercent && (
+                                <div className="flex items-center gap-1.5 rounded-2xl px-4 py-2" style={{ backgroundColor: hexToRgba(brandTheme.colors.primary, 0.08) }}>
+                                    <Leaf className="h-4 w-4" style={{ color: brandTheme.colors.primary }} />
+                                    <span className="text-sm font-bold" style={{ color: brandTheme.colors.primary }}>THC {product.thcPercent}%</span>
+                                </div>
+                            )}
+                            {product.cbdPercent && (
+                                <div className="flex items-center gap-1.5 rounded-2xl px-4 py-2 bg-blue-50">
+                                    <Zap className="h-4 w-4 text-blue-600" />
+                                    <span className="text-sm font-bold text-blue-700">CBD {product.cbdPercent}%</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Description */}
+                    {product.description && (
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: mutedTextColor }}>About</p>
+                            <p className="text-sm leading-relaxed text-gray-700">{product.description}</p>
+                        </div>
+                    )}
+
+                    {/* Effects */}
+                    {product.effects && product.effects.length > 0 && (
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: mutedTextColor }}>Effects</p>
+                            <div className="flex flex-wrap gap-2">
+                                {product.effects.map(effect => (
+                                    <span key={effect} className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">{effect}</span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Terpenes */}
+                    {product.terpenes && product.terpenes.length > 0 && (
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-widest mb-2 flex items-center gap-1.5" style={{ color: mutedTextColor }}>
+                                <Wind className="h-3 w-3" /> Terpenes
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {product.terpenes.map(t => (
+                                    <span key={t} className="rounded-full border border-gray-200 px-3 py-1 text-sm text-gray-600">{t}</span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Smokey's reason */}
+                    <div className="rounded-2xl p-4" style={{ backgroundColor: hexToRgba(AMBER, 0.08) }}>
+                        <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: AMBER_DARK }}>Why Smokey picked it</p>
+                        <p className="text-sm text-gray-700">{product.reason}</p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-3">
+                        <button
+                            onClick={onToggleCart}
+                            className="flex-1 rounded-[18px] py-3 text-sm font-bold transition-all hover:opacity-95 active:scale-[0.99]"
+                            style={inCart ? secondaryButtonStyle : primaryButtonStyle}
+                        >
+                            {inCart ? 'Added ✓' : '+ Add to Cart'}
+                        </button>
+                        <button
+                            onClick={() => {
+                                onFindMore(`more ${product.category} like ${product.name}`);
+                                onClose();
+                            }}
+                            className="rounded-[18px] border px-4 py-3 text-sm font-bold transition-all hover:opacity-95 active:scale-[0.99]"
+                            style={secondaryButtonStyle}
+                        >
+                            Find More Like This
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+        </motion.div>
+    );
 }
 
 export function RecommendationsScreen({
@@ -119,6 +319,13 @@ export function RecommendationsScreen({
     secondaryButtonStyle,
     handleProductImageError
 }: RecommendationsScreenProps) {
+    const [selectedProduct, setSelectedProduct] = useState<TabletProduct | null>(null);
+
+    const handleFindMore = (query: string) => {
+        setAssistantQuery(query);
+        void handleAssistantSearch(query);
+    };
+
     if (recsLoading) {
         return (
             <motion.div
@@ -153,13 +360,33 @@ export function RecommendationsScreen({
     }
 
     return (
-        <motion.div
-            key="recommendations"
-            variants={slideVariants}
-            initial="enter" animate="center" exit="exit"
-            transition={{ duration: 0.25 }}
-            className="relative z-10 mx-auto flex flex-col items-center gap-5 w-full max-w-4xl"
-        >
+        <>
+            {/* Product detail modal */}
+            <AnimatePresence>
+                {selectedProduct && (
+                    <ProductDetailModal
+                        product={selectedProduct}
+                        inCart={cart.includes(selectedProduct.productId)}
+                        onClose={() => setSelectedProduct(null)}
+                        onToggleCart={() => { toggleCart(selectedProduct.productId); resetIdleTimer(); }}
+                        onFindMore={handleFindMore}
+                        brandTheme={brandTheme}
+                        mutedTextColor={mutedTextColor}
+                        faintTextColor={faintTextColor}
+                        panelStyle={panelStyle}
+                        primaryButtonStyle={primaryButtonStyle}
+                        secondaryButtonStyle={secondaryButtonStyle}
+                    />
+                )}
+            </AnimatePresence>
+
+            <motion.div
+                key="recommendations"
+                variants={slideVariants}
+                initial="enter" animate="center" exit="exit"
+                transition={{ duration: 0.25 }}
+                className="relative z-10 mx-auto flex flex-col items-center gap-5 w-full max-w-4xl"
+            >
             {/* ── Budtender context strip ── */}
             {budtenderContext && (
                 <div className="w-full rounded-[24px] border p-4" style={panelStyle}>
@@ -196,7 +423,6 @@ export function RecommendationsScreen({
                             </span>
                         ))}
                     </div>
-                    {/* Last order details */}
                     {budtenderContext.lastOrderItems && budtenderContext.lastOrderItems.length > 0 && (
                         <div className="mt-2 rounded-xl p-3" style={{ backgroundColor: hexToRgba(brandTheme.colors.primary, 0.04) }}>
                             <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: brandTheme.colors.primary }}>
@@ -220,7 +446,6 @@ export function RecommendationsScreen({
                 </div>
             )}
 
-            {/* ── Budtender name field (first time / new customer) ── */}
             {!budtenderContext && (
                 <div className="w-full flex items-center gap-3 rounded-[20px] border px-4 py-2" style={panelStyle}>
                     <Users className="h-4 w-4 shrink-0" style={{ color: mutedTextColor }} />
@@ -234,11 +459,9 @@ export function RecommendationsScreen({
                 </div>
             )}
 
-            {/* ── Smokey mascot — centered hero ── */}
+            {/* ── Smokey mascot ── */}
             <div className="flex flex-col items-center gap-3 w-full">
-                {/* Pulsing mascot */}
                 <div className="relative flex items-center justify-center my-2">
-                    {/* Outer pulse — active when speaking or recording */}
                     {(voiceOutput.isSpeaking || micIsActive || micIsProcessing) && (
                         <>
                             <div className="absolute h-52 w-52 rounded-full animate-ping opacity-10" style={{ backgroundColor: brandTheme.colors.primary }} />
@@ -247,9 +470,7 @@ export function RecommendationsScreen({
                     )}
                     <div
                         className="absolute h-36 w-36 rounded-full transition-opacity duration-300"
-                        style={{
-                            backgroundColor: hexToRgba(brandTheme.colors.primary, voiceOutput.isSpeaking || micIsActive ? 0.12 : 0.04),
-                        }}
+                        style={{ backgroundColor: hexToRgba(brandTheme.colors.primary, voiceOutput.isSpeaking || micIsActive ? 0.12 : 0.04) }}
                     />
                     <img
                         src="/assets/agents/smokey-main.png"
@@ -258,16 +479,11 @@ export function RecommendationsScreen({
                     />
                 </div>
 
-                {/* Smokey speech bubble */}
+                {/* Speech bubble */}
                 <div className="relative max-w-sm w-full">
-                    {/* Triangle pointer up to mascot */}
                     <div
                         className="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0"
-                        style={{
-                            borderLeft: '12px solid transparent',
-                            borderRight: '12px solid transparent',
-                            borderBottom: `12px solid ${hexToRgba(AMBER, 0.2)}`,
-                        }}
+                        style={{ borderLeft: '12px solid transparent', borderRight: '12px solid transparent', borderBottom: `12px solid ${hexToRgba(AMBER, 0.2)}` }}
                     />
                     <div
                         className="rounded-[22px] border-2 p-4 text-center min-h-[64px] flex items-center justify-center"
@@ -297,36 +513,28 @@ export function RecommendationsScreen({
                     </div>
                 </div>
 
-                {/* One-time mic permission prompt — tap triggers browser dialog */}
                 {smokeyVoice.isSupported && (micPermission === 'unknown' || micPermission === 'prompt') && (
                     <button
                         onClick={() => { void handleRequestMicPermission(); }}
                         className="flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold border-2 transition-all active:scale-95 animate-bounce shadow-lg"
-                        style={{ 
-                            borderColor: brandTheme.colors.primary, 
-                            color: '#ffffff', 
-                            backgroundColor: brandTheme.colors.primary 
-                        }}
+                        style={{ borderColor: brandTheme.colors.primary, color: '#ffffff', backgroundColor: brandTheme.colors.primary }}
                     >
                         <Mic className="h-5 w-5" /> Enable Voice Search
                     </button>
                 )}
                 {micPermission === 'denied' && (
                     <div className="rounded-2xl bg-red-50 p-4 border border-red-100 max-w-sm">
-                        <p className="text-xs text-red-600 font-bold text-center">
-                            Mic Access Blocked
-                        </p>
+                        <p className="text-xs text-red-600 font-bold text-center">Mic Access Blocked</p>
                         <p className="text-[10px] text-red-500 text-center mt-1">
-                            {isBrave 
-                              ? "Brave Shields might be blocking the mic. Tap the lock icon in the address bar to allow Microphone."
-                              : "Please enable microphone access in your browser settings to use voice features."}
+                            {isBrave
+                                ? "Brave Shields might be blocking the mic. Tap the lock icon in the address bar to allow Microphone."
+                                : "Please enable microphone access in your browser settings to use voice features."}
                         </p>
                     </div>
                 )}
 
                 {/* Mic + search row */}
                 <div className="flex w-full gap-3 items-center">
-                    {/* Mic button — auto-listen toggle or hold-to-talk fallback */}
                     <button
                         onClick={micPermission === 'granted' ? handleAutoListenToggle : undefined}
                         onPointerDown={micPermission !== 'granted' ? handleMicPointerDown : undefined}
@@ -336,22 +544,12 @@ export function RecommendationsScreen({
                         className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 transition-all select-none disabled:opacity-60 shadow-md"
                         style={micIsActive || autoListening
                             ? { backgroundColor: brandTheme.colors.primary, borderColor: brandTheme.colors.primary, color: '#ffffff' }
-                            : micIsProcessing
-                                ? { ...secondaryButtonStyle, opacity: 0.6 }
-                                : { ...secondaryButtonStyle, borderWidth: '2px' }
-                        }
+                            : micIsProcessing ? { ...secondaryButtonStyle, opacity: 0.6 } : { ...secondaryButtonStyle, borderWidth: '2px' }}
                         title={autoListening ? 'Tap to mute Smokey' : 'Tap to enable always-listening'}
                     >
-                        {micIsProcessing ? (
-                            <Loader2 className="h-6 w-6 animate-spin" />
-                        ) : autoListening || micIsActive ? (
-                            <Mic className="h-6 w-6 animate-pulse" />
-                        ) : (
-                            <MicOff className="h-6 w-6" />
-                        )}
+                        {micIsProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : autoListening || micIsActive ? <Mic className="h-6 w-6 animate-pulse" /> : <MicOff className="h-6 w-6" />}
                     </button>
 
-                    {/* Search input */}
                     <div className="flex flex-1 items-center gap-2 rounded-[20px] border px-3 py-3 bg-white">
                         <Search className="h-5 w-5 shrink-0" style={{ color: brandTheme.colors.primary }} />
                         <input
@@ -369,14 +567,9 @@ export function RecommendationsScreen({
                         className="inline-flex items-center justify-center gap-1.5 rounded-[20px] px-4 py-3 text-sm font-bold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-40 shrink-0"
                         style={primaryButtonStyle}
                     >
-                        {assistantLoading ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <><Sparkles className="h-4 w-4" /> Ask</>
-                        )}
+                        {assistantLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="h-4 w-4" /> Ask</>}
                     </button>
 
-                    {/* Voice toggle */}
                     <button
                         onClick={handleVoiceToggle}
                         disabled={!voiceOutput.isSupported}
@@ -393,15 +586,19 @@ export function RecommendationsScreen({
             <div className="w-full space-y-3">
                 {products.map(product => {
                     const inCart = cart.includes(product.productId);
+                    const tier = product.tier ? TIER_LABELS[product.tier] : null;
                     return (
                         <div
                             key={product.productId}
                             className="flex flex-col gap-4 rounded-[28px] border p-4 transition-all sm:flex-row sm:items-center"
                             style={inCart ? accentPanelStyle : panelStyle}
                         >
-                            <div
-                                className="relative h-24 w-full overflow-hidden rounded-[22px] border sm:h-28 sm:w-28 sm:shrink-0 bg-muted/30"
+                            {/* Tappable product image → opens detail */}
+                            <button
+                                onClick={() => { setSelectedProduct(product); resetIdleTimer(); }}
+                                className="relative h-24 w-full overflow-hidden rounded-[22px] border sm:h-28 sm:w-28 sm:shrink-0 bg-muted/30 focus:outline-none"
                                 style={{ borderColor: '#e5e7eb' }}
+                                aria-label={`View details for ${product.name}`}
                             >
                                 {product.imageUrl ? (
                                     <img
@@ -416,25 +613,51 @@ export function RecommendationsScreen({
                                     <div className="flex h-full w-full items-center justify-center">
                                         {(() => {
                                             const iconName = getCategoryIconName(product.category);
-                                            // @ts-ignore - Dynamic lucide icon access
+                                            // @ts-ignore
                                             const CategoryIcon = LucideIcons[iconName] || LucideIcons.Leaf;
                                             const iconColor = getCategoryIconColor(product.category);
                                             return <CategoryIcon className={`h-12 w-12 ${iconColor}`} strokeWidth={1.5} />;
                                         })()}
                                     </div>
                                 )}
-                            </div>
+                                {/* Tap hint overlay */}
+                                <div className="absolute inset-0 flex items-end justify-center pb-1 opacity-0 hover:opacity-100 transition-opacity">
+                                    <span className="rounded-full bg-black/50 px-2 py-0.5 text-[10px] text-white">Details</span>
+                                </div>
+                            </button>
+
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-lg font-bold text-gray-900 sm:text-xl">{product.name}</p>
-                                <p className="mt-1 truncate text-sm font-medium" style={{ color: brandTheme.colors.primary }}>
+                                <div className="flex items-start gap-2 mb-0.5">
+                                    <button
+                                        onClick={() => { setSelectedProduct(product); resetIdleTimer(); }}
+                                        className="truncate text-lg font-bold text-gray-900 sm:text-xl text-left hover:underline focus:outline-none"
+                                    >
+                                        {product.name}
+                                    </button>
+                                    {tier && (
+                                        <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide" style={{ backgroundColor: tier.bg, color: tier.text }}>
+                                            {tier.label}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="mt-0.5 truncate text-sm font-medium" style={{ color: brandTheme.colors.primary }}>
                                     {product.category}{product.brandName ? ` - ${product.brandName}` : ''}
                                 </p>
-                                <p className="mt-2 text-sm leading-relaxed" style={{ color: mutedTextColor }}>{product.reason}</p>
+                                {(product.thcPercent || product.cbdPercent) && (
+                                    <p className="mt-1 text-xs font-medium text-emerald-700">
+                                        {product.thcPercent ? `THC ${product.thcPercent}%` : ''}
+                                        {product.thcPercent && product.cbdPercent ? ' · ' : ''}
+                                        {product.cbdPercent ? `CBD ${product.cbdPercent}%` : ''}
+                                        {product.strainType ? ` · ${product.strainType}` : ''}
+                                    </p>
+                                )}
+                                <p className="mt-2 text-sm leading-relaxed line-clamp-2" style={{ color: mutedTextColor }}>{product.reason}</p>
                             </div>
+
                             <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:justify-center">
                                 <p className="text-2xl font-black text-gray-900">${product.price.toFixed(2)}</p>
                                 <button
-                                    onClick={() => toggleCart(product.productId)}
+                                    onClick={() => { toggleCart(product.productId); resetIdleTimer(); }}
                                     className="rounded-[18px] px-4 py-2 text-sm font-bold transition-all hover:opacity-95 active:scale-[0.99]"
                                     style={inCart ? secondaryButtonStyle : primaryButtonStyle}
                                 >
@@ -457,18 +680,10 @@ export function RecommendationsScreen({
                             </div>
                             <p className="text-xl font-black text-gray-900">{bundle.name}</p>
                             <p className="mb-2 text-sm italic" style={{ color: mutedTextColor }}>{bundle.tagline}</p>
-                            
-                            {/* Remotion on AWS Video Player */}
+
                             {videoUrl && (
                                 <div className="my-4 overflow-hidden rounded-2xl border bg-black shadow-inner">
-                                    <video 
-                                        src={videoUrl} 
-                                        controls 
-                                        autoPlay 
-                                        muted 
-                                        playsInline
-                                        className="aspect-video w-full"
-                                    />
+                                    <video src={videoUrl} controls autoPlay muted playsInline className="aspect-video w-full" />
                                 </div>
                             )}
 
@@ -504,13 +719,10 @@ export function RecommendationsScreen({
                 >
                     {loading ? (
                         <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : cartCount > 0 ? (
+                        <><ShoppingCart className="h-6 w-6" /> Checkout — {cartCount} item{cartCount !== 1 ? 's' : ''}</>
                     ) : (
-                        <>
-                            {cartCount > 0
-                                ? <><ShoppingCart className="h-6 w-6" /> Continue with {cartCount} item{cartCount !== 1 ? 's' : ''}</>
-                                : <><Users className="h-6 w-6" /> Continue to Budtender</>
-                            }
-                        </>
+                        <><ShoppingCart className="h-6 w-6" /> Checkout</>
                     )}
                 </button>
             </div>
@@ -518,5 +730,6 @@ export function RecommendationsScreen({
             {error && <p className="text-center text-sm text-red-500">{error}</p>}
             <button onClick={() => setStep('mood')} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Change feeling</button>
         </motion.div>
+        </>
     );
 }

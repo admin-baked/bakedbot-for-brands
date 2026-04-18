@@ -28,29 +28,32 @@ import {
     DEFAULT_ZIP_SEO_CONTENT,
 } from '@/types/brand-pages';
 import { Timestamp } from '@google-cloud/firestore';
-import { requireUser } from '@/lib/auth-helpers';
+import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    isValidDocumentId,
+    resolveActorOrgId,
+} from '@/server/auth/actor-context';
 import { logger } from '@/lib/logger';
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
+type BrandPagesActor = ActorContextLike & {
+    uid?: string | null;
+};
+
+function getActorOrgId(user: BrandPagesActor): string | null {
+    return resolveActorOrgId(user);
 }
 
-function getActorOrgId(user: unknown): string | null {
-    if (!user || typeof user !== 'object') return null;
-    const token = user as {
-        uid?: string;
-        currentOrgId?: string;
-        orgId?: string;
-        brandId?: string;
-    };
-    return token.currentOrgId || token.orgId || token.brandId || token.uid || null;
-}
+function canAccessOrg(user: BrandPagesActor, orgId: string): boolean {
+    if (!isValidDocumentId(orgId)) {
+        return false;
+    }
 
-function canAccessOrg(user: unknown, orgId: string): boolean {
     const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
     if (isSuperRole(role)) return true;
     const actorOrgId = getActorOrgId(user);
-    if (!actorOrgId) return true;
+    if (!actorOrgId) return false;
     return actorOrgId === orgId;
 }
 
@@ -76,8 +79,8 @@ export async function getBrandPage(
     pageType: BrandPageType
 ): Promise<BrandPageDoc | null> {
     try {
-        const user = await requireUser(['brand', 'dispensary', 'super_user']);
-        if (!canAccessOrg(user, orgId)) {
+        const user = await requireUser(['brand', 'dispensary', 'super_user', 'super_admin']);
+        if (!canAccessOrg(user as BrandPagesActor, orgId)) {
             throw new Error('Unauthorized');
         }
 
@@ -100,8 +103,8 @@ export async function getBrandPage(
  */
 export async function getAllBrandPages(orgId: string): Promise<BrandPageDoc[]> {
     try {
-        const user = await requireUser(['brand', 'dispensary', 'super_user']);
-        if (!canAccessOrg(user, orgId)) {
+        const user = await requireUser(['brand', 'dispensary', 'super_user', 'super_admin']);
+        if (!canAccessOrg(user as BrandPagesActor, orgId)) {
             throw new Error('Unauthorized');
         }
 
@@ -148,8 +151,8 @@ export async function updateBrandPage(
     pageType: BrandPageType,
     content: Partial<BrandPageDoc>
 ): Promise<BrandPageDoc> {
-    const user = await requireUser(['brand', 'dispensary', 'super_user']);
-    if (!canAccessOrg(user, orgId)) {
+    const user = await requireUser(['brand', 'dispensary', 'super_user', 'super_admin']);
+    if (!canAccessOrg(user as BrandPagesActor, orgId)) {
         throw new Error('Unauthorized');
     }
 
@@ -208,8 +211,8 @@ export async function toggleBrandPagePublish(
     pageType: BrandPageType,
     isPublished: boolean
 ): Promise<BrandPageDoc> {
-    const user = await requireUser(['brand', 'dispensary', 'super_user']);
-    if (!canAccessOrg(user, orgId)) {
+    const user = await requireUser(['brand', 'dispensary', 'super_user', 'super_admin']);
+    if (!canAccessOrg(user as BrandPagesActor, orgId)) {
         throw new Error('Unauthorized');
     }
 

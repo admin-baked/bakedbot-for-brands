@@ -12,10 +12,8 @@ jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn(),
 }));
 
-jest.mock('@/lib/auth-helpers', () => ({
-    getCurrentUser: jest.fn(),
+jest.mock('@/server/auth/auth', () => ({
     requireUser: jest.fn(),
-    verifySessionCookie: jest.fn(),
 }));
 
 jest.mock('@/lib/logger', () => ({
@@ -35,7 +33,7 @@ import {
     getBrandPageBySlug,
 } from '@/server/actions/brand-pages';
 import { createServerClient } from '@/firebase/server-client';
-import { requireUser } from '@/lib/auth-helpers';
+import { requireUser } from '@/server/auth/auth';
 
 // ---- Test Data -------------------------------------------------------------
 
@@ -275,7 +273,7 @@ describe('updateBrandPage', () => {
 
         await updateBrandPage(ORG_ID, 'about', {});
 
-        expect(requireUser).toHaveBeenCalledWith(['brand', 'dispensary', 'super_user']);
+        expect(requireUser).toHaveBeenCalledWith(['brand', 'dispensary', 'super_user', 'super_admin']);
     });
 
     it('throws on Firestore error after auth succeeds', async () => {
@@ -290,6 +288,17 @@ describe('updateBrandPage', () => {
             role: 'dispensary',
             orgId: 'org_other',
             currentOrgId: 'org_other',
+        });
+        const { firestore } = buildFirestoreMock();
+        (createServerClient as jest.Mock).mockResolvedValue({ firestore });
+
+        await expect(updateBrandPage(ORG_ID, 'about', {})).rejects.toThrow('Unauthorized');
+    });
+
+    it('throws when org context is missing for non-super users', async () => {
+        (requireUser as jest.Mock).mockResolvedValue({
+            uid: 'user123',
+            role: 'dispensary',
         });
         const { firestore } = buildFirestoreMock();
         (createServerClient as jest.Mock).mockResolvedValue({ firestore });

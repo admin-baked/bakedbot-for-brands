@@ -2,6 +2,12 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { getServerSessionUser } from '@/server/auth/session';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    isValidDocumentId,
+    resolveActorOrgIdWithLegacyAliases,
+} from '@/server/auth/actor-context';
 import { logger } from '@/lib/logger';
 import type {
     CustomerCommunication,
@@ -10,35 +16,20 @@ import type {
     ScheduledCommunication,
 } from '@/types/customer-communications';
 
-type SessionActor = {
+type SessionActor = ActorContextLike & {
     uid: string;
-    role?: string;
-    currentOrgId?: string;
-    orgId?: string;
-    brandId?: string;
     dispensaryId?: string;
     tenantId?: string;
     organizationId?: string;
 };
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
 function getActorOrgId(user: SessionActor): string | null {
-    return (
-        user.currentOrgId ||
-        user.orgId ||
-        user.brandId ||
+    return resolveActorOrgIdWithLegacyAliases(user, [
         user.dispensaryId ||
-        user.tenantId ||
-        user.organizationId ||
-        null
-    );
-}
-
-function isValidDocId(id: string): boolean {
-    return !!id && !id.includes('/');
+        null,
+        user.tenantId || null,
+        user.organizationId || null,
+    ]);
 }
 
 function normalizeCommunicationChannel(value: unknown): CommunicationChannel | null {
@@ -96,7 +87,7 @@ export async function logCommunication(params: {
     metadata?: Record<string, unknown>;
 }): Promise<string | null> {
     try {
-        if (!isValidDocId(params.orgId)) {
+        if (!isValidDocumentId(params.orgId)) {
             logger.warn('[COMMS] Invalid orgId for communication log', { orgId: params.orgId });
             return null;
         }
@@ -164,7 +155,7 @@ export async function getCustomerCommunications(
     }
 ): Promise<CustomerCommunication[]> {
     try {
-        if (!isValidDocId(orgId)) {
+        if (!isValidDocumentId(orgId)) {
             logger.warn('[COMMS] Invalid orgId for communication history read', { orgId });
             return [];
         }
@@ -259,7 +250,7 @@ export async function getUpcomingCommunications(
     orgId: string
 ): Promise<ScheduledCommunication[]> {
     try {
-        if (!isValidDocId(orgId)) {
+        if (!isValidDocumentId(orgId)) {
             logger.warn('[COMMS] Invalid orgId for upcoming communication read', { orgId });
             return [];
         }
@@ -321,7 +312,7 @@ export async function updateCommunicationStatus(
     status: 'delivered' | 'opened' | 'clicked' | 'bounced',
 ): Promise<void> {
     try {
-        if (!isValidDocId(communicationId)) {
+        if (!isValidDocumentId(communicationId)) {
             logger.warn('[COMMS] Invalid communicationId for status update', { communicationId });
             return;
         }

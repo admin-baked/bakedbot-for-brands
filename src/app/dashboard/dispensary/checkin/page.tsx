@@ -21,6 +21,7 @@ import { CheckInStatsPanel } from '@/components/dashboard/checkin/checkin-stats-
 import { CheckInVisitFeed } from '@/components/dashboard/checkin/checkin-visit-feed';
 import { CheckInSettingsPanel } from '@/components/dashboard/checkin/checkin-settings-panel';
 import { BudtenderClockInCard } from '@/components/checkin/budtender-clock-in';
+import { KioskOrderNotifications } from '@/components/dashboard/checkin/kiosk-order-notifications';
 import {
     DEFAULT_CHECKIN_CONFIG,
     type CheckinConfig,
@@ -117,7 +118,8 @@ export default function CheckInManagementPage() {
                         Manage the rewards page check-in flow, view visits, and configure settings.
                     </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                    {dispensaryId && <KioskOrderNotifications orgId={dispensaryId} />}
                     <Button
                         variant="outline"
                         size="sm"

@@ -23,6 +23,8 @@ export const MOOD_EMOJI: Record<string, string> = Object.fromEntries(
     TABLET_MOODS.map(m => [m.id, m.emoji])
 );
 
+export type ProductTier = 'budget' | 'mid' | 'premium';
+
 export interface TabletProduct {
     productId: string;
     name: string;
@@ -35,6 +37,9 @@ export interface TabletProduct {
     cbdPercent?: number;
     strainType?: string;
     effects?: string[];
+    tier?: ProductTier;
+    description?: string;
+    terpenes?: string[];
 }
 
 export interface TabletBundle {

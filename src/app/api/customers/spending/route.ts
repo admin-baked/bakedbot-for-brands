@@ -4,6 +4,13 @@ import { logger } from '@/lib/logger';
 import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
 import { posCache } from '@/lib/cache/pos-cache';
 import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    isValidDocumentId,
+    resolveActorOrgId,
+    resolveActorOrgIdWithLegacyAliases,
+} from '@/server/auth/actor-context';
 import { isBrandRole, isDispensaryRole } from '@/types/roles';
 
 export const dynamic = 'force-dynamic';
@@ -17,31 +24,26 @@ interface CustomerSpending {
     avgOrderValue: number;
 }
 
-type SpendingRouteUser = {
+type SpendingRouteUser = ActorContextLike & {
     uid: string;
-    role?: string;
-    currentOrgId?: string;
-    orgId?: string;
-    brandId?: string;
-    locationId?: string;
+    locationId?: string | null;
 };
-
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
 
 function getActorOrgId(user: SpendingRouteUser): string | null {
     const role = String(user.role || '');
 
     if (isBrandRole(role)) {
-        return user.brandId || null;
+        return resolveActorOrgId({
+            role: user.role ?? null,
+            brandId: user.brandId ?? null,
+        });
     }
 
     if (isDispensaryRole(role)) {
-        return user.orgId || user.currentOrgId || user.locationId || null;
+        return resolveActorOrgIdWithLegacyAliases(user, [user.locationId ?? null]);
     }
 
-    return user.currentOrgId || user.orgId || user.brandId || user.locationId || null;
+    return resolveActorOrgIdWithLegacyAliases(user, [user.locationId ?? null]);
 }
 
 /**
@@ -60,6 +62,13 @@ export async function GET(request: NextRequest) {
     if (!requestedOrgId) {
         return NextResponse.json(
             { error: 'Missing orgId parameter' },
+            { status: 400 }
+        );
+    }
+
+    if (!isValidDocumentId(requestedOrgId)) {
+        return NextResponse.json(
+            { error: 'Invalid orgId parameter' },
             { status: 400 }
         );
     }
