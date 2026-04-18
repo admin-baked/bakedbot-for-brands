@@ -5,6 +5,7 @@ import {
     isValidOrgId,
     requireActorOrgId,
     resolveActorOrgId,
+    resolveActorOrgIdWithLegacyAliases,
     resolveScopedOrgId,
 } from '@/server/auth/actor-context';
 
@@ -28,6 +29,15 @@ describe('actor-context', () => {
         expect(resolveActorOrgId({
             brandId: 'brand-org',
         })).toBe('brand-org');
+    });
+
+    it('supports legacy org aliases through the shared compatibility helper', () => {
+        expect(resolveActorOrgIdWithLegacyAliases(
+            {
+                role: 'brand_admin',
+            },
+            ['tenant-org', 'organization-org'],
+        )).toBe('tenant-org');
     });
 
     it('falls back to the platform org for super users without org context', () => {

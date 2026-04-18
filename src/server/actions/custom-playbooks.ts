@@ -1,6 +1,12 @@
 'use server';
 
 import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    isValidDocumentId,
+    resolveActorOrgIdWithLegacyAliases,
+} from '@/server/auth/actor-context';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { Playbook, PlaybookCategory, PlaybookTrigger, PlaybookStatus } from '@/types/playbook';
@@ -8,37 +14,27 @@ import type { UserRole } from '@/types/roles';
 
 const ALLOWED_ROLES: UserRole[] = ['dispensary_admin', 'brand_admin', 'super_user', 'super_admin'];
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
+type CustomPlaybookActor = ActorContextLike & {
+    dispensaryId?: string | null;
+    tenantId?: string | null;
+    organizationId?: string | null;
+};
 
-function isValidDocumentId(value: unknown): value is string {
-    return (
-        typeof value === 'string' &&
-        value.length >= 3 &&
-        value.length <= 128 &&
-        !/[\/\\?#\[\]]/.test(value)
-    );
-}
-
-function resolveActorOrgId(user: Record<string, unknown>): string | null {
-    const currentOrgId =
-        typeof user.currentOrgId === 'string' ? user.currentOrgId : undefined;
-    const orgId = typeof user.orgId === 'string' ? user.orgId : undefined;
-    const brandId = typeof user.brandId === 'string' ? user.brandId : undefined;
-    const dispensaryId = typeof user.dispensaryId === 'string' ? user.dispensaryId : undefined;
-    const tenantId = typeof user.tenantId === 'string' ? user.tenantId : undefined;
-    const organizationId = typeof user.organizationId === 'string' ? user.organizationId : undefined;
-    return currentOrgId ?? orgId ?? brandId ?? dispensaryId ?? tenantId ?? organizationId ?? null;
+function getActorOrgId(user: CustomPlaybookActor): string | null {
+    return resolveActorOrgIdWithLegacyAliases(user, [
+        user.dispensaryId,
+        user.tenantId,
+        user.organizationId,
+    ]);
 }
 
 function canAccessOrg(
-    user: Record<string, unknown>,
+    user: CustomPlaybookActor,
     orgId: string,
 ): boolean {
     const role = typeof user.role === 'string' ? user.role : undefined;
     if (isSuperRole(role)) return true;
-    return resolveActorOrgId(user) === orgId;
+    return getActorOrgId(user) === orgId;
 }
 
 function normalizePlaybookName(name: string): string | null {

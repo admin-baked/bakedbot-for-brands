@@ -12,37 +12,23 @@ import { logger } from '@/lib/logger';
 import { DEFAULT_LOYALTY_SETTINGS } from '@/types/customers';
 import type { LoyaltySettings, LoyaltyTier, RedemptionTier, SegmentThresholds, LoyaltyMenuDisplay, DiscountProgram } from '@/types/customers';
 import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    isValidDocumentId,
+    resolveActorOrgIdWithLegacyAliases,
+} from '@/server/auth/actor-context';
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
+type LoyaltySettingsActor = ActorContextLike & {
+    tenantId?: string | null;
+    organizationId?: string | null;
+};
 
-function isValidDocumentId(value: unknown): value is string {
-    return (
-        typeof value === 'string' &&
-        value.length >= 3 &&
-        value.length <= 128 &&
-        !/[\/\\?#\[\]]/.test(value)
-    );
-}
-
-function getActorOrgId(user: unknown): string | null {
-    if (!user || typeof user !== 'object') return null;
-    const token = user as {
-        currentOrgId?: string;
-        orgId?: string;
-        brandId?: string;
-        tenantId?: string;
-        organizationId?: string;
-    };
-    return (
-        token.currentOrgId ||
-        token.orgId ||
-        token.brandId ||
-        token.tenantId ||
-        token.organizationId ||
-        null
-    );
+function getActorOrgId(user: LoyaltySettingsActor): string | null {
+    return resolveActorOrgIdWithLegacyAliases(user, [
+        user.tenantId,
+        user.organizationId,
+    ]);
 }
 
 function assertOrgAccess(user: unknown, orgId: string): void {
@@ -50,7 +36,7 @@ function assertOrgAccess(user: unknown, orgId: string): void {
     if (isSuperRole(role)) {
         return;
     }
-    const actorOrgId = getActorOrgId(user);
+    const actorOrgId = getActorOrgId(user as LoyaltySettingsActor);
     if (!actorOrgId || actorOrgId !== orgId) {
         throw new Error('Unauthorized');
     }

@@ -54,6 +54,29 @@ export function resolveActorOrgId(actor: ActorContextLike | null | undefined): s
     return null;
 }
 
+export function resolveActorOrgIdWithLegacyAliases(
+    actor: ActorContextLike | null | undefined,
+    legacyOrgIds: unknown[],
+): string | null {
+    if (!actor) {
+        return null;
+    }
+
+    const candidates = [actor.currentOrgId, actor.orgId, actor.brandId, ...legacyOrgIds];
+    for (const candidate of candidates) {
+        const normalized = normalizeIdCandidate(candidate);
+        if (normalized) {
+            return normalized;
+        }
+    }
+
+    if (isSuperRole(actor.role)) {
+        return PLATFORM_ORG_ID;
+    }
+
+    return null;
+}
+
 export function requireActorOrgId(actor: ActorContextLike | null | undefined, actionName: string): string {
     const orgId = resolveActorOrgId(actor);
     if (!orgId || !isValidOrgId(orgId)) {

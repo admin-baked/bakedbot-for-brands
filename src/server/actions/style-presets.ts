@@ -2,22 +2,20 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    isValidDocumentId,
+    resolveActorOrgIdWithLegacyAliases,
+} from '@/server/auth/actor-context';
 import { StylePreset, MediaABTest, MediaABTestResult } from '@/types/media-generation';
 import { getBuiltInPresets } from '@/server/services/style-presets';
 import { logger } from '@/lib/logger';
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
-function isValidDocumentId(value: unknown): value is string {
-    return (
-        typeof value === 'string' &&
-        value.length >= 3 &&
-        value.length <= 128 &&
-        !/[\/\\?#\[\]]/.test(value)
-    );
-}
+type StylePresetActor = ActorContextLike & {
+    tenantId?: string | null;
+    organizationId?: string | null;
+};
 
 function normalizeMetricDelta(value: unknown): number {
     const numeric = Number(value);
@@ -25,23 +23,11 @@ function normalizeMetricDelta(value: unknown): number {
     return Math.max(0, numeric);
 }
 
-function getActorOrgId(user: unknown): string | null {
-    if (!user || typeof user !== 'object') return null;
-    const token = user as {
-        currentOrgId?: string;
-        orgId?: string;
-        brandId?: string;
-        tenantId?: string;
-        organizationId?: string;
-    };
-    return (
-        token.currentOrgId ||
-        token.orgId ||
-        token.brandId ||
-        token.tenantId ||
-        token.organizationId ||
-        null
-    );
+function getActorOrgId(user: StylePresetActor): string | null {
+    return resolveActorOrgIdWithLegacyAliases(user, [
+        user.tenantId,
+        user.organizationId,
+    ]);
 }
 
 function assertTenantAccess(user: unknown, tenantId: string): void {
@@ -50,7 +36,7 @@ function assertTenantAccess(user: unknown, tenantId: string): void {
         return;
     }
 
-    const actorOrgId = getActorOrgId(user);
+    const actorOrgId = getActorOrgId(user as StylePresetActor);
     if (!actorOrgId || actorOrgId !== tenantId) {
         throw new Error('Unauthorized');
     }

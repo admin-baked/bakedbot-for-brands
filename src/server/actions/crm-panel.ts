@@ -9,20 +9,18 @@
  */
 
 import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    isValidDocumentId,
+    resolveActorOrgIdWithLegacyAliases,
+} from '@/server/auth/actor-context';
 import { lookupCustomer, getCustomerHistory, getCustomerComms } from '@/server/tools/crm-tools';
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
-function isValidDocumentId(value: unknown): value is string {
-    return (
-        typeof value === 'string' &&
-        value.length >= 3 &&
-        value.length <= 128 &&
-        !/[\/\\?#\[\]]/.test(value)
-    );
-}
+type CrmPanelActor = ActorContextLike & {
+    tenantId?: string | null;
+    organizationId?: string | null;
+};
 
 function sanitizeLookupInput(value: string): string {
     return value.trim().slice(0, 320);
@@ -33,23 +31,11 @@ function clampLimit(limit: number, fallback: number): number {
     return Math.min(100, Math.max(1, Math.floor(limit)));
 }
 
-function getActorOrgId(user: unknown): string | null {
-    if (!user || typeof user !== 'object') return null;
-    const token = user as {
-        currentOrgId?: string;
-        orgId?: string;
-        brandId?: string;
-        tenantId?: string;
-        organizationId?: string;
-    };
-    return (
-        token.currentOrgId ||
-        token.orgId ||
-        token.brandId ||
-        token.tenantId ||
-        token.organizationId ||
-        null
-    );
+function getActorOrgId(user: CrmPanelActor): string | null {
+    return resolveActorOrgIdWithLegacyAliases(user, [
+        user.tenantId,
+        user.organizationId,
+    ]);
 }
 
 function assertOrgAccess(user: unknown, orgId: string): void {
@@ -58,7 +44,7 @@ function assertOrgAccess(user: unknown, orgId: string): void {
         return;
     }
 
-    const actorOrgId = getActorOrgId(user);
+    const actorOrgId = getActorOrgId(user as CrmPanelActor);
     if (!actorOrgId || actorOrgId !== orgId) {
         throw new Error('Unauthorized');
     }

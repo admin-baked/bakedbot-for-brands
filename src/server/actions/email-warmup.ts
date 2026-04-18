@@ -18,6 +18,12 @@ import {
 } from '@/server/services/email-warmup';
 import type { WarmupStatus, WarmupLog, WarmupScheduleType } from '@/server/services/email-warmup-types';
 import { requireUser } from '@/server/auth/auth';
+import {
+    type ActorContextLike,
+    isSuperRole,
+    isValidDocumentId,
+    resolveActorOrgId,
+} from '@/server/auth/actor-context';
 import { logger } from '@/lib/logger';
 
 // Removed re-export of Warmup types to avoid Turbopack reference errors
@@ -31,28 +37,10 @@ const WARMUP_SCHEDULE_TYPES: ReadonlySet<WarmupScheduleType> = new Set([
     'aggressive',
 ]);
 
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
-
-function isValidDocumentId(value: unknown): value is string {
-    return typeof value === 'string' && DOCUMENT_ID_REGEX.test(value);
-}
-
 function clampInt(value: unknown, min: number, max: number, fallback: number): number {
     const parsed = Number.isFinite(Number(value)) ? Number(value) : fallback;
     const intValue = Math.floor(parsed);
     return Math.min(max, Math.max(min, intValue));
-}
-
-function getActorOrgId(user: unknown): string | null {
-    if (!user || typeof user !== 'object') return null;
-    const token = user as {
-        currentOrgId?: string;
-        orgId?: string;
-        brandId?: string;
-    };
-    return token.currentOrgId || token.orgId || token.brandId || null;
 }
 
 function assertValidScheduleType(scheduleType: unknown): asserts scheduleType is WarmupScheduleType {
@@ -62,13 +50,13 @@ function assertValidScheduleType(scheduleType: unknown): asserts scheduleType is
 }
 
 async function verifyWarmupOrgAccess(orgId: string): Promise<void> {
-    if (!isValidDocumentId(orgId)) {
+    if (!DOCUMENT_ID_REGEX.test(orgId) || !isValidDocumentId(orgId)) {
         throw new Error('orgId is required');
     }
 
     const user = await requireUser(['dispensary', 'brand', 'super_user']);
     const role = (user as { role?: string }).role;
-    const actorOrgId = getActorOrgId(user);
+    const actorOrgId = resolveActorOrgId(user as ActorContextLike);
 
     if (isSuperRole(role)) {
         return;
