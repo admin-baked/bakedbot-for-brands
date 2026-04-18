@@ -21,7 +21,11 @@ export interface Invitation {
     createdAt: Date;
     expiresAt: Date;
     acceptedAt?: Date;
-    acceptedBy?: string; // User ID of the person who accepted
+    acceptedBy?: string;
+
+    // Drip reminder tracking
+    reminderCount?: number;
+    lastReminderAt?: Date;
 }
 
 // --- Zod Schemas ---
