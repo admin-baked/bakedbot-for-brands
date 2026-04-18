@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, X, Bell } from 'lucide-react';
 import { initializeFirebase } from '@/firebase';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { hexToRgba } from '@/lib/utils';
 
 // ─── Fireworks ────────────────────────────────────────────────────────────────
 
@@ -26,10 +27,6 @@ interface Shell {
     trail: Array<{ x: number; y: number }>;
 }
 
-function hexToRgb(hex: string): string {
-    const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return r ? `${parseInt(r[1], 16)},${parseInt(r[2], 16)},${parseInt(r[3], 16)}` : '255,255,255';
-}
 
 function FireworksCanvas({ onDone }: { onDone: () => void }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -178,13 +175,11 @@ function FireworksCanvas({ onDone }: { onDone: () => void }) {
 
                 if (p.alpha <= 0) { particles.splice(i, 1); continue; }
 
-                const rgb = hexToRgb(p.color);
-
                 // Particle trail
                 p.trail.forEach((pt, idx) => {
                     ctx.beginPath();
                     ctx.arc(pt.x, pt.y, p.size * 0.45, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(${rgb},${(idx / p.trail.length) * pt.alpha * 0.35})`;
+                    ctx.fillStyle = hexToRgba(p.color, (idx / p.trail.length) * pt.alpha * 0.35);
                     ctx.fill();
                 });
 
@@ -193,7 +188,7 @@ function FireworksCanvas({ onDone }: { onDone: () => void }) {
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                 ctx.shadowColor = p.color;
                 ctx.shadowBlur = 6;
-                ctx.fillStyle = `rgba(${rgb},${p.alpha})`;
+                ctx.fillStyle = hexToRgba(p.color, p.alpha);
                 ctx.fill();
                 ctx.shadowBlur = 0;
             }
