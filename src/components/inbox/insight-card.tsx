@@ -34,6 +34,11 @@ import {
     ThumbsUp,
     ThumbsDown,
 } from 'lucide-react';
+import {
+    formatSlowMoverMetricValue,
+    getSlowMoverMetric,
+    parseSlowMoverMetricBundle,
+} from '@/lib/slow-mover-metrics';
 import { cn } from '@/lib/utils';
 import type { InsightCard as InsightCardType } from '@/types/insight-cards';
 import { getAgentColors, getSeverityColors } from '@/types/insight-cards';
@@ -91,6 +96,15 @@ function TrendIndicator({
     );
 }
 
+function getSlowMoverMetricView(insight: InsightCardType) {
+    const bundle = parseSlowMoverMetricBundle(insight.metadata?.metricBundle);
+    if (!bundle) {
+        return null;
+    }
+
+    return bundle;
+}
+
 // ============ Component Props ============
 
 interface InsightCardProps {
@@ -114,6 +128,35 @@ export function InsightCard({
     const agentColors = getAgentColors(insight.agentId);
     const severityColors = getSeverityColors(insight.severity);
     const [feedbackGiven, setFeedbackGiven] = React.useState<'up' | 'down' | null>(null);
+    const slowMoverMetricBundle = React.useMemo(() => getSlowMoverMetricView(insight), [insight]);
+    const [selectedMetricId, setSelectedMetricId] = React.useState<string | null>(
+        slowMoverMetricBundle?.defaultMetricId ?? null
+    );
+
+    React.useEffect(() => {
+        setSelectedMetricId(slowMoverMetricBundle?.defaultMetricId ?? null);
+    }, [slowMoverMetricBundle?.defaultMetricId, insight.id]);
+
+    const selectedMetric = React.useMemo(
+        () => getSlowMoverMetric(slowMoverMetricBundle, selectedMetricId),
+        [selectedMetricId, slowMoverMetricBundle]
+    );
+    const displayHeadline = selectedMetric
+        ? formatSlowMoverMetricValue(selectedMetric)
+        : insight.headline;
+    const displaySubtext = selectedMetric && slowMoverMetricBundle
+        ? [
+            selectedMetric.coverage?.note,
+            insight.subtext,
+        ].filter(Boolean).join('\n')
+        : insight.subtext;
+    const tooltipText = selectedMetric
+        ? [
+            selectedMetric.description,
+            selectedMetric.coverage?.note,
+            'Gift cards are excluded from this audit.',
+        ].filter(Boolean).join(' ')
+        : insight.tooltipText;
 
     const handleClick = () => {
         if (onAction && insight.actionable) {
@@ -191,17 +234,45 @@ export function InsightCard({
                         >
                             {insight.title}
                         </h4>
-                        {insight.tooltipText && (
+                        {tooltipText && (
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <div className="cursor-help"><Info className="h-3.5 w-3.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors" /></div>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="max-w-[250px]">
-                                    <p className="text-xs">{insight.tooltipText}</p>
+                                    <p className="text-xs">{tooltipText}</p>
                                 </TooltipContent>
                             </Tooltip>
                         )}
                     </div>
+
+                    {slowMoverMetricBundle && (
+                        <div className={cn('flex flex-wrap gap-1', dense ? 'mb-1' : 'mb-1.5')}>
+                            {slowMoverMetricBundle.metrics.map((metric) => {
+                                const isSelected = selectedMetric?.id === metric.id;
+
+                                return (
+                                    <button
+                                        key={metric.id}
+                                        type="button"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            setSelectedMetricId(metric.id);
+                                        }}
+                                        className={cn(
+                                            'rounded-full border transition-colors',
+                                            dense ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-[11px]',
+                                            isSelected
+                                                ? 'border-primary/40 bg-primary/10 text-primary'
+                                                : 'border-border/70 bg-background/80 text-muted-foreground hover:border-primary/20 hover:text-foreground'
+                                        )}
+                                    >
+                                        {metric.shortLabel}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
 
                     {/* Headline */}
                     <p
@@ -214,20 +285,20 @@ export function InsightCard({
                                     : 'text-xl'
                         )}
                     >
-                        {insight.headline}
+                        {displayHeadline}
                     </p>
 
                     {/* Subtext */}
-                    {insight.subtext && (
+                    {displaySubtext && (
                         <p
                             className={cn(
-                                'mt-1 text-muted-foreground',
+                                'mt-1 whitespace-pre-line text-muted-foreground',
                                 dense
                                     ? 'line-clamp-2 text-[11px] leading-4'
                                     : 'text-xs'
                             )}
                         >
-                            {insight.subtext}
+                            {displaySubtext}
                         </p>
                     )}
 

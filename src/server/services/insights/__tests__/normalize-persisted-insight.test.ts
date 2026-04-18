@@ -12,11 +12,15 @@ describe('normalizePersistedInsightCard', () => {
       title: 'Customer Love',
       headline: '11 enrolled customers',
       subtext: 'Ask Mrs. Parker for retention insights',
+      tooltipText: 'Customer loyalty snapshot',
       severity: 'success',
       actionable: true,
       ctaLabel: 'View Customers',
       threadType: 'customer_health',
       threadPrompt: 'Help me understand retention.',
+      metadata: {
+        foo: 'bar',
+      },
       dataSource: 'customers-collection',
       lastUpdated: { toDate: () => lastUpdated },
       generatedAt: { toDate: () => generatedAt },
@@ -34,9 +38,13 @@ describe('normalizePersistedInsightCard', () => {
       severity: 'success',
       actionable: true,
       ctaLabel: 'View Customers',
+      tooltipText: 'Customer loyalty snapshot',
       threadType: 'customer_health',
       threadPrompt: 'Help me understand retention.',
       dataSource: 'customers-collection',
+      metadata: {
+        foo: 'bar',
+      },
     });
     expect(result.lastUpdated).toEqual(lastUpdated);
     expect(result).not.toHaveProperty('generatedAt');

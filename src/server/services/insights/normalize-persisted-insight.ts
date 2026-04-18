@@ -138,12 +138,20 @@ export function normalizePersistedInsightCard(
     normalized.ctaLabel = data.ctaLabel;
   }
 
+  if (typeof data.tooltipText === 'string' && data.tooltipText) {
+    normalized.tooltipText = data.tooltipText;
+  }
+
   if (typeof data.threadType === 'string' && data.threadType) {
     normalized.threadType = data.threadType as InboxThreadType;
   }
 
   if (typeof data.threadPrompt === 'string' && data.threadPrompt) {
     normalized.threadPrompt = data.threadPrompt;
+  }
+
+  if (data.metadata && typeof data.metadata === 'object') {
+    normalized.metadata = data.metadata as Record<string, unknown>;
   }
 
   return rewriteLegacyLoyaltyCopy(normalized);

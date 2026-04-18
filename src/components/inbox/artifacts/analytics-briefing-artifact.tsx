@@ -9,8 +9,14 @@
  */
 
 import React from 'react';
-import { TrendingUp, TrendingDown, Minus, ExternalLink, AlertTriangle, MapPin, Calendar, Mail } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, ExternalLink, AlertTriangle, MapPin, Calendar, Mail, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { InboxArtifact, AnalyticsBriefing, BriefingMetric } from '@/types/inbox';
 
@@ -39,21 +45,85 @@ function TrendIcon({ trend }: { trend: BriefingMetric['trend'] }) {
 }
 
 function MetricCard({ metric }: { metric: BriefingMetric }) {
+    const defaultOption = React.useMemo(
+        () => metric.metricOptions?.find((option) => option.isDefault) ?? metric.metricOptions?.[0] ?? null,
+        [metric.metricOptions]
+    );
+    const [selectedMetricId, setSelectedMetricId] = React.useState(defaultOption?.id ?? null);
+
+    React.useEffect(() => {
+        setSelectedMetricId(defaultOption?.id ?? null);
+    }, [defaultOption?.id]);
+
+    const selectedOption = React.useMemo(
+        () => metric.metricOptions?.find((option) => option.id === selectedMetricId) ?? defaultOption,
+        [defaultOption, metric.metricOptions, selectedMetricId]
+    );
+    const metricValue = selectedOption?.value ?? metric.value;
+    const tooltipText = selectedOption?.tooltipText ?? metric.tooltipText;
+
     return (
-        <div className="p-3 rounded-lg bg-white/5 border border-white/8 space-y-1">
-            <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">{metric.title}</span>
-                <span className={cn('h-1.5 w-1.5 rounded-full', STATUS_DOT[metric.status])} />
+        <TooltipProvider>
+            <div className="p-3 rounded-lg bg-white/5 border border-white/8 space-y-1">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground">{metric.title}</span>
+                        {tooltipText && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
+                                        <Info className="h-3.5 w-3.5" />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-[260px] text-xs">
+                                    <p>{tooltipText}</p>
+                                    {selectedOption?.coverageNote && (
+                                        <p className="mt-1 text-muted-foreground">{selectedOption.coverageNote}</p>
+                                    )}
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                    </div>
+                    <span className={cn('h-1.5 w-1.5 rounded-full', STATUS_DOT[metric.status])} />
+                </div>
+
+                {metric.metricOptions && metric.metricOptions.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                        {metric.metricOptions.map((option) => {
+                            const isSelected = selectedOption?.id === option.id;
+
+                            return (
+                                <button
+                                    key={option.id}
+                                    type="button"
+                                    onClick={() => setSelectedMetricId(option.id)}
+                                    className={cn(
+                                        'rounded-full border px-2 py-0.5 text-[10px] transition-colors',
+                                        isSelected
+                                            ? 'border-primary/40 bg-primary/10 text-primary'
+                                            : 'border-white/10 bg-white/5 text-muted-foreground hover:border-primary/20 hover:text-foreground'
+                                    )}
+                                >
+                                    {option.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
+                <div className="text-lg font-bold leading-none">{metricValue}</div>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <TrendIcon trend={metric.trend} />
+                    <span>{metric.vsLabel}</span>
+                </div>
+                {selectedOption?.coverageNote && (
+                    <p className="text-[11px] text-muted-foreground">{selectedOption.coverageNote}</p>
+                )}
+                {metric.actionable && (
+                    <p className="text-xs text-amber-400 italic mt-1">{metric.actionable}</p>
+                )}
             </div>
-            <div className="text-lg font-bold leading-none">{metric.value}</div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <TrendIcon trend={metric.trend} />
-                <span>{metric.vsLabel}</span>
-            </div>
-            {metric.actionable && (
-                <p className="text-xs text-amber-400 italic mt-1">{metric.actionable}</p>
-            )}
-        </div>
+        </TooltipProvider>
     );
 }
 

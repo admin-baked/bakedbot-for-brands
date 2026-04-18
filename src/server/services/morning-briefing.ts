@@ -19,6 +19,10 @@ import { logger } from '@/lib/logger';
 import { getMarketBenchmarks } from '@/server/services/market-benchmarks';
 import { getDispensaryGreenLedgerSummary } from '@/server/services/greenledger';
 import { getOutreachStats } from '@/server/services/ny-outreach/outreach-service';
+import {
+    formatSlowMoverMetricValue,
+    getSlowMoverMetric,
+} from '@/lib/slow-mover-metrics';
 import { loadSlowMoverInsight, type SlowMoverInsight } from '@/server/services/slow-mover-insight';
 import {
     computeCohortData,
@@ -534,13 +538,38 @@ function buildMetrics(
     // 4. Inventory At Risk — prefer deliberative pipeline result (cross-checked against Alleaves sales
     //    history) over the lastSaleAt field which POS sync does not write.
     if (slowMovers && slowMovers.totalValueAtRisk > 0) {
+        const defaultMetric = getSlowMoverMetric(
+            slowMovers.metricBundle,
+            slowMovers.metricBundle?.defaultMetricId,
+        );
+        const metricValue = defaultMetric
+            ? formatSlowMoverMetricValue(defaultMetric)
+            : `$${Math.round(slowMovers.totalValueAtRisk).toLocaleString()}`;
+        const metricOptions = slowMovers.metricBundle?.metrics.map((metric) => ({
+            id: metric.id,
+            label: metric.shortLabel,
+            value: formatSlowMoverMetricValue(metric),
+            tooltipText: metric.description,
+            ...(metric.coverage?.note ? { coverageNote: metric.coverage.note } : {}),
+            isDefault: metric.id === slowMovers.metricBundle?.defaultMetricId,
+        }));
+
         metrics.push({
             title: 'Inventory At Risk',
-            value: `$${Math.round(slowMovers.totalValueAtRisk).toLocaleString()} (${slowMovers.totalSkus} SKUs)`,
+            value: metricValue,
             trend: 'down',
-            vsLabel: 'slow-moving inventory · deliberative audit',
+            vsLabel: slowMovers.metricBundle?.summaryLine ?? 'slow-moving inventory · deliberative audit',
             status: slowMovers.totalValueAtRisk > 5000 ? 'warning' : 'good',
             actionable: 'Consider markdown or bundle deals — ask Elroy for the full list',
+            ...(defaultMetric
+                ? {
+                    tooltipText: [
+                        defaultMetric.description,
+                        slowMovers.metricBundle?.metrics.find((metric) => metric.id === 'cost_basis')?.coverage?.note,
+                    ].filter(Boolean).join(' '),
+                  }
+                : {}),
+            ...(metricOptions && metricOptions.length > 0 ? { metricOptions } : {}),
         });
     } else {
     const now = Date.now();
@@ -988,6 +1017,19 @@ function serializeBriefingForArtifact(briefing: AnalyticsBriefing): AnalyticsBri
         vsLabel: metric.vsLabel,
         status: metric.status,
         ...(metric.actionable ? { actionable: metric.actionable } : {}),
+        ...(metric.tooltipText ? { tooltipText: metric.tooltipText } : {}),
+        ...(metric.metricOptions
+            ? {
+                metricOptions: metric.metricOptions.map((option) => ({
+                    id: option.id,
+                    label: option.label,
+                    value: option.value,
+                    ...(option.tooltipText ? { tooltipText: option.tooltipText } : {}),
+                    ...(option.coverageNote ? { coverageNote: option.coverageNote } : {}),
+                    ...(option.isDefault ? { isDefault: option.isDefault } : {}),
+                })),
+              }
+            : {}),
     }));
 
     const newsItems = briefing.newsItems.map((item) => ({

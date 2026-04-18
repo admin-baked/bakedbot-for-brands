@@ -457,6 +457,17 @@ export interface BriefingMetric {
     vsLabel: string;       // e.g., "vs. 12% market target"
     status: 'good' | 'warning' | 'critical';
     actionable?: string;   // Short action if warning/critical
+    tooltipText?: string;
+    metricOptions?: BriefingMetricOption[];
+}
+
+export interface BriefingMetricOption {
+    id: string;
+    label: string;
+    value: string;
+    tooltipText?: string;
+    coverageNote?: string;
+    isDefault?: boolean;
 }
 
 export interface BriefingNewsItem {
