@@ -45,7 +45,7 @@ export function ecstaticHeader(badgeText = 'VIP Member'): string {
 }
 
 /** Shared footer block. */
-export function ecstaticFooter(unsubscribeUrl = ECSTATIC.UNSUBSCRIBE_URL): string {
+export function ecstaticFooter(unsubscribeUrl: string = ECSTATIC.UNSUBSCRIBE_URL): string {
     return `
   <tr>
     <td style="background-color:${ECSTATIC.DARK};padding:24px 32px;text-align:center;border-radius:0 0 12px 12px;">
