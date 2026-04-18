@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Inbox 70/71 (98.6%) + Elroy 34-36/39 (87-92%) stress suites; 50 new inbox cases; operator role injection; applyMustChecks grader override | **Last update:** 2026-04-18 (`3ec00f975`)
+**Current Status:** 🟢 main green | Inbox 121 cases + Elroy 64 cases (all 5 blockers fixed) + 5-state compliance suite (NY/CA/CO/IL/MA); Weedmaps Deal Protocol added | **Last update:** 2026-04-18 (`dd07f0249`)
 
 ---
 
