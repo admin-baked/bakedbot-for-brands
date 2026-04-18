@@ -8,6 +8,10 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
+import {
+  isSuperRole,
+  resolveActorOrgId,
+} from '@/server/auth/actor-context';
 import { logger } from '@/lib/logger';
 import { PLAYBOOK_TEMPLATE_METADATA } from '@/config/tier-playbook-templates';
 
@@ -46,15 +50,19 @@ export async function getPlaybookTemplateStats(): Promise<
 
     // Allow super_user, brand admins/members, and dispensary admins/staff
     const userRole = (user.role as string) || null;
-    const allowedRoles = ['super_user', 'brand_admin', 'brand_member', 'dispensary_admin', 'dispensary_staff'];
+    const allowedRoles = ['super_user', 'super_admin', 'brand_admin', 'brand_member', 'dispensary_admin', 'dispensary_staff'];
 
     if (!allowedRoles.includes(userRole || '')) {
       return { error: 'Not authorized. Only admins and team members can view playbook templates.' };
     }
 
     // Get user's org context (super users see all, others see only their org)
-    const isSuperUser = userRole === 'super_user';
-    const filterOrgId = isSuperUser ? null : ((user as any).currentOrgId || (user as any).orgId || null);
+    const isSuperUser = isSuperRole(userRole);
+    const filterOrgId = isSuperUser ? null : resolveActorOrgId(user);
+
+    if (!isSuperUser && !filterOrgId) {
+      return { error: 'Missing organization context' };
+    }
 
     const { firestore } = await createServerClient();
 

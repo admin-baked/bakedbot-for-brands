@@ -9,16 +9,13 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { requireUser } from '@/server/auth/auth';
+import { isSuperRole } from '@/server/auth/actor-context';
 import { revalidatePath } from 'next/cache';
 import { nanoid } from 'nanoid';
 import { Artifact, ArtifactMetadata } from '@/types/artifact';
 
 const ARTIFACTS_COLLECTION = 'artifacts';
 const SHARED_ARTIFACTS_COLLECTION = 'shared_artifacts';
-
-function isSuperRole(role: unknown): boolean {
-    return role === 'super_user' || role === 'super_admin';
-}
 
 /**
  * Save an artifact to Firestore
