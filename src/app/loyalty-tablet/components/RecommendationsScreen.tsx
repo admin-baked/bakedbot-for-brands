@@ -646,47 +646,30 @@ export function RecommendationsScreen({
             </div>
 
             {/* ── Product cards ── */}
-            {(() => {
-                const isGrid = !bundle && products.length >= 4;
-                return (
-            <div className={isGrid
-                ? "w-full grid grid-cols-3 gap-2 overflow-y-auto pb-28 pr-1"
-                : "w-full flex gap-3 overflow-x-auto snap-x pb-28 px-1"}
-                style={{ WebkitOverflowScrolling: 'touch', maxHeight: isGrid ? '65vh' : undefined }}
-            >
-                {products.map(product => {
-                    const inCart = cart.includes(product.productId);
-                    const domainProduct = {
-                        id: product.productId,
-                        name: product.name,
-                        category: product.category,
-                        price: product.price ?? 0,
-                        imageUrl: product.imageUrl,
-                        brandName: product.brandName,
-                        thcPercent: product.thcPercent,
-                        cbdPercent: product.cbdPercent,
-                        strainType: product.strainType,
-                        description: product.reason,
-                    };
-                    return (
-                        <div key={product.productId} className={isGrid ? '' : 'min-w-[240px] snap-center shrink-0'}>
-                            <OversizedProductCard
-                                product={domainProduct as any}
-                                onAddToCart={() => { toggleCart(product.productId); resetIdleTimer(); }}
-                                onClick={() => { setSelectedProduct(product); resetIdleTimer(); }}
-                                inCart={inCart ? 1 : 0}
-                                primaryColor={brandTheme.colors.primary}
-                                showQuickAdd={true}
-                                size="compact"
-                                isTouchDevice={true}
-                                dealBadge={product.tier === 'premium' ? 'Top Tier' : undefined}
-                            />
-                        </div>
-                    );
-                })}
-            </div>
-                );
-            })()}
+            {(bundle || products.length < 4)
+                ? <div className="w-full flex gap-3 overflow-x-auto snap-x pb-28 px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+                    {products.map(product => {
+                        const inCart = cart.includes(product.productId);
+                        const domainProduct = { id: product.productId, name: product.name, category: product.category, price: product.price ?? 0, imageUrl: product.imageUrl, brandName: product.brandName, thcPercent: product.thcPercent, cbdPercent: product.cbdPercent, strainType: product.strainType, description: product.reason };
+                        return (
+                            <div key={product.productId} className="min-w-[240px] snap-center shrink-0">
+                                <OversizedProductCard product={domainProduct as any} onAddToCart={() => { toggleCart(product.productId); resetIdleTimer(); }} onClick={() => { setSelectedProduct(product); resetIdleTimer(); }} inCart={inCart ? 1 : 0} primaryColor={brandTheme.colors.primary} showQuickAdd={true} size="compact" isTouchDevice={true} dealBadge={product.tier === 'premium' ? 'Top Tier' : undefined} />
+                            </div>
+                        );
+                    })}
+                </div>
+                : <div className="w-full grid grid-cols-3 gap-2 overflow-y-auto pb-28 pr-1" style={{ WebkitOverflowScrolling: 'touch', maxHeight: '65vh' }}>
+                    {products.map(product => {
+                        const inCart = cart.includes(product.productId);
+                        const domainProduct = { id: product.productId, name: product.name, category: product.category, price: product.price ?? 0, imageUrl: product.imageUrl, brandName: product.brandName, thcPercent: product.thcPercent, cbdPercent: product.cbdPercent, strainType: product.strainType, description: product.reason };
+                        return (
+                            <div key={product.productId}>
+                                <OversizedProductCard product={domainProduct as any} onAddToCart={() => { toggleCart(product.productId); resetIdleTimer(); }} onClick={() => { setSelectedProduct(product); resetIdleTimer(); }} inCart={inCart ? 1 : 0} primaryColor={brandTheme.colors.primary} showQuickAdd={true} size="compact" isTouchDevice={true} dealBadge={product.tier === 'premium' ? 'Top Tier' : undefined} />
+                            </div>
+                        );
+                    })}
+                </div>
+            }
 
             {/* ── Bundle ── */}
             {bundle && (

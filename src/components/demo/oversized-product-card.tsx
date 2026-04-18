@@ -140,6 +140,7 @@ export function OversizedProductCard({
   const imageUrl = isPlaceholder ? null : rawImageUrl;
   const CategoryIcon = getCategoryIcon(product.category);
   const isComingSoon = product.lifecycleStatus === 'coming_soon';
+  const showDetails = size !== 'compact';
 
   const handleNotify = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -368,13 +369,13 @@ export function OversizedProductCard({
       </div>
 
       {/* Content */}
-      <div className={cn('flex-1 flex flex-col', size === 'compact' ? 'p-2.5' : 'p-4')}>
+      <div className={cn('flex-1 flex flex-col', showDetails ? 'p-4' : 'p-2.5')}>
         {/* Category + Weight row */}
         <div className="flex items-center justify-between mb-0.5">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">
             {product.category}
           </p>
-          {product.weight && size !== 'compact' && (
+          {product.weight && showDetails && (
             <p className="text-xs text-muted-foreground font-medium">
               {product.weight}{product.weightUnit || 'g'}
             </p>
@@ -382,7 +383,7 @@ export function OversizedProductCard({
         </div>
 
         {/* Brand name */}
-        {(brandName || product.brandName) && size !== 'compact' && (
+        {(brandName || product.brandName) && showDetails && (
           <p className="text-xs font-semibold mb-1" style={{ color: primaryColor }}>
             {brandName || product.brandName}
           </p>
@@ -391,13 +392,13 @@ export function OversizedProductCard({
         {/* Name */}
         <h3 className={cn(
           'font-bold leading-tight line-clamp-2 group-hover:text-primary transition-colors',
-          size === 'compact' ? 'text-sm mb-1' : 'text-lg mb-2'
+          showDetails ? 'text-lg mb-2' : 'text-sm mb-1'
         )}>
           {product.name}
         </h3>
 
         {/* Description */}
-        {product.description && size !== 'compact' && (
+        {product.description && showDetails && (
           <p className="text-sm text-muted-foreground line-clamp-2 mb-3 flex-1">
             {product.description}
           </p>
@@ -435,9 +436,9 @@ export function OversizedProductCard({
         )}
 
         {/* Price & Cart Status */}
-        <div className={cn('flex items-center justify-between mt-auto border-t', size === 'compact' ? 'pt-1.5' : 'pt-3')}>
+        <div className={cn('flex items-center justify-between mt-auto border-t', showDetails ? 'pt-3' : 'pt-1.5')}>
           <div>
-            <span className={cn('font-bold', size === 'compact' ? 'text-base' : 'text-2xl')} style={{ color: primaryColor }}>
+            <span className={cn('font-bold', showDetails ? 'text-2xl' : 'text-base')} style={{ color: primaryColor }}>
               ${(product.price ?? 0).toFixed(2)}
             </span>
           </div>
