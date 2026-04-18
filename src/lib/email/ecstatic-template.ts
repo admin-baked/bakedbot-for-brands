@@ -11,7 +11,7 @@ export const ECSTATIC = {
     FOOTER_TEXT: '#f0a0b0',
     FOOTER_MUTED: '#c07080',
     LOGO_URL: 'https://storage.googleapis.com/bakedbot-global-assets/brands/brand_ecstatic_edibles/logo/ecstatic_logo.png',
-    LOCATION: 'Cannabis Edibles &middot; Los Angeles, CA',
+    LOCATION: 'Cannabis Edibles &middot; New York',
     FOUNDER: 'Founded by Melanie Comarcho',
     MENU_URL: 'https://ecstaticedibles.com',
     UNSUBSCRIBE_URL: 'https://ecstaticedibles.com/unsubscribe',
@@ -37,7 +37,7 @@ export function ecstaticFooter(unsubscribeUrl: string = ECSTATIC.UNSUBSCRIBE_URL
   <tr>
     <td style="background-color:${ECSTATIC.DARK};padding:24px 32px;text-align:center;border-radius:0 0 12px 12px;">
       <img src="${ECSTATIC.LOGO_URL}" alt="${ECSTATIC.DISPLAY_NAME}" width="100" style="display:block;margin:0 auto 10px;opacity:0.85;">
-      <p style="margin:0 0 4px;font-size:12px;color:${ECSTATIC.FOOTER_TEXT};font-family:Arial,sans-serif;">Ecstatic Edibles &middot; Los Angeles, CA</p>
+      <p style="margin:0 0 4px;font-size:12px;color:${ECSTATIC.FOOTER_TEXT};font-family:Arial,sans-serif;">Ecstatic Edibles &middot; New York</p>
       <p style="margin:0 0 14px;font-size:11px;color:${ECSTATIC.FOOTER_MUTED};font-family:Arial,sans-serif;">${ECSTATIC.FOUNDER}</p>
       <p style="margin:0;font-size:11px;color:${ECSTATIC.FOOTER_MUTED};font-family:Arial,sans-serif;">
         You're receiving this because you connected with ${ECSTATIC.DISPLAY_NAME}.
@@ -59,6 +59,8 @@ export function ecstaticEmail(opts: {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
   <title>${opts.title}</title>
 </head>
 <body style="margin:0;padding:0;background-color:${ECSTATIC.PAGE_BG};font-family:Arial,Helvetica,sans-serif;">

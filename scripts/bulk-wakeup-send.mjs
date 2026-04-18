@@ -62,10 +62,10 @@ const ORGS = [
         menuUrl: 'https://ecstaticedibles.com/menu',
         unsubscribeUrl: 'https://ecstaticedibles.com/unsubscribe',
         logoUrl: 'https://storage.googleapis.com/bakedbot-global-assets/brands/brand_ecstatic/logo/ecstatic_logo.png',
-        teal: '#6c3fc5',
+        teal: '#e11d48',
         gold: '#f1b200',
-        dark: '#1a0a2e',
-        heading: '#6c3fc5',
+        dark: '#4a0416',
+        heading: '#e11d48',
         location: 'Cannabis Edibles &middot; New York',
         address: 'Ecstatic Edibles &middot; New York, NY',
         hours: 'Available online & at select dispensaries',
@@ -97,6 +97,8 @@ function buildEmailThrive(org, firstName) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
   <title>Hey ${name} — you're already part of ${org.fromName}</title>
 </head>
 <body style="margin:0;padding:0;background-color:${org.dark};font-family:Arial,Helvetica,sans-serif;">
@@ -154,13 +156,12 @@ function buildEmailThrive(org, firstName) {
 </html>`;
 }
 
-// Mirrors ecstatic-template.ts canonical design system
 function buildEmailEcstatic(org, firstName) {
     const name = firstName || 'there';
-    const RED = '#e11d48';
+    const RED = org.teal;
     const RED_DARK = '#be123c';
-    const GOLD = '#f1b200';
-    const DARK = '#4a0416';
+    const GOLD = org.gold;
+    const DARK = org.dark;
     const PAGE_BG = '#fff5f7';
     const FOOTER_TEXT = '#f0a0b0';
     const FOOTER_MUTED = '#c07080';
@@ -169,6 +170,8 @@ function buildEmailEcstatic(org, firstName) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
   <title>Hey ${name} — you're already part of Ecstatic Edibles</title>
 </head>
 <body style="margin:0;padding:0;background-color:${PAGE_BG};font-family:Arial,Helvetica,sans-serif;">
@@ -209,7 +212,7 @@ function buildEmailEcstatic(org, firstName) {
         <tr>
           <td style="background-color:${DARK};padding:24px 32px;text-align:center;border-radius:0 0 12px 12px;">
             <img src="${org.logoUrl}" alt="Ecstatic Edibles" width="100" style="display:block;margin:0 auto 10px;opacity:0.85;">
-            <p style="margin:0 0 4px;font-size:12px;color:${FOOTER_TEXT};font-family:Arial,sans-serif;">Ecstatic Edibles &middot; Los Angeles, CA</p>
+            <p style="margin:0 0 4px;font-size:12px;color:${FOOTER_TEXT};font-family:Arial,sans-serif;">Ecstatic Edibles &middot; New York, NY</p>
             <p style="margin:0 0 14px;font-size:11px;color:${FOOTER_MUTED};font-family:Arial,sans-serif;">Founded by Melanie Comarcho</p>
             <p style="margin:0;font-size:11px;color:${FOOTER_MUTED};font-family:Arial,sans-serif;">
               You're receiving this because you connected with Ecstatic Edibles.
@@ -245,7 +248,7 @@ That's it. Nothing pushy. You can reply to this email anytime, or find us at a d
 Shop Ecstatic Edibles → ${org.menuUrl}
 
 —
-Ecstatic Edibles · Los Angeles, CA
+Ecstatic Edibles · New York, NY
 Founded by Melanie Comarcho
 
 Unsubscribe: ${org.unsubscribeUrl}`;
