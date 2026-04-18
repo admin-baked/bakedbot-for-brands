@@ -14,7 +14,7 @@ interface WelcomeScreenProps {
     primaryButtonStyle: CSSProperties;
     onCheckIn: () => void;
     onJoinClub: () => void;
-    onFindPass: () => void;
+    onOrderPickup: () => void;
     onAskSmokey: () => void;
 }
 
@@ -26,7 +26,7 @@ export function WelcomeScreen({
     primaryButtonStyle,
     onCheckIn,
     onJoinClub,
-    onFindPass,
+    onOrderPickup,
     onAskSmokey
 }: WelcomeScreenProps) {
     return (
@@ -63,7 +63,7 @@ export function WelcomeScreen({
                 >
                     <span className="text-4xl">🚀</span>
                     <span className="text-xl font-black uppercase tracking-tight">Check In</span>
-                    <span className="text-xs opacity-70 -mt-1">Returning member</span>
+                    <span className="text-xs opacity-70 -mt-1">Returning Member</span>
                 </button>
 
                 <button
@@ -76,11 +76,12 @@ export function WelcomeScreen({
                 </button>
 
                 <button
-                    onClick={onFindPass}
+                    onClick={onOrderPickup}
                     className="flex flex-col items-center justify-center gap-3 rounded-[32px] p-8 transition-all hover:opacity-95 active:scale-[0.98] bg-white border-2 border-gray-100 shadow-lg border-b-4 border-b-gray-200"
                 >
-                    <span className="text-4xl">🆔</span>
-                    <span className="text-xl font-black uppercase tracking-tight text-gray-900">Find My Pass</span>
+                    <span className="text-4xl">🛍️</span>
+                    <span className="text-xl font-black uppercase tracking-tight text-gray-900">Order Pickup</span>
+                    <span className="text-xs text-gray-400 -mt-1">Fast track</span>
                 </button>
 
                 <button
