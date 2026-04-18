@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Thrive kiosk sticky Checkout bar (portrait fix) + UX polish (tier picks, product detail modal, real-time notifications); 7 mood videos cached | **Last update:** 2026-04-18 (`242b0388c`)
+**Current Status:** 🟢 main green | Campaigns auth fix (redirect vs throw); slow-mover-metrics library (retail/cost/units); actor-context role-array support + canonical org helpers | **Last update:** 2026-04-18 (`4e56cdc0b`)
 
 ---
 

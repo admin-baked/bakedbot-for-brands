@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Thrive kiosk sticky Checkout bar (portrait fix); 7 mood videos cached
-**Recent work (2026-04-18):** `242b0388c` sticky Checkout bar fix (portrait cut-off); `0d9e4e2f9` kiosk UX polish + mood videos
+**Current Status:** 🟢 main green | Campaigns auth fix (redirect vs throw); slow-mover-metrics library; actor-context role-array + canonical org helpers
+**Recent work (2026-04-18):** `67a0c1c5f` campaigns auth fix; `227a156f3` slow-mover-metrics; `c087ed053` actor-context refactor; `4e56cdc0b` tests/embed/scripts
 
 ---
 
