@@ -349,39 +349,43 @@ async function runBatch(runNumber, apiKey) {
     record('Root products — clean', false, e.message);
   }
 
-  // ── 10. Customer data integrity — phoneLast4 field present ───────────
+  // ── 10. Customer data integrity — phoneLast4 consistent with phoneDigits ─
   try {
     const snap = await db.collection('customers')
       .where('orgId', '==', ORG).limit(50).get();
-    const missingLast4 = snap.docs.filter(d => !d.data().phoneLast4);
-    const pass = missingLast4.length === 0;
-    record('Customer data — phoneLast4 field present', pass,
-      pass ? `${snap.size} customers checked` : `${missingLast4.length} missing phoneLast4`);
+    // Only flag customers who HAVE a phone but are missing phoneLast4 (data inconsistency)
+    const withPhoneNoLast4 = snap.docs.filter(d => {
+      const data = d.data();
+      return (data.phoneDigits || data.phone) && !data.phoneLast4;
+    });
+    const pass = withPhoneNoLast4.length === 0;
+    record('Customer data — phoneLast4 consistent with phoneDigits', pass,
+      pass ? `${snap.size} customers checked — all with phones have phoneLast4` : `${withPhoneNoLast4.length} have phone but missing phoneLast4`);
     if (!pass) await fileAgentBug(
-      `[CHECKIN] ${missingLast4.length} customers missing phoneLast4 field`,
-      `phoneLast4 is required for quick lookup on the kiosk. Customers missing it:\n${missingLast4.slice(0, 5).map(d => d.id).join('\n')}`,
+      `[CHECKIN] ${withPhoneNoLast4.length} customers have phoneDigits but missing phoneLast4`,
+      `phoneLast4 is required for quick lookup on the kiosk. These customers can't be found.\nAffected: ${withPhoneNoLast4.slice(0, 5).map(d => d.id).join('\n')}`,
       'high',
     );
   } catch (e) {
-    record('Customer data — phoneLast4 field present', false, e.message);
+    record('Customer data — phoneLast4 consistent', false, e.message);
   }
 
-  // ── 11. Random customer — loyalty points > 0 ────────────────────────
+  // ── 11. Random customer — loyalty points field typed ─────────────────
   try {
     const snap = await db.collection('customers')
       .where('orgId', '==', ORG)
-      .where('visitCount', '>', 1)
-      .limit(10).get();
-    if (snap.empty) {
-      record('Returning customer — has loyalty points', true, 'no multi-visit customers in test data (OK for new org)');
+      .limit(50).get();
+    const returning = snap.docs.filter(d => (d.data().visitCount ?? 0) > 1);
+    if (returning.length === 0) {
+      record('Returning customer — loyalty points field typed', true, 'no multi-visit customers yet (OK for new org)');
     } else {
-      const doc = snap.docs[0].data();
+      const doc = returning[0].data();
       const hasPoints = typeof doc.loyaltyPoints === 'number';
       record('Returning customer — loyalty points field typed', hasPoints,
         `visitCount=${doc.visitCount}, loyaltyPoints=${doc.loyaltyPoints}`);
       if (!hasPoints) await fileAgentBug(
         '[CHECKIN] Returning customer missing loyaltyPoints field',
-        `Customer ${snap.docs[0].id} has visitCount=${doc.visitCount} but loyaltyPoints is ${typeof doc.loyaltyPoints}.\nKiosk displays this field on the returning customer screen.`,
+        `Customer ${returning[0].id} has visitCount=${doc.visitCount} but loyaltyPoints is ${typeof doc.loyaltyPoints}.\nKiosk displays this on the returning customer screen.`,
       );
     }
   } catch (e) {

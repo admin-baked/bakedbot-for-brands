@@ -1,6 +1,14 @@
 {
     "indexes": [
         {
+            "collectionGroup": "customers",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "visitCount", "order": "ASCENDING" }
+            ]
+        },
+        {
             "collectionGroup": "slack_digest_buffer",
             "queryScope": "COLLECTION",
             "fields": [
