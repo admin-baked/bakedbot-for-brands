@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { useFirebase } from '@/firebase/provider';
 import { doc, getDoc } from 'firebase/firestore';
 import { PRICING_PLANS } from '@/lib/config/pricing';
+import { logger } from '@/lib/logger';
 
 export type PlanId =
     // Current plans (2026)
@@ -143,7 +144,7 @@ export function usePlanInfo() {
                     userDoc = await getDoc(doc(firestore, 'users', user.uid));
                 } catch (firestoreError) {
                     // Firestore SDK error (blocked, assertion failure, etc.)
-                    console.warn('[usePlanInfo] Firestore error fetching user doc, using defaults:', firestoreError);
+                    logger.warn('[usePlanInfo] Firestore error fetching user doc, using defaults', { firestoreError });
                     if (isMounted) {
                         setPlanInfo(DEFAULT_PLAN);
                         setIsLoading(false);
@@ -198,7 +199,7 @@ export function usePlanInfo() {
                     features
                 });
             } catch (error) {
-                console.warn('[usePlanInfo] Error fetching plan info, using defaults:', error);
+                logger.warn('[usePlanInfo] Error fetching plan info, using defaults', { error });
                 if (isMounted) setPlanInfo(DEFAULT_PLAN);
             } finally {
                 if (isMounted) setIsLoading(false);

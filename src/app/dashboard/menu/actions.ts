@@ -853,6 +853,17 @@ export async function getMenuPreviewData(): Promise<{
             if (brandDoc.exists) {
                 brandData = { id: brandDoc.id, ...brandDoc.data() } as import('@/types/domain').Brand;
                 brandSlug = (brandData as any).slug || orgId;
+            } else {
+                // Try looking up via org doc → brandId field (handles brand_ prefix IDs)
+                const orgDoc = await firestore.collection('organizations').doc(orgId).get();
+                const linkedBrandId = orgDoc.exists ? (orgDoc.data() as any)?.brandId : null;
+                if (linkedBrandId) {
+                    const linkedBrandDoc = await firestore.collection('brands').doc(linkedBrandId).get();
+                    if (linkedBrandDoc.exists) {
+                        brandData = { id: linkedBrandDoc.id, ...linkedBrandDoc.data() } as import('@/types/domain').Brand;
+                        brandSlug = (brandData as any).slug || linkedBrandId;
+                    }
+                }
             }
         }
 

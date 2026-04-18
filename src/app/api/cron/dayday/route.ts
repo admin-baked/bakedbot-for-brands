@@ -41,9 +41,9 @@ export const maxDuration = 300;
 // Type routing
 // ---------------------------------------------------------------------------
 
-type DayDayJobType = 'discovery' | 'international' | 'seo-report' | 'review' | 'brand-page-seo';
+type DayDayJobType = 'discovery' | 'international' | 'seo-report' | 'review' | 'brand-page-seo' | 'page-health';
 
-const VALID_TYPES = new Set<DayDayJobType>(['discovery', 'international', 'seo-report', 'review', 'brand-page-seo']);
+const VALID_TYPES = new Set<DayDayJobType>(['discovery', 'international', 'seo-report', 'review', 'brand-page-seo', 'page-health']);
 
 function parseType(req: NextRequest, body: Record<string, unknown>): DayDayJobType | null {
     const t = (body.type as string) ?? req.nextUrl.searchParams.get('type');
@@ -128,6 +128,20 @@ async function handler(request: NextRequest) {
                     lowPages: result.lowPages.length,
                     rankingPages: result.rankingPages.length,
                     gscConnected: result.gscConnected,
+                });
+            }
+
+            case 'page-health': {
+                const { runPageHealthCheck } = await import('@/server/jobs/dayday-page-health');
+                logger.info('[dayday/page-health] Starting public page health check');
+                const result = await runPageHealthCheck();
+                return NextResponse.json({
+                    success: true,
+                    type,
+                    totalPages: result.totalPages,
+                    okPages: result.okPages.length,
+                    failedPages: result.failedPages.length,
+                    slackNotified: result.slackNotified,
                 });
             }
         }
