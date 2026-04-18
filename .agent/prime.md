@@ -28,8 +28,8 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Thrive kiosk UX polish live; 7 mood videos cached in Firestore
-**Recent work (2026-04-18):** `0d9e4e2f9` kiosk tier picks + product detail modal + KioskOrderNotifications + Checkout CTA; mood videos rendered via scripts/render-mood-videos-standalone.mjs
+**Current Status:** 🟢 main green | Thrive kiosk sticky Checkout bar (portrait fix); 7 mood videos cached
+**Recent work (2026-04-18):** `242b0388c` sticky Checkout bar fix (portrait cut-off); `0d9e4e2f9` kiosk UX polish + mood videos
 
 ---
 
