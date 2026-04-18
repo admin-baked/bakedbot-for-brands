@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Inbox 24/25 + Elroy 29-31/39 stress test suites live; persona hardening (Smokey/Craig/Pops/Puff/Mrs. Parker); Slack bold normalization | **Last update:** 2026-04-18 (`2756fc3a0`)
+**Current Status:** 🟢 main green | Fireworks on kiosk order notification (canvas, 6 shells, physics particles); Campaigns timestamp serialization fix | **Last update:** 2026-04-18 (`5f95b9e25`)
 
 ---
 
