@@ -517,16 +517,18 @@ function buildBundle(pool: RawMenuProduct[], config: MoodRecommendationConfig): 
 }
 
 function buildRecommendationSet(pool: RawMenuProduct[], config: MoodRecommendationConfig): RecommendationSet {
-    // Prefer one product per price tier (premium/mid/budget) so the customer
-    // always sees a range. Fall back to top-scored if a tier has no match.
-    const tiers: Array<'premium' | 'mid' | 'budget'> = ['premium', 'mid', 'budget'];
+    // Prefer one product per category (Flower → Edibles → Vapes → Pre-Rolls → …) so the
+    // customer sees the broadest menu spread possible. Fall back to top-scored if a
+    // category has no match in the pool.
+    const categoryOrder = ['Flower', 'Edibles', 'Vapes', 'Pre-Rolls', 'Concentrates', 'Tinctures', 'Topicals'];
     const picked: RawMenuProduct[] = [];
     const usedIds = new Set<string>();
 
-    for (const tier of tiers) {
+    for (const cat of categoryOrder) {
+        if (picked.length >= 3) break;
         const match = pool.find((p) => {
             if (usedIds.has(getProductId(p))) return false;
-            return classifyProductTier(getProductPrice(p)) === tier;
+            return getProductCategory(p) === cat;
         });
         if (match) {
             picked.push(match);

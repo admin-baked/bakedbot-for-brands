@@ -371,11 +371,7 @@ export function RecommendationsScreen({
                                     key={cat}
                                     onClick={() => onCategoryBrowse(cat)}
                                     className="rounded-full px-4 py-2 text-sm font-semibold border transition-all hover:opacity-90 active:scale-[0.97]"
-                                    style={{
-                                        borderColor: brandTheme.colors.primary,
-                                        color: brandTheme.colors.primary,
-                                        backgroundColor: 'rgba(255,255,255,0.8)',
-                                    }}
+                                    style={{ borderColor: brandTheme.colors.primary, color: brandTheme.colors.primary, backgroundColor: 'rgba(255,255,255,0.8)' }}
                                 >
                                     {cat}
                                 </button>
@@ -609,6 +605,42 @@ export function RecommendationsScreen({
                     </button>
                 </div>
             </div>
+
+            {/* ── Quick-browse chips ── */}
+            {availableCategories.length > 0 && (
+                <div className="w-full flex flex-col gap-2">
+                    <div className="flex flex-wrap gap-2">
+                        {availableCategories.slice(0, 5).map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => { onCategoryBrowse(cat); resetIdleTimer(); }}
+                                className="rounded-full px-3 py-1.5 text-xs font-semibold border transition-all hover:opacity-90 active:scale-[0.97]"
+                                style={{ borderColor: brandTheme.colors.primary, color: brandTheme.colors.primary, backgroundColor: 'rgba(255,255,255,0.85)' }}
+                            >
+                                {cat}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            { label: '☀️ All Sativas', query: 'show me sativa strains' },
+                            { label: '🌙 All Indicas', query: 'show me indica strains' },
+                            { label: '🔀 Hybrids', query: 'show me hybrid strains' },
+                            { label: '💰 Under $25', query: 'show me products under $25' },
+                            { label: '⭐ Premium', query: 'show me premium top-shelf products' },
+                        ].map(chip => (
+                            <button
+                                key={chip.label}
+                                onClick={() => { handleAssistantSearch(chip.query); resetIdleTimer(); }}
+                                className="rounded-full px-3 py-1.5 text-xs font-semibold border transition-all hover:opacity-90 active:scale-[0.97]"
+                                style={{ borderColor: '#d1d5db', color: '#374151', backgroundColor: 'rgba(255,255,255,0.85)' }}
+                            >
+                                {chip.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* ── Product cards ── */}
             <div className="w-full space-y-3">

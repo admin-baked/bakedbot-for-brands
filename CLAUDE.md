@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Ecstatic Edibles canonical email template; bulk wake-up sends live (Thrive + Ecstatic, 8s/email); multi-agent coord system | **Last update:** 2026-04-18 (`b42b70d96`)
+**Current Status:** 🟢 main green | Thrive menu cleaned (180 live POS products only; 828 stale + 37 sample/test removed); Ecstatic Edibles products intact | **Last update:** 2026-04-18 (`b42b70d96`)
 
 ---
 
