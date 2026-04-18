@@ -5,7 +5,7 @@ import {
   findVisitorCheckinCandidates,
   getVisitorCheckinContext,
 } from '@/server/actions/visitor-checkin';
-import { getMoodRecommendations } from '@/server/actions/loyalty-tablet';
+import { getMoodRecommendations, prefetchTabletInventory } from '@/server/actions/loyalty-tablet';
 
 jest.mock('@/server/actions/visitor-checkin', () => ({
   captureVisitorCheckin: jest.fn(),
@@ -15,6 +15,7 @@ jest.mock('@/server/actions/visitor-checkin', () => ({
 
 jest.mock('@/server/actions/loyalty-tablet', () => ({
   getMoodRecommendations: jest.fn(),
+  prefetchTabletInventory: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('@/lib/checkin/loyalty-tablet-shared', () => {
@@ -207,7 +208,7 @@ describe('VisitorCheckinCard', () => {
         firstName: 'Jane',
         email: 'jane@example.com',
         emailConsent: true,
-        smsConsent: true,
+        smsConsent: false,
         source: 'brand_rewards_checkin',
         uiVersion: 'thrive_checkin_v2',
         offerType: 'email',
@@ -216,6 +217,91 @@ describe('VisitorCheckinCard', () => {
 
     expect(await screen.findByText("You're checked in, Jane.")).toBeInTheDocument();
     expect(screen.getByText(/welcome email is on the way/i)).toBeInTheDocument();
+  });
+
+  it('clears saved recommendations when the visitor switches moods', async () => {
+    (getMoodRecommendations as jest.Mock).mockImplementation(async (_orgId: string, moodId: string) => {
+      if (moodId === 'social') {
+        return {
+          success: true,
+          products: [
+            {
+              productId: 'prod_2',
+              name: 'Social Spark Vape',
+              price: 20,
+              category: 'Vapes',
+              reason: 'Easygoing and upbeat.',
+            },
+          ],
+          bundle: {
+            name: 'Social Start',
+            tagline: 'A bright mood-matching combo',
+            products: [
+              { productId: 'prod_2', name: 'Social Spark Vape', price: 20, category: 'Vapes', reason: 'Easygoing and upbeat.' },
+            ],
+            totalPrice: 20,
+          },
+        };
+      }
+
+      return {
+        success: true,
+        products: [
+          {
+            productId: 'prod_1',
+            name: 'Blue Dream Pre-Roll',
+            price: 12,
+            category: 'Pre-Rolls',
+            reason: 'Great for staying light and upbeat.',
+          },
+        ],
+        bundle: {
+          name: 'Easy Entry',
+          tagline: 'A simple mood-matching combo',
+          products: [
+            { productId: 'prod_1', name: 'Blue Dream Pre-Roll', price: 12, category: 'Pre-Rolls', reason: 'Great for staying light and upbeat.' },
+          ],
+          totalPrice: 12,
+        },
+      };
+    });
+    (captureVisitorCheckin as jest.Mock).mockResolvedValue({
+      success: true,
+      isNewLead: false,
+      isReturningCustomer: false,
+    });
+
+    renderCard();
+    await moveToStepTwo();
+
+    expect(prefetchTabletInventory).toHaveBeenCalledWith('org_thrive_syracuse');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Relaxed & Calm' }));
+    await screen.findByRole('button', { name: 'View details for Blue Dream Pre-Roll' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save for budtender' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save bundle idea' }));
+    fireEvent.click(screen.getByRole('button', { name: 'View details for Blue Dream Pre-Roll' }));
+
+    expect(await screen.findByRole('button', { name: 'Saved for budtender' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bundle saved' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Social & Happy' }));
+    await screen.findByRole('button', { name: 'View details for Social Spark Vape' });
+
+    expect(screen.queryByRole('button', { name: 'Saved for budtender' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Bundle saved' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'View details for Blue Dream Pre-Roll' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finish Check-In' }));
+
+    await waitFor(() => {
+      expect(captureVisitorCheckin).toHaveBeenCalledWith(expect.objectContaining({
+        mood: 'social',
+        cartProductIds: [],
+        bundleAdded: false,
+      }));
+    });
   });
 
   it('submits favorite-category enrichment when email is already known', async () => {

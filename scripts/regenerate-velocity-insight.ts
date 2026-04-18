@@ -10,6 +10,11 @@ import {
   buildSlowMoverAudit,
   getSlowMoverThresholdsFromBenchmarks,
 } from '../src/server/services/slow-mover-audit';
+import {
+  buildSlowMoverMetricBundle,
+  formatSlowMoverMetricValue,
+  getSlowMoverMetric,
+} from '../src/lib/slow-mover-metrics';
 
 dotenv.config({ path: '.env.local' });
 dotenv.config();
@@ -38,6 +43,10 @@ async function main() {
     return Math.floor((now.getTime() - lastSaleAt.getTime()) / 86_400_000) >= DEFAULT_THRESHOLDS.actionDays;
   });
   const missingSalesHistory = productsWithStock.length > 0 && productsWithLastSale.length === 0;
+  const metricBundle = buildSlowMoverMetricBundle(slowMovers, {
+    excludedNonInventoryCount: slowMoverAudit.skippedExcludedProducts,
+  });
+  const defaultMetric = getSlowMoverMetric(metricBundle, metricBundle.defaultMetricId);
 
   const byCategory = new Map<string, { count: number; stock: number; value: number }>();
   for (const product of slowMovers) {
@@ -57,17 +66,19 @@ async function main() {
     stockLevel: product.stockLevel,
     daysInInventory: product.daysSinceLastSale,
     valueAtRisk: product.estimatedAtRisk,
+    retailValueAtRisk: product.estimatedAtRisk,
+    costBasis: product.estimatedCostBasis ?? null,
   }));
 
-  const totalValueAtRisk = slowMovers.reduce((sum, product) => sum + product.estimatedAtRisk, 0);
+  const totalValueAtRisk = metricBundle.metrics.find((metric) => metric.id === 'retail_value')?.value ?? 0;
   const headline = totalValueAtRisk > 0
-    ? `$${Math.round(totalValueAtRisk).toLocaleString()} in slow-moving inventory (${slowMovers.length} SKUs)`
+    ? `${defaultMetric ? formatSlowMoverMetricValue(defaultMetric) : `$${Math.round(totalValueAtRisk).toLocaleString()}`} across ${slowMovers.length} slow-moving SKUs`
     : missingSalesHistory
       ? `Sales history missing for ${productsWithStock.length} in-stock SKUs`
       : `${slowMovers.length} slow-moving products`;
   const subtext = missingSalesHistory
     ? 'Catalog is loading, but no products have last-sale telemetry yet, so slow-mover flags stay paused until sales history syncs.'
-    : '';
+    : metricBundle.summaryLine;
 
   const payload = {
     id: `${orgId}:velocity:slow_movers`,
@@ -76,7 +87,7 @@ async function main() {
     agentId: 'money_mike',
     agentName: 'Money Mike',
     title: 'SLOW MOVERS',
-    tooltipText: 'Products with 60+ days since last sale and near-zero velocity, grouped by category to prioritize markdowns or liquidation.',
+    tooltipText: `${defaultMetric?.description ?? 'Slow-moving inventory valuation.'} Switch between retail value, cost basis, and units. Gift cards are excluded from this audit.`,
     headline,
     subtext,
     value: missingSalesHistory ? productsWithStock.length : slowMovers.length,
@@ -106,10 +117,14 @@ async function main() {
     expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
     metadata: {
       totalSkus: slowMovers.length,
+      totalUnits: metricBundle.totalUnits,
+      excludedNonInventoryCount: slowMoverAudit.skippedExcludedProducts,
+      metricBundle,
       categoryBreakdown: Object.fromEntries(byCategory),
       topProducts,
       totalValueAtRisk,
       skippedMissingLastSale: slowMoverAudit.skippedMissingLastSale,
+      skippedExcludedProducts: slowMoverAudit.skippedExcludedProducts,
       productsWithStock: productsWithStock.length,
       productsWithLastSale: productsWithLastSale.length,
       actionDays: DEFAULT_THRESHOLDS.actionDays,
