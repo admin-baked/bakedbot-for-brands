@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Inbox 121 cases + Elroy 64 cases (all 5 blockers fixed) + 5-state compliance suite (NY/CA/CO/IL/MA); Weedmaps Deal Protocol added | **Last update:** 2026-04-18 (`dd07f0249`)
+**Current Status:** 🟢 main green | Thrive menu preview fixed + 3/3 pages published; DayDay page-health monitor live (9 AM ET daily); brand-pages dispensary_admin role fix | **Last update:** 2026-04-18 (`f4b2c64b6`)
 
 ---
 

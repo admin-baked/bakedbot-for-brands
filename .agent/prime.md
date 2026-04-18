@@ -51,8 +51,8 @@ Agent IDs: `claude` | `codex` | `gemini` | `linus`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Inbox 121 cases + Elroy 64 cases (all 5 blockers fixed) + 5-state compliance suite (NY/CA/CO/IL/MA); Weedmaps Deal Protocol
-**Recent work (2026-04-18):** `dd07f0249` Phase 1-3 parallel expansion — inbox 121, Elroy 64 + blocker fixes, run-compliance-stress.ts (50 cases)
+**Current Status:** 🟢 main green | Thrive menu preview fixed + 3/3 pages published; DayDay page-health monitor (9 AM ET daily); brand-pages dispensary_admin role fix
+**Recent work (2026-04-18):** `f4b2c64b6` Thrive wiring + dayday-page-health; `dd07f0249` inbox 121 + Elroy 64 + compliance stress suite
 
 ---
 
