@@ -22,6 +22,29 @@ Dollar estimate: `total_tokens_saved Ãƒâ€” $0.000003`
 
 ---
 
+## STARTUP: Agent Coordination Check (run after jcodemunch)
+
+```bash
+node scripts/agent-coord.mjs status
+```
+
+| Result | Action |
+|--------|--------|
+| Active locks on files you plan to touch | Check intent, send a message or wait |
+| Messages in inbox | `node scripts/agent-coord.mjs inbox --agent <you>` |
+| No conflicts | Proceed — claim files before touching shared primitives |
+
+**Before modifying any shared primitive** (`auth.ts`, `roles.ts`, `campaign-sender.ts`, etc.):
+```bash
+node scripts/agent-coord.mjs claim <file> --agent <you> --intent "..."
+# ... do the work ...
+node scripts/agent-coord.mjs done --agent <you>
+```
+
+Agent IDs: `claude` | `codex` | `gemini` | `linus`
+
+---
+
 ## PRIORITY ZERO: Build Health
 
 ```powershell

@@ -94,7 +94,10 @@
     "prerender:mood-videos": "node scripts/prerender-mood-videos.mjs",
     "firebase:apphosting": "node scripts/firebase-apphosting.mjs",
     "gh:checks": "node scripts/gh-commit-checks.mjs",
-    "gh:checks:wait": "node scripts/gh-commit-checks.mjs wait"
+    "gh:checks:wait": "node scripts/gh-commit-checks.mjs wait",
+    "agent:status": "node scripts/agent-coord.mjs status",
+    "agent:claim": "node scripts/agent-coord.mjs claim",
+    "agent:done": "node scripts/agent-coord.mjs done"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",
