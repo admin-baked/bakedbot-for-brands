@@ -51,8 +51,8 @@ Agent IDs: `claude` | `codex` | `gemini` | `linus`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Loyalty tablet: Upsell hero products & Grid/Carousel layouts
-**Recent work (2026-04-18):** `7fc1eb419` AgentArtifact + HITL loop; `43e19127e` checkin stress test; `850f8d04e` loyalty-tablet UX and full menu bypass
+**Current Status:** 🟢 main green | Ecstatic email brand color fix + Gmail dark mode protection
+**Recent work (2026-04-18):** `7dfd15a75` Ecstatic email red brand colors + color-scheme:light meta; `7fc1eb419` AgentArtifact + HITL loop
 
 ---
 

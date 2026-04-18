@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Loyalty tablet: Upsell hero products & Grid/Carousel layouts | **Last update:** 2026-04-18
+**Current Status:** 🟢 main green | Ecstatic email brand color fix + Gmail dark mode protection | **Last update:** 2026-04-18 (`7dfd15a75`)
 
 ---
 
