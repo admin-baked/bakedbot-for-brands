@@ -51,7 +51,7 @@ Agent IDs: `claude` | `codex` | `gemini` | `linus`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Loyalty tablet UX; Agent Artifacts + HITL loop; checkin stress test
+**Current Status:** 🟢 main green | Loyalty tablet: Upsell hero products & Grid/Carousel layouts
 **Recent work (2026-04-18):** `7fc1eb419` AgentArtifact + HITL loop; `43e19127e` checkin stress test; `850f8d04e` loyalty-tablet UX and full menu bypass
 
 ---
