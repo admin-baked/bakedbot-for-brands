@@ -709,27 +709,30 @@ export function RecommendationsScreen({
                 </div>
             )}
 
-            {/* ── CTA ── */}
-            <div className="w-full flex gap-4">
-                <button
-                    onClick={handleSubmit}
-                    disabled={loading}
-                    className="flex-1 flex items-center justify-center gap-3 rounded-[28px] py-5 text-xl font-bold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
-                    style={primaryButtonStyle}
-                >
-                    {loading ? (
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                    ) : cartCount > 0 ? (
-                        <><ShoppingCart className="h-6 w-6" /> Checkout — {cartCount} item{cartCount !== 1 ? 's' : ''}</>
-                    ) : (
-                        <><ShoppingCart className="h-6 w-6" /> Checkout</>
-                    )}
-                </button>
-            </div>
-
             {error && <p className="text-center text-sm text-red-500">{error}</p>}
-            <button onClick={() => setStep('mood')} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Change feeling</button>
+            <button onClick={() => setStep('mood')} className="text-sm hover:opacity-70 pb-28" style={{ color: faintTextColor }}>&larr; Change feeling</button>
         </motion.div>
+
+        {/* ── Sticky Checkout bar — always visible in viewport ── */}
+        <div
+            className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-4 pt-3"
+            style={{ background: 'linear-gradient(to top, rgba(15,15,26,0.97) 70%, transparent)' }}
+        >
+            <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-3 rounded-[28px] py-5 text-xl font-bold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-60 shadow-2xl"
+                style={primaryButtonStyle}
+            >
+                {loading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                ) : cartCount > 0 ? (
+                    <><ShoppingCart className="h-6 w-6" /> Checkout — {cartCount} item{cartCount !== 1 ? 's' : ''}</>
+                ) : (
+                    <><ShoppingCart className="h-6 w-6" /> Checkout</>
+                )}
+            </button>
+        </div>
         </>
     );
 }
