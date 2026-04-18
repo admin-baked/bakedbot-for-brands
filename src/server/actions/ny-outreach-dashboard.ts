@@ -693,7 +693,7 @@ export async function approveAndSendDraft(draftId: string): Promise<{
         const result = await sendGenericEmail({
             to: draft.email as string,
             name: draft.contactName || draft.dispensaryName,
-            fromEmail: 'martez@bakedbot.ai',
+            fromEmail: 'hello@outreach.bakedbot.ai',
             fromName: 'Martez — BakedBot AI',
             subject: draft.subject,
             htmlBody: draft.htmlBody,

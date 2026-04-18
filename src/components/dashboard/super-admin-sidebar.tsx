@@ -124,6 +124,14 @@ export function SuperAdminSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/email-inbox')}>
+                                <Link href="/dashboard/email-inbox">
+                                    <Mail />
+                                    <span>Email Threads</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isTab("boardroom")}>
                                 <Link href="/dashboard/ceo?tab=boardroom">
                                     <LayoutDashboard />

@@ -163,7 +163,7 @@ async function generateThursdaySection(agent: string, ctx: Awaited<ReturnType<ty
 // THURSDAY ADD-ON — FFF Audit B2B Lead Nurture
 // ---------------------------------------------------------------------------
 
-const FFF_SENDER_EMAIL = 'martez@bakedbot.ai';
+const FFF_SENDER_EMAIL = 'hello@outreach.bakedbot.ai';
 const FFF_SENDER_NAME = 'Martez Benjamins';
 
 async function runFFFLeadNurture(): Promise<{ sent: number; skipped: number; errors: number }> {

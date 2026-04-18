@@ -43,7 +43,8 @@ function getClient(): SESClient {
     });
 }
 
-export async function sendSesEmail(opts: SesEmailOptions): Promise<void> {
+/** Returns the SES MessageId on success — used to index the email thread for reply matching */
+export async function sendSesEmail(opts: SesEmailOptions): Promise<{ messageId: string }> {
     const client = getClient();
     const toAddresses = Array.isArray(opts.to) ? opts.to : [opts.to];
     const fromAddress = opts.fromName
@@ -82,6 +83,7 @@ export async function sendSesEmail(opts: SesEmailOptions): Promise<void> {
     try {
         const result = await client.send(command);
         logger.info('[SES] Email sent', { messageId: result.MessageId, to: toAddresses });
+        return { messageId: result.MessageId ?? '' };
     } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
         logger.error('[SES] Send failed', { error: msg, to: toAddresses, subject: opts.subject });

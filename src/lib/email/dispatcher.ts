@@ -448,16 +448,28 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
     if (process.env.AWS_SES_ACCESS_KEY_ID && process.env.AWS_SES_SECRET_ACCESS_KEY) {
         try {
             const sesFrom = await resolveOrgSesFrom(normalizedData.orgId, normalizedData.fromEmail, normalizedData.fromName);
-            await sendSesEmail({
+            const { messageId } = await sendSesEmail({
                 to: normalizedData.to,
                 from: sesFrom.email,
                 fromName: sesFrom.name,
+                replyTo: sesFrom.email, // Replies come back to the same BakedBot address → inbound webhook
                 subject: normalizedData.subject,
                 htmlBody: normalizedData.htmlBody,
                 textBody: normalizedData.textBody,
             });
             result = { success: true };
             logCrm(result, normalizedData, 'bakedbot_mail');
+            // Fire-and-forget thread creation — never blocks the send path
+            createEmailThreadAsync({
+                sesMessageId: messageId,
+                from: sesFrom.email,
+                to: normalizedData.to,
+                subject: normalizedData.subject,
+                htmlBody: normalizedData.htmlBody,
+                orgId: normalizedData.orgId,
+                agentName: normalizedData.agentName,
+                campaignId: normalizedData.campaignId,
+            });
             return result;
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
@@ -573,6 +585,26 @@ async function sendViaPlatformMailjet(data: GenericEmailData): Promise<{ success
             error: `Mailjet exception: ${msg} | SendGrid: ${sgResult.error}`,
         };
     }
+}
+
+/** Fire-and-forget email thread creation — never blocks the send path */
+function createEmailThreadAsync(opts: {
+    sesMessageId: string;
+    from: string;
+    to: string;
+    subject: string;
+    htmlBody: string;
+    orgId?: string;
+    agentName?: string;
+    campaignId?: string;
+}): void {
+    import('@/server/services/email-thread-service')
+        .then(({ createOutboundThread }) => createOutboundThread(opts))
+        .catch((e: unknown) => {
+            logger.warn('[Dispatcher] Failed to create email thread (non-fatal)', {
+                error: e instanceof Error ? e.message : String(e),
+            });
+        });
 }
 
 /** Fire-and-forget CRM logging — never blocks email send path */

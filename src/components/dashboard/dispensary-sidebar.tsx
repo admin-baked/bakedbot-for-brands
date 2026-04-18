@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
     Inbox,
+    Mail,
     FolderKanban,
     BookOpen,
     Utensils,
@@ -108,6 +109,14 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 <Link href="/dashboard/inbox" prefetch={true}>
                                     <Inbox />
                                     <span>Inbox</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/email-inbox')}>
+                                <Link href="/dashboard/email-inbox" prefetch={true}>
+                                    <Mail />
+                                    <span>Email Threads</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

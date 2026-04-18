@@ -20,7 +20,9 @@ import { getOutreachStats, type OutreachResult } from './outreach-read-model';
 export type { OutreachResult } from './outreach-read-model';
 export { getOutreachStats } from './outreach-read-model';
 
-const SENDER_EMAIL = 'martez@bakedbot.ai';
+// Subdomain isolates outreach reputation from main bakedbot.ai domain.
+// Replies route to inbound webhook via SES receiving on outreach.bakedbot.ai.
+const SENDER_EMAIL = 'hello@outreach.bakedbot.ai';
 const SENDER_NAME = 'Martez — BakedBot AI';
 const OUTREACH_COLLECTION = 'ny_outreach_log';
 
