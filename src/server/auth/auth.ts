@@ -3,6 +3,7 @@
 
 import 'server-only';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { createServerClient } from '@/firebase/server-client';
 import { DecodedIdToken } from 'firebase-admin/auth';
 import { SUPER_ADMIN_EMAILS } from '@/lib/super-admin-config';
@@ -98,8 +99,8 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
       return mockToken;
     }
 
-    console.error('[AUTH_DEBUG] No session cookie found in request headers:', cookieStore.getAll().map(c => c.name));
-    throw new Error('Unauthorized: No session cookie found.');
+    logger.warn('[AUTH] No session cookie — redirecting to login');
+    redirect('/login');
   }
 
   const { auth } = await createServerClient();
@@ -120,8 +121,8 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
       decodedToken = await auth.verifySessionCookie(sessionCookie, true);
     }
   } catch (error) {
-    console.error('[AUTH_ERROR] verifySessionCookie failed:', error);
-    throw new Error('Unauthorized: Invalid session cookie.');
+    logger.warn('[AUTH] Session cookie verification failed — redirecting to login', { error: String(error) });
+    redirect('/login');
   }
 
   // --- ROLE NORMALIZATION (Legacy Custom Claims) ---
