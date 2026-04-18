@@ -451,7 +451,7 @@ Keep it short, specific, and grounded in what is above.`,
 | Jaunty Mango 5pk | 26 | 24 | 11.20 | 6 | 130 |
 
 From only these visible rows, what should I do right now and what data would you still want next?`,
-        expectedFocus: ['visible rows', 'do right now', 'what data next', 'partial analysis'],
+        expectedFocus: ['visible rows', 'right now', 'data', 'partial'],
     },
     {
         id: 'multi-turn-sale-to-email',
@@ -496,6 +496,580 @@ From only these visible rows, what should I do right now and what data would you
         primaryAgent: 'auto',
         prompt: 'Lets discuss our slowest movers',
         expectedFocus: ['slow movers', 'what data is needed', 'next step', 'no crash'],
+    },
+
+    // ─── PRICING & INVENTORY EDGE CASES ────────────────────────────────────────
+    {
+        id: 'competitor-price-match-decision',
+        title: 'Competitor $4 cheaper — price match or hold?',
+        kind: 'data',
+        threadType: 'inventory_promo',
+        primaryAgent: 'money_mike',
+        prompt: `Competitor intel shows RISE Cannabis is selling OG Kush 3.5g at $28 — we're at $32. That's a $4 gap. Our cost on that SKU is $14.50.
+
+Should we match, undercut, or hold? Show me the margin math.`,
+        expectedFocus: ['margin', '$14.50', 'match', 'hold'],
+    },
+    {
+        id: 'overstock-discontinue-plan',
+        title: 'Overstock of discontinued SKU — disposal options',
+        kind: 'data',
+        threadType: 'inventory_promo',
+        primaryAgent: 'money_mike',
+        prompt: `We have 200 units of a brand we're discontinuing. They expire in 14 weeks. Retail $18, cost $7.20. No reorders coming.
+
+What are my options for moving this before expiration without killing our average ticket?`,
+        expectedFocus: ['14 weeks', 'cost', 'options', 'average ticket'],
+    },
+    {
+        id: 'new-sku-menu-placement',
+        title: 'New premium brand — where on the menu?',
+        kind: 'non_data',
+        threadType: 'inventory_promo',
+        primaryAgent: 'auto',
+        prompt: `We're getting a new premium flower brand in next week — Lobo Cannagar, retailing $65–$85. Our current top flower is $42. Where should we position it on the menu and how should budtenders introduce it without making our other products look bad?`,
+        expectedFocus: ['premium', 'positioning', 'budtender', 'menu'],
+    },
+    {
+        id: 'top-seller-out-of-stock',
+        title: 'Top seller out of stock 2 weeks — customer messaging',
+        kind: 'data',
+        threadType: 'inventory_promo',
+        primaryAgent: 'craig',
+        prompt: `Our top seller — Jaunty Mango 5pk Pre-Roll — is out of stock and won't be back for 2 weeks. It accounts for 14% of our pre-roll revenue.
+
+What do we tell customers who ask for it, and should we proactively message loyalty members who regularly buy it?`,
+        expectedFocus: ['out of stock', 'loyalty', 'message', 'alternative'],
+        mustNotContain: ['enhancing our curing', 'better flavor', 'mango-licious', 'mango madness', 'Hire me', 'Specialist Tier'],
+    },
+    {
+        id: 'bundle-price-calc',
+        title: 'Bundle pricing — maintain margin across two SKUs',
+        kind: 'data',
+        threadType: 'inventory_promo',
+        primaryAgent: 'money_mike',
+        prompt: `I want to bundle these two products:
+- Ayrloom Gummies 10pk: retail $22, cost $8.40
+- Jaunty Mango 5pk Pre-Rolls: retail $24, cost $11.20
+
+What bundle price keeps us above 50% gross margin and still feels like a deal to the customer?`,
+        expectedFocus: ['50%', 'bundle', 'cost', 'margin'],
+    },
+    {
+        id: 'shrink-audit-protocol',
+        title: 'Inventory shrink — 3 units missing from flower count',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'pops',
+        prompt: 'End-of-day count came up 3 units short on our flower display — 3 separate SKUs, 1 each. What is the standard protocol and do I need to file anything with Metrc tonight?',
+        expectedFocus: ['Metrc', 'protocol', 'steps', 'tonight'],
+    },
+    {
+        id: 'customer-return-policy',
+        title: 'Customer return — unopened edible',
+        kind: 'non_data',
+        threadType: 'support',
+        primaryAgent: 'auto',
+        prompt: 'A customer is at the counter asking to return an edible they bought yesterday — says it was the wrong dosage and the package is still sealed. What is our policy and what do I tell them?',
+        expectedFocus: ['policy', 'sealed', 'NY', 'customer'],
+    },
+    {
+        id: 'clearance-timing-math',
+        title: 'When to mark down vs hold — expiration math',
+        kind: 'data',
+        threadType: 'inventory_promo',
+        primaryAgent: 'money_mike',
+        toolContext: `[Note: break-even price = cost basis. Vape break-even = $12.80. Tincture break-even = $9.40. Any price above cost recovers margin.]`,
+        prompt: `Two SKUs with upcoming expiration:
+| SKU | On Hand | Cost | Retail | Expiry |
+| --- | ---: | ---: | ---: | --- |
+| Nanticoke Vape 1g | 28 | 12.80 | 38 | 6 weeks |
+| House Tincture 500mg | 14 | 9.40 | 32 | 3 weeks |
+
+For each: should I mark down now, bundle, or hold? At what price am I breaking even on cost (i.e. not losing money)?`,
+        expectedFocus: ['$12.80', '$9.40', '3 weeks', 'tincture'],
+    },
+
+    // ─── STAFF & OPERATIONS ─────────────────────────────────────────────────────
+    {
+        id: 'shift-callout-coverage',
+        title: 'Two closers called out — coverage options',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'pops',
+        prompt: `It's 2 PM and both closing budtenders just called out sick. We have 3 more hours until close and currently 2 people on the floor. What are my options and what should I prioritize in the next 30 minutes?`,
+        expectedFocus: ['30 minutes', 'options', 'priority', 'floor'],
+    },
+    {
+        id: 'budtender-low-capture-rate',
+        title: 'Budtender with 18% loyalty capture vs 34% avg',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `One of my budtenders has an 18% loyalty enrollment capture rate this week. The team average is 34%. They have great customer feedback scores. What do I say to them and what should I actually fix?`,
+        expectedFocus: ['18%', '34%', 'what to fix', 'conversation'],
+    },
+    {
+        id: 'mystery-shopper-prep',
+        title: 'State inspection possible next week — prep checklist',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'pops',
+        prompt: `We heard through the grapevine that OCM may be doing spot inspections in our area next week. What are the top 5 things I should audit and fix before they arrive?`,
+        expectedFocus: ['audit', 'top', 'inspection', 'fix'],
+    },
+    {
+        id: 'opening-checklist',
+        title: 'Opening shift checklist',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'mrs_parker',
+        prompt: 'Give me a tight opening checklist for the floor team. We open at 10 AM and need to be ready for 4 things: Metrc compliance, POS sync check, product display, and customer-facing systems.',
+        expectedFocus: ['Metrc', 'POS', 'checklist', 'display'],
+    },
+    {
+        id: 'rush-hour-floor-decision',
+        title: 'Unexpected 4:20 rush — floor decision',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `It is 4:10 PM. We have 14 customers in the store, 3 budtenders on floor, and the queue is backing up to the door. Normal close is 9 PM. I have one person on lunch and one part-timer who can come in at 5.
+
+What do I do in the next 10 minutes?`,
+        expectedFocus: ['10 minutes', 'queue', 'call in', 'floor'],
+    },
+
+    // ─── COMPLIANCE EDGE CASES ──────────────────────────────────────────────────
+    {
+        id: 'possession-limit-combo',
+        title: 'Possession limit — flower + pre-roll combo over?',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'auto',
+        prompt: `Customer wants a 3.5g flower jar AND a 5-pack pre-roll (each pre-roll is 0.5g, so 2.5g total). That is 6g combined. New York adult-use limit is 3oz. Are we good to sell them both?`,
+        expectedFocus: ['3 oz', '6g', 'legal', 'good to sell'],
+    },
+    {
+        id: 'age-verification-protocol',
+        title: 'Age verification — customer looks young',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'mrs_parker',
+        prompt: 'A customer at the counter looks like they might be under 21. They have a passport that says they are 22. What is the exact protocol and when, if ever, is it acceptable to refuse service even with valid ID?',
+        expectedFocus: ['passport', 'protocol', 'refuse', 'valid ID'],
+    },
+    {
+        id: 'staff-cannabis-use-policy',
+        title: 'Can employees consume cannabis before a shift?',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'auto',
+        prompt: 'One of my budtenders asked if it is legal for them to consume cannabis at home before coming in for a shift. What is our policy and what does NY state law say about this?',
+        expectedFocus: ['policy', 'NY', 'impairment', 'shift'],
+    },
+    {
+        id: 'social-media-deal-compliance',
+        title: 'Instagram deal post — what to avoid',
+        kind: 'non_data',
+        threadType: 'campaign',
+        primaryAgent: 'craig',
+        prompt: 'We want to post a "20% off edibles today only" promotion on Instagram. What language and imagery do we need to avoid to stay compliant with NY advertising rules?',
+        expectedFocus: ['NY', 'advertising', 'avoid', 'compliant'],
+    },
+    {
+        id: 'metrc-weight-discrepancy',
+        title: 'Metrc weight discrepancy — scale off by 0.1g',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'pops',
+        prompt: 'Our scale is reading 0.1g light on every flower transaction compared to what Metrc expects. We have 40 transactions today. What do we do — is this reportable? How do we fix it without creating a compliance trail nightmare?',
+        expectedFocus: ['0.1g', 'Metrc', 'reportable', 'fix'],
+    },
+    {
+        id: 'gift-law-question',
+        title: 'NY gift law — can we give free product?',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'auto',
+        prompt: 'A long-time customer asked if we can comp them a pre-roll for their birthday. What does NY cannabis gift law say and what CAN we do to reward loyal customers without violating it?',
+        expectedFocus: ['NY', 'gift', 'can', 'reward'],
+    },
+
+    // ─── CUSTOMER SCENARIOS ─────────────────────────────────────────────────────
+    {
+        id: 'first-time-buyer-experience',
+        title: 'First-time buyer — ideal floor experience',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'mrs_parker',
+        prompt: 'Walk me through the ideal first-visit experience for a brand-new cannabis buyer who has never been in a dispensary. From the moment they walk in to the moment they leave.',
+        expectedFocus: ['first time', 'walk in', 'experience', 'leave'],
+    },
+    {
+        id: 'complaint-escalation',
+        title: 'Customer threatening bad Yelp review',
+        kind: 'non_data',
+        threadType: 'support',
+        primaryAgent: 'mrs_parker',
+        prompt: `A customer at the register says: "I've been waiting 20 minutes and nobody helped me. I'm going to leave a one-star review on Yelp and Google." They are visibly frustrated. What do I do right now, and how do we prevent this from becoming a public review?`,
+        expectedFocus: ['right now', 'prevent', 'review', 'next step'],
+    },
+    {
+        id: 'vip-birthday-recognition',
+        title: 'VIP customer birthday today — action plan',
+        kind: 'data',
+        threadType: 'general',
+        primaryAgent: 'mrs_parker',
+        prompt: `Customer Michelle W. — LTV $1,240, visits every 2 weeks, loves Sativa flower — just walked in and it is her birthday today. We did not message her in advance.
+
+What can the budtender do right now, and what should we set up for next year so we do not miss this again?`,
+        expectedFocus: ['birthday', 'right now', 'next year', 'LTV'],
+    },
+    {
+        id: 'medical-question-deflect',
+        title: 'Customer asks what is good for arthritis',
+        kind: 'non_data',
+        threadType: 'product_discovery',
+        primaryAgent: 'smokey',
+        prompt: 'A customer just asked the budtender: "What do you have that is good for my arthritis?" Give the budtender the exact response script that answers helpfully without making any medical claims.',
+        expectedFocus: ['script', 'budtender', 'arthritis', 'no medical'],
+        mustNotContain: ['arthritis', 'helps with pain', 'relieves', 'good for your'],
+    },
+    {
+        id: 'loyalty-points-missing',
+        title: 'Customer loyalty points not showing',
+        kind: 'non_data',
+        threadType: 'support',
+        primaryAgent: 'mrs_parker',
+        prompt: 'Customer says they have been coming in for 3 months and their loyalty app shows zero points — they think they earned at least 200 visits worth. What do I do right now and what is the likely cause?',
+        expectedFocus: ['right now', 'likely cause', 'loyalty', 'steps'],
+    },
+    {
+        id: 'revenue-gap-midday',
+        title: 'Revenue gap at noon — $12k target, at $9.2k',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `It is noon. Daily revenue target is $12k. We are at $9,200. We have 6 hours left and average 3.2 transactions per hour at $52 AOV in the afternoon.
+
+Will we hit the target? If not, what is the fastest lever I can pull right now?`,
+        expectedFocus: ['$9,200', 'lever', 'target', 'right now'],
+    },
+    {
+        id: 'customer-ban-protocol',
+        title: 'Aggressive customer from last week is back',
+        kind: 'non_data',
+        threadType: 'support',
+        primaryAgent: 'pops',
+        prompt: 'A customer who was verbally aggressive to a budtender last week just walked in again. We did not formally ban them but the staff is uncomfortable. What do I do in the next 5 minutes and what is the right process going forward?',
+        expectedFocus: ['5 minutes', 'process', 'staff', 'next'],
+    },
+
+    // ─── ANALYTICS EDGE CASES ───────────────────────────────────────────────────
+    {
+        id: 'conversion-rate-drop',
+        title: 'Check-ins up 12%, revenue flat — why?',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Last 7 days:
+- Check-ins: 412 (up 12% vs prior week)
+- Revenue: $18,400 (flat, up only 0.3%)
+- Avg ticket: $44.70 (was $50.10 prior week)
+- # transactions: 411
+
+Foot traffic is up but money is flat. What are the 3 most likely causes and how do I test which one it is?`,
+        expectedFocus: ['$44.70', '3 causes', 'test', 'avg ticket'],
+    },
+    {
+        id: 'aov-drop-diagnosis',
+        title: 'AOV fell $52 → $41 this week — diagnose it',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Average order value dropped from $52 to $41 this week. Here is what I know:
+- Pre-roll units up 22%
+- Edibles units down 8%
+- Flower units down 4%
+- We ran a $5-off pre-roll promo Tue–Thu
+
+Is this the promo or something structural? What do I look at next?`,
+        expectedFocus: ['promo', '$5', 'structural', 'next'],
+    },
+    {
+        id: 'category-shift-trend',
+        title: 'Edibles +40%, flower -20% — trend or noise?',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `This week vs last week:
+| Category | Units This Week | Units Last Week | Change |
+| --- | ---: | ---: | ---: |
+| Flower | 186 | 232 | -20% |
+| Edibles | 204 | 146 | +40% |
+| Vape | 98 | 94 | +4% |
+| Pre-Roll | 72 | 68 | +6% |
+
+Is the edibles surge and flower dip a real trend I should act on or just weekly noise?`,
+        expectedFocus: ['trend', 'noise', 'act', 'edibles'],
+    },
+    {
+        id: 'afternoon-slump-fix',
+        title: '2–5 PM always slow — data-backed operational solution',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Our 2–5 PM window averages 3.2 transactions/hour. Our 5–8 PM window averages 8.6 transactions/hour. Morning 10 AM–12 PM averages 5.1 transactions/hour.
+
+What operational changes would move the needle on this afternoon slump? Think staffing, floor layout, checkout speed, and what data I should pull to diagnose the root cause.`,
+        expectedFocus: ['3.2', 'afternoon', 'staffing', 'data'],
+        mustNotContain: ['pre-dinner', 'relaxation', 'escape the day', 'mellow', 'wind down'],
+    },
+    {
+        id: 'conflicting-numbers',
+        title: 'Manager gives two different revenue numbers',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `Our manager said yesterday's revenue was $6,840. But the POS morning summary email shows $7,210. The difference is $370.
+
+Which number should I trust and how do I reconcile this before the weekly owner report?`,
+        expectedFocus: ['$370', 'reconcile', 'trust', 'before'],
+    },
+    {
+        id: 'monthly-snapshot-partial',
+        title: 'End of month — partial data snapshot',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        prompt: `It is the last day of the month and I only have data through yesterday:
+- Revenue MTD: $94,200
+- Transactions MTD: 1,847
+- New loyalty signups: 112
+- Returns/voids: 18 transactions
+- Biggest day: April 20 at $9,840
+
+Give me the executive summary for the owner meeting tomorrow and flag the one number you are most concerned about.`,
+        expectedFocus: ['MTD', 'summary', 'April 20', 'concerned'],
+    },
+
+    // ─── MARKETING EDGE CASES ───────────────────────────────────────────────────
+    {
+        id: 'sms-opt-out-spike',
+        title: 'SMS opt-out spike after last send — diagnose',
+        kind: 'data',
+        threadType: 'campaign',
+        primaryAgent: 'craig',
+        prompt: `After our last SMS send to 1,840 customers, we got 12 opt-outs and 3 complaint replies. Normal is 1–2 opt-outs per send.
+
+What likely triggered the spike and what should we change before the next send?`,
+        expectedFocus: ['12 opt-outs', 'spike', 'next send', 'change'],
+    },
+    {
+        id: 'subject-line-ab-test',
+        title: 'A/B subject line — which to send?',
+        kind: 'data',
+        threadType: 'campaign',
+        primaryAgent: 'craig',
+        prompt: `We tested two email subject lines on 200 subscribers (100 each):
+- A: "Your weekend deal is here 🌿" — 32% open rate, 4.1% click
+- B: "Thrive Syracuse: This Friday only" — 24% open rate, 6.8% click
+
+We are sending to 3,200 more. Which subject line do we use and why?`,
+        expectedFocus: ['32%', '6.8%', 'send', 'which'],
+    },
+    {
+        id: '420-day-marketing-plan',
+        title: '4/20 day-of operational marketing plan',
+        kind: 'non_data',
+        threadType: 'campaign',
+        primaryAgent: 'craig',
+        prompt: 'It is 7 AM on April 20. Store opens at 10 AM. We have a 20% off everything sale until 4:20 PM, then regular prices. Draft me the 3 customer-facing messages we send today (morning teaser, midday reminder, last-call) and the timing for each.',
+        expectedFocus: ['3 messages', 'morning', 'midday', 'last call'],
+    },
+    {
+        id: 'referral-program-design',
+        title: 'Design a compliant referral program',
+        kind: 'non_data',
+        threadType: 'campaign',
+        primaryAgent: 'craig',
+        prompt: 'Customers keep asking if we have a referral program. We want to reward people who bring in friends. Design a referral structure that is both appealing and compliant with NY cannabis advertising rules.',
+        expectedFocus: ['NY', 'referral', 'compliant', 'design'],
+    },
+    {
+        id: 'google-business-hours-update',
+        title: 'Update Google Business hours for 4/20 extended hours',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'auto',
+        prompt: `We are extending hours on April 20 from our normal 10 AM–9 PM to 8 AM–11 PM. I need to update Google Business Profile, Weedmaps, and our website before Tuesday. What is the fastest way to do all three and what do I watch out for?`,
+        expectedFocus: ['Google', 'Weedmaps', 'website', 'watch out'],
+    },
+    {
+        id: 'review-request-timing',
+        title: 'Best time to ask for a Google review',
+        kind: 'non_data',
+        threadType: 'campaign',
+        primaryAgent: 'craig',
+        prompt: 'We have 43 Google reviews averaging 4.1 stars. Competitors have 150+. What is the most effective and compliant way to ask customers for a review — at what point in the customer journey and through which channel?',
+        expectedFocus: ['43 reviews', 'when', 'channel', 'compliant'],
+    },
+
+    // ─── DIFFICULT MULTI-TURN ────────────────────────────────────────────────────
+    {
+        id: 'multi-turn-escalating-complaint',
+        title: 'Multi-turn: escalating complaint → resolution',
+        kind: 'non_data',
+        threadType: 'support',
+        primaryAgent: 'mrs_parker',
+        history: [
+            {
+                role: 'user',
+                content: 'Customer says they bought the wrong product. They are upset.',
+            },
+            {
+                role: 'assistant',
+                content: 'What product did they get versus what they wanted? And what was the approximate purchase amount? I can help you navigate this.',
+            },
+            {
+                role: 'user',
+                content: 'They wanted an indica gummy but got a sativa. Paid $22. Now they are threatening to call the state licensing board and post on Reddit.',
+            },
+        ],
+        prompt: 'They are still at the counter. What do I say to them right now?',
+        expectedFocus: ['right now', 'say', 'counter', 'de-escalate'],
+    },
+    {
+        id: 'multi-turn-inventory-decision',
+        title: 'Multi-turn: inventory question → buy decision',
+        kind: 'data',
+        threadType: 'inventory_promo',
+        primaryAgent: 'money_mike',
+        history: [
+            {
+                role: 'user',
+                content: 'Vendor is offering us 200 units of a new Sativa vape at $12.50 cost, retailing at $38. Net 30 terms.',
+            },
+            {
+                role: 'assistant',
+                content: 'That is a 67% gross margin at retail — healthy. Before committing, I want to know: do you have sell-through data on your current vape SKUs? And what is your current vape inventory level?',
+            },
+            {
+                role: 'user',
+                content: 'Current vapes: 8 SKUs, average 18 days on hand, best seller moves 14 units/week. We have $3,200 in vape inventory right now.',
+            },
+        ],
+        prompt: 'Should I take the 200 units?',
+        expectedFocus: ['200 units', '$3,200', 'days on hand', 'recommend'],
+    },
+    {
+        id: 'multi-turn-ambiguous-request',
+        title: 'Multi-turn: vague request → scoped action',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'auto',
+        history: [
+            {
+                role: 'user',
+                content: 'We need to do something about our Weedmaps presence.',
+            },
+            {
+                role: 'assistant',
+                content: 'Happy to help. What is the main problem you are seeing — are reviews down, deals outdated, menu not syncing, or something else? Knowing the specific gap will help me give you the right fix.',
+            },
+        ],
+        prompt: 'Reviews. We have 28 and a 3.8 average. Competitors have way more.',
+        expectedFocus: ['28 reviews', '3.8', 'action', 'Weedmaps'],
+    },
+    {
+        id: 'multi-turn-tool-data-vs-manager',
+        title: 'Multi-turn: tool data contradicts what manager said',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        history: [
+            {
+                role: 'user',
+                content: 'Yesterday was our best day ever — manager said we did $11,400.',
+            },
+            {
+                role: 'assistant',
+                content: 'Nice — sounds like a strong push. What drove it? Promo, event, or just organic traffic?',
+            },
+        ],
+        prompt: `Here is the POS daily summary:
+
+Revenue: $8,920
+Transactions: 178
+Avg ticket: $50.11
+
+The manager said $11,400. The POS says $8,920. That is a $2,480 gap. What is going on?`,
+        expectedFocus: ['$2,480', 'gap', 'POS', 'what is going on'],
+    },
+    {
+        id: 'multi-turn-prioritization',
+        title: 'Multi-turn: 5 competing tasks — what first?',
+        kind: 'non_data',
+        threadType: 'general',
+        primaryAgent: 'pops',
+        history: [
+            {
+                role: 'user',
+                content: 'I have too many things on my plate today and do not know where to start.',
+            },
+            {
+                role: 'assistant',
+                content: 'Walk me through what is on your list and I will help you sequence it.',
+            },
+        ],
+        prompt: `Here is everything I have today:
+1. Call the flower vendor about a short shipment (need to credit $340)
+2. Respond to 2 negative Google reviews from this week
+3. Run the weekly loyalty segment report for the owner
+4. Train the new budtender on RSO products (they have their first shift Friday)
+5. Update our 4/20 deals on Weedmaps before the weekend
+
+Which one do I do first and is there anything I can delegate or skip?`,
+        expectedFocus: ['first', 'delegate', 'sequence', '4/20'],
+    },
+    {
+        id: 'incomplete-data-decision',
+        title: 'Decide from incomplete data — partial POS export',
+        kind: 'data',
+        threadType: 'performance',
+        primaryAgent: 'pops',
+        toolContext: `[Historical: Average Tuesday 10 AM–1 PM = 35 transactions, $1,650 revenue. Today so far (10 AM + 11 AM + 1 PM, skipping missing 12 PM): 39 transactions, $1,772 revenue — 3 of 4 hours visible.]`,
+        prompt: `I only have partial data from this morning — the POS export cut off:
+
+| Hour | Transactions | Revenue |
+| --- | ---: | ---: |
+| 10 AM | 12 | $524 |
+| 11 AM | 18 | $836 |
+| 12 PM | (missing) | (missing) |
+| 1 PM | 9 | $412 |
+
+Historical Tuesday average for 10 AM–1 PM: 35 transactions, $1,650 revenue.
+
+It is now 2 PM. Based on what I have, is today tracking above or below a normal Tuesday and what should I be watching?`,
+        expectedFocus: ['above', 'Tuesday', 'watching', 'missing'],
+    },
+    {
+        id: 'no-promo-idea-constraint',
+        title: 'Drive traffic with no discount budget',
+        kind: 'non_data',
+        threadType: 'inventory_promo',
+        primaryAgent: 'craig',
+        prompt: 'I need to drive more traffic this week but the owner said no discounts or promotions — margin is already tight. What are three ways to bring people in without touching price?',
+        expectedFocus: ['three', 'no discount', 'traffic', 'price'],
+    },
+    {
+        id: 'wrong-product-recommendation',
+        title: 'Budtender gave wrong product — what to do',
+        kind: 'non_data',
+        threadType: 'support',
+        primaryAgent: 'mrs_parker',
+        prompt: 'A customer came back today and says a budtender recommended them a high-THC concentrate last week when they told the budtender they were a first-time user. They had a bad experience. How do we handle this with the customer and with the employee?',
+        expectedFocus: ['customer', 'employee', 'handle', 'first-time'],
     },
 ];
 
@@ -869,7 +1443,7 @@ async function generateInboxResponse(
     history: ChatMessage[]
 ): Promise<string> {
     const persona = PERSONAS[(personaId in PERSONAS ? personaId : 'puff') as AgentPersona] ?? PERSONAS.puff;
-    const systemPrompt = `${persona.systemPrompt}\n\n${threadContext}\n\nRespond as if you are inside the Thrive Syracuse operator inbox. Be grounded, specific, and launch-ready.`;
+    const systemPrompt = `${persona.systemPrompt}\n\nUSER CONTEXT: Authenticated dispensary owner/operator (role: owner). NOT in interview mode — provide full, actionable guidance.\n\n${threadContext}\n\nRespond as if you are inside the Thrive Syracuse operator inbox. Be grounded, specific, and launch-ready.`;
     const userMessage = `${buildConversationHistoryBlock(history)}Current user message: ${prompt}`;
 
     return callModelText({

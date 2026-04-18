@@ -7,6 +7,9 @@
  *   2. Loyalty/Rewards    5. Campaigns        8. Analytics        11. Kiosk tablet
  *   3. Recommendations    6. Customer CRM     9. Morning briefing 12. Manager dashboard
  *
+ * Page render checks (pageRenderCheck) detect RSC crashes on all major dashboard routes.
+ * Any 5xx or "An error occurred in the Server Components render" in the HTML fires a bug.
+ *
  * Usage:
  *   node scripts/linus-stress-test-checkin.mjs              # single batch
  *   node scripts/linus-stress-test-checkin.mjs --loop       # 25/hr × 4 hours
@@ -51,6 +54,28 @@ async function apiGet(path, apiKey) {
     headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
   });
   return { status: res.status, body: await res.json().catch(() => ({})) };
+}
+
+// Page render check — fetches a dashboard page (unauthenticated), follows redirects to /login.
+// PASS: status < 500 AND response body doesn't contain RSC crash strings.
+// FAIL: 500 or body contains "An error occurred in the Server Components render" / "Application error".
+async function pageRenderCheck(path) {
+  const res = await fetch(`${PROD_URL}${path}`, {
+    headers: { 'User-Agent': 'Linus-StressTest/1.0', Accept: 'text/html' },
+  });
+  const status = res.status;
+  if (status >= 500) return { status, crashDetected: true, notes: `HTTP ${status}` };
+  // Peek at first 4KB for RSC error markers
+  const text = await res.text().catch(() => '');
+  const snippet = text.slice(0, 4096);
+  const RSC_ERRORS = [
+    'An error occurred in the Server Components render',
+    'Application error: a client-side exception has occurred',
+    'Error: An error occurred in the Server Components',
+  ];
+  const match = RSC_ERRORS.find(e => snippet.includes(e));
+  if (match) return { status, crashDetected: true, notes: `RSC crash detected: "${match.slice(0, 60)}"` };
+  return { status, crashDetected: false, notes: `HTTP ${status}` };
 }
 
 async function tenantSetting(settingKey) {
@@ -398,6 +423,7 @@ async function suite5_campaigns(results) {
     console.log(`  ${pass ? '✅' : '❌'} [${label}] ${name}${notes ? ' — ' + notes : ''}`);
   }
 
+  // Firestore: campaigns collection readable
   try {
     const snap = await db.collection('campaigns').where('orgId', '==', ORG).limit(20).get();
     rec('Campaigns collection readable', true, `${snap.size} campaigns`);
@@ -411,6 +437,23 @@ async function suite5_campaigns(results) {
       rec('Campaign docs — status + name fields', true, 'no campaigns yet (OK)');
     }
   } catch (e) { results.push({ suite: label, name: 'Campaigns readable', pass: false, notes: e.message }); }
+
+  // Page render: /dashboard/campaigns — must not 5xx or RSC crash
+  try {
+    const r = await pageRenderCheck('/dashboard/campaigns');
+    rec('Page /dashboard/campaigns — no RSC crash', !r.crashDetected, r.notes);
+    if (r.crashDetected) await fileAgentBug('[CAMPAIGNS] /dashboard/campaigns RSC crash',
+      `pageRenderCheck returned crashDetected=true: ${r.notes}\nURL: ${PROD_URL}/dashboard/campaigns`, 'critical');
+  } catch (e) { results.push({ suite: label, name: 'Campaigns page render', pass: false, notes: e.message }); }
+
+  // Cron endpoint auth check: campaign-sender requires auth
+  try {
+    const r = await apiGet('/api/cron/campaign-sender', null);
+    const pass = r.status === 401 || r.status === 403 || r.status === 405 || r.status === 307;
+    rec('Cron /campaign-sender — auth required', pass, `HTTP ${r.status} (expected 401/403/405)`);
+    if (!pass && r.status < 400) await fileAgentBug('[CAMPAIGNS] campaign-sender cron unprotected',
+      `GET /api/cron/campaign-sender returned ${r.status} without auth.`, 'critical');
+  } catch (e) { results.push({ suite: label, name: 'Campaign cron auth', pass: false, notes: e.message }); }
 }
 
 async function suite6_customers(results) {
@@ -459,6 +502,14 @@ async function suite6_customers(results) {
         hasFields ? `firstName=${sample.firstName}` : 'missing required fields');
     }
   } catch (e) { results.push({ suite: label, name: 'Checkin visits', pass: false, notes: e.message }); }
+
+  // Page render: /dashboard/customers — must not 5xx or RSC crash
+  try {
+    const r = await pageRenderCheck('/dashboard/customers');
+    rec('Page /dashboard/customers — no RSC crash', !r.crashDetected, r.notes);
+    if (r.crashDetected) await fileAgentBug('[CRM] /dashboard/customers RSC crash',
+      `pageRenderCheck returned crashDetected=true: ${r.notes}\nURL: ${PROD_URL}/dashboard/customers`, 'critical');
+  } catch (e) { results.push({ suite: label, name: 'Customers page render', pass: false, notes: e.message }); }
 }
 
 async function suite7_playbooks(results) {
@@ -649,6 +700,23 @@ async function suite12_dashboard(results) {
     if (!pass) await fileAgentBug('[DASHBOARD] /dashboard returning server error',
       `HTTP ${r.status}`, 'critical');
   } catch (e) { results.push({ suite: label, name: 'Dashboard root', pass: false, notes: e.message }); }
+
+  // Page render checks — detect RSC crashes on all major dashboard routes (parallel)
+  const DASHBOARD_PAGES = [
+    ['/dashboard/campaigns',   '[CAMPAIGNS]',  'Campaigns page'],
+    ['/dashboard/customers',   '[CRM]',        'Customers CRM page'],
+    ['/dashboard/playbooks',   '[PLAYBOOKS]',  'Playbooks page'],
+    ['/dashboard/analytics',   '[ANALYTICS]',  'Analytics page'],
+    ['/dashboard/inbox',       '[INBOX]',      'Inbox page'],
+  ];
+  await Promise.all(DASHBOARD_PAGES.map(async ([path, tag, label2]) => {
+    try {
+      const r = await pageRenderCheck(path);
+      rec(`Page ${path} — no RSC crash`, !r.crashDetected, r.notes);
+      if (r.crashDetected) await fileAgentBug(`${tag} ${label2} RSC crash`,
+        `pageRenderCheck detected crash at ${PROD_URL}${path}\n${r.notes}`, 'critical');
+    } catch (e) { results.push({ suite: label, name: `${label2} render`, pass: false, notes: e.message }); }
+  }));
 
   // Recent checkin visits accessible
   try {

@@ -231,13 +231,14 @@ const ELROY_CASES: ElroyCase[] = [
         category: 'daily-ops',
         source: 'channel',
         message: 'How many hours until we close today?',
+        toolContext: `[Tool: get_store_hours — ERROR: No store hours tool available in current tool set. Thrive Syracuse hours are not accessible via BakedBot tools. Direct users to thrivesyracuse.com or the POS system for hours.]`,
         expectedBehaviors: [
             "acknowledges it doesn't have live store hours data",
-            'gives a reasonable best answer or lookup suggestion',
-            'does NOT make up a specific closing time without data',
-            'ends with next step',
+            'directs to thrivesyracuse.com or POS for hours',
+            'does NOT make up a specific closing time',
+            'ends with next step or offer',
         ],
-        mustNotContain: ['you close at 10 PM', 'you have 16 minutes'],
+        mustNotContain: ['close at', 'closes at', 'open until'],
     },
 
     // ─── SALES & DATA QUERIES ────────────────────────────────────────────────
@@ -262,7 +263,7 @@ const ELROY_CASES: ElroyCase[] = [
         category: 'sales-data',
         source: 'channel',
         message: 'Break down this weeks revenue by product category.',
-        toolContext: `${MOCK_TOP_SELLERS}\n\n[Note: Category-level revenue breakdown not available from get_top_sellers — that tool returns SKU-level units/revenue. Category grouping requires a separate query or POS export.]`,
+        toolContext: `${MOCK_TOP_SELLERS}\n\n[DATA GAP — STOP: Category-level revenue totals (Flower: $X, Vape: $Y, etc.) are NOT available from get_top_sellers. That tool returns individual SKUs only. Do NOT compute or invent category totals. Instead: show the SKU breakdown above and explain what export would be needed for true category revenue.]`,
         expectedBehaviors: [
             'acknowledges category breakdown has a data gap',
             'provides what it CAN show (SKU-level top sellers)',
@@ -551,13 +552,14 @@ No $0 or negative total transactions.`,
         category: 'compliance',
         source: 'channel',
         message: 'When is our next license renewal and what do we need to prepare?',
+        toolContext: `[Tool: get_license_info — ERROR: License renewal dates are not in the BakedBot tool set. Renewal dates are tracked in the NYS OCM portal and your compliance documents — not accessible via BakedBot tools.]`,
         expectedBehaviors: [
-            'acknowledges license date is not in its tool set',
-            'gives general NY dispensary license renewal preparation guidance',
-            'recommends where to verify the specific date (OCM portal, compliance docs)',
+            'does NOT state or guess a specific renewal date',
+            'directs to the OCM portal or compliance docs for the specific date',
+            'gives actionable general NY dispensary renewal preparation guidance',
             'ends with next step',
         ],
-        mustNotContain: ["I can't directly access", 'I will ask the BakedBot AI coding agent to search our internal'],
+        mustNotContain: ['renews on', 'renewal is due', 'renewal date is', '90 days', 'June 15'],
     },
 
     // ─── MARKETING & CAMPAIGNS ───────────────────────────────────────────────
