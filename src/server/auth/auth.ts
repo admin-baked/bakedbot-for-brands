@@ -215,10 +215,12 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
   if (!isSuperAdminByEmail && !isSuperUserRole) {
     const approvalStatus = decodedToken.approvalStatus;
     if (approvalStatus === 'pending') {
-      throw new Error('Forbidden: Your account is pending approval.');
+      logger.warn('[AUTH] Account pending approval — redirecting to login', { uid: decodedToken.uid });
+      redirect('/login');
     }
     if (approvalStatus === 'rejected') {
-      throw new Error('Forbidden: Your account has been rejected.');
+      logger.warn('[AUTH] Account rejected — redirecting to login', { uid: decodedToken.uid });
+      redirect('/login');
     }
   }
 
@@ -227,7 +229,8 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
     // Super admins (by email or role) bypass role checks
     if (!isSuperAdminByEmail && !isSuperUserRole) {
       if (!userRole || !roleMatches(userRole, requiredRoles)) {
-        throw new Error('Forbidden: You do not have the required permissions.');
+        logger.warn('[AUTH] Role mismatch — redirecting to dashboard', { uid: decodedToken.uid, userRole, requiredRoles });
+        redirect('/dashboard');
       }
     }
   }
