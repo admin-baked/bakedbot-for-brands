@@ -51,8 +51,8 @@ Agent IDs: `claude` | `codex` | `gemini` | `linus`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Kiosk category pills + quick chips live (`916d28ed0`, `0fbaa816d`); org-profile normalization (`8ec9406c7`)
-**Recent work (2026-04-18):** `916d28ed0` kiosk category pills on loading screen; `0fbaa816d` category-spread recs + always-visible quick chips
+**Current Status:** 🟢 main green | Agent Artifacts + HITL loop (`7fc1eb419`); purple Review column on Agent Board; checkin stress test (`43e19127e`)
+**Recent work (2026-04-18):** `7fc1eb419` AgentArtifact + submitArtifact + HITL approve/reject loop; `43e19127e` linus-stress-test-checkin.mjs + Firestore visitCount index
 
 ---
 

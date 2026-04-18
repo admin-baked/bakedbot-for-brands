@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Kiosk category pills + quick chips live; category-spread recs; org-profile normalization | **Last update:** 2026-04-18 (`8ec9406c7`)
+**Current Status:** 🟢 main green | Agent Artifacts + HITL loop live; purple Review column on Agent Board; checkin stress test script | **Last update:** 2026-04-18 (`43e19127e`)
 
 ---
 
