@@ -211,6 +211,8 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
   const isSuperUserRole = userRole === 'super_user' || userRole === 'super_admin';
 
   // --- GLOBAL APPROVAL CHECK ---
+  // Throws intentionally — shared primitive used by API routes + server actions that need catchable errors.
+  // Pages that want redirect-on-forbidden must catch at their own boundary (see campaigns/page.tsx).
   // Block access if the account is pending/rejected, UNLESS they are a super admin.
   if (!isSuperAdminByEmail && !isSuperUserRole) {
     const approvalStatus = decodedToken.approvalStatus;
@@ -221,14 +223,6 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
     if (approvalStatus === 'rejected') {
       logger.warn('[AUTH] Account rejected', { uid: decodedToken.uid });
       throw new Error('Forbidden: Your account has been rejected.');
-    }
-    if (approvalStatus === 'pending') {
-      logger.warn('[AUTH] Account pending approval — redirecting to login', { uid: decodedToken.uid });
-      redirect('/login');
-    }
-    if (approvalStatus === 'rejected') {
-      logger.warn('[AUTH] Account rejected — redirecting to login', { uid: decodedToken.uid });
-      redirect('/login');
     }
   }
 
