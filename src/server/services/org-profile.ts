@@ -52,7 +52,7 @@ export async function getOrgProfile(orgId: string): Promise<OrgProfile | null> {
     const db = getAdminFirestore();
     const snap = await db.collection(COLLECTION).doc(orgId).get();
     if (!snap.exists) return null;
-    const profile = snap.data() as OrgProfile;
+    const profile = normalizeOrgProfile(orgId, snap.data() as Partial<OrgProfile>);
     cache.set(orgId, { profile, fetchedAt: Date.now() });
     return profile;
   } catch (err) {
@@ -216,6 +216,146 @@ export function getDefaultOrgProfile(archetype: BusinessArchetype, orgId: string
   return profile;
 }
 
+const BUSINESS_ARCHETYPES: ReadonlySet<BusinessArchetype> = new Set([
+  'premium_boutique',
+  'value_leader',
+  'community_hub',
+  'medical_focus',
+  'lifestyle_brand',
+]);
+
+function resolveOrgProfileArchetype(profile: Partial<OrgProfile> | null | undefined): BusinessArchetype {
+  const archetype = profile?.intent?.strategicFoundation?.archetype;
+  return archetype && BUSINESS_ARCHETYPES.has(archetype) ? archetype : 'community_hub';
+}
+
+function normalizeOrgProfile(orgId: string, profile: Partial<OrgProfile>): OrgProfile {
+  const defaults = getDefaultOrgProfile(resolveOrgProfileArchetype(profile), orgId);
+
+  return {
+    ...defaults,
+    ...profile,
+    id: profile.id ?? orgId,
+    orgId: profile.orgId ?? orgId,
+    version: profile.version ?? defaults.version,
+    isDefault: profile.isDefault ?? defaults.isDefault,
+    completionPct:
+      typeof profile.completionPct === 'number'
+        ? profile.completionPct
+        : calculateOrgProfileCompletion(profile),
+    lastModifiedBy: profile.lastModifiedBy ?? defaults.lastModifiedBy,
+    createdAt: profile.createdAt ?? defaults.createdAt,
+    updatedAt: profile.updatedAt ?? defaults.updatedAt,
+    brand: {
+      ...defaults.brand,
+      ...profile.brand,
+      visualIdentity: {
+        ...defaults.brand.visualIdentity,
+        ...profile.brand?.visualIdentity,
+        colors: {
+          ...defaults.brand.visualIdentity.colors,
+          ...profile.brand?.visualIdentity?.colors,
+          primary:
+            profile.brand?.visualIdentity?.colors?.primary
+            ?? defaults.brand.visualIdentity.colors.primary,
+        },
+      },
+      voice: {
+        ...defaults.brand.voice,
+        ...profile.brand?.voice,
+        tone: profile.brand?.voice?.tone ?? defaults.brand.voice.tone,
+        personality: profile.brand?.voice?.personality ?? defaults.brand.voice.personality,
+        doWrite: profile.brand?.voice?.doWrite ?? defaults.brand.voice.doWrite,
+        dontWrite: profile.brand?.voice?.dontWrite ?? defaults.brand.voice.dontWrite,
+      },
+      messaging: {
+        ...defaults.brand.messaging,
+        ...profile.brand?.messaging,
+      },
+      compliance: {
+        ...defaults.brand.compliance,
+        ...profile.brand?.compliance,
+      },
+      assets: profile.brand?.assets ?? defaults.brand.assets,
+    },
+    intent: {
+      ...defaults.intent,
+      ...profile.intent,
+      strategicFoundation: {
+        ...defaults.intent.strategicFoundation,
+        ...profile.intent?.strategicFoundation,
+        weightedObjectives:
+          profile.intent?.strategicFoundation?.weightedObjectives
+          ?? defaults.intent.strategicFoundation.weightedObjectives,
+      },
+      valueHierarchies: {
+        ...defaults.intent.valueHierarchies,
+        ...profile.intent?.valueHierarchies,
+      },
+      agentConfigs: {
+        ...defaults.intent.agentConfigs,
+        ...profile.intent?.agentConfigs,
+        smokey: {
+          ...defaults.intent.agentConfigs.smokey,
+          ...profile.intent?.agentConfigs?.smokey,
+        },
+        craig: {
+          ...defaults.intent.agentConfigs.craig,
+          ...profile.intent?.agentConfigs?.craig,
+        },
+      },
+      hardBoundaries: {
+        ...defaults.intent.hardBoundaries,
+        ...profile.intent?.hardBoundaries,
+        neverDoList:
+          profile.intent?.hardBoundaries?.neverDoList
+          ?? defaults.intent.hardBoundaries.neverDoList,
+        escalationTriggers:
+          profile.intent?.hardBoundaries?.escalationTriggers
+          ?? defaults.intent.hardBoundaries.escalationTriggers,
+      },
+      feedbackConfig: {
+        ...defaults.intent.feedbackConfig,
+        ...profile.intent?.feedbackConfig,
+      },
+    },
+    operations: {
+      ...defaults.operations,
+      ...profile.operations,
+      pricingPolicy: profile.operations?.pricingPolicy
+        ? {
+            ...defaults.operations?.pricingPolicy,
+            ...profile.operations.pricingPolicy,
+          }
+        : defaults.operations?.pricingPolicy,
+      inventoryStrategy: profile.operations?.inventoryStrategy
+        ? {
+            ...defaults.operations?.inventoryStrategy,
+            ...profile.operations.inventoryStrategy,
+          }
+        : defaults.operations?.inventoryStrategy,
+      performanceBaselines: profile.operations?.performanceBaselines
+        ? {
+            ...defaults.operations?.performanceBaselines,
+            ...profile.operations.performanceBaselines,
+          }
+        : defaults.operations?.performanceBaselines,
+      contentLibrary: profile.operations?.contentLibrary
+        ? {
+            ...defaults.operations?.contentLibrary,
+            ...profile.operations.contentLibrary,
+          }
+        : defaults.operations?.contentLibrary,
+      retailerRouting: profile.operations?.retailerRouting
+        ? {
+            ...defaults.operations?.retailerRouting,
+            ...profile.operations.retailerRouting,
+          }
+        : defaults.operations?.retailerRouting,
+    },
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Backward-Compat Fallback Bridge
 // Reads old collections and merges into OrgProfile shape.
@@ -321,7 +461,7 @@ export async function getOrgProfileFromLegacy(orgId: string): Promise<OrgProfile
         }
       : getDefaultOrgProfile('community_hub', orgId).intent;
 
-    const profile: OrgProfile = {
+    const profile = normalizeOrgProfile(orgId, {
       id: orgId,
       orgId,
       version: '1.0.0',
@@ -332,7 +472,7 @@ export async function getOrgProfileFromLegacy(orgId: string): Promise<OrgProfile
       updatedAt: intentData.updatedAt ?? brandData.updatedAt ?? tenantData.updatedAt ?? now,
       brand,
       intent,
-    };
+    });
     profile.completionPct = calculateOrgProfileCompletion(profile);
     return profile;
   } catch (err) {
