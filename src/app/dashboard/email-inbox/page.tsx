@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
-import { requireAuth } from '@/server/auth/require-auth';
+import { requireAuth } from '@/server/auth/auth-helpers';
 import { getEmailThreads } from '@/server/services/email-thread-service';
 import { EmailInboxClient } from './email-inbox-client';
 export const dynamic = 'force-dynamic';
