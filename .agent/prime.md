@@ -51,7 +51,7 @@ Agent IDs: `claude` | `codex` | `gemini` | `linus`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Multi-agent coordination system live; Thrive kiosk UX + mood videos shipped
+**Current Status:** 🟢 main green | Ecstatic Edibles canonical email template (`b42b70d96`); bulk wake-up sends live for both orgs
 **Recent work (2026-04-18):** `381eeec2b` agent coord (Firestore locks + inbox + CLI); `242b0388c` sticky Checkout bar; `0d9e4e2f9` kiosk UX polish
 
 ---

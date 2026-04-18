@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Multi-agent coordination system (Firestore locks + inbox + status board); agent:status/claim/done CLI | **Last update:** 2026-04-18 (`381eeec2b`)
+**Current Status:** 🟢 main green | Ecstatic Edibles canonical email template; bulk wake-up sends live (Thrive + Ecstatic, 8s/email); multi-agent coord system | **Last update:** 2026-04-18 (`b42b70d96`)
 
 ---
 
