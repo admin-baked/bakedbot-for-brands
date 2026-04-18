@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Agent Artifacts + HITL loop live; purple Review column on Agent Board; checkin stress test script | **Last update:** 2026-04-18 (`43e19127e`)
+**Current Status:** 🟢 main green | Loyalty tablet UX; Agent Artifacts + HITL loop live; checkin stress test script | **Last update:** 2026-04-18 (`850f8d04e`)
 
 ---
 

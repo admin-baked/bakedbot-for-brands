@@ -51,8 +51,8 @@ Agent IDs: `claude` | `codex` | `gemini` | `linus`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Agent Artifacts + HITL loop (`7fc1eb419`); purple Review column on Agent Board; checkin stress test (`43e19127e`)
-**Recent work (2026-04-18):** `7fc1eb419` AgentArtifact + submitArtifact + HITL approve/reject loop; `43e19127e` linus-stress-test-checkin.mjs + Firestore visitCount index
+**Current Status:** 🟢 main green | Loyalty tablet UX; Agent Artifacts + HITL loop; checkin stress test
+**Recent work (2026-04-18):** `7fc1eb419` AgentArtifact + HITL loop; `43e19127e` checkin stress test; `850f8d04e` loyalty-tablet UX and full menu bypass
 
 ---
 
