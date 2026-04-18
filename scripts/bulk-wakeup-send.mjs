@@ -90,7 +90,7 @@ const ses = new SESClient({
 });
 
 // ── Email builder ─────────────────────────────────────────────────────────────
-function buildEmail(org, firstName) {
+function buildEmailThrive(org, firstName) {
     const name = firstName || 'there';
     return `<!DOCTYPE html>
 <html lang="en">
@@ -103,7 +103,6 @@ function buildEmail(org, firstName) {
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${org.dark};">
     <tr><td align="center" style="padding:24px 16px;">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
-        <!-- Header -->
         <tr>
           <td style="background-color:${org.teal};padding:24px 32px 20px;text-align:center;border-radius:12px 12px 0 0;">
             <img src="${org.logoUrl}" alt="${org.fromName}" width="160" style="display:block;margin:0 auto 12px;max-width:160px;height:auto;">
@@ -111,7 +110,6 @@ function buildEmail(org, firstName) {
             <span style="display:inline-block;background-color:${org.gold};color:${org.dark};font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:5px 14px;border-radius:20px;font-family:Arial,sans-serif;">VIP Rewards</span>
           </td>
         </tr>
-        <!-- Body -->
         <tr>
           <td style="background-color:#ffffff;padding:36px 32px;">
             <h2 style="color:${org.heading};font-size:22px;font-family:Arial,sans-serif;margin:0 0 16px;">
@@ -138,7 +136,6 @@ function buildEmail(org, firstName) {
             </div>
           </td>
         </tr>
-        <!-- Footer -->
         <tr>
           <td style="background-color:${org.dark};padding:24px 32px;text-align:center;border-radius:0 0 12px 12px;">
             <img src="${org.logoUrl}" alt="${org.fromName}" width="100" style="display:block;margin:0 auto 10px;opacity:0.85;">
@@ -157,8 +154,102 @@ function buildEmail(org, firstName) {
 </html>`;
 }
 
+// Mirrors ecstatic-template.ts canonical design system
+function buildEmailEcstatic(org, firstName) {
+    const name = firstName || 'there';
+    const RED = '#e11d48';
+    const RED_DARK = '#be123c';
+    const GOLD = '#f1b200';
+    const DARK = '#4a0416';
+    const PAGE_BG = '#fff5f7';
+    const FOOTER_TEXT = '#f0a0b0';
+    const FOOTER_MUTED = '#c07080';
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Hey ${name} — you're already part of Ecstatic Edibles</title>
+</head>
+<body style="margin:0;padding:0;background-color:${PAGE_BG};font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${PAGE_BG};padding:24px 16px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
+        <tr>
+          <td style="background:linear-gradient(135deg,${RED} 0%,${RED_DARK} 100%);padding:32px;text-align:center;border-radius:12px 12px 0 0;">
+            <img src="${org.logoUrl}" alt="Ecstatic Edibles" width="180" style="display:block;margin:0 auto 12px;max-width:180px;height:auto;">
+            <p style="margin:0 0 8px;font-size:12px;color:rgba(255,255,255,0.85);letter-spacing:1.5px;text-transform:uppercase;font-family:Arial,sans-serif;font-weight:600;">${org.location}</p>
+            <span style="display:inline-block;background-color:${GOLD};color:${DARK};font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:5px 14px;border-radius:20px;font-family:Arial,sans-serif;">VIP Member</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color:#ffffff;padding:36px 32px;">
+            <h2 style="color:${RED};font-size:22px;font-family:Arial,sans-serif;margin:0 0 16px;">
+              Hey ${name} — you're already part of Ecstatic Edibles.
+            </h2>
+            <p style="color:#333333;font-size:15px;line-height:1.7;font-family:Arial,sans-serif;margin:0 0 16px;">
+              We noticed you've connected with us before, and we just wanted to say — we remember you, and we appreciate it.
+            </p>
+            <p style="color:#333333;font-size:15px;line-height:1.7;font-family:Arial,sans-serif;margin:0 0 12px;">
+              Going forward, here's what you can expect from us:
+            </p>
+            <ul style="color:#333333;font-size:15px;line-height:1.9;font-family:Arial,sans-serif;margin:0 0 20px;padding-left:20px;">
+              <li>The occasional deal or new product drop — no noise, just the good stuff</li>
+              <li>Early access to limited edition flavors</li>
+              <li>Recommendations based on what you actually like</li>
+            </ul>
+            <p style="color:#333333;font-size:15px;line-height:1.7;font-family:Arial,sans-serif;margin:0 0 28px;">
+              That's it. Nothing pushy. You can reply to this email anytime, or find us at a dispensary near you.
+            </p>
+            <div style="text-align:center;margin-top:24px;">
+              <a href="${org.menuUrl}" style="display:inline-block;background-color:${RED};color:#ffffff;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;text-decoration:none;font-family:Arial,sans-serif;">Shop Ecstatic Edibles →</a>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color:${DARK};padding:24px 32px;text-align:center;border-radius:0 0 12px 12px;">
+            <img src="${org.logoUrl}" alt="Ecstatic Edibles" width="100" style="display:block;margin:0 auto 10px;opacity:0.85;">
+            <p style="margin:0 0 4px;font-size:12px;color:${FOOTER_TEXT};font-family:Arial,sans-serif;">Ecstatic Edibles &middot; Los Angeles, CA</p>
+            <p style="margin:0 0 14px;font-size:11px;color:${FOOTER_MUTED};font-family:Arial,sans-serif;">Founded by Melanie Comarcho</p>
+            <p style="margin:0;font-size:11px;color:${FOOTER_MUTED};font-family:Arial,sans-serif;">
+              You're receiving this because you connected with Ecstatic Edibles.
+              <a href="${org.unsubscribeUrl}" style="color:${RED};text-decoration:underline;">Unsubscribe</a>
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildEmail(org, firstName) {
+    return org.key === 'ecstatic' ? buildEmailEcstatic(org, firstName) : buildEmailThrive(org, firstName);
+}
+
 function buildText(org, firstName) {
     const name = firstName || 'there';
+    if (org.key === 'ecstatic') {
+        return `Hey ${name} — you're already part of Ecstatic Edibles.
+
+We noticed you've connected with us before, and we just wanted to say — we remember you, and we appreciate it.
+
+Going forward, here's what you can expect from us:
+• The occasional deal or new product drop — no noise, just the good stuff
+• Early access to limited edition flavors
+• Recommendations based on what you actually like
+
+That's it. Nothing pushy. You can reply to this email anytime, or find us at a dispensary near you.
+
+Shop Ecstatic Edibles → ${org.menuUrl}
+
+—
+Ecstatic Edibles · Los Angeles, CA
+Founded by Melanie Comarcho
+
+Unsubscribe: ${org.unsubscribeUrl}`;
+    }
     return `Hey ${name} — you're already part of ${org.fromName}.
 
 We noticed you've visited us before, and we just wanted to say — we remember you, and we appreciate it.
