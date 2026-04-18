@@ -305,6 +305,8 @@ export async function getCampaigns(
                     scheduledAt: data.scheduledAt?.toDate?.() || undefined,
                     sentAt: data.sentAt?.toDate?.() || undefined,
                     completedAt: data.completedAt?.toDate?.() || undefined,
+                    complianceReviewedAt: data.complianceReviewedAt?.toDate?.() || undefined,
+                    approvedAt: data.approvedAt?.toDate?.() || undefined,
                     createdAt: data.createdAt?.toDate?.() || new Date(),
                     updatedAt: data.updatedAt?.toDate?.() || new Date(),
                     performance: data.performance ? {
