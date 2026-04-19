@@ -518,15 +518,14 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
     }
 
     // ── Route 5: Platform Mailjet / SendGrid (last resort) ────────────
-    // Surface SES failure for paid orgs instead of silently falling back to Mailjet
-    // (Mailjet rejects tenant subdomain senders like hello@thrive.bakedbot.ai).
-    // Free orgs without Workspace/Gmail are allowed to fall through to platform Mailjet.
-    if (!isFreeOrg && normalizedData.orgId && process.env.AWS_SES_ACCESS_KEY_ID) {
-        logger.error('[Dispatcher] SES failed for paid org — refusing Mailjet fallback to prevent sender rejection', {
+    // When AWS SES credentials are present, never fall back to Mailjet.
+    // Mailjet is not approved for cannabis industry sends and rejects tenant subdomains.
+    if (process.env.AWS_SES_ACCESS_KEY_ID) {
+        logger.error('[Dispatcher] SES failed — refusing Mailjet fallback (SES-only mode)', {
             orgId: normalizedData.orgId,
             subject: normalizedData.subject,
         });
-        return { success: false, error: 'SES unavailable for paid org — check SES credentials and verified domain' };
+        return { success: false, error: 'Email delivery failed — SES unavailable. Check SES credentials.' };
     }
     // Strip tenant subdomain fromEmail before platform Mailjet send — platform account only validates hello@bakedbot.ai
     const platformData: GenericEmailData = {

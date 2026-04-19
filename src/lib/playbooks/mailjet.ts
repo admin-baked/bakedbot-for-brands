@@ -1,16 +1,11 @@
 /**
- * Mailjet integration for playbook email delivery.
+ * Playbook email delivery — routes through AWS SES via the dispatcher.
+ * Previously sent directly via Mailjet; all sends now go through SES.
  *
- * Used by the playbook execution service to send transactional
- * emails via Mailjet's API.
- *
- * Environment variables required:
- *   MAILJET_API_KEY       — Public API key
- *   MAILJET_SECRET_KEY    — Secret key
- *   MAILJET_FROM_EMAIL    — Sender address (e.g. playbooks@bakedbot.ai)
- *   MAILJET_FROM_NAME     — Sender name (e.g. BakedBot AI)
+ * Callers retain the same interface — no changes needed in individual crons.
  */
 
+import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { logger } from '@/lib/logger';
 
 interface PlaybookEmailParams {
@@ -20,118 +15,55 @@ interface PlaybookEmailParams {
     playbookId: string;
     playbookName: string;
     toName?: string;
+    orgId?: string;
 }
 
-interface MailjetMessage {
-    From: { Email: string; Name: string };
-    To: { Email: string; Name: string }[];
-    Subject: string;
-    HTMLPart: string;
-    CustomID: string;
-}
-
-function getMailjetConfig() {
-    return {
-        apiKey: process.env.MAILJET_API_KEY ?? '',
-        secretKey: process.env.MAILJET_SECRET_KEY ?? '',
-        fromEmail: process.env.MAILJET_FROM_EMAIL ?? 'playbooks@bakedbot.ai',
-        fromName: process.env.MAILJET_FROM_NAME ?? 'BakedBot AI',
-    };
-}
-
-/**
- * Send a playbook email via Mailjet.
- */
 export async function sendPlaybookEmail(params: PlaybookEmailParams): Promise<void> {
-    const config = getMailjetConfig();
+    const html = wrapInTemplate(params.htmlBody, params.playbookName);
 
-    if (!config.apiKey || !config.secretKey) {
-        logger.warn('[Mailjet] API credentials not configured — skipping email delivery', {
-            playbookId: params.playbookId,
-        });
-        return;
-    }
-
-    const message: MailjetMessage = {
-        From: { Email: config.fromEmail, Name: config.fromName },
-        To: [{ Email: params.to, Name: params.toName ?? params.to }],
-        Subject: params.subject,
-        HTMLPart: wrapInTemplate(params.htmlBody, params.playbookName),
-        CustomID: `playbook-${params.playbookId}-${Date.now()}`,
-    };
-
-    const credentials = Buffer.from(`${config.apiKey}:${config.secretKey}`).toString('base64');
-
-    const response = await fetch('https://api.mailjet.com/v3.1/send', {
-        method: 'POST',
-        headers: {
-            Authorization: `Basic ${credentials}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ Messages: [message] }),
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        logger.error('[Mailjet] Send failed', {
-            status: response.status,
-            error: errorText,
-            playbookId: params.playbookId,
-        });
-        throw new Error(`Mailjet API error: ${response.status} ${errorText}`);
-    }
-
-    logger.info('[Mailjet] Playbook email sent', {
-        playbookId: params.playbookId,
+    const result = await sendGenericEmail({
         to: params.to,
+        name: params.toName,
+        subject: params.subject,
+        htmlBody: html,
+        communicationType: 'transactional',
+        orgId: params.orgId,
     });
+
+    if (!result.success) {
+        logger.error('[PlaybookEmail] Send failed', {
+            playbookId: params.playbookId,
+            to: params.to,
+            error: result.error,
+        });
+        throw new Error(`Playbook email failed: ${result.error}`);
+    }
+
+    logger.info('[PlaybookEmail] Sent via SES', { playbookId: params.playbookId, to: params.to });
 }
 
-/**
- * Send a transactional email (non-playbook, e.g. usage alert, overage notice).
- */
 export async function sendTransactionalEmail(params: {
     to: string;
     subject: string;
     htmlBody: string;
     customId?: string;
+    orgId?: string;
 }): Promise<void> {
-    const config = getMailjetConfig();
-
-    if (!config.apiKey || !config.secretKey) {
-        logger.warn('[Mailjet] API credentials not configured — skipping');
-        return;
-    }
-
-    const credentials = Buffer.from(`${config.apiKey}:${config.secretKey}`).toString('base64');
-
-    const response = await fetch('https://api.mailjet.com/v3.1/send', {
-        method: 'POST',
-        headers: {
-            Authorization: `Basic ${credentials}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            Messages: [{
-                From: { Email: config.fromEmail, Name: config.fromName },
-                To: [{ Email: params.to }],
-                Subject: params.subject,
-                HTMLPart: params.htmlBody,
-                CustomID: params.customId ?? `transactional-${Date.now()}`,
-            }],
-        }),
+    const result = await sendGenericEmail({
+        to: params.to,
+        subject: params.subject,
+        htmlBody: params.htmlBody,
+        communicationType: 'transactional',
+        orgId: params.orgId,
     });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Mailjet API error: ${response.status} ${errorText}`);
+    if (!result.success) {
+        logger.error('[TransactionalEmail] Send failed', { to: params.to, error: result.error });
+        throw new Error(`Transactional email failed: ${result.error}`);
     }
 }
 
-// ---------------------------------------------------------------------------
-// HTML wrapper template
-// ---------------------------------------------------------------------------
-
+// HTML wrapper template — kept for legacy callers that pass unwrapped content
 function wrapInTemplate(content: string, playbookName: string): string {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -145,20 +77,17 @@ function wrapInTemplate(content: string, playbookName: string): string {
     <tr>
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background:white;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;max-width:100%;">
-          <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#059669,#0d9488);padding:20px 32px;">
               <span style="color:white;font-weight:700;font-size:18px;">BakedBot AI</span>
               <span style="color:rgba(255,255,255,0.7);font-size:13px;margin-left:8px;">· ${playbookName}</span>
             </td>
           </tr>
-          <!-- Content -->
           <tr>
             <td style="padding:32px;">
               ${content}
             </td>
           </tr>
-          <!-- Footer -->
           <tr>
             <td style="padding:20px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;text-align:center;">
               <p style="margin:0;font-size:12px;color:#94a3b8;">
