@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Outreach contact form audit: dedup check, undefined guard, personalization enforced; Elroy stress test hardening | **Last update:** 2026-04-19 (`d97a6d170`)
+**Current Status:** 🟢 main green | Auth hang fixed (rate-limit/session/provider timeouts); Elroy stress hardening ("definitely" banned, mustNotContainPattern, temperature); TS clean | **Last update:** 2026-04-19 (`3a04b30d0`)
 
 ---
 
