@@ -49,7 +49,7 @@ export function WinbackCampaignArtifact({ artifact, className }: Props) {
     const handleApprove = async () => {
         setIsApproving(true);
         try {
-            await approveAndPublishArtifact(artifact.id, artifact.threadId);
+            await approveAndPublishArtifact(artifact.id);
             setApproved(true);
         } finally {
             setIsApproving(false);
