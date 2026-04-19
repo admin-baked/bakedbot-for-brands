@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Gmail refresh_token fix deployed; Mailjet fully purged → SES-only; morning status email redesigned | **Last update:** 2026-04-19 (`607106c2d`)
+**Current Status:** 🟢 main green | Tablet: logo fixed, instant recs cache, compact cards, 18 sample products purged; SEO near/zip TS clean | **Last update:** 2026-04-19 (`f2a950b47`)
 
 ---
 

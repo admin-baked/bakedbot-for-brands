@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Stress test toolContexts 550+ lines richer; simplify-guard ENOBUFS fix; Gmail token needs reconnect
-**Recent work (2026-04-19):** `1192d5bf2` inbox+Elroy toolContext depth; `4b68bf675` simplify-guard 128MB maxBuffer
+**Current Status:** 🟢 main green | Tablet logo/recs/cards fixed; 18 sample products purged; SEO near/zip TS clean
+**Recent work (2026-04-19):** `4b4f07f73` tablet logo+recs+cards; `f2a950b47` sample purge + SEO TS fix
 
 ---
 
