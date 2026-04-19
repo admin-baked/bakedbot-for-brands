@@ -33,15 +33,52 @@ const ORG       = orgArg ? orgArg.replace('--org=', '') : 'org_thrive_syracuse';
 const AGENT     = 'linus';
 
 // ── Dashboard pages checked on every run ─────────────────────────────────────
+// Full Thrive Syracuse tool map — from check-in through settings.
 // ADD new routes here when they ship — they will be tested automatically.
 const DASHBOARD_PAGES = [
-  ['/dashboard/campaigns',   '[CAMPAIGNS]',   'Campaigns page'],
-  ['/dashboard/customers',   '[CRM]',         'Customers CRM page'],
-  ['/dashboard/playbooks',   '[PLAYBOOKS]',   'Playbooks page'],
-  ['/dashboard/analytics',   '[ANALYTICS]',   'Analytics page'],
-  ['/dashboard/inbox',       '[INBOX]',       'Inbox page'],
-  ['/dashboard/ceo',         '[CEO]',         'CEO boardroom page'],
-  ['/dashboard/email-inbox', '[EMAIL-INBOX]', 'Email inbox page'],
+  // ── Check-in & Loyalty (kiosk flow start) ──
+  ['/loyalty-tablet',                      '[KIOSK]',        'Loyalty tablet check-in'],
+  ['/loyalty/tablet/org_thrive_syracuse',  '[KIOSK-ORG]',    'Thrive org kiosk entry'],
+  ['/staff/loyalty',                       '[STAFF-LOYALTY]','Staff loyalty queue'],
+  ['/dashboard/dispensary/checkin',        '[CHECKIN-DASH]', 'Check-in management dashboard'],
+  ['/dashboard/loyalty-tablet-qr',         '[KIOSK-QR]',     'Kiosk QR code setup'],
+
+  // ── Core operations ──
+  ['/dashboard/customers',                 '[CRM]',          'Customers CRM'],
+  ['/dashboard/customers/segments',        '[SEGMENTS]',     'Customer segments'],
+  ['/dashboard/inbox',                     '[INBOX]',        'Agent inbox'],
+  ['/dashboard/campaigns',                 '[CAMPAIGNS]',    'Campaigns'],
+  ['/dashboard/playbooks',                 '[PLAYBOOKS]',    'Playbooks'],
+  ['/dashboard/playbooks/analytics',       '[PB-ANALYTICS]', 'Playbook analytics'],
+
+  // ── Inventory & products ──
+  ['/dashboard/inventory',                 '[INVENTORY]',    'Inventory'],
+  ['/dashboard/products',                  '[PRODUCTS]',     'Products'],
+  ['/dashboard/menu-sync',                 '[MENU-SYNC]',    'Menu sync'],
+
+  // ── Analytics & reporting ──
+  ['/dashboard/analytics',                 '[ANALYTICS]',    'Analytics'],
+  ['/dashboard/goals',                     '[GOALS]',        'Goals'],
+  ['/dashboard/profitability',             '[PROFITABILITY]','Profitability'],
+
+  // ── CEO & executive suite ──
+  ['/dashboard/ceo',                       '[CEO]',          'CEO boardroom'],
+  ['/dashboard/email-inbox',               '[EMAIL-INBOX]',  'CEO email inbox'],
+  ['/dashboard/ceo/agents',                '[CEO-AGENTS]',   'CEO agent directory'],
+  ['/dashboard/ceo/projects',              '[CEO-PROJECTS]', 'CEO projects'],
+
+  // ── Content & marketing ──
+  ['/dashboard/blog',                      '[BLOG]',         'Blog'],
+  ['/dashboard/marketing',                 '[MARKETING]',    'Marketing hub'],
+  ['/dashboard/compliance',                '[COMPLIANCE]',   'Compliance'],
+  ['/dashboard/research',                  '[RESEARCH]',     'Research'],
+
+  // ── Settings (end of journey) ──
+  ['/dashboard/settings',                  '[SETTINGS]',     'Settings root'],
+  ['/dashboard/settings/connections',      '[CONNECTIONS]',  'Social connections'],
+  ['/dashboard/settings/loyalty',          '[LOYALTY-CFG]',  'Loyalty settings'],
+  ['/dashboard/settings/team',             '[TEAM]',         'Team management'],
+  ['/dashboard/settings/profile',          '[PROFILE]',      'Profile settings'],
 ];
 const MAX_HOURS = 4;
 const TESTS_PER_HOUR = 25;
