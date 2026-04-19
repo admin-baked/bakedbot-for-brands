@@ -55,6 +55,8 @@ export default function MenuPage() {
     const [activeTab, setActiveTab] = useState<ActiveTab>('menu');
     const [pageStatuses, setPageStatuses] = useState<PageStatus[]>([]);
     const [locations, setLocations] = useState<LocationInfo[]>([]);
+    const [locationsHeroTitle, setLocationsHeroTitle] = useState('');
+    const [locationsHeroDescription, setLocationsHeroDescription] = useState('');
     const [zipSeoContent, setZipSeoContent] = useState<ZipSeoPageContent | null>(null);
 
     // ── Load domain products ──
@@ -111,6 +113,8 @@ export default function MenuPage() {
             const data = await getPagesData(orgId);
             setPageStatuses(data.statuses);
             setLocations(data.locations);
+            setLocationsHeroTitle(data.locationsHeroTitle);
+            setLocationsHeroDescription(data.locationsHeroDescription);
             setZipSeoContent(data.zipSeoContent);
         } catch (error) {
             logger.error('Failed to load pages data:', error instanceof Error ? error : new Error(String(error)));
@@ -262,9 +266,16 @@ export default function MenuPage() {
                         orgId={orgId || ''}
                         brandSlug={previewData?.brandSlug ?? null}
                         locations={locations}
+                        heroTitle={locationsHeroTitle}
+                        heroDescription={locationsHeroDescription}
                         isPublished={getStatus('locations')?.isPublished ?? false}
                         updatedAt={getStatus('locations')?.updatedAt ?? null}
                         onPublishToggle={handlePublishToggle}
+                        onLocationsUpdate={(locs, title, desc) => {
+                            setLocations(locs);
+                            setLocationsHeroTitle(title);
+                            setLocationsHeroDescription(desc);
+                        }}
                     />
                 </TabsContent>
 
@@ -272,10 +283,12 @@ export default function MenuPage() {
                 <TabsContent value="zip-seo" className="mt-4">
                     <ZipSeoTab
                         orgId={orgId || ''}
+                        brandSlug={previewData?.brandSlug ?? null}
                         zipSeoContent={zipSeoContent}
                         isPublished={getStatus('zip_seo')?.isPublished ?? false}
                         updatedAt={getStatus('zip_seo')?.updatedAt ?? null}
                         onPublishToggle={handlePublishToggle}
+                        onZipSeoUpdate={(content) => setZipSeoContent(content)}
                     />
                 </TabsContent>
 

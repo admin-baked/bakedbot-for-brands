@@ -23,6 +23,8 @@ export interface PageStatus {
 export interface PagesData {
     statuses: PageStatus[];
     locations: LocationInfo[];
+    locationsHeroTitle: string;
+    locationsHeroDescription: string;
     zipSeoContent: ZipSeoPageContent | null;
 }
 
@@ -49,6 +51,8 @@ export async function getPagesData(orgId: string): Promise<PagesData> {
     return {
         statuses,
         locations: locationsPage?.locationsContent?.locations ?? [],
+        locationsHeroTitle: locationsPage?.locationsContent?.heroTitle ?? '',
+        locationsHeroDescription: locationsPage?.locationsContent?.heroDescription ?? '',
         zipSeoContent: zipSeoPage?.zipSeoContent ?? null,
     };
 }
