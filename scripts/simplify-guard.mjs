@@ -26,6 +26,7 @@ function runGit(repoRoot, args, { allowFailure = false } = {}) {
       cwd: repoRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: 128 * 1024 * 1024, // 128MB — handles large bundled .cjs files
     }).trim();
   } catch (error) {
     if (allowFailure) {
