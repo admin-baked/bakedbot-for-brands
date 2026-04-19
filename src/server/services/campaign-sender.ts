@@ -662,6 +662,10 @@ async function sendToRecipient(
     campaign: Campaign,
     orgName: string,
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    // TODO: wire Deebo compliance gate here before send
+    // Use runComplianceCheck(campaign) from '@/server/services/campaign-compliance'.
+    // If result.overallStatus === 'failed', log a warning and return { success: false, error: 'compliance_block' }.
+
     if (channel === 'email') {
         const personalizedSubject = personalize(content.subject || campaign.name, recipient, orgName);
         const personalizedBody = personalize(content.body, recipient, orgName);

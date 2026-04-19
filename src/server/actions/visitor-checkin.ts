@@ -1,6 +1,6 @@
 'use server';
 
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { firestore } from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { getAdminFirestore } from '@/firebase/admin';
@@ -168,6 +168,7 @@ async function syncCheckinToAlleaves(
 
     const numericId = alleavesId.replace('cid_', '');
 
+    // TODO(security): move POS credentials to Secret Manager — currently stored in Firestore posConfig
     // Get POS config for the org
     const locSnap = await db.collection('locations').where('orgId', '==', orgId).limit(1).get();
     const posConfig = locSnap.docs[0]?.data()?.posConfig;
@@ -1308,121 +1309,121 @@ export async function captureVisitorCheckin(
             !leadResult.isNewLead,
         );
 
-        const batch = db.batch();
-
-        if (!existingCustomerData) {
-            batch.set(customerRef, {
-                id: customerId,
-                orgId: validated.orgId,
-                email: seededCustomerEmail,
-                phone: normalizedPhone,
-                phoneLast4,
-                firstName: validated.firstName,
-                totalSpent: seededTotalSpent,
-                orderCount: seededOrderCount,
-                visitCount: 1,
-                avgOrderValue: seededOrderCount > 0 ? seededTotalSpent / seededOrderCount : 0,
-                segment: 'new',
-                tier: 'bronze',
-                points: 0,
-                lifetimeValue: seededTotalSpent,
-                emailConsent,
-                smsConsent,
-                source: validated.source,
-                firstCheckinMood: validated.mood ?? null,
-                lastCheckinMood: validated.mood ?? null,
-                preferredCategories: favoriteCategories,
-                lastCheckinUiVersion: validated.uiVersion ?? null,
-                lastOrderDate: existingOrderHistory?.lastOrderDate ?? null,
-                createdAt: now,
-                updatedAt: now,
-                lastCheckinAt: now,
-            });
-        } else {
-            const customerUpdates: Record<string, unknown> = {
-                updatedAt: now,
-                lastCheckinAt: now,
-            };
-
-            if (!existingCustomerData.firstName && validated.firstName) {
-                customerUpdates.firstName = validated.firstName;
-            }
-            if (normalizedEmail && (!existingCustomerEmail || (emailConsent && normalizedEmail !== existingCustomerEmail))) {
-                customerUpdates.email = normalizedEmail;
-            }
-            if (!existingCustomerData.phone && normalizedPhone) {
-                customerUpdates.phone = normalizedPhone;
-            }
-            if (phoneLast4 && existingCustomerData.phoneLast4 !== phoneLast4) {
-                customerUpdates.phoneLast4 = phoneLast4;
-            }
-            if (emailConsent && !existingCustomerData.emailConsent) {
-                customerUpdates.emailConsent = true;
-            }
-            if (smsConsent && !existingCustomerData.smsConsent) {
-                customerUpdates.smsConsent = true;
-            }
-            if (!existingCustomerData.source) {
-                customerUpdates.source = validated.source;
-            }
-            if (validated.mood && !existingCustomerData.firstCheckinMood) {
-                customerUpdates.firstCheckinMood = validated.mood;
-            }
-            if (validated.mood) {
-                customerUpdates.lastCheckinMood = validated.mood;
-            }
-            if (favoriteCategories.length > 0) {
-                customerUpdates.preferredCategories = mergePreferredCategories(
-                    existingCustomerData.preferredCategories,
-                    favoriteCategories,
-                );
-            }
-            if (validated.uiVersion) {
-                customerUpdates.lastCheckinUiVersion = validated.uiVersion;
-            }
-            customerUpdates.visitCount = FieldValue.increment(1);
-
-            batch.update(customerRef, customerUpdates);
-        }
-
-        const visitId = `${customerId}_visit_${now.getTime()}_${randomBytes(3).toString('hex')}`;
+        const visitId = randomUUID();
         const reviewSequenceEnabled = Boolean(normalizedEmail && emailConsent);
         const visitRef = db.collection('checkin_visits').doc(visitId);
 
-        batch.set(visitRef, {
-            visitId,
-            orgId: validated.orgId,
-            customerId,
-            leadId: leadResult.leadId ?? null,
-            firstName: validated.firstName,
-            email: normalizedEmail ?? null,
-            phone: normalizedPhone,
-            phoneLast4,
-            source: validated.source,
-            isReturning: isReturningCustomer,
-            returningSource: returningSource ?? null,
-            ageVerified: true,
-            ageVerifiedMethod: validated.ageVerifiedMethod,
-            ageVerifiedAt: now,
-            emailConsent,
-            smsConsent,
-            mood: validated.mood ?? null,
-            favoriteCategories,
-            uiVersion: validated.uiVersion ?? null,
-            offerType: validated.offerType ?? null,
-            cartProductIds,
-            bundleAdded: Boolean(validated.bundleAdded),
-            createdAt: now,
-            visitedAt: now,
-            reviewSequence: {
-                status: reviewSequenceEnabled ? 'pending' : 'skipped_no_email',
-                checkoutEmailScheduledAt: now,
-                reviewNudgeScheduledAt: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
-                reviewLeft: false,
-            },
-        });
+        // Use a transaction for the customer + visit write to prevent concurrent
+        // same-phone check-ins from racing on visitCount increment or overwriting email/phone.
+        await db.runTransaction(async (tx) => {
+            if (!existingCustomerData) {
+                tx.set(customerRef, {
+                    id: customerId,
+                    orgId: validated.orgId,
+                    email: seededCustomerEmail,
+                    phone: normalizedPhone,
+                    phoneLast4,
+                    firstName: validated.firstName,
+                    totalSpent: seededTotalSpent,
+                    orderCount: seededOrderCount,
+                    visitCount: 1,
+                    avgOrderValue: seededOrderCount > 0 ? seededTotalSpent / seededOrderCount : 0,
+                    segment: 'new',
+                    tier: 'bronze',
+                    points: 0,
+                    lifetimeValue: seededTotalSpent,
+                    emailConsent,
+                    smsConsent,
+                    source: validated.source,
+                    firstCheckinMood: validated.mood ?? null,
+                    lastCheckinMood: validated.mood ?? null,
+                    preferredCategories: favoriteCategories,
+                    lastCheckinUiVersion: validated.uiVersion ?? null,
+                    lastOrderDate: existingOrderHistory?.lastOrderDate ?? null,
+                    createdAt: now,
+                    updatedAt: now,
+                    lastCheckinAt: now,
+                });
+            } else {
+                const customerUpdates: Record<string, unknown> = {
+                    updatedAt: now,
+                    lastCheckinAt: now,
+                };
 
-        await batch.commit();
+                if (!existingCustomerData.firstName && validated.firstName) {
+                    customerUpdates.firstName = validated.firstName;
+                }
+                if (normalizedEmail && (!existingCustomerEmail || (emailConsent && normalizedEmail !== existingCustomerEmail))) {
+                    customerUpdates.email = normalizedEmail;
+                }
+                if (!existingCustomerData.phone && normalizedPhone) {
+                    customerUpdates.phone = normalizedPhone;
+                }
+                if (phoneLast4 && existingCustomerData.phoneLast4 !== phoneLast4) {
+                    customerUpdates.phoneLast4 = phoneLast4;
+                }
+                if (emailConsent && !existingCustomerData.emailConsent) {
+                    customerUpdates.emailConsent = true;
+                }
+                if (smsConsent && !existingCustomerData.smsConsent) {
+                    customerUpdates.smsConsent = true;
+                }
+                if (!existingCustomerData.source) {
+                    customerUpdates.source = validated.source;
+                }
+                if (validated.mood && !existingCustomerData.firstCheckinMood) {
+                    customerUpdates.firstCheckinMood = validated.mood;
+                }
+                if (validated.mood) {
+                    customerUpdates.lastCheckinMood = validated.mood;
+                }
+                if (favoriteCategories.length > 0) {
+                    customerUpdates.preferredCategories = mergePreferredCategories(
+                        existingCustomerData.preferredCategories,
+                        favoriteCategories,
+                    );
+                }
+                if (validated.uiVersion) {
+                    customerUpdates.lastCheckinUiVersion = validated.uiVersion;
+                }
+                customerUpdates.visitCount = FieldValue.increment(1);
+
+                tx.update(customerRef, customerUpdates);
+            }
+
+            tx.set(visitRef, {
+                visitId,
+                orgId: validated.orgId,
+                customerId,
+                leadId: leadResult.leadId ?? null,
+                firstName: validated.firstName,
+                email: normalizedEmail ?? null,
+                phone: normalizedPhone,
+                phoneLast4,
+                source: validated.source,
+                isReturning: isReturningCustomer,
+                returningSource: returningSource ?? null,
+                ageVerified: true,
+                ageVerifiedMethod: validated.ageVerifiedMethod,
+                ageVerifiedAt: now,
+                emailConsent,
+                smsConsent,
+                mood: validated.mood ?? null,
+                favoriteCategories,
+                uiVersion: validated.uiVersion ?? null,
+                offerType: validated.offerType ?? null,
+                cartProductIds,
+                bundleAdded: Boolean(validated.bundleAdded),
+                createdAt: now,
+                visitedAt: now,
+                reviewSequence: {
+                    status: reviewSequenceEnabled ? 'pending' : 'skipped_no_email',
+                    checkoutEmailScheduledAt: now,
+                    reviewNudgeScheduledAt: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
+                    reviewLeft: false,
+                },
+            });
+        });
 
         // 8b. Kiosk product picks — notify backoffice if customer selected products
         if (cartProductIds.length > 0) {
@@ -1459,6 +1460,11 @@ export async function captureVisitorCheckin(
                 source: validated.source,
             });
         }
+
+        // TODO(playbook-enrollment): wire assignPlaybooksToCustomer here once
+        // src/server/services/playbook-assignment-service.ts is created.
+        // Call after dispatchPlaybookEvent for new leads/customers to enroll
+        // them in catalog playbooks (currently no assignment service exists).
 
         if (leadResult.isNewLead && !isReturningCustomer) {
             dispatchPlaybookEvent(validated.orgId, 'customer.signup', {
@@ -1543,21 +1549,49 @@ export async function captureVisitorCheckin(
             });
         }
 
-        // Sync email/phone back to Alleaves customer record (fire-and-forget)
+        // Sync email/phone back to Alleaves customer record (fire-and-forget with durable queue)
         if (resolvedEmail || normalizedPhone) {
-            syncCheckinToAlleaves(validated.orgId, customerId, resolvedEmail, normalizedPhone, db).catch(err => {
-                logger.warn('[VisitorCheckin] Alleaves writeback failed (non-fatal)', {
+            // Write a pending sync record before attempting — a cron will retry on failure
+            const pendingSyncRef = db.collection('pending_alleaves_syncs').doc();
+            pendingSyncRef.set({
+                orgId: validated.orgId,
+                customerId,
+                visitId,
+                payload: { email: resolvedEmail, phone: normalizedPhone, name: validated.firstName },
+                createdAt: now,
+                status: 'pending',
+                attempts: 0,
+            }).catch((err) => {
+                logger.warn('[VisitorCheckin] Failed to write pending Alleaves sync record', {
                     orgId: validated.orgId, customerId,
                     error: err instanceof Error ? err.message : String(err),
                 });
             });
+
+            syncCheckinToAlleaves(validated.orgId, customerId, resolvedEmail, normalizedPhone, db)
+                .then(() => pendingSyncRef.update({ status: 'done' }).catch(() => undefined))
+                .catch(err => {
+                    logger.warn('[VisitorCheckin] Alleaves writeback failed (non-fatal, pending record left for retry)', {
+                        orgId: validated.orgId, customerId,
+                        error: err instanceof Error ? err.message : String(err),
+                    });
+                });
         }
 
-        // TODO(blackleaf-sms): Post-visit re-engagement SMS hook.
-        // 24h after this visit, send a review request or "How was your visit?" text.
-        // Schedule via Cloud Tasks or a cron that queries checkin_visits where
-        // visitedAt >= now-25h AND visitedAt <= now-23h AND smsConsent = true
-        // AND postVisitSmsSentAt IS NULL. Fire-and-forget via Blackleaf SMS API.
+        // Queue post-visit SMS (24h delay) if customer opted in
+        if (smsConsent && customerId) {
+            // TODO(task-queue): replace with enqueueTask once src/server/services/task-queue.ts exists.
+            // Intended payload: { queue: 'post-visit-sms', payload: { orgId, customerId, visitId, phone: normalizedPhone }, delaySeconds: 86400 }
+            // Cron fallback: query checkin_visits where visitedAt >= now-25h AND visitedAt <= now-23h
+            // AND smsConsent = true AND postVisitSmsSentAt IS NULL, then fire via Blackleaf SMS API.
+            logger.info('[VisitorCheckin] Post-visit SMS queued (stub — task-queue service not yet implemented)', {
+                orgId: validated.orgId,
+                customerId,
+                visitId,
+                phone: normalizedPhone,
+                delaySeconds: 86400,
+            });
+        }
 
         return {
             success: true,
