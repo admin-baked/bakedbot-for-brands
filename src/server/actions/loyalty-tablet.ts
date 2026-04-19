@@ -1533,8 +1533,8 @@ export async function linkCustomerToAlleaves(
             });
             return { success: false };
         }
-    } catch {
-        // Proceed for pre-shipped kiosks
+    } catch (authErr) {
+        logger.warn('[LoyaltyTablet] linkCustomerToAlleaves auth check failed — proceeding for pre-shipped kiosks', { orgId, error: String(authErr) });
     }
 
     try {

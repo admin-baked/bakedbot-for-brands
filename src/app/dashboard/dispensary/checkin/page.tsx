@@ -99,6 +99,10 @@ export default function CheckInManagementPage() {
         );
     }
 
+    const orgDisplayName = dispensaryId
+        ? dispensaryId.replace(/^org_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        : '';
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -107,7 +111,7 @@ export default function CheckInManagementPage() {
                     <div className="flex items-center gap-2">
                         <QrCode className="h-5 w-5 text-emerald-600" />
                         <h2 className="text-xl font-semibold">Check-In Manager</h2>
-                        <Badge variant="outline" className="text-xs">{dispensaryId ? dispensaryId.replace(/^org_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : ''}</Badge>
+                        <Badge variant="outline" className="text-xs">{orgDisplayName}</Badge>
                         {config.publicFlowEnabled ? (
                             <Badge className="text-xs bg-emerald-500/15 text-emerald-700 border-emerald-500/30">Live</Badge>
                         ) : (
@@ -175,7 +179,7 @@ export default function CheckInManagementPage() {
                 {dispensaryId && (
                     <CheckInSettingsPanel
                         orgId={dispensaryId}
-                        orgName={dispensaryId.replace(/^org_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                        orgName={orgDisplayName}
                         initial={config}
                     />
                 )}
