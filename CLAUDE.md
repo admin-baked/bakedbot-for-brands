@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Stress test toolContexts expanded (550+ lines); simplify-guard ENOBUFS fix; Gmail token broken — needs reconnect | **Last update:** 2026-04-19 (`4b68bf675`)
+**Current Status:** 🟢 main green | Gmail refresh_token fix deployed; Mailjet fully purged → SES-only; morning status email redesigned | **Last update:** 2026-04-19 (`607106c2d`)
 
 ---
 
