@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Inbox briefing card artifacts: flash sale + win-back panels live; insight cards auto-open artifact panel on click | **Last update:** 2026-04-19 (`c31314bb1`)
+**Current Status:** 🟢 main green | Firecrawl credit guard on all 5 discovery methods + per-cron caps; 5 Firecrawl UI kiosk tests; smoke tests 23→30; artifact TS fixes | **Last update:** 2026-04-19 (`9471d13fa`)
 
 ---
 

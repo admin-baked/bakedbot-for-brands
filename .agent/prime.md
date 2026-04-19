@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Inbox briefing card artifacts: flash sale + win-back panels; insight cards auto-open artifact panel
-**Recent work (2026-04-19):** `8c1dd124b` check-in audit + playbook service; `c31314bb1` inbox flash-sale + winback artifacts
+**Current Status:** 🟢 main green | Firecrawl credit guard (all 5 discovery methods) + per-cron caps; 5 Firecrawl UI kiosk tests; smoke 23→30
+**Recent work (2026-04-19):** `e1b8f946d` discovery credit guard; `9471d13fa` artifact TS fix (approveAndPublishArtifact extra arg)
 
 ---
 
