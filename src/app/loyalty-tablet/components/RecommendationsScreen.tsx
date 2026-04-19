@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     Users,
     Mic,
@@ -13,7 +13,6 @@ import {
     ShoppingCart,
     Star,
     ChevronRight,
-    X,
     Leaf,
     Zap,
     Wind,
@@ -28,6 +27,7 @@ import {
     TabletBundle
 } from '@/server/actions/loyalty-tablet';
 import { slideVariants, hexToRgba, AMBER, AMBER_DARK, ASK_SMOKEY_PLACEHOLDER } from './shared';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getCategoryIconName, getCategoryIconColor } from '@/lib/utils/product-image';
 import * as LucideIcons from 'lucide-react';
 
@@ -113,12 +113,12 @@ function TabletProductCard({
                     </span>
                     <button
                         onClick={(e) => { e.stopPropagation(); onToggleCart(); }}
-                        className="flex h-7 w-7 items-center justify-center rounded-full transition-all active:scale-90 shrink-0"
+                        className="flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-90 shrink-0"
                         style={inCart
                             ? { backgroundColor: brandTheme.colors.primary, color: '#fff' }
                             : { backgroundColor: hexToRgba(brandTheme.colors.primary, 0.1), color: brandTheme.colors.primary }}
                     >
-                        {inCart ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                        {inCart ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                     </button>
                 </div>
             </div>
@@ -179,182 +179,163 @@ interface RecommendationsScreenProps {
 function ProductDetailModal({
     product,
     inCart,
+    open,
     onClose,
     onToggleCart,
     onFindMore,
     brandTheme,
     mutedTextColor,
-    faintTextColor,
-    panelStyle,
     primaryButtonStyle,
     secondaryButtonStyle,
 }: {
-    product: TabletProduct;
+    product: TabletProduct | null;
     inCart: boolean;
+    open: boolean;
     onClose: () => void;
     onToggleCart: () => void;
     onFindMore: (query: string) => void;
     brandTheme: PublicBrandTheme;
     mutedTextColor: string;
-    faintTextColor: string;
-    panelStyle: CSSProperties;
     primaryButtonStyle: CSSProperties;
     secondaryButtonStyle: CSSProperties;
 }) {
-    const tier = product.tier ? TIER_LABELS[product.tier] : null;
+    const tier = product?.tier ? TIER_LABELS[product.tier] : null;
 
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-            style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
-            onClick={onClose}
-        >
-            <motion.div
-                initial={{ y: 60, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: 60, opacity: 0 }}
-                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-                className="w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
-                style={{ backgroundColor: 'white' }}
-                onClick={e => e.stopPropagation()}
-            >
-                {/* Product image */}
-                <div className="relative aspect-video w-full bg-gray-100">
-                    {product.imageUrl ? (
-                        <img
-                            src={product.imageUrl}
-                            alt={product.name}
-                            className="h-full w-full object-cover"
-                        />
-                    ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gray-50">
-                            {(() => {
-                                const iconName = getCategoryIconName(product.category);
-                                // @ts-ignore
-                                const CategoryIcon = LucideIcons[iconName] || LucideIcons.Leaf;
-                                const iconColor = getCategoryIconColor(product.category);
-                                return <CategoryIcon className={`h-20 w-20 ${iconColor} opacity-40`} strokeWidth={1.5} />;
-                            })()}
-                        </div>
-                    )}
-                    <button
-                        onClick={onClose}
-                        className="absolute top-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white"
-                    >
-                        <X className="h-4 w-4" />
-                    </button>
-                    {tier && (
-                        <span
-                            className="absolute top-3 left-3 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide"
-                            style={{ backgroundColor: tier.bg, color: tier.text }}
-                        >
-                            {tier.label}
-                        </span>
-                    )}
-                </div>
-
-                <div className="p-5 space-y-4">
-                    {/* Header */}
-                    <div>
-                        <h2 className="text-xl font-black text-gray-900 leading-tight">{product.name}</h2>
-                        {product.brandName && (
-                            <p className="mt-0.5 text-sm font-medium" style={{ color: brandTheme.colors.primary }}>
-                                {product.brandName}
-                            </p>
-                        )}
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">{product.category}</span>
-                            <span className="text-2xl font-black text-gray-900">${product.price.toFixed(2)}</span>
-                            {product.strainType && (
-                                <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600 capitalize">{product.strainType}</span>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Potency */}
-                    {(product.thcPercent || product.cbdPercent) && (
-                        <div className="flex gap-3">
-                            {product.thcPercent && (
-                                <div className="flex items-center gap-1.5 rounded-2xl px-4 py-2" style={{ backgroundColor: hexToRgba(brandTheme.colors.primary, 0.08) }}>
-                                    <Leaf className="h-4 w-4" style={{ color: brandTheme.colors.primary }} />
-                                    <span className="text-sm font-bold" style={{ color: brandTheme.colors.primary }}>THC {product.thcPercent}%</span>
+        <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+            <DialogContent className="w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto p-0">
+                {product && (
+                    <>
+                        {/* Product image */}
+                        <div className="relative aspect-video w-full bg-gray-100">
+                            {product.imageUrl ? (
+                                <img
+                                    src={product.imageUrl}
+                                    alt={product.name}
+                                    className="h-full w-full object-cover"
+                                />
+                            ) : (
+                                <div className="flex h-full w-full items-center justify-center bg-gray-50">
+                                    {(() => {
+                                        const iconName = getCategoryIconName(product.category);
+                                        // @ts-ignore
+                                        const CategoryIcon = LucideIcons[iconName] || LucideIcons.Leaf;
+                                        const iconColor = getCategoryIconColor(product.category);
+                                        return <CategoryIcon className={`h-20 w-20 ${iconColor} opacity-40`} strokeWidth={1.5} />;
+                                    })()}
                                 </div>
                             )}
-                            {product.cbdPercent && (
-                                <div className="flex items-center gap-1.5 rounded-2xl px-4 py-2 bg-blue-50">
-                                    <Zap className="h-4 w-4 text-blue-600" />
-                                    <span className="text-sm font-bold text-blue-700">CBD {product.cbdPercent}%</span>
-                                </div>
+                            {tier && (
+                                <span
+                                    className="absolute top-3 left-3 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide"
+                                    style={{ backgroundColor: tier.bg, color: tier.text }}
+                                >
+                                    {tier.label}
+                                </span>
                             )}
                         </div>
-                    )}
 
-                    {/* Description */}
-                    {product.description && (
-                        <div>
-                            <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: mutedTextColor }}>About</p>
-                            <p className="text-sm leading-relaxed text-gray-700">{product.description}</p>
-                        </div>
-                    )}
+                        <div className="p-5 space-y-4">
+                            {/* Header */}
+                            <div>
+                                <h2 className="text-xl font-black text-gray-900 leading-tight">{product.name}</h2>
+                                {product.brandName && (
+                                    <p className="mt-0.5 text-sm font-medium" style={{ color: brandTheme.colors.primary }}>
+                                        {product.brandName}
+                                    </p>
+                                )}
+                                <div className="mt-2 flex flex-wrap items-center gap-2">
+                                    <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">{product.category}</span>
+                                    <span className="text-2xl font-black text-gray-900">${product.price.toFixed(2)}</span>
+                                    {product.strainType && (
+                                        <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600 capitalize">{product.strainType}</span>
+                                    )}
+                                </div>
+                            </div>
 
-                    {/* Effects */}
-                    {product.effects && product.effects.length > 0 && (
-                        <div>
-                            <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: mutedTextColor }}>Effects</p>
-                            <div className="flex flex-wrap gap-2">
-                                {product.effects.map(effect => (
-                                    <span key={effect} className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">{effect}</span>
-                                ))}
+                            {/* Potency */}
+                            {(product.thcPercent || product.cbdPercent) && (
+                                <div className="flex gap-3">
+                                    {product.thcPercent && (
+                                        <div className="flex items-center gap-1.5 rounded-2xl px-4 py-2" style={{ backgroundColor: hexToRgba(brandTheme.colors.primary, 0.08) }}>
+                                            <Leaf className="h-4 w-4" style={{ color: brandTheme.colors.primary }} />
+                                            <span className="text-sm font-bold" style={{ color: brandTheme.colors.primary }}>THC {product.thcPercent}%</span>
+                                        </div>
+                                    )}
+                                    {product.cbdPercent && (
+                                        <div className="flex items-center gap-1.5 rounded-2xl px-4 py-2 bg-blue-50">
+                                            <Zap className="h-4 w-4 text-blue-600" />
+                                            <span className="text-sm font-bold text-blue-700">CBD {product.cbdPercent}%</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Description */}
+                            {product.description && (
+                                <div>
+                                    <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: mutedTextColor }}>About</p>
+                                    <p className="text-sm leading-relaxed text-gray-700">{product.description}</p>
+                                </div>
+                            )}
+
+                            {/* Effects */}
+                            {product.effects && product.effects.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: mutedTextColor }}>Effects</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {product.effects.map(effect => (
+                                            <span key={effect} className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">{effect}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Terpenes */}
+                            {product.terpenes && product.terpenes.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-black uppercase tracking-widest mb-2 flex items-center gap-1.5" style={{ color: mutedTextColor }}>
+                                        <Wind className="h-3 w-3" /> Terpenes
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {product.terpenes.map(t => (
+                                            <span key={t} className="rounded-full border border-gray-200 px-3 py-1 text-sm text-gray-600">{t}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Smokey's reason */}
+                            <div className="rounded-2xl p-4" style={{ backgroundColor: hexToRgba(AMBER, 0.08) }}>
+                                <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: AMBER_DARK }}>Why Smokey picked it</p>
+                                <p className="text-sm text-gray-700">{product.reason}</p>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={onToggleCart}
+                                    className="flex-1 rounded-[18px] py-3 text-sm font-bold transition-all hover:opacity-95 active:scale-[0.99]"
+                                    style={inCart ? secondaryButtonStyle : primaryButtonStyle}
+                                >
+                                    {inCart ? 'Added ✓' : '+ Add to Cart'}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        onFindMore(`more ${product.category} like ${product.name}`);
+                                        onClose();
+                                    }}
+                                    className="rounded-[18px] border px-4 py-3 text-sm font-bold transition-all hover:opacity-95 active:scale-[0.99]"
+                                    style={secondaryButtonStyle}
+                                >
+                                    Find More Like This
+                                </button>
                             </div>
                         </div>
-                    )}
-
-                    {/* Terpenes */}
-                    {product.terpenes && product.terpenes.length > 0 && (
-                        <div>
-                            <p className="text-xs font-black uppercase tracking-widest mb-2 flex items-center gap-1.5" style={{ color: mutedTextColor }}>
-                                <Wind className="h-3 w-3" /> Terpenes
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                                {product.terpenes.map(t => (
-                                    <span key={t} className="rounded-full border border-gray-200 px-3 py-1 text-sm text-gray-600">{t}</span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Smokey's reason */}
-                    <div className="rounded-2xl p-4" style={{ backgroundColor: hexToRgba(AMBER, 0.08) }}>
-                        <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: AMBER_DARK }}>Why Smokey picked it</p>
-                        <p className="text-sm text-gray-700">{product.reason}</p>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-3">
-                        <button
-                            onClick={onToggleCart}
-                            className="flex-1 rounded-[18px] py-3 text-sm font-bold transition-all hover:opacity-95 active:scale-[0.99]"
-                            style={inCart ? secondaryButtonStyle : primaryButtonStyle}
-                        >
-                            {inCart ? 'Added ✓' : '+ Add to Cart'}
-                        </button>
-                        <button
-                            onClick={() => {
-                                onFindMore(`more ${product.category} like ${product.name}`);
-                                onClose();
-                            }}
-                            className="rounded-[18px] border px-4 py-3 text-sm font-bold transition-all hover:opacity-95 active:scale-[0.99]"
-                            style={secondaryButtonStyle}
-                        >
-                            Find More Like This
-                        </button>
-                    </div>
-                </div>
-            </motion.div>
-        </motion.div>
+                    </>
+                )}
+            </DialogContent>
+        </Dialog>
     );
 }
 
@@ -470,23 +451,18 @@ export function RecommendationsScreen({
     return (
         <>
             {/* Product detail modal */}
-            <AnimatePresence>
-                {selectedProduct && (
-                    <ProductDetailModal
-                        product={selectedProduct}
-                        inCart={cart.includes(selectedProduct.productId)}
-                        onClose={() => setSelectedProduct(null)}
-                        onToggleCart={() => { toggleCart(selectedProduct.productId); resetIdleTimer(); }}
-                        onFindMore={handleFindMore}
-                        brandTheme={brandTheme}
-                        mutedTextColor={mutedTextColor}
-                        faintTextColor={faintTextColor}
-                        panelStyle={panelStyle}
-                        primaryButtonStyle={primaryButtonStyle}
-                        secondaryButtonStyle={secondaryButtonStyle}
-                    />
-                )}
-            </AnimatePresence>
+            <ProductDetailModal
+                product={selectedProduct}
+                inCart={selectedProduct ? cart.includes(selectedProduct.productId) : false}
+                open={!!selectedProduct}
+                onClose={() => setSelectedProduct(null)}
+                onToggleCart={() => { if (selectedProduct) { toggleCart(selectedProduct.productId); resetIdleTimer(); } }}
+                onFindMore={handleFindMore}
+                brandTheme={brandTheme}
+                mutedTextColor={mutedTextColor}
+                primaryButtonStyle={primaryButtonStyle}
+                secondaryButtonStyle={secondaryButtonStyle}
+            />
 
             <motion.div
                 key="recommendations"
@@ -596,6 +572,8 @@ export function RecommendationsScreen({
                     <div
                         className="rounded-[22px] border-2 p-4 text-center min-h-[64px] flex items-center justify-center"
                         style={accentPanelStyle}
+                        aria-live="polite"
+                        aria-atomic="true"
                     >
                         {micIsActive && (
                             <p className="text-sm font-semibold animate-pulse" style={{ color: brandTheme.colors.primary }}>
@@ -616,7 +594,7 @@ export function RecommendationsScreen({
                             </p>
                         )}
                         {!micIsActive && !micIsProcessing && (assistantError || smokeyVoice.error) && (
-                            <p className="text-sm text-red-500">{assistantError || smokeyVoice.error}</p>
+                            <p role="alert" className="text-sm text-red-500">{assistantError || smokeyVoice.error}</p>
                         )}
                     </div>
                 </div>
@@ -782,7 +760,7 @@ export function RecommendationsScreen({
                 </div>
             )}
 
-            {error && <p className="text-center text-sm text-red-500">{error}</p>}
+            {error && <p role="alert" className="text-center text-sm text-red-500">{error}</p>}
             <button onClick={() => setStep('mood')} className="text-sm hover:opacity-70 pb-4" style={{ color: faintTextColor }}>&larr; Change feeling</button>
         </motion.div>
 

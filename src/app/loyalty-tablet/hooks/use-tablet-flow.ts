@@ -23,6 +23,7 @@ import {
     type TabletBundle
 } from '@/server/actions/loyalty-tablet';
 import { getPublicBrandTheme } from '@/server/actions/checkin-management';
+import { getActiveBudtenders } from '@/server/actions/budtender-shift';
 import { getPublicReviews } from '@/server/actions/public-review';
 import { 
     TABLET_MOODS, 
@@ -226,14 +227,11 @@ export function useTabletFlow(orgId: string) {
             setReviews(response.reviews);
             setReviewStats({ avgRating: response.avgRating, totalCount: response.totalCount });
         });
-        void fetch(`/api/budtender-shift?orgId=${orgId}&action=active`)
-            .then(res => res.json())
-            .then(data => {
-                if (mounted && data.success && data.budtenders?.length > 0) {
-                    setBudtenderName(data.budtenders[0].firstName);
-                }
-            })
-            .catch((err) => { console.warn('[TabletFlow] Failed to fetch budtender shift:', err); });
+        void getActiveBudtenders(orgId).then(data => {
+            if (mounted && data.success && data.budtenders && data.budtenders.length > 0) {
+                setBudtenderName(data.budtenders[0].firstName);
+            }
+        }).catch(() => { /* non-critical */ });
         return () => { mounted = false; };
     }, [orgId]);
 

@@ -57,7 +57,7 @@ export default function LoyaltyTabletPage() {
     const inputStyle = useMemo(() => createInputStyle(flow.brandTheme), [flow.brandTheme]);
 
     const brandName = flow.brandTheme.organizationName || 'Thrive Syracuse';
-    const mutedTextColor = flow.brandTheme.brandMood === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
+    const mutedTextColor = flow.brandTheme.brandMood === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.65)';
     const faintTextColor = flow.brandTheme.brandMood === 'dark' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)';
 
     const cartCount = flow.cart.length + (flow.bundleAdded ? 1 : 0);
@@ -115,7 +115,7 @@ export default function LoyaltyTabletPage() {
 
     return (
         <div
-            className="flex min-h-[100dvh] w-full flex-col p-4 sm:p-8 pb-32 sm:pb-8 overflow-x-hidden overflow-y-auto font-sans select-none"
+            className="flex min-h-[100dvh] w-full flex-col p-4 sm:p-8 pb-32 sm:pb-24 overflow-x-hidden overflow-y-auto font-sans select-none"
             style={shellStyle}
         >
             <InstallPrompt />
@@ -227,6 +227,7 @@ export default function LoyaltyTabletPage() {
                         emailConsent={flow.emailConsent}
                         setEmailConsent={flow.setEmailConsent}
                         handleOfferSubmit={flow.handleOfferSubmit}
+                        onSubmit={() => flow.handleOfferSubmit()}
                         setStep={(s: any) => flow.setStep(s)}
                         resetIdleTimer={flow.resetIdleTimer}
                         error={flow.error}

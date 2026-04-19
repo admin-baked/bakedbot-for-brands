@@ -5,7 +5,7 @@ import { Loader2, ArrowRight } from 'lucide-react';
 import { CSSProperties } from 'react';
 import { PublicBrandTheme } from '@/lib/checkin/checkin-management-shared';
 import { QuickLookupResult } from '@/server/actions/loyalty-tablet';
-import { slideVariants, AMBER, INPUT_CLASS } from './shared';
+import { slideVariants, AMBER, INPUT_CLASS, BUTTON_FOCUS_CLASS } from './shared';
 import { hexToRgba } from '@/lib/utils';
 
 interface QuickLookupScreenProps {
@@ -96,11 +96,11 @@ export function QuickLookupScreen({
                         maxLength={4}
                         autoFocus
                     />
-                    {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+                    {error && <p role="alert" className="text-sm text-red-500 text-center">{error}</p>}
                     <button
                         onClick={() => { void handleQuickLookup(); }}
                         disabled={quickDigits.length !== 4 || quickLookupLoading}
-                        className="flex w-full items-center justify-center gap-3 rounded-[28px] py-6 text-2xl font-bold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-40"
+                        className={`flex w-full items-center justify-center gap-3 rounded-[28px] py-6 text-2xl font-bold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-40 ${BUTTON_FOCUS_CLASS}`}
                         style={primaryButtonStyle}
                     >
                         {quickLookupLoading ? (

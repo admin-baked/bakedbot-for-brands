@@ -5,7 +5,7 @@ import { UserCheck, XCircle } from 'lucide-react';
 import { CSSProperties } from 'react';
 import { PublicBrandTheme } from '@/lib/checkin/checkin-management-shared';
 import type { AlleavesCandidateMatch } from '@/server/actions/loyalty-tablet';
-import { slideVariants, hexToRgba, AMBER } from './shared';
+import { slideVariants, hexToRgba, AMBER, BUTTON_FOCUS_CLASS } from './shared';
 
 interface ReturningCandidatesScreenProps {
     brandTheme: PublicBrandTheme;
@@ -56,7 +56,7 @@ export function ReturningCandidatesScreen({
                     <button
                         key={c.customerId}
                         onClick={() => onSelect(c)}
-                        className="flex items-center gap-4 rounded-2xl border-2 px-6 py-4 text-left transition-all hover:scale-[1.01] active:scale-[0.99]"
+                        className={`flex items-center gap-4 rounded-2xl border-2 px-6 py-4 text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${BUTTON_FOCUS_CLASS}`}
                         style={{
                             ...panelStyle,
                             borderColor: hexToRgba(brandTheme.colors.primary, 0.2),

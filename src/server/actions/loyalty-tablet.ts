@@ -1008,8 +1008,8 @@ export async function captureTabletLead(params: {
             return { success: false, isNewLead: false, error: result.error || 'Failed to capture check-in' };
         }
 
-        // 1. Enrollment Flow (if they have a phone and aren't already a "Member" in the new system)
-        if (phone || result.customerId) {
+        // 1. Enrollment Flow (only when phone is present — result.customerId is always truthy here)
+        if (phone) {
             try {
                 await MembershipService.enroll({
                     organizationId: orgId,
@@ -1518,9 +1518,37 @@ export async function linkCustomerToAlleaves(
     customerId: string,
     alleavesCustomerId: string,
 ): Promise<{ success: boolean }> {
+    // ── Org-level access guard ─────────────────────────────────────────
+    try {
+        const { requireUser } = await import('@/server/auth/auth');
+        const sessionUser = await requireUser();
+        const sessionOrgId = (sessionUser as { orgId?: string; currentOrgId?: string })?.currentOrgId
+            ?? (sessionUser as { orgId?: string })?.orgId;
+        const sessionRole = (sessionUser as { role?: string })?.role;
+        const isSuperUser = sessionRole === 'super_user' || sessionRole === 'super_admin';
+        if (!isSuperUser && sessionOrgId && sessionOrgId !== orgId) {
+            logger.warn('[LoyaltyTablet] linkCustomerToAlleaves rejected — org mismatch', {
+                sessionOrgId,
+                payloadOrgId: orgId,
+            });
+            return { success: false };
+        }
+    } catch {
+        // Proceed for pre-shipped kiosks
+    }
+
     try {
         const db = getAdminFirestore();
         const customerRef = db.collection('customers').doc(customerId);
+
+        // Verify customer belongs to this org before writing
+        const customerDoc = await customerRef.get();
+        if (!customerDoc.exists || customerDoc.data()?.orgId !== orgId) {
+            logger.warn('[LoyaltyTablet] linkCustomerToAlleaves — customer orgId mismatch', {
+                orgId, customerId,
+            });
+            return { success: false };
+        }
 
         // Merge the Alleaves link + pull spending data
         const spendingDoc = await db

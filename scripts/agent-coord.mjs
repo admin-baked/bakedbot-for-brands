@@ -44,7 +44,7 @@ function lockId(file) {
 
 const LOCK_TTL_MS = 2 * 60 * 60 * 1000;
 const COORD_CHANNEL = '#agent-coordination';
-const AGENT_EMOJI = { claude: '🤖', codex: '💡', gemini: '✨', linus: '🖥️' };
+const AGENT_EMOJI = { claude: '🤖', codex: '💡', gemini: '✨', linus: '🖥️', fe: '🎨', be: '⚙️', ux: '🖌️' };
 
 async function slackPost(text) {
   const token = process.env.SLACK_BOT_TOKEN;

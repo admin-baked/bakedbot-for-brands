@@ -3,9 +3,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, X, Bell } from 'lucide-react';
-import { initializeFirebase } from '@/firebase';
-import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { hexToRgba } from '@/lib/utils';
+import {
+    getPendingKioskPicks,
+    markKioskPickFulfilled,
+    type KioskPickRow,
+} from '@/server/actions/checkin-management';
 
 // ─── Fireworks ────────────────────────────────────────────────────────────────
 
@@ -225,17 +228,7 @@ function FireworksCanvas({ onDone }: { onDone: () => void }) {
 
 // ─── Notification types ───────────────────────────────────────────────────────
 
-interface KioskPickDoc {
-    id: string;
-    firstName: string;
-    mood: string | null;
-    productNames: string[];
-    productIds: string[];
-    status: string;
-    createdAt: { seconds: number } | Date;
-}
-
-interface ToastItem extends KioskPickDoc {
+interface ToastItem extends KioskPickRow {
     toastId: string;
 }
 
@@ -256,51 +249,50 @@ export function KioskOrderNotifications({ orgId }: KioskOrderNotificationsProps)
         setFireworksKey(k => (k ?? 0) + 1);
     }, []);
 
-    useEffect(() => {
-        if (!orgId) return;
+    const poll = useCallback(async () => {
+        const result = await getPendingKioskPicks(orgId).catch(() => null);
+        if (!result?.success || !result.picks) return;
 
-        const { firestore: db } = initializeFirebase();
-        const picksRef = collection(db, 'tenants', orgId, 'kioskPicks');
-        const q = query(picksRef, where('status', '==', 'pending'), orderBy('createdAt', 'desc'));
+        const docs = result.picks;
+        setPendingCount(docs.length);
 
-        const unsub = onSnapshot(q, (snap) => {
-            const docs = snap.docs.map(d => ({ id: d.id, ...d.data() } as KioskPickDoc));
-            setPendingCount(docs.length);
+        if (isFirstLoad.current) {
+            docs.forEach(d => seenIds.current.add(d.id));
+            isFirstLoad.current = false;
+            return;
+        }
 
-            if (isFirstLoad.current) {
-                docs.forEach(d => seenIds.current.add(d.id));
-                isFirstLoad.current = false;
-                return;
-            }
+        const newPicks = docs.filter(d => !seenIds.current.has(d.id));
+        if (newPicks.length === 0) return;
 
-            const newPicks = docs.filter(d => !seenIds.current.has(d.id));
-            if (newPicks.length === 0) return;
-
-            newPicks.forEach(pick => {
-                seenIds.current.add(pick.id);
-                const toastId = `${pick.id}-${Date.now()}`;
-                setToasts(prev => [...prev, { ...pick, toastId }]);
-                setTimeout(() => {
-                    setToasts(prev => prev.filter(t => t.toastId !== toastId));
-                }, 8000);
-            });
-
-            triggerFireworks();
+        newPicks.forEach(pick => {
+            seenIds.current.add(pick.id);
+            const toastId = `${pick.id}-${Date.now()}`;
+            setToasts(prev => [...prev, { ...pick, toastId }]);
+            setTimeout(() => {
+                setToasts(prev => prev.filter(t => t.toastId !== toastId));
+            }, 8000);
         });
 
-        return () => unsub();
+        triggerFireworks();
     }, [orgId, triggerFireworks]);
+
+    useEffect(() => {
+        if (!orgId) return;
+        void poll();
+        const interval = setInterval(() => { void poll(); }, 10_000);
+        return () => clearInterval(interval);
+    }, [orgId, poll]);
 
     const dismiss = (toastId: string) => {
         setToasts(prev => prev.filter(t => t.toastId !== toastId));
     };
 
-    const markFulfilled = async (pickId: string, toastId: string) => {
-        try {
-            const { firestore: db } = initializeFirebase();
-            await updateDoc(doc(db, 'tenants', orgId, 'kioskPicks', pickId), { status: 'fulfilled' });
-        } catch { /* non-critical */ }
+    const handleMarkFulfilled = async (pickId: string, toastId: string) => {
+        await markKioskPickFulfilled(orgId, pickId).catch(() => { /* non-critical */ });
         dismiss(toastId);
+        // Optimistically decrement pending count
+        setPendingCount(prev => Math.max(0, prev - 1));
     };
 
     return (
@@ -399,7 +391,7 @@ export function KioskOrderNotifications({ orgId }: KioskOrderNotificationsProps)
                                 )}
 
                                 <button
-                                    onClick={() => markFulfilled(toast.id, toast.toastId)}
+                                    onClick={() => void handleMarkFulfilled(toast.id, toast.toastId)}
                                     className="mt-3 w-full rounded-xl bg-emerald-500 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-600 transition-colors"
                                 >
                                     Mark Fulfilled

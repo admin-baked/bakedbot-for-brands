@@ -5,7 +5,7 @@ import { Loader2, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { CSSProperties } from 'react';
 import { PublicBrandTheme } from '@/lib/checkin/checkin-management-shared';
 import { TabletOffer } from '@/server/actions/loyalty-tablet';
-import { slideVariants, AMBER, AMBER_DARK, INPUT_CLASS } from './shared';
+import { slideVariants, AMBER, AMBER_DARK, INPUT_CLASS, BUTTON_FOCUS_CLASS } from './shared';
 
 interface OfferScreenProps {
     brandTheme: PublicBrandTheme;
@@ -23,6 +23,7 @@ interface OfferScreenProps {
     emailConsent: boolean;
     setEmailConsent: (consent: boolean) => void;
     handleOfferSubmit: () => void;
+    onSubmit: (opts: { skipped?: boolean }) => void;
     setStep: (step: 'phone' | 'mood') => void;
     resetIdleTimer: () => void;
     error: string;
@@ -51,6 +52,7 @@ export function OfferScreen({
     emailConsent,
     setEmailConsent,
     handleOfferSubmit,
+    onSubmit,
     setStep,
     resetIdleTimer,
     error,
@@ -123,10 +125,11 @@ export function OfferScreen({
 
             {/* Birthday field */}
             <div className="w-full">
-                <label className="block text-sm font-semibold mb-2" style={{ color: mutedTextColor }}>
+                <label htmlFor="checkin-birthday" className="block text-sm font-semibold mb-2" style={{ color: mutedTextColor }}>
                     🎂 Birthday (optional — earn a free reward!)
                 </label>
                 <input
+                    id="checkin-birthday"
                     type="text"
                     placeholder="MM/DD"
                     value={birthday}
@@ -198,16 +201,16 @@ export function OfferScreen({
                 )}
             </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
             <button
                 onClick={handleOfferSubmit}
-                className="flex w-full items-center justify-center gap-3 rounded-[28px] py-6 text-2xl font-bold transition-all hover:opacity-95 active:scale-[0.99]"
+                className={`flex w-full items-center justify-center gap-3 rounded-[28px] py-6 text-2xl font-bold transition-all hover:opacity-95 active:scale-[0.99] ${BUTTON_FOCUS_CLASS}`}
                 style={primaryButtonStyle}
             >
                 {offerClaimed ? 'Claim & Find My Picks' : 'Continue'} <ArrowRight className="h-7 w-7" />
             </button>
             <button
-                onClick={handleOfferSubmit}
+                onClick={() => onSubmit({ skipped: true })}
                 className="text-sm hover:opacity-70"
                 style={{ color: faintTextColor }}
             >

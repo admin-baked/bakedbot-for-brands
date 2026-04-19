@@ -1,10 +1,60 @@
 {
   "version": 1,
   "skills": {
+    "Accessibility Audit": {
+      "source": "cuellarfr/design-skills",
+      "sourceType": "github",
+      "computedHash": "e131dfa01b9aef074dcfa7b029702b703d8aed60f57d897b8c5178aac23f2a5a"
+    },
+    "Design Critique & Evaluation": {
+      "source": "cuellarfr/design-skills",
+      "sourceType": "github",
+      "computedHash": "b1b2a8fb27a02b3f0a0b61261fb5ec4ef55624916fd4520c037c0307c9f79ab9"
+    },
+    "Design Systems": {
+      "source": "cuellarfr/design-skills",
+      "sourceType": "github",
+      "computedHash": "d87e531dac822de9b60aafb30a6714691331c7607e50b0c9517513e84850db8a"
+    },
+    "Interaction Design": {
+      "source": "cuellarfr/design-skills",
+      "sourceType": "github",
+      "computedHash": "65c6faf5f4319458f843e1c00873b13c2b275e131b12636af696d7d0ed2f52b1"
+    },
+    "Journey Mapping & Service Design": {
+      "source": "cuellarfr/design-skills",
+      "sourceType": "github",
+      "computedHash": "4d36dd11a8426413942dc58007db7f6d79ee92a68d398a9cd4362b2473cb1201"
+    },
+    "UX Strategy": {
+      "source": "cuellarfr/design-skills",
+      "sourceType": "github",
+      "computedHash": "ccbc997034064a6239ed9f067e97f3545c6406740d31e207e49880e5f895b8c0"
+    },
+    "design-elevation": {
+      "source": "cuellarfr/design-skills",
+      "sourceType": "github",
+      "computedHash": "7515767eb1a106499dfe35b62131800483e9da97f5c70676893f9204bb375308"
+    },
+    "design-ops": {
+      "source": "cuellarfr/design-skills",
+      "sourceType": "github",
+      "computedHash": "7f784e25bd8a72bd5717250a6e18ea8df9199c694661259d61cb79f251da0ff1"
+    },
     "remotion-best-practices": {
       "source": "remotion-dev/skills",
       "sourceType": "github",
       "computedHash": "6f22ccc0dd7103de270a465b30e44b001bcee4751e43197bba60680e69928635"
+    },
+    "ux-research": {
+      "source": "cuellarfr/design-skills",
+      "sourceType": "github",
+      "computedHash": "5c52ee63fdbcc8eeec359546aa92664ca585a8c52fc5d3c34f98168044daa903"
+    },
+    "ux-writing": {
+      "source": "cuellarfr/design-skills",
+      "sourceType": "github",
+      "computedHash": "bd1628632f2098c893bf92f225993d9cffad59756c5d05e3ac6d15d2b719de90"
     }
   }
 }

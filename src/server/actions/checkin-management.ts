@@ -121,6 +121,10 @@ function normalizePublicColor(value: unknown): string | undefined {
 // ── Config actions ─────────────────────────────────────────────────────────
 
 export async function getCheckinConfig(orgId: string): Promise<{ success: boolean; config: CheckinConfig; error?: string }> {
+    const user = await requireUser([...DISPENSARY_ALL_ROLES, ...BRAND_ALL_ROLES, ...SUPER_USER_ROLES]);
+    if (!user || (user.orgId !== orgId && user.role !== 'super_user')) {
+        return { success: false, config: DEFAULT_CHECKIN_CONFIG, error: 'Unauthorized' };
+    }
     try {
         const db = getAdminFirestore();
         const snap = await db.doc(configDocPath(orgId)).get();
@@ -171,6 +175,10 @@ export async function saveCheckinConfig(orgId: string, updates: Partial<CheckinC
 // ── Stats action ───────────────────────────────────────────────────────────
 
 export async function getCheckinStats(orgId: string): Promise<{ success: boolean; stats?: CheckinStats; error?: string }> {
+    const user = await requireUser([...DISPENSARY_ALL_ROLES, ...BRAND_ALL_ROLES, ...SUPER_USER_ROLES]);
+    if (!user || (user.orgId !== orgId && user.role !== 'super_user')) {
+        return { success: false, error: 'Unauthorized' };
+    }
     try {
         const db = getAdminFirestore();
         const col = db.collection('checkin_visits');
@@ -242,6 +250,10 @@ export async function getCheckinStats(orgId: string): Promise<{ success: boolean
 // ── Visit feed action ──────────────────────────────────────────────────────
 
 export async function getRecentCheckinVisits(orgId: string, limit = 25): Promise<{ success: boolean; visits?: CheckinVisitRow[]; error?: string }> {
+    const user = await requireUser([...DISPENSARY_ALL_ROLES, ...BRAND_ALL_ROLES, ...SUPER_USER_ROLES]);
+    if (!user || (user.orgId !== orgId && user.role !== 'super_user')) {
+        return { success: false, error: 'Unauthorized' };
+    }
     try {
         const db = getAdminFirestore();
         const snap = await db.collection('checkin_visits')
@@ -347,7 +359,8 @@ export async function getPublicBrandTheme(orgId: string): Promise<PublicBrandThe
                 background: normalizePublicColor(colors.background?.hex) ?? DEFAULT_PUBLIC_BRAND_THEME.colors.background,
             },
         };
-    } catch {
+    } catch (error) {
+        logger.warn('[CheckinManagement] getPublicBrandTheme failed', { orgId, error });
         return DEFAULT_PUBLIC_BRAND_THEME;
     }
 }
@@ -361,6 +374,10 @@ export async function getPublicBrandLogo(orgId: string): Promise<{ logoUrl: stri
 }
 
 export async function postCheckinBriefingToInbox(orgId: string): Promise<{ success: boolean; artifactId?: string; error?: string }> {
+    const user = await requireUser([...DISPENSARY_ALL_ROLES, ...BRAND_ALL_ROLES, ...SUPER_USER_ROLES]);
+    if (!user || (user.orgId !== orgId && user.role !== 'super_user')) {
+        return { success: false, error: 'Unauthorized' };
+    }
     const statsResult = await getCheckinStats(orgId);
     if (!statsResult.success || !statsResult.stats) {
         return { success: false, error: statsResult.error ?? 'Failed to compute stats' };
@@ -481,4 +498,84 @@ function buildInsight(stats: CheckinStats): string {
     }
 
     return parts.join(' ');
+}
+
+// ── Kiosk Picks ────────────────────────────────────────────────────────────
+
+export interface KioskPickRow {
+    id: string;
+    firstName: string;
+    mood: string | null;
+    productNames: string[];
+    productIds: string[];
+    status: string;
+    createdAt: string; // ISO string — safe to pass over the wire
+}
+
+/**
+ * Fetch pending kiosk picks for the budtender notification panel.
+ * Requires dispensary_admin or super_user.
+ */
+export async function getPendingKioskPicks(
+    orgId: string,
+): Promise<{ success: boolean; picks?: KioskPickRow[]; error?: string }> {
+    try {
+        await requireUser([...DISPENSARY_ALL_ROLES, ...SUPER_USER_ROLES]);
+        const db = getAdminFirestore();
+        const snap = await db
+            .collection('tenants')
+            .doc(orgId)
+            .collection('kioskPicks')
+            .where('status', '==', 'pending')
+            .orderBy('createdAt', 'desc')
+            .limit(50)
+            .get();
+
+        const picks: KioskPickRow[] = snap.docs.map(doc => {
+            const d = doc.data();
+            const createdAt = d.createdAt?.toDate?.()
+                ? (d.createdAt as { toDate(): Date }).toDate().toISOString()
+                : typeof d.createdAt === 'string'
+                    ? d.createdAt
+                    : new Date().toISOString();
+            return {
+                id: doc.id,
+                firstName: (d.firstName as string) || 'Guest',
+                mood: (d.mood as string) || null,
+                productNames: Array.isArray(d.productNames) ? (d.productNames as string[]) : [],
+                productIds: Array.isArray(d.productIds) ? (d.productIds as string[]) : [],
+                status: (d.status as string) || 'pending',
+                createdAt,
+            };
+        });
+
+        return { success: true, picks };
+    } catch (error) {
+        logger.error('[CheckinMgmt] getPendingKioskPicks failed', { orgId, error: String(error) });
+        return { success: false, error: 'Failed to fetch kiosk picks' };
+    }
+}
+
+/**
+ * Mark a kiosk pick as fulfilled.
+ * Requires dispensary_admin or super_user.
+ */
+export async function markKioskPickFulfilled(
+    orgId: string,
+    pickId: string,
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        await requireUser([...DISPENSARY_ALL_ROLES, ...SUPER_USER_ROLES]);
+        const db = getAdminFirestore();
+        await db
+            .collection('tenants')
+            .doc(orgId)
+            .collection('kioskPicks')
+            .doc(pickId)
+            .update({ status: 'fulfilled', fulfilledAt: new Date() });
+        return { success: true };
+    } catch (error) {
+        logger.error('[CheckinMgmt] markKioskPickFulfilled failed', { orgId, pickId, error: String(error) });
+        return { success: false, error: 'Failed to mark pick as fulfilled' };
+    }
 }

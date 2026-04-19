@@ -1,5 +1,6 @@
 'use server';
 
+import { createHash, randomBytes } from 'crypto';
 import { firestore } from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { getAdminFirestore } from '@/firebase/admin';
@@ -597,11 +598,12 @@ async function findCustomerByField(
     const db = getAdminFirestore();
     const snapshot = await db
         .collection('customers')
+        .where('orgId', '==', orgId)
         .where(field, '==', value)
         .limit(10)
         .get();
 
-    return snapshot.docs.find((doc) => doc.data()?.orgId === orgId) ?? null;
+    return snapshot.docs[0] ?? null;
 }
 
 async function findExistingCustomer(
@@ -807,18 +809,29 @@ async function resolveLookupCandidatePhone(
 async function findOrdersByField(
     field: 'customer.phone' | 'customer.email',
     value: string,
+    orgId: string,
 ): Promise<Array<{ id: string; data: Record<string, unknown> }>> {
     const db = getAdminFirestore();
-    const snapshot = await db
-        .collection('orders')
-        .where(field, '==', value)
-        .limit(25)
-        .get();
+    const scopeFields: Array<'brandId' | 'retailerId' | 'orgId'> = ['brandId', 'retailerId', 'orgId'];
 
-    return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        data: doc.data() as Record<string, unknown>,
-    }));
+    const snapshots = await Promise.all(
+        scopeFields.map((scopeField) =>
+            db.collection('orders')
+                .where(scopeField, '==', orgId)
+                .where(field, '==', value)
+                .limit(25)
+                .get()
+        ),
+    );
+
+    const matches = new Map<string, Record<string, unknown>>();
+    for (const snapshot of snapshots) {
+        for (const doc of snapshot.docs) {
+            matches.set(doc.id, doc.data() as Record<string, unknown>);
+        }
+    }
+
+    return Array.from(matches.entries()).map(([id, data]) => ({ id, data }));
 }
 
 async function findExistingOrderHistory(
@@ -830,12 +843,12 @@ async function findExistingOrderHistory(
     const phoneCandidates = buildPhoneLookupCandidates(rawPhone, normalizedPhone);
     const queries = [
         ...phoneCandidates.map((phoneCandidate) => (
-            findOrdersByField('customer.phone', phoneCandidate)
+            findOrdersByField('customer.phone', phoneCandidate, orgId)
         )),
     ];
 
     if (normalizedEmail && !isPlaceholderCustomerEmail(normalizedEmail)) {
-        queries.push(findOrdersByField('customer.email', normalizedEmail));
+        queries.push(findOrdersByField('customer.email', normalizedEmail, orgId));
     }
 
     const queryResults = await Promise.all(queries);
@@ -1203,35 +1216,30 @@ export async function captureVisitorCheckin(
         // Enroll in weekly campaign list if email consent given
         if (emailConsent && normalizedEmail) {
             try {
-                // Use transaction to prevent race conditions
-                await db.runTransaction(async (transaction) => {
-                    const existingSubscriber = await transaction.get(
-                        db.collection('weekly_campaign_subscribers')
-                            .where('email', '==', normalizedEmail)
-                            .where('orgId', '==', validated.orgId)
-                            .limit(1)
-                    );
+                // Query outside the transaction — Admin SDK does not support transaction.get(Query)
+                const existingSnap = await db.collection('weekly_campaign_subscribers')
+                    .where('email', '==', normalizedEmail)
+                    .where('orgId', '==', validated.orgId)
+                    .limit(1)
+                    .get();
 
-                    if (existingSubscriber.empty) {
-                        transaction.set(
-                            db.collection('weekly_campaign_subscribers').doc(),
-                            {
-                                orgId: validated.orgId,
-                                customerId: validated.orgId + '_' + normalizedPhone.slice(-4),
-                                email: normalizedEmail,
-                                firstName: validated.firstName,
-                                enrolledAt: now,
-                                lastSentAt: null,
-                                status: 'active',
-                                source: validated.source,
-                            }
-                        );
-                        logger.info('[VisitorCheckin] Enrolled in weekly campaign via transaction', {
-                            orgId: validated.orgId,
-                            email: normalizedEmail,
-                        });
-                    }
-                });
+                if (existingSnap.empty) {
+                    const subId = `wsub_${createHash('sha256').update(normalizedEmail + validated.orgId).digest('hex').slice(0, 16)}`;
+                    await db.collection('weekly_campaign_subscribers').doc(subId).set({
+                        orgId: validated.orgId,
+                        customerId: validated.orgId + '_' + normalizedPhone.slice(-4),
+                        email: normalizedEmail,
+                        firstName: validated.firstName,
+                        enrolledAt: now,
+                        lastSentAt: null,
+                        status: 'active',
+                        source: validated.source,
+                    }, { merge: true });
+                    logger.info('[VisitorCheckin] Enrolled in weekly campaign', {
+                        orgId: validated.orgId,
+                        email: normalizedEmail,
+                    });
+                }
             } catch (err) {
                 logger.warn('[VisitorCheckin] Failed to enroll in weekly campaign', {
                     orgId: validated.orgId,
@@ -1377,7 +1385,7 @@ export async function captureVisitorCheckin(
             batch.update(customerRef, customerUpdates);
         }
 
-        const visitId = `${customerId}_visit_${now.getTime()}`;
+        const visitId = `${customerId}_visit_${now.getTime()}_${randomBytes(3).toString('hex')}`;
         const reviewSequenceEnabled = Boolean(normalizedEmail && emailConsent);
         const visitRef = db.collection('checkin_visits').doc(visitId);
 

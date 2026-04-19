@@ -20,6 +20,7 @@ import { MOOD_EMOJI } from '@/lib/checkin/loyalty-tablet-shared';
 
 interface Props {
     stats: CheckinStats;
+    orgId: string;
     onRefresh?: () => void;
     refreshing?: boolean;
 }
@@ -67,7 +68,7 @@ function RateBar({ label, rate, color }: { label: string; rate: number; color: s
     );
 }
 
-export function CheckInStatsPanel({ stats, onRefresh, refreshing }: Props) {
+export function CheckInStatsPanel({ stats, orgId, onRefresh, refreshing }: Props) {
     const router = useRouter();
 
     const handleReviewQueue = () => {
@@ -227,7 +228,7 @@ export function CheckInStatsPanel({ stats, onRefresh, refreshing }: Props) {
                     variant="outline"
                     size="sm"
                     className="gap-1.5 text-xs"
-                    onClick={() => window.open('https://bakedbot.ai/thrivesyracuse/rewards', '_blank', 'noopener,noreferrer')}
+                    onClick={() => window.open(`https://bakedbot.ai/${orgId.replace('org_', '')}/rewards`, '_blank', 'noopener,noreferrer')}
                 >
                     <ArrowRight className="h-3.5 w-3.5" />
                     View live page

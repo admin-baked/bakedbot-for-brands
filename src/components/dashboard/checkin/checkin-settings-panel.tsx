@@ -22,10 +22,11 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Props {
     orgId: string;
+    orgName: string;
     initial: CheckinConfig;
 }
 
-export function CheckInSettingsPanel({ orgId, initial }: Props) {
+export function CheckInSettingsPanel({ orgId, orgName, initial }: Props) {
     const [config, setConfig] = useState<CheckinConfig>(initial);
     const [saving, setSaving] = useState(false);
     const { toast } = useToast();
@@ -89,7 +90,7 @@ export function CheckInSettingsPanel({ orgId, initial }: Props) {
                 <div className="flex items-center gap-2">
                     <Settings2 className="h-5 w-5 text-emerald-600" />
                     <CardTitle className="text-base">Check-In Settings</CardTitle>
-                    <Badge variant="outline" className="text-xs ml-auto">Thrive Syracuse</Badge>
+                    <Badge variant="outline" className="text-xs ml-auto">{orgName}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
                     Controls the public rewards page flow and in-store tablet.
@@ -104,7 +105,7 @@ export function CheckInSettingsPanel({ orgId, initial }: Props) {
                         <div>
                             <Label className="text-sm font-medium">Public check-in enabled</Label>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                                Shows the check-in card on bakedbot.ai/thrivesyracuse/rewards
+                                Shows the check-in card on bakedbot.ai/{orgId.replace('org_', '')}/rewards
                             </p>
                         </div>
                         <Switch

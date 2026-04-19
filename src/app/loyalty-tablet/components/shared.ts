@@ -5,6 +5,7 @@ import { hexToRgba } from '@/lib/utils';
 export const AMBER = '#f59e0b';
 export const AMBER_DARK = '#d97706';
 export const INPUT_CLASS = 'w-full border text-gray-900 placeholder-gray-400 text-lg sm:text-2xl py-4 sm:py-5 px-4 sm:px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-gray-200 transition-colors';
+export const BUTTON_FOCUS_CLASS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-amber-400';
 
 export function createShellStyle(theme: PublicBrandTheme): CSSProperties {
     return {

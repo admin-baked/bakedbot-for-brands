@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { CSSProperties } from 'react';
 import { TABLET_MOODS, TabletMoodId } from '@/lib/checkin/loyalty-tablet-shared';
-import { slideVariants } from './shared';
+import { slideVariants, BUTTON_FOCUS_CLASS } from './shared';
 
 interface MoodScreenProps {
     firstName: string;
@@ -54,7 +54,7 @@ export function MoodScreen({
                     <button
                         key={mood.id}
                         onClick={() => { void handleMoodSelect(mood.id); }}
-                        className="flex items-center gap-2 rounded-[24px] border p-3 text-left transition-all hover:opacity-95 active:scale-[0.99] sm:gap-4 sm:p-5"
+                        className={`flex items-center gap-2 rounded-[24px] border p-3 text-left transition-all hover:opacity-95 active:scale-[0.99] sm:gap-4 sm:p-5 ${BUTTON_FOCUS_CLASS}`}
                         style={panelStyle}
                     >
                         <span className="text-2xl sm:text-4xl shrink-0">{mood.emoji}</span>

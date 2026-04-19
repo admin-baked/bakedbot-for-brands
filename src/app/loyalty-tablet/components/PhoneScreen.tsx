@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Phone, CheckCircle2, ArrowRight } from 'lucide-react';
 import { CSSProperties } from 'react';
 import { PublicBrandTheme } from '@/lib/checkin/checkin-management-shared';
-import { slideVariants, INPUT_CLASS } from './shared';
+import { slideVariants, INPUT_CLASS, BUTTON_FOCUS_CLASS } from './shared';
 
 interface PhoneScreenProps {
     brandTheme: PublicBrandTheme;
@@ -74,7 +74,9 @@ export function PhoneScreen({
                 )}
             </div>
             <div className="w-full space-y-4">
+                <label htmlFor="checkin-first-name" className="sr-only">First name</label>
                 <input
+                    id="checkin-first-name"
                     type="text"
                     placeholder="First name"
                     value={firstName}
@@ -83,7 +85,9 @@ export function PhoneScreen({
                     style={inputStyle}
                     autoComplete="given-name"
                 />
+                <label htmlFor="checkin-phone" className="sr-only">Phone number</label>
                 <input
+                    id="checkin-phone"
                     type="tel"
                     placeholder="(555) 000-0000"
                     value={phone}
@@ -120,11 +124,11 @@ export function PhoneScreen({
                     Msg &amp; data rates may apply. Opt out anytime.
                 </p>
             </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
             <button
                 onClick={handlePhoneSubmit}
                 disabled={!firstName.trim() || phone.replace(/\D/g, '').length < 10}
-                className="flex w-full items-center justify-center gap-3 rounded-[28px] py-6 text-2xl font-bold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-40"
+                className={`flex w-full items-center justify-center gap-3 rounded-[28px] py-6 text-2xl font-bold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-40 ${BUTTON_FOCUS_CLASS}`}
                 style={primaryButtonStyle}
             >
                 {isReturningCustomer ? 'Find My Picks' : 'Continue'} <ArrowRight className="h-7 w-7" />

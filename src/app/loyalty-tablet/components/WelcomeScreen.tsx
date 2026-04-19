@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { PublicBrandTheme } from '@/lib/checkin/checkin-management-shared';
-import { slideVariants } from './shared';
+import { slideVariants, BUTTON_FOCUS_CLASS } from './shared';
 import { APP_VERSION } from '@/lib/version';
 import { CSSProperties, useState } from 'react';
 
@@ -60,7 +60,7 @@ export function WelcomeScreen({
             <div className="grid grid-cols-2 gap-4 w-full">
                 <button
                     onClick={onCheckIn}
-                    className="flex flex-col items-center justify-center gap-3 rounded-[32px] p-8 transition-all hover:opacity-95 active:scale-[0.98] shadow-xl border-b-4"
+                    className={`flex flex-col items-center justify-center gap-3 rounded-[32px] p-8 transition-all hover:opacity-95 active:scale-[0.98] shadow-xl border-b-4 ${BUTTON_FOCUS_CLASS}`}
                     style={primaryButtonStyle}
                 >
                     <span className="text-4xl">🚀</span>
@@ -70,7 +70,7 @@ export function WelcomeScreen({
 
                 <button
                     onClick={onJoinClub}
-                    className="flex flex-col items-center justify-center gap-3 rounded-[32px] p-8 transition-all hover:opacity-95 active:scale-[0.98] bg-white border-2 border-gray-100 shadow-lg border-b-4 border-b-gray-200"
+                    className={`flex flex-col items-center justify-center gap-3 rounded-[32px] p-8 transition-all hover:opacity-95 active:scale-[0.98] bg-white border-2 border-gray-100 shadow-lg border-b-4 border-b-gray-200 ${BUTTON_FOCUS_CLASS}`}
                 >
                     <span className="text-4xl">💎</span>
                     <span className="text-xl font-black uppercase tracking-tight text-gray-900">Join Rewards</span>
@@ -79,7 +79,7 @@ export function WelcomeScreen({
 
                 <button
                     onClick={onOrderPickup}
-                    className="flex flex-col items-center justify-center gap-3 rounded-[32px] p-8 transition-all hover:opacity-95 active:scale-[0.98] bg-white border-2 border-gray-100 shadow-lg border-b-4 border-b-gray-200"
+                    className={`flex flex-col items-center justify-center gap-3 rounded-[32px] p-8 transition-all hover:opacity-95 active:scale-[0.98] bg-white border-2 border-gray-100 shadow-lg border-b-4 border-b-gray-200 ${BUTTON_FOCUS_CLASS}`}
                 >
                     <span className="text-4xl">🛍️</span>
                     <span className="text-xl font-black uppercase tracking-tight text-gray-900">Order Pickup</span>
@@ -88,7 +88,7 @@ export function WelcomeScreen({
 
                 <button
                     onClick={onAskSmokey}
-                    className="flex flex-col items-center justify-center gap-3 rounded-[32px] p-8 transition-all hover:opacity-95 active:scale-[0.98] bg-white border-2 border-gray-100 shadow-lg border-b-4 border-b-gray-200"
+                    className={`flex flex-col items-center justify-center gap-3 rounded-[32px] p-8 transition-all hover:opacity-95 active:scale-[0.98] bg-white border-2 border-gray-100 shadow-lg border-b-4 border-b-gray-200 ${BUTTON_FOCUS_CLASS}`}
                 >
                     <span className="text-4xl">💨</span>
                     <span className="text-xl font-black uppercase tracking-tight text-gray-900">Ask Smokey</span>

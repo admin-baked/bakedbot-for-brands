@@ -138,14 +138,14 @@ export function SuccessScreen({
                                             body: JSON.stringify({
                                                 orgId,
                                                 customerId,
-                                                visitId: result?.queuePosition ? `visit_${Date.now()}` : undefined,
+                                                visitId: result?.visitId,
                                                 rating: star,
                                                 mood: selectedMood ?? undefined,
                                             }),
                                         });
                                     } catch { /* ignore */ }
                                 }}
-                                className="transition-transform hover:scale-110 active:scale-95"
+                                className="p-2 transition-transform hover:scale-110 active:scale-95"
                             >
                                 <Star
                                     className="h-8 w-8 transition-colors"

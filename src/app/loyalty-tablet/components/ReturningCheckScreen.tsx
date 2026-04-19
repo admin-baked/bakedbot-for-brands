@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Store, UserPlus } from 'lucide-react';
 import { CSSProperties } from 'react';
 import { PublicBrandTheme } from '@/lib/checkin/checkin-management-shared';
-import { slideVariants, hexToRgba, AMBER, AMBER_DARK } from './shared';
+import { slideVariants, hexToRgba, AMBER, AMBER_DARK, BUTTON_FOCUS_CLASS } from './shared';
 
 interface ReturningCheckScreenProps {
     brandTheme: PublicBrandTheme;
@@ -46,7 +46,7 @@ export function ReturningCheckScreen({
                 <button
                     onClick={onYes}
                     disabled={loading}
-                    className="flex items-center justify-center gap-3 rounded-2xl border-2 px-8 py-5 text-xl font-bold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
+                    className={`flex items-center justify-center gap-3 rounded-2xl border-2 px-8 py-5 text-xl font-bold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 ${BUTTON_FOCUS_CLASS}`}
                     style={{
                         background: `linear-gradient(135deg, ${AMBER} 0%, ${AMBER_DARK} 100%)`,
                         borderColor: AMBER,
@@ -61,7 +61,7 @@ export function ReturningCheckScreen({
                 <button
                     onClick={onNo}
                     disabled={loading}
-                    className="flex items-center justify-center gap-3 rounded-2xl border-2 px-8 py-5 text-xl font-bold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
+                    className={`flex items-center justify-center gap-3 rounded-2xl border-2 px-8 py-5 text-xl font-bold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 ${BUTTON_FOCUS_CLASS}`}
                     style={{
                         ...panelStyle,
                         borderColor: hexToRgba(brandTheme.colors.primary, 0.3),
