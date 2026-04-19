@@ -82,18 +82,39 @@ export async function GET(req: NextRequest) {
             steps.step5_tokenInfo = 'SKIPPED — no access_token after refresh';
         }
 
-        // Step 6: call gmail.users.getProfile
+        // Step 6a: direct HTTP fetch to Gmail API (bypasses googleapis library)
+        const rawToken = authClient.credentials.access_token;
+        if (rawToken) {
+            try {
+                const directRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+                    headers: { Authorization: `Bearer ${rawToken}` },
+                });
+                const directBody = await directRes.json() as Record<string, unknown>;
+                steps.step6a_directFetch = { status: directRes.status, body: directBody };
+            } catch (e: unknown) {
+                steps.step6a_directFetch = `fetch error: ${e instanceof Error ? e.message : String(e)}`;
+            }
+        } else {
+            steps.step6a_directFetch = 'SKIPPED — no access_token on authClient.credentials';
+        }
+
+        // Step 6b: googleapis library call
         const { google } = await import('googleapis');
         const gmail = google.gmail({ version: 'v1', auth: authClient });
         try {
             const profile = await gmail.users.getProfile({ userId: 'me' });
-            steps.step6_getProfile = {
+            steps.step6b_library = {
                 success: true,
                 email: profile.data.emailAddress,
                 messagesTotal: profile.data.messagesTotal,
             };
         } catch (profileErr: unknown) {
-            steps.step6_getProfile = `FAILED: ${profileErr instanceof Error ? profileErr.message : String(profileErr)}`;
+            const err = profileErr as { message?: string; code?: number; errors?: unknown };
+            steps.step6b_library = {
+                message: err.message ?? String(profileErr),
+                code: err.code,
+                errors: err.errors,
+            };
         }
 
         return NextResponse.json({ steps, ok: true });
