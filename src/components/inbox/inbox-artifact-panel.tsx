@@ -58,6 +58,8 @@ import { CheckinBriefingArtifact } from './artifacts/checkin-briefing-artifact';
 import { CreativeMediaPreview } from './artifacts/creative-media-preview';
 import { VmRunView } from '@/components/artifacts';
 import { mapVmRunStatusToInboxStatus, resolveVmRunApproval, type VmRunArtifactData } from '@/types/agent-vm';
+import { FlashSaleArtifact } from './artifacts/flash-sale-artifact';
+import { WinbackCampaignArtifact } from './artifacts/winback-campaign-artifact';
 import { useToast } from '@/hooks/use-toast';
 
 // ============ Props ============
@@ -590,6 +592,12 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                                             onRejectApproval={(approvalIndex) => handleResolveVmApproval(approvalIndex, 'rejected')}
                                             isUpdatingApproval={isResolvingVmApproval}
                                         />
+                                    )}
+                                    {selectedArtifact.type === 'flash_sale' && (
+                                        <FlashSaleArtifact artifact={selectedArtifact} />
+                                    )}
+                                    {selectedArtifact.type === 'winback_campaign' && (
+                                        <WinbackCampaignArtifact artifact={selectedArtifact} />
                                     )}
                                 </motion.div>
                             </AnimatePresence>

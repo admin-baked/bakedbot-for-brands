@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { InsightCard } from './insight-card';
 import { useInsights } from '@/hooks/use-insights';
 import { useInboxStore } from '@/lib/store/inbox-store';
-import { createInboxThread } from '@/server/actions/inbox';
+import { createInboxThread, createInboxArtifact } from '@/server/actions/inbox';
 import { getLatestCompetitiveIntel } from '@/server/actions/competitive-pricing';
 import { useToast } from '@/hooks/use-toast';
 import type { InsightCard as InsightCardType } from '@/types/insight-cards';
@@ -95,6 +95,7 @@ export function InsightCardsGrid({
         markThreadPersisted,
         deleteThread,
         addMessageToThread,
+        addArtifactToThread,
         currentOrgId,
     } = useInboxStore();
 
@@ -118,7 +119,7 @@ export function InsightCardsGrid({
             .slice(0, maxCards);
     }, [getAllInsights, maxCards]);
 
-    // Handle insight card click - create thread
+    // Handle insight card click - create thread (and artifact for data-rich cards)
     const handleInsightAction = async (insight: InsightCardType) => {
         if (!insight.threadType) return;
 
@@ -197,6 +198,38 @@ export function InsightCardsGrid({
                     timestamp: new Date(),
                     metadata: { agentName: 'Ezal' },
                 });
+            }
+
+            // For data-rich cards, create an artifact that auto-opens the detail panel
+            if (insight.metadata?.topProducts) {
+                const artifactResult = await createInboxArtifact({
+                    threadId: localThread.id,
+                    type: 'flash_sale',
+                    data: {
+                        topProducts: insight.metadata.topProducts,
+                        totalValueAtRisk: insight.metadata.totalValueAtRisk as number | undefined,
+                        totalSkus: insight.metadata.totalSkus as number | undefined,
+                    },
+                    rationale: insight.subtext ?? insight.headline,
+                });
+                if (artifactResult.success && artifactResult.artifact) {
+                    addArtifactToThread(localThread.id, artifactResult.artifact);
+                }
+            } else if (insight.metadata?.topCustomers) {
+                const artifactResult = await createInboxArtifact({
+                    threadId: localThread.id,
+                    type: 'winback_campaign',
+                    data: {
+                        topCustomers: insight.metadata.topCustomers,
+                        totalLtvAtRisk: insight.metadata.totalLtvAtRisk as number | undefined,
+                        totalAtRisk: insight.metadata.totalAtRisk as number | undefined,
+                        suggestedOffer: insight.metadata.suggestedOffer as string | null | undefined,
+                    },
+                    rationale: insight.subtext ?? insight.headline,
+                });
+                if (artifactResult.success && artifactResult.artifact) {
+                    addArtifactToThread(localThread.id, artifactResult.artifact);
+                }
             }
 
             setActiveThread(localThread.id);
