@@ -233,6 +233,43 @@ export async function getEmailThreads(opts: GetThreadsOptions = {}): Promise<Ema
     });
 }
 
+export async function appendOutboundMessage(opts: {
+    threadId: string;
+    from: string;
+    to: string;
+    subject: string;
+    htmlBody: string;
+}): Promise<void> {
+    const db = getAdminFirestore();
+    const now = new Date();
+    const message: EmailMessage = {
+        id: messageId(),
+        direction: 'outbound',
+        from: opts.from,
+        to: opts.to,
+        subject: opts.subject,
+        preview: stripHtml(opts.htmlBody),
+        htmlBody: opts.htmlBody,
+        sentAt: now,
+    };
+    const ref = db.collection(COLLECTION).doc(opts.threadId);
+    await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) {
+            logger.warn('[EmailThread] appendOutbound: thread not found', { threadId: opts.threadId });
+            return;
+        }
+        const existing = snap.data() as EmailThread;
+        tx.update(ref, {
+            messages: [...existing.messages, message],
+            status: 'open' as EmailThreadStatus,
+            updatedAt: now,
+            lastActivityAt: now,
+        });
+    });
+    logger.info('[EmailThread] Appended outbound reply', { threadId: opts.threadId });
+}
+
 export async function markThreadRead(id: string): Promise<void> {
     const db = getAdminFirestore();
     await db.collection(COLLECTION).doc(id).update({ unreadCount: 0, updatedAt: new Date() });
