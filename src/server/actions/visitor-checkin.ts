@@ -17,7 +17,7 @@ import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { logger } from '@/lib/logger';
 import { getGoogleReviewUrl } from '@/lib/reviews/google-review-url';
 import { handleCustomerOnboardingSignal } from '@/server/services/customer-onboarding';
-import { dispatchPlaybookEvent } from '@/server/services/playbook-event-dispatcher';
+import { enrollCustomerInPlaybooks } from '@/server/services/playbook-assignment-service';
 import { getCustomerHistory } from '@/server/tools/crm-tools';
 import { requireUser } from '@/server/auth/auth';
 import { z } from 'zod';
@@ -1214,41 +1214,6 @@ export async function captureVisitorCheckin(
             ageVerified: true,
         });
 
-        // Enroll in weekly campaign list if email consent given
-        if (emailConsent && normalizedEmail) {
-            try {
-                // Query outside the transaction — Admin SDK does not support transaction.get(Query)
-                const existingSnap = await db.collection('weekly_campaign_subscribers')
-                    .where('email', '==', normalizedEmail)
-                    .where('orgId', '==', validated.orgId)
-                    .limit(1)
-                    .get();
-
-                if (existingSnap.empty) {
-                    const subId = `wsub_${createHash('sha256').update(normalizedEmail + validated.orgId).digest('hex').slice(0, 16)}`;
-                    await db.collection('weekly_campaign_subscribers').doc(subId).set({
-                        orgId: validated.orgId,
-                        customerId: validated.orgId + '_' + normalizedPhone.slice(-4),
-                        email: normalizedEmail,
-                        firstName: validated.firstName,
-                        enrolledAt: now,
-                        lastSentAt: null,
-                        status: 'active',
-                        source: validated.source,
-                    }, { merge: true });
-                    logger.info('[VisitorCheckin] Enrolled in weekly campaign', {
-                        orgId: validated.orgId,
-                        email: normalizedEmail,
-                    });
-                }
-            } catch (err) {
-                logger.warn('[VisitorCheckin] Failed to enroll in weekly campaign', {
-                    orgId: validated.orgId,
-                    error: err instanceof Error ? err.message : String(err),
-                });
-            }
-        }
-
         if (!leadResult.success) {
             return {
                 success: false,
@@ -1461,50 +1426,23 @@ export async function captureVisitorCheckin(
             });
         }
 
-        // TODO(playbook-enrollment): wire assignPlaybooksToCustomer here once
-        // src/server/services/playbook-assignment-service.ts is created.
-        // Call after dispatchPlaybookEvent for new leads/customers to enroll
-        // them in catalog playbooks (currently no assignment service exists).
-
-        if (leadResult.isNewLead && !isReturningCustomer) {
-            dispatchPlaybookEvent(validated.orgId, 'customer.signup', {
-                customerId,
-                customerEmail: resolvedEmail,
-                customerPhone: normalizedPhone,
-                customerName: resolvedName,
-                leadId: leadResult.leadId ?? null,
-                source: validated.source,
-                eventName: 'customer.signup',
-                priorVisits: 0,
-                cartProductIds: cartProductIds?.length ? cartProductIds : undefined,
-                mood: validated.mood,
-            }).catch((error) => {
-                logger.warn('[VisitorCheckin] Failed to dispatch customer signup event', {
-                    orgId: validated.orgId,
-                    customerId,
-                    leadId: leadResult.leadId,
-                    error: error instanceof Error ? error.message : String(error),
-                });
+        enrollCustomerInPlaybooks({
+            orgId: validated.orgId,
+            customerId,
+            email: resolvedEmail,
+            phone: normalizedPhone,
+            firstName: resolvedName ?? validated.firstName,
+            isNewCustomer: leadResult.isNewLead && !isReturningCustomer,
+            emailConsent,
+            priorVisits: existingCustomerData?.visitCount ?? 1,
+            source: validated.source,
+            cartProductIds: cartProductIds?.length ? cartProductIds : undefined,
+            mood: validated.mood,
+        }).catch((err) => {
+            logger.warn('[VisitorCheckin] Playbook enrollment failed', {
+                orgId: validated.orgId, customerId, err,
             });
-        } else if (isReturningCustomer) {
-            dispatchPlaybookEvent(validated.orgId, 'customer.checkin', {
-                customerId,
-                customerEmail: resolvedEmail,
-                customerPhone: normalizedPhone,
-                customerName: resolvedName,
-                eventName: 'customer.checkin',
-                source: validated.source,
-                priorVisits: existingCustomerData?.visitCount ?? 1,
-                cartProductIds: cartProductIds?.length ? cartProductIds : undefined,
-                mood: validated.mood,
-            }).catch((error) => {
-                logger.warn('[VisitorCheckin] Failed to dispatch customer checkin event', {
-                    orgId: validated.orgId,
-                    customerId,
-                    error: error instanceof Error ? error.message : String(error),
-                });
-            });
-        }
+        });
 
         logger.info('[VisitorCheckin] Captured visitor check-in', {
             orgId: validated.orgId,

@@ -662,9 +662,8 @@ async function sendToRecipient(
     campaign: Campaign,
     orgName: string,
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-    // TODO: wire Deebo compliance gate here before send
-    // Use runComplianceCheck(campaign) from '@/server/services/campaign-compliance'.
-    // If result.overallStatus === 'failed', log a warning and return { success: false, error: 'compliance_block' }.
+    // Compliance is enforced at the campaign level (line ~414) before any recipient loop runs.
+    // Calling runComplianceCheck per-recipient would make N Deebo API calls — not the right pattern.
 
     if (channel === 'email') {
         const personalizedSubject = personalize(content.subject || campaign.name, recipient, orgName);
