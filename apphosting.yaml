@@ -516,7 +516,7 @@ env:
     availability:
       - RUNTIME
   - variable: FIRECRAWL_API_KEY
-    secret: FIRECRAWL_API_KEY@1
+    secret: FIRECRAWL_API_KEY@2
     availability:
       - RUNTIME
   # RTRVR - Browser Automation
