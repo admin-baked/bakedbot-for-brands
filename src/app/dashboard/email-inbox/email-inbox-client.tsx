@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useTransition, useRef, useEffect, useMemo } from 'react';
-import { Mail, MailOpen, RefreshCw, Send, X, Search, MailX } from 'lucide-react';
+import { Mail, MailOpen, RefreshCw, Send, X, Search, MailX, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatListTime } from '@/lib/utils/format-time';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     refreshEmailThreads,
+    loadEmailThread,
     markEmailThreadRead,
     replyToEmailThread,
     closeEmailThread,
@@ -41,6 +42,8 @@ export function EmailInboxClient({ initialThreads, isSuperUser, gmailConnected }
     const [replyError, setReplyError] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
     const [isSending, setIsSending] = useState(false);
+    const [isLoadingThread, setIsLoadingThread] = useState(false);
+    const [loadedIds, setLoadedIds] = useState<Set<string>>(new Set());
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const sortedThreads = useMemo(() =>
@@ -68,16 +71,25 @@ export function EmailInboxClient({ initialThreads, isSuperUser, gmailConnected }
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [selectedId, threads]);
 
-    function handleSelectThread(id: string) {
+    async function handleSelectThread(id: string) {
         setSelectedId(id);
         setReplyBody('');
         setReplyError(null);
         const thread = threads.find(t => t.id === id);
-        if (thread && thread.unreadCount > 0) {
+        if (thread?.unreadCount > 0) {
             startTransition(async () => {
                 await markEmailThreadRead(id);
                 setThreads(prev => prev.map(t => t.id === id ? { ...t, unreadCount: 0 } : t));
             });
+        }
+        if (!loadedIds.has(id)) {
+            setIsLoadingThread(true);
+            const full = await loadEmailThread(id);
+            if (full) {
+                setThreads(prev => prev.map(t => t.id === id ? full : t));
+                setLoadedIds(prev => new Set([...prev, id]));
+            }
+            setIsLoadingThread(false);
         }
     }
 
@@ -85,6 +97,7 @@ export function EmailInboxClient({ initialThreads, isSuperUser, gmailConnected }
         startTransition(async () => {
             const fresh = await refreshEmailThreads();
             setThreads(fresh);
+            setLoadedIds(new Set());
         });
     }
 
@@ -317,7 +330,14 @@ export function EmailInboxClient({ initialThreads, isSuperUser, gmailConnected }
 
                         {/* Messages */}
                         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
-                            {selected.messages.map(msg => (
+                            {isLoadingThread ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                </div>
+                            ) : selected.messages.length === 0 ? (
+                                <p className="text-sm text-muted-foreground text-center py-8">No messages in this thread.</p>
+                            ) : null}
+                            {!isLoadingThread && selected.messages.map(msg => (
                                 <div
                                     key={msg.id}
                                     className={cn(

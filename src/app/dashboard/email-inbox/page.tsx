@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { requireUser } from '@/server/auth/auth';
-import { getEmailThreads } from '@/server/services/email-thread-service';
+import { getEmailThreadHeaders } from '@/server/services/email-thread-service';
 import { getGmailToken } from '@/server/integrations/gmail/token-storage';
 import { EmailInboxClient } from './email-inbox-client';
 export const dynamic = 'force-dynamic';
@@ -13,10 +13,10 @@ export default async function EmailInboxPage() {
     const orgId = isSuperUser ? undefined : (typeof user.orgId === 'string' ? user.orgId : undefined);
 
     const [outreachThreads, orgThreads, gmailToken] = await Promise.all([
-        isSuperUser ? getEmailThreads({ scope: 'outreach', limit: 100 }) : Promise.resolve([]),
+        isSuperUser ? getEmailThreadHeaders({ scope: 'outreach', limit: 100 }) : Promise.resolve([]),
         isSuperUser
-            ? getEmailThreads({ scope: 'org', limit: 100 })
-            : orgId ? getEmailThreads({ scope: 'org', orgId, limit: 100 }) : Promise.resolve([]),
+            ? getEmailThreadHeaders({ scope: 'org', limit: 100 })
+            : orgId ? getEmailThreadHeaders({ scope: 'org', orgId, limit: 100 }) : Promise.resolve([]),
         getGmailToken(user.uid).catch(() => null),
     ]);
 

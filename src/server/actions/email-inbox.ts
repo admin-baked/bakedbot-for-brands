@@ -5,7 +5,8 @@ import { sendGmail } from '@/server/integrations/gmail/send';
 import {
     markThreadRead,
     closeThread,
-    getEmailThreads,
+    getEmailThreadHeaders,
+    getEmailThreadById,
     appendOutboundMessage,
 } from '@/server/services/email-thread-service';
 import { logger } from '@/lib/logger';
@@ -28,13 +29,19 @@ export async function refreshEmailThreads(): Promise<EmailThread[]> {
     const orgId = isSuperUser ? undefined : (typeof user.orgId === 'string' ? user.orgId : undefined);
 
     const [outreachThreads, orgThreads] = await Promise.all([
-        isSuperUser ? getEmailThreads({ scope: 'outreach', limit: 100 }) : Promise.resolve([]),
+        isSuperUser ? getEmailThreadHeaders({ scope: 'outreach', limit: 100 }) : Promise.resolve([]),
         isSuperUser
-            ? getEmailThreads({ scope: 'org', limit: 100 })
-            : orgId ? getEmailThreads({ scope: 'org', orgId, limit: 100 }) : Promise.resolve([]),
+            ? getEmailThreadHeaders({ scope: 'org', limit: 100 })
+            : orgId ? getEmailThreadHeaders({ scope: 'org', orgId, limit: 100 }) : Promise.resolve([]),
     ]);
 
     return JSON.parse(JSON.stringify([...outreachThreads, ...orgThreads]));
+}
+
+export async function loadEmailThread(threadId: string): Promise<EmailThread | null> {
+    await requireUser();
+    const thread = await getEmailThreadById(threadId);
+    return thread ? JSON.parse(JSON.stringify(thread)) : null;
 }
 
 export async function replyToEmailThread(

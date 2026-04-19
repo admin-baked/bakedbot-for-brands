@@ -233,6 +233,64 @@ export async function getEmailThreads(opts: GetThreadsOptions = {}): Promise<Ema
     });
 }
 
+/** Returns thread metadata without the messages array — use for list views to avoid fetching full payload. */
+export async function getEmailThreadHeaders(opts: GetThreadsOptions = {}): Promise<EmailThread[]> {
+    const db = getAdminFirestore();
+    let query = db.collection(COLLECTION)
+        .select(
+            'scope', 'orgId', 'counterpartEmail', 'bakedBotEmail', 'subject', 'status',
+            'unreadCount', 'lastActivityAt', 'createdAt', 'updatedAt',
+            'agentName', 'dispensaryName', 'customerName', 'campaignId'
+        )
+        .orderBy('lastActivityAt', 'desc');
+
+    if (opts.scope) query = query.where('scope', '==', opts.scope) as typeof query;
+    if (opts.orgId) query = query.where('orgId', '==', opts.orgId) as typeof query;
+    if (opts.status) query = query.where('status', '==', opts.status) as typeof query;
+    if (opts.before) query = query.startAfter(new Date(opts.before)) as typeof query;
+
+    const snap = await query.limit(opts.limit ?? 100).get();
+    return snap.docs.map(d => {
+        const data = d.data() as Omit<EmailThread, 'id' | 'messages'> & {
+            createdAt: { toDate?: () => Date };
+            updatedAt: { toDate?: () => Date };
+            lastActivityAt: { toDate?: () => Date };
+        };
+        return {
+            ...data,
+            id: d.id,
+            messages: [],
+            createdAt: data.createdAt?.toDate?.() ?? new Date(data.createdAt as unknown as string),
+            updatedAt: data.updatedAt?.toDate?.() ?? new Date(data.updatedAt as unknown as string),
+            lastActivityAt: data.lastActivityAt?.toDate?.() ?? new Date(data.lastActivityAt as unknown as string),
+        } as EmailThread;
+    });
+}
+
+/** Returns a single thread with full messages — use when opening a thread. */
+export async function getEmailThreadById(id: string): Promise<EmailThread | null> {
+    const db = getAdminFirestore();
+    const snap = await db.collection(COLLECTION).doc(id).get();
+    if (!snap.exists) return null;
+    const data = snap.data() as EmailThread & {
+        createdAt: { toDate?: () => Date };
+        updatedAt: { toDate?: () => Date };
+        lastActivityAt: { toDate?: () => Date };
+        messages: Array<EmailMessage & { sentAt: { toDate?: () => Date } }>;
+    };
+    return {
+        ...data,
+        id: snap.id,
+        createdAt: data.createdAt?.toDate?.() ?? new Date(data.createdAt as unknown as string),
+        updatedAt: data.updatedAt?.toDate?.() ?? new Date(data.updatedAt as unknown as string),
+        lastActivityAt: data.lastActivityAt?.toDate?.() ?? new Date(data.lastActivityAt as unknown as string),
+        messages: (data.messages ?? []).map(m => ({
+            ...m,
+            sentAt: m.sentAt?.toDate?.() ?? new Date(m.sentAt as unknown as string),
+        })),
+    } as EmailThread;
+}
+
 export async function appendOutboundMessage(opts: {
     threadId: string;
     from: string;
