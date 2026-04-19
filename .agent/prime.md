@@ -51,8 +51,8 @@ Agent IDs: `claude` | `codex` | `gemini` | `linus`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Hive Mind live (45/45 compliance facts, 9 states); Elroy calls get_compliance_context; Letta client fixed
-**Recent work (2026-04-18):** `c87e97f77` Hive Mind + compliance KB seed; `c35e158e4` multi-tenant stress + testing-review cron
+**Current Status:** 🟢 main green | Thrive go-live; kiosk logo fallback + public URL fix deployed
+**Recent work (2026-04-19):** `5c0cdea18` kiosk logo onError fallback + brand-asset-uploader public URL fix
 
 ---
 

@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Deebo inbox persona fixed (0 fail/poor, avg 87.3 across 47 cases); 231-case inbox + 104-case Elroy + 135-case compliance stress suites all green | **Last update:** 2026-04-19 (`80416d979`)
+**Current Status:** 🟢 main green | Thrive go-live; kiosk logo fallback + public URL fix deployed | **Last update:** 2026-04-19 (`5c0cdea18`)
 
 ---
 
