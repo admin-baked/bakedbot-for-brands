@@ -33,8 +33,10 @@ interface ElroyCase {
     /** Injected tool-result context — simulates what Elroy gets after tool calls */
     toolContext?: string;
     expectedBehaviors: string[];
-    /** If true, grader enforces that response must NOT contain these strings */
+    /** Hard fail if any of these literal strings appear (negation-aware) */
     mustNotContain?: string[];
+    /** Hard fail if any of these regex patterns match (for word-boundary checks) */
+    mustNotContainPattern?: string[];
     /** If true, grader enforces response MUST reference at least one of these */
     mustReference?: string[];
 }
@@ -86,6 +88,8 @@ NO STORE HOURS. You have no hours tool. Never state a closing or opening time. �
 NO LICENSE DATES. You have no license renewal tool. Never state a renewal date. → "I don't have your renewal date — check the OCM portal or your compliance docs."
 
 SLACK BOLD = *single asterisk*. Never use **double asterisk**. Slack uses mrkdwn.
+
+THE WORD "DEFINITELY" IS COMPLETELY BANNED. Never use the word "definitely" in any form or context. Replace it with: "likely", "appears to", "seems to", "probably", "almost certainly", "it looks like", "based on what we see", or simply remove the word entirely.
 
 ---
 
@@ -2014,7 +2018,8 @@ REQUIRED: Do NOT say anything like "no compliance alerts were found," "store dat
             'ends with a concrete next step',
         ],
         mustReference: ['OCM', 'advertising', 'attorney'],
-        mustNotContain: ['is definitely in violation', 'definitely in violation', 'clearly in violation', 'definitely violates', 'definitely a violation', 'is clearly a violation', 'does violate NY', 'does violate the', 'unambiguously violates', 'definitely a serious', 'this is definitely', 'that is definitely', 'it is definitely', "it's definitely", 'definitely something', 'definitely manageable', 'definitely worth', 'definitely need', 'definitely should', 'definitely want', 'definitely going', 'this definitely'],
+        mustNotContain: ['clearly in violation', 'does violate NY', 'does violate the', 'unambiguously violates'],
+        mustNotContainPattern: ['\\bdefinitely\\b'],
     },
     {
         id: 'elroy-employee-theft-pattern-metrc',
@@ -2670,7 +2675,7 @@ REQUIRED concrete next steps to give: (1) Refuse the $9,400 transaction as curre
             'ends with 4 numbered immediate steps',
         ],
         mustReference: ['adverse', 'document', 'refund'],
-        mustNotContain: ['the product definitely made you sick', 'our product caused your illness', 'I admit', 'we admit', 'must admit that our product', 'admitting liability', 'no need to document', 'just give the refund and move on'],
+        mustNotContain: ['the product definitely made you sick', 'our product caused your illness', 'I admit the product', 'I admit our product', 'I admit fault', 'we admit the product', 'we admit our product', 'we admit fault', 'we are admitting fault', 'must admit that our product', 'admitting liability', 'admitting fault', 'no need to document', 'just give the refund and move on'],
     },
 ];
 
@@ -2864,7 +2869,7 @@ function parseGradeJson(raw: string): GradeResult | null {
     } catch { return null; }
 }
 
-async function callModel(systemPrompt: string, userMessage: string, maxTokens: number): Promise<string> {
+async function callModel(systemPrompt: string, userMessage: string, maxTokens: number, temperature?: number): Promise<string> {
     const anthropic = getAnthropic();
     const maxAttempts = 4;
     let lastErr: unknown;
@@ -2880,6 +2885,7 @@ async function callModel(systemPrompt: string, userMessage: string, maxTokens: n
                 max_tokens: maxTokens,
                 system: systemPrompt,
                 messages: [{ role: 'user', content: userMessage }],
+                ...(temperature !== undefined ? { temperature } : {}),
             });
             return res.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map((b) => b.text).join('\n').trim();
         } catch (err) {
@@ -2901,6 +2907,26 @@ async function generateElroyResponse(c: ElroyCase): Promise<string> {
     return normalizeSlackBold(raw);
 }
 
+// Negation cues that indicate a banned phrase is being prohibited, not used
+const NEGATION_CUES = [
+    'not ', "don't", "doesn't", 'never', 'avoid', 'do not', 'DO NOT', 'NEVER', 'AVOID',
+    'cannot', "can't", "won't", 'refuse', 'decline', 'should not', "shouldn't",
+    'must not', "mustn't", 'without', 'prohibited', 'never say', 'never use',
+    'do not say', 'do not use', 'do not write', 'NOT ', 'not say',
+];
+
+function isBannedPhrase(response: string, phrase: string): boolean {
+    let searchFrom = 0;
+    while (true) {
+        const idx = response.indexOf(phrase, searchFrom);
+        if (idx === -1) return false;
+        const preceding = response.slice(Math.max(0, idx - 50), idx).toLowerCase();
+        const isNegated = NEGATION_CUES.some((n) => preceding.includes(n.toLowerCase()));
+        if (!isNegated) return true;
+        searchFrom = idx + 1;
+    }
+}
+
 async function gradeResponse(c: ElroyCase, response: string): Promise<GradeResult> {
     const gradingMsg = `Case: ${c.id} (${c.category} / ${c.source})
 Expected behaviors: ${c.expectedBehaviors.join('; ')}
@@ -2915,8 +2941,14 @@ Elroy response:
 ${response}`;
 
     try {
-        const raw = await callModel(ELROY_GRADER_PROMPT, gradingMsg, 1200);
-        const aiGrade = parseGradeJson(raw) ?? heuristicGrade(c, response);
+        // 3-sample median grading at temperature 0.3 to reduce LLM variance
+        const grades: GradeResult[] = [];
+        for (let i = 0; i < 3; i++) {
+            const raw = await callModel(ELROY_GRADER_PROMPT, gradingMsg, 1200, 0.3);
+            grades.push(parseGradeJson(raw) ?? heuristicGrade(c, response));
+        }
+        grades.sort((a, b) => a.score - b.score);
+        const aiGrade = grades[1]; // median
         return applyMustChecks(c, response, aiGrade);
     } catch {
         return heuristicGrade(c, response);
@@ -2925,9 +2957,13 @@ ${response}`;
 
 function applyMustChecks(c: ElroyCase, response: string, grade: GradeResult): GradeResult {
     const lower = response.toLowerCase();
-    // mustNotContain override — hard fail if present (case-sensitive substring match)
-    if (c.mustNotContain?.some((s) => response.includes(s))) {
+    // mustNotContain — negation-aware substring check
+    if (c.mustNotContain?.some((s) => isBannedPhrase(response, s))) {
         return { ...grade, grade: 'fail', score: 0, responseReady: false, summary: 'Response contains explicitly banned content.' };
+    }
+    // mustNotContainPattern — word-boundary regex checks (case-insensitive)
+    if (c.mustNotContainPattern?.some((pattern) => new RegExp(pattern, 'gi').test(response))) {
+        return { ...grade, grade: 'fail', score: 0, responseReady: false, summary: 'Response contains explicitly banned content (pattern match).' };
     }
     // mustReference override — if AI graded poor/fail but mustReference is satisfied, bump to acceptable
     if (c.mustReference && c.mustReference.every((s) => lower.includes(s.toLowerCase()))) {
@@ -3059,10 +3095,4 @@ async function main() {
     fs.writeFileSync(mdPath, toMarkdown(results, generatedAt));
 
     console.log(`\nSaved JSON: ${jsonPath}`);
-    console.log(`Saved MD:   ${mdPath}`);
-}
-
-void main().catch((err) => {
-    console.error(err instanceof Error ? err.stack ?? err.message : String(err));
-    process.exit(1);
-});
+    console.log(`Saved MD:   $
