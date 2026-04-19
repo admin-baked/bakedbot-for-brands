@@ -87,11 +87,18 @@ export class BrandAssetUploader {
         await fileRef.makePublic();
       }
 
-      // Get download URL
-      const [url] = await fileRef.getSignedUrl({
-        action: 'read',
-        expires: '03-01-2500', // Far future date
-      });
+      // Use stable public URL for public assets; signed URL otherwise.
+      // Signed URLs can fail on certain Android devices/networks.
+      let url: string;
+      if (makePublic) {
+        url = `https://firebasestorage.googleapis.com/v0/b/${this.bucketName}/o/${encodeURIComponent(storagePath)}?alt=media`;
+      } else {
+        const [signedUrl] = await fileRef.getSignedUrl({
+          action: 'read',
+          expires: '03-01-2500',
+        });
+        url = signedUrl;
+      }
 
       // Generate thumbnail for images
       let thumbnailUrl: string | undefined;

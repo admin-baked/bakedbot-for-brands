@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { PublicBrandTheme } from '@/lib/checkin/checkin-management-shared';
 import { slideVariants } from './shared';
 import { APP_VERSION } from '@/lib/version';
-import { CSSProperties } from 'react';
+import { CSSProperties, useState } from 'react';
 
 interface WelcomeScreenProps {
     brandTheme: PublicBrandTheme;
@@ -29,6 +29,7 @@ export function WelcomeScreen({
     onOrderPickup,
     onAskSmokey
 }: WelcomeScreenProps) {
+    const [logoFailed, setLogoFailed] = useState(false);
     return (
         <motion.div
             key="welcome"
@@ -37,12 +38,13 @@ export function WelcomeScreen({
             transition={{ duration: 0.25 }}
             className="relative z-10 mx-auto flex max-w-xl flex-col items-center gap-8 text-center"
         >
-            {brandTheme.logoUrl ? (
+            {brandTheme.logoUrl && !logoFailed ? (
                 <div className="rounded-3xl bg-white p-4 shadow-md border border-gray-100">
                     <img
                         src={brandTheme.logoUrl}
                         alt={`${brandName} logo`}
                         className="h-24 w-auto max-w-[260px] object-contain sm:h-32"
+                        onError={() => setLogoFailed(true)}
                     />
                 </div>
             ) : (
