@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Auth hang fixed + inbox UX: h-full layout + briefing collapse hides insight cards
-**Recent work (2026-04-19):** `b9b1ef339` auth hang fix + inbox h-full fix + collapse UX; `49af15d40` email-inbox rebuild
+**Current Status:** 🟢 main green | Outreach contact form audit: dedup check, undefined guard, personalization enforced; Elroy stress test hardening
+**Recent work (2026-04-19):** `725b8bd99` outreach dedup+personalization; `d97a6d170` elroy stress hardening
 
 ---
 

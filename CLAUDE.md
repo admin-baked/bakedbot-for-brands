@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Auth hang fixed + inbox UX: h-full layout fix + briefing collapse hides insight cards | **Last update:** 2026-04-19 (`48293915c`)
+**Current Status:** 🟢 main green | Outreach contact form audit: dedup check, undefined guard, personalization enforced; Elroy stress test hardening | **Last update:** 2026-04-19 (`d97a6d170`)
 
 ---
 
