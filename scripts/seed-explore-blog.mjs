@@ -34,7 +34,7 @@ const MARTEZ = {
     id: 'martez_knox',
     name: 'Martez Knox',
     role: 'CEO & Co-Founder, BakedBot AI',
-    avatar: 'https://bakedbot.ai/team/martez-knox.jpg',
+    avatar: 'https://bakedbot.ai/images/martez.png',
 };
 
 // ---------------------------------------------------------------------------

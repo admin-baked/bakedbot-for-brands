@@ -42,7 +42,7 @@ const NOW = Timestamp.now();
 const MARTEZ = {
     name: 'Martez Knox',
     title: 'CEO & Co-Founder, BakedBot AI',
-    avatar: 'https://bakedbot.ai/team/martez-knox.jpg',
+    avatar: 'https://bakedbot.ai/images/martez.png',
 };
 
 // ---------------------------------------------------------------------------
