@@ -27,6 +27,23 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+jest.mock('@/server/services/loyalty/membership-service', () => ({
+  MembershipService: {
+    enroll: jest.fn(),
+  },
+}));
+
+jest.mock('@/server/services/loyalty/visit-session-service', () => ({
+  VisitSessionService: {
+    openSession: jest.fn(),
+  },
+}));
+
+// Dynamic import used inside captureTabletLead for the org-level auth guard
+jest.mock('@/server/auth/auth', () => ({
+  requireUser: jest.fn().mockResolvedValue(null),
+}));
+
 function makeTenantFirestore(products: Record<string, unknown>[]) {
   const snap = {
     empty: products.length === 0,
@@ -315,5 +332,92 @@ describe('loyalty tablet actions', () => {
       loyaltyPoints: 50,
       visitId: 'visit_123',
     });
+  });
+});
+
+// ── Regression: M2 — enrollment skipped when phone is absent ─────────────────
+
+describe('regression: M2 — MembershipService.enroll not called without phone', () => {
+  let currentTime = Date.now();
+  beforeEach(() => {
+    jest.clearAllMocks();
+    currentTime += 120_000;
+    jest.useFakeTimers().setSystemTime(currentTime);
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  it('does not call MembershipService.enroll when phone is absent', async () => {
+    const { MembershipService } = await import('@/server/services/loyalty/membership-service');
+
+    (captureVisitorCheckin as jest.Mock).mockResolvedValue({
+      success: true,
+      isNewLead: true,
+      customerId: 'customer_no_phone',
+      loyaltyPoints: 0,
+      visitId: 'visit_no_phone',
+    });
+
+    // Minimal Firestore double — membership lookup returns empty
+    (getAdminFirestore as jest.Mock).mockReturnValue({
+      collection: jest.fn(() => ({
+        where: jest.fn(function (this: unknown) { return this; }),
+        limit: jest.fn(function (this: unknown) { return this; }),
+        get: jest.fn(async () => ({ empty: true, docs: [] })),
+        doc: jest.fn(() => ({
+          get: jest.fn(async () => ({ exists: false })),
+          set: jest.fn(),
+        })),
+      })),
+    });
+
+    await captureTabletLead({
+      orgId: 'org_thrive_syracuse',
+      firstName: 'Quinn',
+      email: 'quinn@example.com',
+      // phone intentionally omitted
+      emailConsent: true,
+      smsConsent: false,
+    });
+
+    expect(MembershipService.enroll).not.toHaveBeenCalled();
+  });
+
+  it('calls MembershipService.enroll when phone is present', async () => {
+    const { MembershipService } = await import('@/server/services/loyalty/membership-service');
+    (MembershipService.enroll as jest.Mock).mockResolvedValue(undefined);
+
+    (captureVisitorCheckin as jest.Mock).mockResolvedValue({
+      success: true,
+      isNewLead: true,
+      customerId: 'customer_with_phone',
+      loyaltyPoints: 0,
+      visitId: 'visit_with_phone',
+    });
+
+    (getAdminFirestore as jest.Mock).mockReturnValue({
+      collection: jest.fn(() => ({
+        where: jest.fn(function (this: unknown) { return this; }),
+        limit: jest.fn(function (this: unknown) { return this; }),
+        get: jest.fn(async () => ({ empty: true, docs: [] })),
+        doc: jest.fn(() => ({
+          get: jest.fn(async () => ({ exists: false })),
+          set: jest.fn(),
+        })),
+      })),
+    });
+
+    await captureTabletLead({
+      orgId: 'org_thrive_syracuse',
+      firstName: 'Quinn',
+      email: 'quinn@example.com',
+      phone: '3155550606',
+      emailConsent: true,
+      smsConsent: false,
+    });
+
+    expect(MembershipService.enroll).toHaveBeenCalledWith(
+      expect.objectContaining({ phone: expect.stringContaining('3155550606') }),
+    );
   });
 });

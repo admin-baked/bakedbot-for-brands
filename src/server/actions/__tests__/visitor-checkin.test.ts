@@ -43,7 +43,7 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
-type CollectionName = 'customers' | 'checkin_visits' | 'email_leads' | 'orders' | 'tenants';
+type CollectionName = 'customers' | 'checkin_visits' | 'email_leads' | 'orders' | 'tenants' | 'weekly_campaign_subscribers';
 
 function getNestedFieldValue(data: Record<string, unknown>, field: string): unknown {
   return field.split('.').reduce<unknown>((current, key) => {
@@ -65,6 +65,7 @@ function createFirestore(args?: {
   const visits = new Map<string, Record<string, unknown>>();
   const emailLeads = new Map<string, Record<string, unknown>>(Object.entries(args?.emailLeads ?? {}));
   const orders = new Map<string, Record<string, unknown>>(Object.entries(args?.orders ?? {}));
+  const weeklySubscribers = new Map<string, Record<string, unknown>>();
   const tenantProducts = new Map(Object.entries(args?.tenantProducts ?? {}));
   const kioskPicks: Record<string, unknown>[] = [];
 
@@ -72,6 +73,7 @@ function createFirestore(args?: {
     if (collectionName === 'customers') return customers;
     if (collectionName === 'checkin_visits') return visits;
     if (collectionName === 'email_leads') return emailLeads;
+    if (collectionName === 'weekly_campaign_subscribers') return weeklySubscribers;
     return orders;
   };
 
@@ -86,7 +88,8 @@ function createFirestore(args?: {
         data: () => data,
       };
     }),
-    set: jest.fn(async (data: Record<string, unknown>) => {
+    // options arg (e.g. {merge:true}) intentionally ignored in the test double
+    set: jest.fn(async (data: Record<string, unknown>, _options?: unknown) => {
       getStore(collectionName).set(id, data);
     }),
   });
@@ -124,22 +127,27 @@ function createFirestore(args?: {
     }),
   };
 
-  const makeWhere = (collectionName: 'customers' | 'email_leads' | 'orders', field: string, value: string) => ({
-    limit: () => ({
-      get: jest.fn(async () => {
-        const docs = Array.from(getStore(collectionName).entries())
-          .filter(([, data]) => getNestedFieldValue(data, field) === value)
-          .map(([id, data]) => makeQueryDoc(collectionName, id, data));
-        return { empty: docs.length === 0, docs };
-      }),
-    }),
-    get: jest.fn(async () => {
-      const docs = Array.from(getStore(collectionName).entries())
-        .filter(([, data]) => getNestedFieldValue(data, field) === value)
-        .map(([id, data]) => makeQueryDoc(collectionName, id, data));
+  // Supports chained .where() calls with AND semantics (matches fix for C2/C3 orgId scoping)
+  const makeQuery = (
+    store: Map<string, Record<string, unknown>>,
+    colName: CollectionName,
+    predicates: Array<[string, unknown]>,
+  ): unknown => {
+    const matching = () =>
+      Array.from(store.entries()).filter(([, data]) =>
+        predicates.every(([field, val]) => getNestedFieldValue(data, field) === val),
+      );
+    const toQueryResult = () => {
+      const docs = matching().map(([id, data]) => makeQueryDoc(colName, id, data));
       return { empty: docs.length === 0, docs };
-    }),
-  });
+    };
+    return {
+      where: (field: string, _op: string, val: unknown) =>
+        makeQuery(store, colName, [...predicates, [field, val]]),
+      limit: (_n: number) => ({ get: jest.fn(async () => toQueryResult()) }),
+      get: jest.fn(async () => toQueryResult()),
+    };
+  };
 
   const firestore = {
     batch: jest.fn(() => batch),
@@ -147,13 +155,15 @@ function createFirestore(args?: {
       if (name === 'customers') {
         return {
           doc: (id: string) => makeDocRef('customers', id),
-          where: (field: string, _operator: string, value: string) => makeWhere('customers', field, value),
+          where: (field: string, _op: string, val: unknown) =>
+            makeQuery(customers, 'customers', [[field, val]]),
         };
       }
 
       if (name === 'email_leads') {
         return {
-          where: (field: string, _operator: string, value: string) => makeWhere('email_leads', field, value),
+          where: (field: string, _op: string, val: unknown) =>
+            makeQuery(emailLeads, 'email_leads', [[field, val]]),
           doc: (id: string) => makeDocRef('email_leads', id),
         };
       }
@@ -167,7 +177,16 @@ function createFirestore(args?: {
       if (name === 'orders') {
         return {
           doc: (id: string) => makeDocRef('orders', id),
-          where: (field: string, _operator: string, value: string) => makeWhere('orders', field, value),
+          where: (field: string, _op: string, val: unknown) =>
+            makeQuery(orders, 'orders', [[field, val]]),
+        };
+      }
+
+      if (name === 'weekly_campaign_subscribers') {
+        return {
+          doc: (id: string) => makeDocRef('weekly_campaign_subscribers', id),
+          where: (field: string, _op: string, val: unknown) =>
+            makeQuery(weeklySubscribers, 'weekly_campaign_subscribers', [[field, val]]),
         };
       }
 
@@ -207,7 +226,7 @@ function createFirestore(args?: {
     }),
   };
 
-  return { firestore, customers, visits, emailLeads, orders, kioskPicks };
+  return { firestore, customers, visits, emailLeads, orders, weeklySubscribers, kioskPicks };
 }
 
 describe('visitor check-in actions', () => {
@@ -973,5 +992,205 @@ describe('visitor check-in actions', () => {
       expect.anything(),
     );
     expect(state.kioskPicks).toHaveLength(0);
+  });
+});
+
+// ── Regression: 9ef66a10e bug fixes ──────────────────────────────────────────
+
+describe('regression: C1 — campaign enrollment uses deterministic doc ID (no transaction)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers().setSystemTime(Date.parse('2026-03-26T15:00:00.000Z'));
+    (getGoogleReviewUrl as jest.Mock).mockResolvedValue('https://reviews.example.com/thrive');
+    (handleCustomerOnboardingSignal as jest.Mock).mockResolvedValue({ success: true, runId: 'r1', status: 'scheduled' });
+    (dispatchPlaybookEvent as jest.Mock).mockResolvedValue(undefined);
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  it('creates a weekly_campaign_subscribers doc with wsub_ prefix on first check-in with email consent', async () => {
+    const state = createFirestore();
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+    (captureEmailLead as jest.Mock).mockResolvedValue({ success: true, leadId: 'l1', isNewLead: true });
+
+    await captureVisitorCheckin({
+      orgId: 'org_thrive_syracuse',
+      firstName: 'Nia',
+      phone: '3155550303',
+      email: 'nia@example.com',
+      emailConsent: true,
+      smsConsent: false,
+      source: 'brand_rewards_checkin',
+      ageVerifiedMethod: 'staff_attested_public_flow',
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(state.weeklySubscribers.size).toBe(1);
+    const [subId, subData] = Array.from(state.weeklySubscribers.entries())[0];
+    expect(subId).toMatch(/^wsub_[0-9a-f]{16}$/);
+    expect(subData).toMatchObject({
+      orgId: 'org_thrive_syracuse',
+      email: 'nia@example.com',
+      firstName: 'Nia',
+      status: 'active',
+    });
+    expect(logger.info).toHaveBeenCalledWith(
+      '[VisitorCheckin] Enrolled in weekly campaign',
+      expect.objectContaining({ orgId: 'org_thrive_syracuse', email: 'nia@example.com' }),
+    );
+  });
+
+  it('does not create a duplicate subscriber if the same email is already enrolled', async () => {
+    // Pre-seed subscriber with the deterministic ID that would be produced
+    const { createHash } = await import('crypto');
+    const subId = `wsub_${createHash('sha256').update('nia@example.com' + 'org_thrive_syracuse').digest('hex').slice(0, 16)}`;
+    const state = createFirestore();
+    state.weeklySubscribers.set(subId, {
+      orgId: 'org_thrive_syracuse',
+      email: 'nia@example.com',
+      status: 'active',
+    });
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+    (captureEmailLead as jest.Mock).mockResolvedValue({ success: true, leadId: 'l2', isNewLead: false });
+
+    await captureVisitorCheckin({
+      orgId: 'org_thrive_syracuse',
+      firstName: 'Nia',
+      phone: '3155550303',
+      email: 'nia@example.com',
+      emailConsent: true,
+      smsConsent: false,
+      source: 'brand_rewards_checkin',
+      ageVerifiedMethod: 'staff_attested_public_flow',
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Still only one subscriber — dedup works
+    expect(state.weeklySubscribers.size).toBe(1);
+  });
+
+  it('skips enrollment when emailConsent is false', async () => {
+    const state = createFirestore();
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+    (captureEmailLead as jest.Mock).mockResolvedValue({ success: true, leadId: 'l3', isNewLead: true });
+
+    await captureVisitorCheckin({
+      orgId: 'org_thrive_syracuse',
+      firstName: 'Sam',
+      phone: '3155550404',
+      email: 'sam@example.com',
+      emailConsent: false,
+      smsConsent: true,
+      source: 'brand_rewards_checkin',
+      ageVerifiedMethod: 'staff_attested_public_flow',
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(state.weeklySubscribers.size).toBe(0);
+  });
+});
+
+describe('regression: C2/C3 — orgId scoping on customer and order queries', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers().setSystemTime(Date.parse('2026-03-26T15:00:00.000Z'));
+    (getGoogleReviewUrl as jest.Mock).mockResolvedValue(null);
+    (handleCustomerOnboardingSignal as jest.Mock).mockResolvedValue({ success: true, runId: 'r2', status: 'scheduled' });
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  it('does not match a customer belonging to a different org', async () => {
+    const state = createFirestore({
+      customers: {
+        other_org_customer: {
+          orgId: 'org_other',
+          phone: '+13155551111',
+          email: 'cross@example.com',
+        },
+      },
+    });
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+    (getCustomerHistory as jest.Mock).mockResolvedValue({ summary: '', orders: [] });
+
+    const result = await getVisitorCheckinContext({
+      orgId: 'org_thrive_syracuse',
+      phone: '3155551111',
+    });
+
+    // Cross-org customer must NOT be surfaced as a returning visitor
+    expect(result.success).toBe(true);
+    expect(result.isReturningCustomer).toBe(false);
+  });
+
+  it('does not surface an online order from a different org as returning context', async () => {
+    const state = createFirestore({
+      orders: {
+        order_other: {
+          brandId: 'org_other',
+          orgId: 'org_other',
+          retailerId: 'org_other',
+          customer: {
+            phone: '3155552222',
+            email: 'crossorder@example.com',
+          },
+          items: [{ name: 'Blue Dream' }],
+          totals: { total: 40 },
+          createdAt: new Date('2026-03-20T10:00:00.000Z'),
+        },
+      },
+    });
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+    (getCustomerHistory as jest.Mock).mockResolvedValue({ summary: '', orders: [] });
+
+    const result = await getVisitorCheckinContext({
+      orgId: 'org_thrive_syracuse',
+      phone: '3155552222',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.isReturningCustomer).toBe(false);
+  });
+});
+
+describe('regression: H3 — visitId collision-safe format', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers().setSystemTime(Date.parse('2026-03-26T15:00:00.000Z'));
+    (getGoogleReviewUrl as jest.Mock).mockResolvedValue(null);
+    (handleCustomerOnboardingSignal as jest.Mock).mockResolvedValue({ success: true, runId: 'r3', status: 'scheduled' });
+    (dispatchPlaybookEvent as jest.Mock).mockResolvedValue(undefined);
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  it('visitId includes a 6-char hex suffix to prevent millisecond collisions', async () => {
+    const state = createFirestore();
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+    (captureEmailLead as jest.Mock).mockResolvedValue({ success: true, leadId: 'l4', isNewLead: true });
+
+    const result = await captureVisitorCheckin({
+      orgId: 'org_thrive_syracuse',
+      firstName: 'Leo',
+      phone: '3155550505',
+      emailConsent: false,
+      smsConsent: true,
+      source: 'brand_rewards_checkin',
+      ageVerifiedMethod: 'staff_attested_public_flow',
+    });
+
+    expect(result.success).toBe(true);
+    // Format: {customerId}_visit_{timestamp}_{6-hex}
+    expect(result.visitId).toMatch(/^.+_visit_\d+_[0-9a-f]{6}$/);
   });
 });
