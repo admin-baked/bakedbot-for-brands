@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Firecrawl credit guard (all 5 discovery methods) + per-cron caps; 5 Firecrawl UI kiosk tests; smoke 23→30
-**Recent work (2026-04-19):** `e1b8f946d` discovery credit guard; `9471d13fa` artifact TS fix (approveAndPublishArtifact extra arg)
+**Current Status:** 🟢 main green | Email inbox rebuilt: reply composer, search, mark-as-read, htmlBody, status badges, Gmail gate
+**Recent work (2026-04-19):** `49af15d40` email-inbox rebuild (reply+search+mark-read+htmlBody+badges+Gmail gate); `e1b8f946d` discovery credit guard
 
 ---
 
