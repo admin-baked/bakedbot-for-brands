@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Check-in production audit: visitId/transaction/Alleaves/playbook-assignment-service + FE UX fixes shipped | **Last update:** 2026-04-19 (`8c1dd124b`)
+**Current Status:** 🟢 main green | Inbox briefing card artifacts: flash sale + win-back panels live; insight cards auto-open artifact panel on click | **Last update:** 2026-04-19 (`c31314bb1`)
 
 ---
 

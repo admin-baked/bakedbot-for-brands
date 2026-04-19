@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Check-in production audit: visitId/transaction/Alleaves queue/playbook-assignment-service + UX fixes
-**Recent work (2026-04-19):** `b659f3b21` BE audit fixes; `8c1dd124b` playbook-assignment-service + Deebo gate
+**Current Status:** 🟢 main green | Inbox briefing card artifacts: flash sale + win-back panels; insight cards auto-open artifact panel
+**Recent work (2026-04-19):** `8c1dd124b` check-in audit + playbook service; `c31314bb1` inbox flash-sale + winback artifacts
 
 ---
 
