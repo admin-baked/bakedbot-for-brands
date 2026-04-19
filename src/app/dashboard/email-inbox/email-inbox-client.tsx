@@ -76,7 +76,7 @@ export function EmailInboxClient({ initialThreads, isSuperUser, gmailConnected }
         setReplyBody('');
         setReplyError(null);
         const thread = threads.find(t => t.id === id);
-        if (thread?.unreadCount > 0) {
+        if ((thread?.unreadCount ?? 0) > 0) {
             startTransition(async () => {
                 await markEmailThreadRead(id);
                 setThreads(prev => prev.map(t => t.id === id ? { ...t, unreadCount: 0 } : t));

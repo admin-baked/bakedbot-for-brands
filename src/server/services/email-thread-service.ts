@@ -286,7 +286,7 @@ export async function getEmailThreadById(id: string): Promise<EmailThread | null
         lastActivityAt: data.lastActivityAt?.toDate?.() ?? new Date(data.lastActivityAt as unknown as string),
         messages: (data.messages ?? []).map(m => ({
             ...m,
-            sentAt: m.sentAt?.toDate?.() ?? new Date(m.sentAt as unknown as string),
+            sentAt: (m.sentAt as any)?.toDate?.() ?? new Date(m.sentAt as unknown as string),
         })),
     } as EmailThread;
 }
