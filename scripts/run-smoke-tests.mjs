@@ -261,6 +261,83 @@ const SMOKE_TESTS = [
         body: {},
         priority: 'P1',
     },
+    {
+        id: null,
+        // API-key route — Zod body validation runs before key check, so empty body → 400
+        name: 'Loyalty member enrollment rejects missing body (400)',
+        area: 'pos_sync',
+        url: '/api/v1/loyalty/members',
+        method: 'POST',
+        expectedStatus: 400,
+        headers: { 'Content-Type': 'application/json' },
+        body: {},
+        priority: 'P2',
+    },
+    {
+        id: null,
+        // API-key route — orgId query param required before key check, so missing → 400
+        name: 'Loyalty triggers rejects missing orgId param (400)',
+        area: 'pos_sync',
+        url: '/api/v1/loyalty/triggers',
+        method: 'GET',
+        expectedStatus: 400,
+        priority: 'P2',
+    },
+
+    // ── CHECK-IN / KIOSK ───────────────────────────────────────────────────
+    {
+        id: null,
+        name: 'Checkin lookup rejects unauthenticated request',
+        area: 'checkin',
+        url: '/api/checkin/lookup?orgId=org_thrive_syracuse&last4=1234',
+        method: 'GET',
+        expectedStatus: 401,
+        priority: 'P1',
+    },
+    {
+        id: null,
+        name: 'QA tablet cron rejects unauthenticated request',
+        area: 'checkin',
+        url: '/api/cron/qa-tablet',
+        method: 'POST',
+        expectedStatus: 401,
+        headers: { 'Content-Type': 'application/json' },
+        body: {},
+        priority: 'P1',
+    },
+    {
+        id: null,
+        name: 'Checkin dashboard page loads (client-side auth)',
+        area: 'checkin',
+        url: '/dashboard/dispensary/checkin',
+        method: 'GET',
+        expectedStatus: 200,
+        priority: 'P1',
+        validate: (_, status) => status === 200 || status === 307 || status === 302,
+    },
+    {
+        id: null,
+        name: 'Loyalty tablet QR page loads (client-side auth)',
+        area: 'checkin',
+        url: '/dashboard/loyalty-tablet-qr',
+        method: 'GET',
+        expectedStatus: 200,
+        priority: 'P1',
+        validate: (_, status) => status === 200 || status === 307 || status === 302,
+    },
+
+    // ── MORNING BRIEFING ───────────────────────────────────────────────────
+    {
+        id: null,
+        name: 'Morning briefing cron rejects unauthenticated request',
+        area: 'cron_jobs',
+        url: '/api/cron/morning-briefing',
+        method: 'POST',
+        expectedStatus: 401,
+        headers: { 'Content-Type': 'application/json' },
+        body: {},
+        priority: 'P1',
+    },
 
     // ── DASHBOARD ──────────────────────────────────────────────────────────
     {
