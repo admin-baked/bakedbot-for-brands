@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Tablet logo/recs/cards fixed; 18 sample products purged; SEO near/zip TS clean
-**Recent work (2026-04-19):** `4b4f07f73` tablet logo+recs+cards; `f2a950b47` sample purge + SEO TS fix
+**Current Status:** 🟢 main green | Check-in audit: 5 critical bugs + 11 WCAG a11y fixes; 3-agent builder workflow live
+**Recent work (2026-04-19):** `9ef66a10e` check-in critical bugs + a11y; `8270bed2f` simplify + agent context files
 
 ---
 
