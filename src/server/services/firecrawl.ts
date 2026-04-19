@@ -329,7 +329,7 @@ export class DiscoveryService {
      * Falls back to RTRVR if Firecrawl is unavailable
      */
     public async search(query: string) {
-        if (this.isFirecrawlAvailable()) {
+        if (await this.hasCreditBudget()) {
             try {
                 const response = await this.app!.search(query) as any;
                 logger.info('[Discovery] Search raw response received', { query, keys: Object.keys(response) });
@@ -387,7 +387,7 @@ export class DiscoveryService {
      * Falls back to RTRVR if Firecrawl is unavailable
      */
     public async mapSite(url: string) {
-        if (this.isFirecrawlAvailable()) {
+        if (await this.hasCreditBudget(5)) {
             try {
                 // @ts-ignore - mapUrl exists in API but may not be in SDK types
                 const response = await this.app!.mapUrl(url) as any;
@@ -504,6 +504,10 @@ export class DiscoveryService {
     public async runAgent(prompt: string, timeoutMs = 90_000): Promise<{ success: true; data: string } | { success: false; error: string }> {
         if (!this.apiKey) {
             return { success: false, error: 'FIRECRAWL_API_KEY not configured' };
+        }
+        // Agent jobs are expensive (multi-page research). Require 10 credits above reserve.
+        if (!(await this.hasCreditBudget(10))) {
+            return { success: false, error: 'Firecrawl credit budget exhausted — skipping agent job' };
         }
 
         const authHeader = `Bearer ${this.apiKey}`;
