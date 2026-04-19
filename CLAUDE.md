@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Email inbox rebuilt: reply composer, search, mark-as-read, htmlBody rendering, status badges, Gmail gate | **Last update:** 2026-04-19 (`49af15d40`)
+**Current Status:** 🟢 main green | Auth hang fixed: rate-limit/session API/provider fetch timeouts | **Last update:** 2026-04-19 (`b9b1ef339`)
 
 ---
 
