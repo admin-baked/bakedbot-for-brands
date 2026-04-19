@@ -12,6 +12,8 @@ import {
   getCheckinConfig,
   postCheckinBriefingToInbox,
   getPublicBrandTheme,
+  getPendingKioskPicks,
+  markKioskPickFulfilled,
 } from '../checkin-management';
 import { linkCustomerToAlleaves } from '../loyalty-tablet';
 import { requireUser } from '@/lib/auth-helpers';
@@ -178,6 +180,126 @@ describe('H2: linkCustomerToAlleaves verifies customer org before writing', () =
     const result = await linkCustomerToAlleaves('org_thrive_syracuse', 'customer_own_org', 'alv_456');
     expect(result.success).toBe(true);
     expect(setMock).toHaveBeenCalledWith(expect.objectContaining({ alleavesCustomerId: 'alv_456' }), { merge: true });
+  });
+});
+
+// ── Kiosk Picks ───────────────────────────────────────────────────────────────
+
+describe('getPendingKioskPicks', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns pending picks for an authorised dispensary user', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({ uid: 'u1', role: 'dispensary_admin', orgId: 'org_thrive_syracuse' });
+    const pickDoc = {
+      id: 'pick_001',
+      data: () => ({
+        firstName: 'Tamika',
+        mood: 'relaxed',
+        productNames: ['Blue Dream', 'Sunny Side Cart'],
+        productIds: ['prod-flower', 'prod-vape'],
+        status: 'pending',
+        createdAt: { toDate: () => new Date('2026-04-19T14:00:00Z') },
+      }),
+    };
+    const db = {
+      collection: jest.fn(() => ({
+        doc: jest.fn(() => ({
+          collection: jest.fn(() => ({
+            where: jest.fn(function (this: unknown) { return this; }),
+            orderBy: jest.fn(function (this: unknown) { return this; }),
+            limit: jest.fn(function (this: unknown) { return this; }),
+            get: jest.fn(async () => ({ docs: [pickDoc] })),
+          })),
+        })),
+      })),
+    };
+    (getAdminFirestore as jest.Mock).mockReturnValue(db);
+
+    const result = await getPendingKioskPicks('org_thrive_syracuse');
+
+    expect(result.success).toBe(true);
+    expect(result.picks).toHaveLength(1);
+    expect(result.picks![0]).toMatchObject({
+      id: 'pick_001',
+      firstName: 'Tamika',
+      mood: 'relaxed',
+      productNames: ['Blue Dream', 'Sunny Side Cart'],
+      productIds: ['prod-flower', 'prod-vape'],
+      status: 'pending',
+      createdAt: '2026-04-19T14:00:00.000Z',
+    });
+  });
+
+  it('returns failure when requireUser throws (unauthenticated)', async () => {
+    (requireUser as jest.Mock).mockRejectedValue(new Error('Unauthenticated'));
+    (getAdminFirestore as jest.Mock).mockReturnValue(makeEmptyFirestore());
+
+    const result = await getPendingKioskPicks('org_thrive_syracuse');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Failed to fetch kiosk picks');
+  });
+
+  it('returns an empty picks array when there are no pending picks', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({ uid: 'u2', role: 'dispensary_admin', orgId: 'org_thrive_syracuse' });
+    const db = {
+      collection: jest.fn(() => ({
+        doc: jest.fn(() => ({
+          collection: jest.fn(() => ({
+            where: jest.fn(function (this: unknown) { return this; }),
+            orderBy: jest.fn(function (this: unknown) { return this; }),
+            limit: jest.fn(function (this: unknown) { return this; }),
+            get: jest.fn(async () => ({ docs: [] })),
+          })),
+        })),
+      })),
+    };
+    (getAdminFirestore as jest.Mock).mockReturnValue(db);
+
+    const result = await getPendingKioskPicks('org_thrive_syracuse');
+
+    expect(result.success).toBe(true);
+    expect(result.picks).toEqual([]);
+  });
+});
+
+describe('markKioskPickFulfilled', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('updates the pick status to fulfilled', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({ uid: 'u1', role: 'dispensary_admin', orgId: 'org_thrive_syracuse' });
+    const updateMock = jest.fn().mockResolvedValue(undefined);
+    const db = {
+      collection: jest.fn(() => ({
+        doc: jest.fn(() => ({
+          collection: jest.fn(() => ({
+            doc: jest.fn(() => ({ update: updateMock })),
+          })),
+        })),
+      })),
+    };
+    (getAdminFirestore as jest.Mock).mockReturnValue(db);
+
+    const result = await markKioskPickFulfilled('org_thrive_syracuse', 'pick_001');
+
+    expect(result.success).toBe(true);
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'fulfilled', fulfilledAt: expect.any(Date) }),
+    );
+  });
+
+  it('returns failure when requireUser throws (unauthenticated)', async () => {
+    (requireUser as jest.Mock).mockRejectedValue(new Error('Unauthenticated'));
+    (getAdminFirestore as jest.Mock).mockReturnValue(makeEmptyFirestore());
+
+    const result = await markKioskPickFulfilled('org_thrive_syracuse', 'pick_001');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Failed to mark pick as fulfilled');
   });
 });
 
