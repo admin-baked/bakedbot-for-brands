@@ -215,9 +215,15 @@ export function VisitorCheckinCard({
                     phoneLast4: last4Digits,
                 });
 
-                if (!result.success || result.candidates.length === 0) {
+                if (!result.success) {
                     resetLookupState();
-                    setError('We could not confidently match that customer. Use the full phone number instead.');
+                    setError('Lookup temporarily unavailable — try again or use the full phone number.');
+                    return;
+                }
+
+                if (result.candidates.length === 0) {
+                    resetLookupState();
+                    setError('No customer found with that name and last 4 digits — try the full phone number.');
                     return;
                 }
 
@@ -228,7 +234,7 @@ export function VisitorCheckinCard({
                 return;
             } catch (_error) {
                 resetLookupState();
-                setError('Returning-customer lookup is temporarily unavailable. Use the full phone number instead.');
+                setError('Lookup temporarily unavailable — try again or use the full phone number.');
                 return;
             } finally {
                 setLoadingCandidates(false);
@@ -509,7 +515,9 @@ export function VisitorCheckinCard({
                             {contactMode === 'staff_lookup' && lookupCandidates.length > 0 ? (
                                 <div className="space-y-3 rounded-xl border border-border/60 bg-background p-4">
                                     <div>
-                                        <p className="text-sm font-semibold text-foreground">Choose the confirmed match</p>
+                                        <p className="text-sm font-semibold text-foreground">
+                                            {lookupCandidates.length === 1 ? 'Choose the confirmed match' : 'Multiple matches found — select the right customer'}
+                                        </p>
                                         <p className="text-xs text-muted-foreground">
                                             We only show masked candidates. Select the right returning customer, then continue.
                                         </p>
@@ -553,6 +561,15 @@ export function VisitorCheckinCard({
                                             );
                                         })}
                                     </div>
+                                    {lookupCandidates.length > 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleContactModeChange('full_phone')}
+                                            className="w-full rounded-xl border border-border px-4 py-2.5 text-sm text-muted-foreground transition hover:border-foreground/30 hover:text-foreground"
+                                        >
+                                            Use full phone number instead
+                                        </button>
+                                    )}
                                 </div>
                             ) : null}
 
