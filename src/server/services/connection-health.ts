@@ -72,7 +72,10 @@ async function checkGmail(): Promise<ConnectionCheck> {
         const authClient = await getOAuth2ClientAsync();
         authClient.setCredentials({ refresh_token: credentials.refresh_token });
         const { credentials: refreshed } = await authClient.refreshAccessToken();
-        authClient.setCredentials(refreshed);
+        authClient.setCredentials({
+            ...refreshed,
+            refresh_token: refreshed.refresh_token ?? credentials.refresh_token,
+        });
         const gmail = google.gmail({ version: 'v1', auth: authClient });
         const profile = await gmail.users.getProfile({ userId: 'me' });
         const email = profile.data.emailAddress ?? 'unknown';

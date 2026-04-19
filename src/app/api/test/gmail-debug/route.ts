@@ -54,13 +54,18 @@ export async function GET(req: NextRequest) {
             refreshedCreds = {
                 hasAccessToken: Boolean(refreshed.access_token),
                 accessTokenLength: refreshed.access_token?.length ?? 0,
+                hasRefreshTokenInResponse: Boolean(refreshed.refresh_token),
                 expiryDate: refreshed.expiry_date
                     ? new Date(refreshed.expiry_date as number).toISOString()
                     : null,
                 scope: refreshed.scope ?? null,
                 tokenType: refreshed.token_type ?? null,
             };
-            authClient.setCredentials(refreshed);
+            // Preserve the original refresh_token — Google rarely returns one on refresh.
+            authClient.setCredentials({
+                ...refreshed,
+                refresh_token: refreshed.refresh_token ?? credentials.refresh_token,
+            });
             steps.step4_refresh = refreshedCreds;
         } catch (refreshErr: unknown) {
             steps.step4_refresh = `THREW: ${refreshErr instanceof Error ? refreshErr.message : String(refreshErr)}`;

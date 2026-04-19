@@ -712,7 +712,13 @@ async function getCeoGmailClient() {
     authClient.setCredentials({ refresh_token: credentials.refresh_token });
     try {
         const { credentials: refreshed } = await authClient.refreshAccessToken();
-        authClient.setCredentials(refreshed);
+        // Preserve the original refresh_token — Google rarely returns a new one on refresh.
+        // Without this, setCredentials clears refresh_token and the library loses the ability
+        // to re-refresh on subsequent calls, causing "Login Required" on API calls.
+        authClient.setCredentials({
+            ...refreshed,
+            refresh_token: refreshed.refresh_token ?? credentials.refresh_token,
+        });
         const { saveGmailToken } = await import('@/server/integrations/gmail/token-storage');
         await saveGmailToken(ceoUid, refreshed);
         logger.info('[Marty:Gmail] Access token refreshed successfully');
