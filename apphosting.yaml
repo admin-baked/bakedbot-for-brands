@@ -456,7 +456,7 @@ env:
       - RUNTIME
   # CEO Gmail access — Firebase UID of martez@bakedbot.ai super user
   - variable: CEO_GMAIL_UID
-    secret: CEO_GMAIL_UID@2
+    value: "GrRRe2YR4zY0MT0PEfMPrPCsR5A3"
     availability:
       - RUNTIME
   # Moltbook — Agent social network API key for Marty Benjamins
