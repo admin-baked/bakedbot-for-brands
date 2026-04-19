@@ -10,6 +10,7 @@ import {
     getTabletOffer,
     getCustomerBudtenderContext,
     prefetchTabletInventory,
+    precomputeAllMoodRecs,
     getTabletAvailableCategories,
     lookupCustomerByPhone,
     findAlleavesCandidatesByName,
@@ -268,11 +269,13 @@ export function useTabletFlow(orgId: string) {
         });
     }, [orgId, phone, step, offerLoading, tabletOffer]);
 
-    // Prefetch inventory immediately on page load so the first mood tap returns in < 2s.
+    // Prefetch inventory and pre-compute all 7 mood recommendations so mood taps return instantly.
     // Fires on welcome (page load) and re-fires on phone/offer/returning_check as a safety net.
     useEffect(() => {
         if (step !== 'welcome' && step !== 'quick_lookup' && step !== 'phone' && step !== 'offer' && step !== 'returning_check') return;
-        void prefetchTabletInventory(orgId);
+        void prefetchTabletInventory(orgId).then(() => {
+            void precomputeAllMoodRecs(orgId);
+        });
     }, [orgId, step]);
 
     const handleQuickLookup = async (digits?: string) => {
@@ -448,7 +451,7 @@ export function useTabletFlow(orgId: string) {
             const response = await Promise.race([getMoodRecommendations(orgId, moodId), timeoutPromise]);
             // Drop result if a category browse already took over
             if (recsGenRef.current !== myGen) return;
-            if (response.success && response.products) {
+            if (response.success && response.products?.length) {
                 setProducts(response.products);
                 setBundle(response.bundle ?? null);
                 setVideoUrl(response.videoUrl ?? null);

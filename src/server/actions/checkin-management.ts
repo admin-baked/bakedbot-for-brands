@@ -330,6 +330,7 @@ export async function getPublicBrandTheme(orgId: string): Promise<PublicBrandThe
             visualIdentity.logo?.primary ||
             visualIdentity.logo?.wordmark ||
             data.logo?.primary ||
+            data.logo?.png ||
             null;
         const brandName = typeof data.brandName === 'string' && data.brandName.trim()
             ? data.brandName.trim()

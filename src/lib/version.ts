@@ -3,5 +3,5 @@
  * Format: MAJOR.MINOR.PATCH-AGENT (CL=Claude, GEM=Gemini, COD=Codex)
  * Bump on every push — see AGENTS.md → Versioning Convention.
  */
-export const APP_VERSION = '4.10.7-CL';
+export const APP_VERSION = '4.10.15-CL';
 export const APP_VERSION_DISPLAY = `v${APP_VERSION}`;

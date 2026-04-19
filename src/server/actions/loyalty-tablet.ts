@@ -132,7 +132,49 @@ export async function prefetchTabletInventory(orgId: string): Promise<void> {
  */
 export async function invalidateTabletInventoryCache(orgId: string): Promise<void> {
     inventoryCache.delete(orgId);
-    logger.info('[LoyaltyTablet] Inventory cache evicted', { orgId });
+    moodRecsCache.delete(orgId);
+    logger.info('[LoyaltyTablet] Inventory + mood recs cache evicted', { orgId });
+}
+
+// ============================================================
+// Mood recs cache — pre-computed for all 7 moods per org
+// TTL matches inventory cache so stale recs never persist longer than stale inventory
+// ============================================================
+
+const moodRecsCache = new Map<string, { recs: Map<string, MoodRecommendationsResult>; expiry: number }>();
+
+/**
+ * Pre-computes recommendations for all 7 moods in parallel and caches them.
+ * Call fire-and-forget after prefetchTabletInventory so mood taps return instantly.
+ */
+export async function precomputeAllMoodRecs(orgId: string): Promise<void> {
+    try {
+        const products = await getCachedMenuProducts(orgId);
+        if (!products.length) return;
+
+        const now = Date.now();
+        const existing = moodRecsCache.get(orgId);
+        if (existing && existing.expiry > now) return; // already warm
+
+        const MOOD_IDS = Object.keys(MOOD_RECOMMENDATION_CONFIGS) as (keyof typeof MOOD_RECOMMENDATION_CONFIGS)[];
+        const results = await Promise.all(
+            MOOD_IDS.map(async (moodId) => {
+                const config = MOOD_RECOMMENDATION_CONFIGS[moodId];
+                const pool = buildFallbackPool(products, config);
+                const recSet = buildRecommendationSet(pool, config);
+                const result: MoodRecommendationsResult = recSet.products.length
+                    ? { success: true, ...recSet, videoUrl: undefined }
+                    : { success: true, products: buildPopularPicksFallback(products), bundle: undefined, fallbackMode: 'mood_no_match' };
+                return [moodId, result] as const;
+            })
+        );
+
+        const recsMap = new Map<string, MoodRecommendationsResult>(results);
+        moodRecsCache.set(orgId, { recs: recsMap, expiry: now + INVENTORY_CACHE_TTL });
+        logger.info('[LoyaltyTablet] All mood recs pre-computed', { orgId, moods: MOOD_IDS.length });
+    } catch {
+        // Non-critical — getMoodRecommendations will compute on-demand as fallback
+    }
 }
 
 // ============================================================
@@ -629,6 +671,13 @@ export async function getMoodRecommendations(
         const mood = getTabletMoodById(moodId);
         if (!mood) {
             return { success: false, error: 'Unknown mood' };
+        }
+
+        // Serve from pre-computed cache when available (avoids re-running search on every tap)
+        const cachedSet = moodRecsCache.get(orgId);
+        if (cachedSet && cachedSet.expiry > Date.now()) {
+            const cached = cachedSet.recs.get(moodId);
+            if (cached) return cached;
         }
 
         const products = await getCachedMenuProducts(orgId);
