@@ -29,10 +29,19 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        const ADMIN_TIMEOUT_MS = 10000;
+        const withTimeout = <T>(p: Promise<T>, label: string): Promise<T> =>
+            Promise.race([
+                p,
+                new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error(`${label} timed out after ${ADMIN_TIMEOUT_MS}ms`)), ADMIN_TIMEOUT_MS)
+                ),
+            ]);
+
         // Verify the ID token first
         let decodedToken;
         try {
-            decodedToken = await auth.verifyIdToken(idToken);
+            decodedToken = await withTimeout(auth.verifyIdToken(idToken), 'verifyIdToken');
             logger.info('ID token verified', { uid: decodedToken.uid });
         } catch (verifyError: any) {
             logger.error('ID token verification failed:', verifyError);
@@ -46,7 +55,7 @@ export async function POST(request: NextRequest) {
         const expiresIn = 60 * 60 * 24 * 5 * 1000;
         let sessionCookie;
         try {
-            sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
+            sessionCookie = await withTimeout(auth.createSessionCookie(idToken, { expiresIn }), 'createSessionCookie');
             logger.info('Session cookie created successfully');
         } catch (cookieError: any) {
             // MOCK FALLBACK for local development credential bypass

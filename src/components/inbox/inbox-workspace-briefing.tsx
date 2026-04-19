@@ -336,10 +336,12 @@ export function InboxWorkspaceBriefing({ className }: InboxWorkspaceBriefingProp
                 </div>
             )}
 
-            {/* Insight cards always visible — even when collapsed */}
-            <div className={cn('px-4 pb-3', isCollapsed ? 'pt-0' : 'pt-0')}>
-                <InsightCardsGrid maxCards={5} density="dense" />
-            </div>
+            {/* Insight cards — hidden when collapsed to preserve vertical space */}
+            {!isCollapsed && (
+                <div className="px-4 pb-3">
+                    <InsightCardsGrid maxCards={5} density="dense" />
+                </div>
+            )}
         </section>
     );
 }

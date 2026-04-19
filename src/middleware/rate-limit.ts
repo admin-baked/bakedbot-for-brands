@@ -88,7 +88,13 @@ export async function checkRateLimit(
     }
 
     try {
-        const { success, limit, remaining, reset } = await limiter.limit(ip);
+        const TIMEOUT_MS = 2000;
+        const { success, limit, remaining, reset } = await Promise.race([
+            limiter.limit(ip),
+            new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('Rate limit timeout')), TIMEOUT_MS)
+            ),
+        ]);
 
         if (!success) {
             console.warn('[RateLimit] Rate limit exceeded', {

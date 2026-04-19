@@ -45,12 +45,20 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
 
     try {
       const idToken = await firebaseUser.getIdToken();
-      const response = await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
-        credentials: 'include',
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      let response: Response;
+      try {
+        response = await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken }),
+          credentials: 'include',
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
 
       if (!response.ok) {
         const details = await response.text().catch(() => '');

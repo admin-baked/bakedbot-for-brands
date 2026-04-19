@@ -126,7 +126,7 @@ function InboxContent() {
 
 export default function InboxPage() {
     return (
-        <div className="h-[calc(100dvh-4rem)] overflow-hidden">
+        <div className="h-full overflow-hidden">
             <Suspense fallback={<InboxLoading />}>
                 <InboxContent />
             </Suspense>
