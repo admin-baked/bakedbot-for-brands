@@ -420,6 +420,7 @@ Keep it short, specific, and grounded in what is above.`,
         kind: 'non_data',
         threadType: 'general',
         primaryAgent: 'auto',
+        toolContext: `[No POS data available — no tool results for today's sales, check-ins, or inventory have been provided. REQUIRED: (1) Provide a brief daily briefing STRUCTURE (what sections a good briefing would have: revenue vs. target, check-in count, top sellers, slow movers, compliance flag). (2) For each section, specify EXACTLY what data would make it materially better — e.g., "Revenue section: needs today's POS total from Alleaves. Check-ins: needs today's kiosk count. Inventory: needs slow-mover report from past 30 days." (3) Do NOT fabricate any numbers. The response should be a useful framework + clear data request.]`,
         prompt: 'Give me a quick daily owner briefing for Thrive Syracuse. If you need data, tell me exactly what would make the briefing materially better.',
         expectedFocus: ['daily briefing', 'what data is missing', 'owner', 'materially better'],
     },
@@ -470,6 +471,7 @@ From only these visible rows, what should I do right now and what data would you
         ],
         prompt: 'Turn that into one review-ready email and one SMS draft for the inbox. Keep the SMS compliant.',
         expectedFocus: ['email', 'sms', 'carry forward context', 'compliant'],
+        mustNotContain: ['longer-lasting effects', 'longer lasting effects', 'longer-lasting high', 'lasts longer', 'effects last longer'],
     },
     {
         id: 'multi-turn-budtender-brief',
@@ -502,7 +504,7 @@ From only these visible rows, what should I do right now and what data would you
         kind: 'non_data',
         threadType: 'inventory_promo',
         primaryAgent: 'auto',
-        toolContext: `[Tool: get_slow_movers — ERROR: No slow-mover data available. The agent must NOT invent or assume slow-mover data. The correct response is to ask the manager to share their POS inventory report or pull from Alleaves before any analysis can proceed.]`,
+        toolContext: `[Tool: get_slow_movers — ERROR: No slow-mover data available. The agent must NOT invent or assume slow-mover data. REQUIRED: Ask the manager to share their POS inventory report or specifically mention pulling from Alleaves (the POS system) before any slow-mover analysis can proceed. Use the word "Alleaves" by name.]`,
         prompt: 'Lets discuss our slowest movers',
         expectedFocus: ['slow movers', 'data', 'POS', 'share'],
         mustReference: ['Alleaves', 'data'],
@@ -581,8 +583,10 @@ What bundle price keeps us above 50% gross margin and still feels like a deal to
         kind: 'non_data',
         threadType: 'support',
         primaryAgent: 'auto',
+        toolContext: `[NY Cannabis Return Policy Context: Under NY cannabis law, licensed dispensaries are generally prohibited from accepting returns of cannabis products once they leave the store — this is due to state track-and-trace and safety requirements. The NY OCM regulations do not require dispensaries to accept returns. However, stores typically offer store credit for unopened, sealed product at manager discretion, especially for customer experience reasons. Key compliance note: if a return IS accepted, the product must be quarantined and cannot be resold — it must be logged as returned product in METRC and typically destroyed or sent back to the distributor, not re-shelved.]`,
         prompt: 'A customer is at the counter asking to return an edible they bought yesterday — says it was the wrong dosage and the package is still sealed. What is our policy and what do I tell them?',
         expectedFocus: ['policy', 'sealed', 'NY', 'customer'],
+        mustReference: ['NY', 'return'],
     },
     {
         id: 'clearance-timing-math',
@@ -1127,7 +1131,7 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         toolContext: `[NY Cannabis Control Board (CCB) employee requirements: (1) All cannabis handlers (anyone who touches product — budtenders, inventory staff) must complete OCM-approved Responsible Vendor Training (RVT) before handling product; training is ~4 hours and must be renewed every 2 years. (2) Background checks: NY cannabis law (NY Cannabis Law §123) requires licensees to conduct criminal background screening but PROHIBITS automatic disqualification for most drug-related offenses — consistent with the MRTA's equity framework. Disqualifying offenses: violent felonies within 5 years, any conviction for selling cannabis to minors, or federal firearms trafficking. (3) Documentation: maintain signed RVT certificates and background check authorizations in employee file; must be producible on inspection within 24 hours. (4) Part-time and seasonal employees: same requirements apply — no exemption for hours or tenure. (5) NY Department of Labor labor law compliance also applies — wage theft, scheduling, and anti-retaliation protections are separate from OCM requirements.]`,
         prompt: `I am hiring two new budtenders and a part-time cashier. What background check requirements does New York state impose on cannabis retail employees? Are there disqualifying offenses, and how do I document compliance?`,
         expectedFocus: ['background', 'employee', 'disqualif', 'NY'],
-        mustReference: ['OCM', 'training', 'documentation'],
+        mustReference: ['OCM', 'training', 'documentation', '§123'],
     },
     {
         id: 'ny-delivery-rules',
@@ -1352,10 +1356,12 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'compliance',
         primaryAgent: 'deebo',
-        toolContext: `[NY privacy law applicability: (1) HIPAA does not apply to cannabis dispensaries — it covers healthcare providers, not retail cannabis. (2) NY SHIELD Act (2020) requires reasonable data security but does NOT give customers a mandatory right to access their own purchase data. (3) NY Cannabis Law §130 protects cannabis purchase data from disclosure to third parties (e.g., employers, insurers, law enforcement without a warrant) — but this is about restricting outbound disclosure, not mandating access. (4) There is no current NY state law requiring you to produce a customer's full purchase history on demand — this request is voluntary to fulfill. (5) Recommended action: confirm the customer's identity, produce what your POS can export, document the request in writing, and note that cannabis purchase records are confidential and not shared with third parties.]`,
+        toolContext: `[NY privacy law applicability: (1) HIPAA does not apply to cannabis dispensaries — it covers healthcare providers, not retail cannabis. (2) NY SHIELD Act (2020) requires reasonable data security but does NOT give customers a mandatory right to access their own purchase data. (3) NY Cannabis Law §130 protects cannabis purchase data from disclosure to third parties (e.g., employers, insurers, law enforcement without a warrant) — but this is about restricting outbound disclosure, not mandating access. (4) There is no current NY state law requiring you to produce a customer's full purchase history on demand — this request is voluntary to fulfill. (5) Recommended action: confirm the customer's identity, produce what your POS can export, document the request in writing, and note that cannabis purchase records are confidential and not shared with third parties.
+
+REQUIRED: You MUST cite NY Cannabis Law §130 by name and section number. You MUST clarify that HIPAA does not apply. You MUST state that producing the history is voluntary under NY law — there is no legal mandate to produce it.]`,
         prompt: `A customer is asking for a complete copy of their purchase history — every transaction for the past 2 years. They mentioned something about HIPAA and their right to their data. What are my actual obligations under NY cannabis law and state privacy law to provide this? Is this a standard request I should fulfill immediately?`,
         expectedFocus: ['purchase history', 'privacy', 'data', 'NY'],
-        mustReference: ['HIPAA', 'voluntary'],
+        mustReference: ['HIPAA', 'voluntary', '§130'],
     },
 
     // ── Seasonal / Event Planning (6 cases) ───────────────────────────────
@@ -1365,8 +1371,10 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'marketing',
         primaryAgent: 'craig',
+        toolContext: `[No verified industry data exists for 4/20 vs 4/19 revenue split for cannabis dispensaries. Do NOT cite fictional "typical dispensary data" or fabricated percentages. Instead: recommend checking the operator's own POS history for prior 4/19 and 4/20 dates, then make a strategic recommendation based on the Saturday vs Sunday dynamic (Saturday typically has higher foot traffic than Sunday for retail). Give a clear recommendation with reasoning — do NOT hedge by only saying "check your own data" without a directional recommendation.]`,
         prompt: `4/20 is on a Sunday this year and 4/19 is a Saturday. I only have budget for one big promotional push. Should I run the main promo on 4/19 (pre-day, capture planners) or 4/20 itself? What does typical dispensary data say about which day drives higher revenue in this window?`,
         expectedFocus: ['4/20', '4/19', 'revenue', 'promo'],
+        mustNotContain: ['industry data shows', 'studies show', 'research indicates', 'data shows that 4/20'],
     },
     {
         id: 'holiday-inventory-buffer',
@@ -1394,8 +1402,10 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'marketing',
         primaryAgent: 'craig',
+        toolContext: `[No verified cannabis industry benchmarks for Super Bowl uplift exist. Do NOT fabricate specific uplift percentages (e.g., "25-40%", "2-3x normal"). Instead: recommend checking the operator's own POS data for prior Super Bowl Sundays (if available), then provide practical stocking recommendations for edibles, beverages, and pre-roll multi-packs. Acknowledge uncertainty about the uplift percentage while still giving actionable stocking guidance.]`,
         prompt: `Super Bowl Sunday is coming up and I have heard edibles and beverages spike that day. What does game-day demand typically look like for a dispensary? Should I stock extra edibles, pre-roll multi-packs, and infused beverages? What is a realistic uplift percentage to plan for?`,
         expectedFocus: ['Super Bowl', 'edibles', 'stock', 'demand'],
+        mustNotContain: ['25-40%', '2-3x', 'studies show', 'industry data', 'typically see a 2', 'typically see a 3'],
     },
     {
         id: 'summer-festival-competitive-response',
@@ -1415,7 +1425,7 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         toolContext: `[No verified cannabis industry benchmarks for tax refund spending spikes are available. The agent should acknowledge this honestly — do NOT invent specific percentages (e.g., "25-40% revenue spike") or cite unverified "industry data". Instead, recommend the operator check their own POS history for Feb/March vs January, and suggest practical marketing tactics they can prepare regardless of whether the spike materializes.]`,
         prompt: `I have heard that cannabis dispensaries see a noticeable bump in February and March when people get tax refunds. Is this real? If so, what categories see the biggest lift — flower, concentrates, premium SKUs? How should I adjust purchasing and marketing for that window?`,
         expectedFocus: ['tax refund', 'February', 'March', 'your own data'],
-        mustNotContain: ['industry data shows', 'typically see a', 'research shows'],
+        mustNotContain: ['industry data shows', 'typically see a', 'research shows', 'studies show', 'typically experience a', '15-25%', '20-30%', 'category-specific'],
         mustReference: ['your own', 'POS', 'history'],
     },
 
@@ -2389,8 +2399,15 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'compliance',
         primaryAgent: 'deebo',
+        toolContext: `[NY OCM — Multi-Location METRC Discrepancy Protocol]
+In NY, each dispensary location has its own METRC license and location ID. A METRC discrepancy at Location A does NOT automatically trigger a compliance obligation at Location B — each location's METRC records are evaluated independently during an audit.
+
+However: (1) If both locations operate under the same single OCM retail license (rather than separate licenses), an OCM investigation of Location A CAN expand to examine Location B records. (2) Reporting timeline: unexplained METRC inventory discrepancies should be investigated and, if not reconciled, reported to OCM within 3 business days for non-diversion discrepancies; within 24 hours if theft/diversion is suspected. (3) Best practice: document the discrepancy at Location A immediately, open a METRC inventory adjustment with explanation, notify Location B manager to conduct their own count proactively to demonstrate Location B is clean.
+
+REQUIRED: Explain that METRC licenses are per-location, state the reporting timeline, and give clear next steps.`,
         prompt: `Location A has a Metrc discrepancy — 4 units unaccounted for from a transfer. Location B is clean. Both operate under the same OCM license umbrella. Does Location A's discrepancy create any compliance risk or reporting obligation for Location B, or are they treated as independent entities under NY law?`,
         expectedFocus: ['Metrc', 'compliance', 'Location B', 'license'],
+        mustReference: ['METRC', 'per-location', '3 business'],
     },
     {
         id: 'multi-loc-brand-consistency-budtender',
@@ -2418,8 +2435,17 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'compliance',
         primaryAgent: 'deebo',
+        toolContext: `[NY Cannabis Possession Limits + Interstate Transport Compliance Guide]
+NY possession limits (adults 21+): up to 3 oz (85g) flower; up to 24g concentrate; no limit on edibles for personal use under 240mg total THC.
+
+INTERSTATE TRANSPORT: Federal law (21 U.S.C. §841) prohibits transporting cannabis across state lines regardless of state legality. This includes carrying cannabis on a flight departing any US airport — TSA is a federal agency and cannabis is federally controlled. The customer assumes ALL federal risk for interstate transport; the dispensary's legal obligation ends at the point of sale.
+
+BUDTENDER COMPLIANT SCRIPT: When a customer asks "can I take this on the plane?" — the compliant answer is: "Our sale is legal here in New York. What you do after leaving our store is subject to federal transportation laws and your destination's laws — we can't advise on that, but we'd recommend checking TSA and your destination state's rules before you travel." Do NOT say "you can take it on the plane" or "just keep it in your bag." Do NOT say "you can't take it anywhere" since that goes beyond what the budtender knows. The goal: disclose the legal boundary without giving legal advice and without assisting interstate transport.
+
+REQUIRED: Explain why federal law applies (jurisdiction over interstate transport), provide the compliant budtender script, and end with a concrete next step.`,
         prompt: `Ecstatic gets a lot of out-of-state visitors — tourists who are flying home after buying. What do they need to know about NY possession limits, and can we tell them about taking product across state lines? How do our budtenders handle the "can I take this on the plane?" question compliantly without giving legal advice?`,
         expectedFocus: ['tourist', 'possession', 'state lines', 'budtender'],
+        mustReference: ['federal', 'TSA', 'interstate'],
     },
     {
         id: 'ecstatic-premium-positioning',
@@ -2524,8 +2550,13 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'operator',
         primaryAgent: 'deebo',
+        toolContext: `[NY OCM METRC Physical Audit Procedures]
+During a NY OCM unannounced METRC physical audit: (1) The inspector will request access to all cannabis inventory areas and will compare physical package counts against your METRC records, including package UIDs, weights, and package status. (2) Process: inspector scans or visually verifies METRC package tags against physical product; any variance is noted on the inspection report. (3) Tolerances: OCM does NOT publish a formal de minimis tolerance — any unexplained variance is a reportable discrepancy. Under 1g per package is typically viewed as within weighing/moisture variance, but this is at inspector discretion. (4) Proactive disclosure of known discrepancies: YES — disclose proactively before the audit begins. This demonstrates good faith and typically results in lower penalties. Attempting to hide known discrepancies discovered during the same audit is treated as intentional non-compliance. (5) After the audit: if variances are found, OCM will issue a Notice of Deficiency or Notice of Non-Compliance. You have 15–30 business days to respond with a corrective action plan. (6) Consequences: first-time small discrepancies with corrective action typically result in a notice and fine ($500–$2,500); patterns of discrepancy escalate to suspension or revocation proceedings.
+
+REQUIRED: Advise proactive disclosure, explain the audit process step by step, and state what happens if variances are found.`,
         prompt: `State inspector wants to reconcile our METRC records against physical inventory right now. Our last physical count was 3 days ago. We have 4 known small discrepancies we have not yet reported (all under 1g). Should we disclose the known discrepancies proactively before the audit begins? What does the audit process look like, and what happens if variances are found?`,
         expectedFocus: ['METRC', 'audit', 'discrepancy', 'proactive', 'disclosure', 'variance', 'reporting'],
+        mustReference: ['proactive', 'METRC', 'disclose'],
     },
     {
         id: 'regulator-age-verification-failure-response',
@@ -2542,8 +2573,15 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'operator',
         primaryAgent: 'deebo',
+        toolContext: `[NY OCM Responsible Vendor Training — Records & Inspection Protocol]
+Under NY Cannabis Law, all cannabis retailers must ensure handlers complete OCM-approved Responsible Vendor Training (RVT). Records required: completion certificates with employee name, date completed, training provider, and certificate number — kept on-site or accessible digitally.
+
+During an active inspection: (1) You MUST produce records immediately or within a short time the inspector specifies (typically same-day or within 24 hours if records are off-site). (2) Extensions: inspectors do NOT typically grant formal extensions during an active audit for records that should already exist on-site. What you CAN do: show digital records immediately (e.g., email the certificates from a computer on-site), offer to email missing certificates within 2 hours, and document that the employee is enrolled in upcoming training. (3) Expired certifications: an expired RVT certificate is a direct OCM violation — the employee may not handle cannabis until renewed. (4) The 3 potentially overdue employees: pull their records immediately while the inspector is there. If overdue, place them on non-cannabis tasks NOW during the inspection. (5) Documentation you need: completion date, certificate number, provider name for each of the 12 employees.
+
+REQUIRED: State that extensions are NOT automatically granted during inspections, advise on expired certs, and give immediate next steps.`,
         prompt: `During an inspection, the OCM officer is asking for proof that all our cannabis handlers have completed the required responsible vendor training program. We have 12 employees. Three of them may be overdue for renewal. What records must we produce, what happens if some are expired, and can we get an extension to produce records we cannot find on the spot?`,
         expectedFocus: ['OCM', 'training', 'certification', 'responsible vendor', 'records', 'expired', 'extension'],
+        mustReference: ['extension', 'expired', 'immediately'],
     },
     {
         id: 'regulator-fine-appeal-process',
@@ -2551,8 +2589,13 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'operator',
         primaryAgent: 'deebo',
+        toolContext: `[NY OCM Fine Appeal Process]
+Under NY Cannabis Law and OCM enforcement procedures: (1) Timeline: you have 30 calendar days from receipt of the penalty notice to file a formal appeal (request for hearing). Missing this deadline forfeits your right to appeal. (2) Payment while appealing: you do NOT need to pay the fine while an appeal is pending — filing a timely hearing request stays the payment obligation. (3) Hearing process: OCM will schedule an administrative hearing before an Administrative Law Judge (ALJ). You can appear with or without counsel — a cannabis attorney is strongly recommended for amounts over $5,000. (4) Grounds for a successful appeal: (a) factual dispute — the violation did not occur as characterized; (b) technical defense — the advertising did not meet the legal standard for the violation cited; (c) mitigating factors — first violation, immediate corrective action taken, no prior NOCs; (d) procedural grounds — OCM failed to follow required process for notice or investigation. (5) Fight vs. pay: generally worth fighting if you have a genuine factual dispute or the penalty is disproportionate AND you have documentation. $7,500 is in the range where a 2–4 hour attorney engagement is economically rational. (6) Offer of settlement: OCM sometimes accepts a consent order with a reduced fine and corrective action plan — request this in writing before the hearing date.
+
+REQUIRED: State the 30-day deadline, explain you can appeal without paying, and walk through hearing grounds.`,
         prompt: `We received a $7,500 fine from OCM for an advertising violation we believe was mischaracterized. The fine seems disproportionate and we believe we have a strong defense. Walk us through the OCM appeal process: what are the timelines, do we need to pay the fine while appealing, what grounds support a successful appeal, and when is it worth fighting vs paying?`,
         expectedFocus: ['OCM', 'appeal', 'fine', 'dispute', 'timeline', 'defense', 'hearing'],
+        mustReference: ['30', 'appeal', 'hearing'],
     },
     {
         id: 'regulator-license-condition-violation',
@@ -2572,7 +2615,7 @@ What are the most likely explanations — upsell training, floor layout, budtend
         toolContext: `[NY OCM "appealing to minors" standard: Under NY Cannabis Law §128 and OCM advertising regulations, content "appeals to minors" if it uses cartoon-like imagery, bright colors or designs with youth appeal, characters or imagery associated with child products, or depictions suggesting cannabis is fun/desirable for youth. Abstract cannabis leaf graphics in a branded adult design generally do not meet this standard — the test is whether a reasonable person would believe the imagery targets youth. OCM complaint process: OCM will notify the licensee of the complaint and provide an opportunity to respond. Response should: (1) include documentation of the signage (photos, design files), (2) explain the adult-oriented branding rationale, (3) provide comparables showing this is standard adult cannabis branding. Proactive modification: while not legally required, voluntarily modifying signage while the inquiry is open shows good faith and can reduce penalty risk. Consult a cannabis attorney before making formal commitments in any OCM response.]`,
         prompt: `A competitor dispensary filed a complaint with OCM claiming our window signage contains product images that appeal to minors. OCM has opened an inquiry. Our signage shows stylized cannabis leaf graphics in a branded design. What is the standard for "appealing to minors" in NY, how do we prepare our response, and should we proactively modify the signage during the inquiry?`,
         expectedFocus: ['OCM', 'minors', 'signage', 'inquiry', 'response', 'standard'],
-        mustReference: ['OCM', 'minors', 'attorney'],
+        mustReference: ['OCM', 'minors', 'attorney', '§128'],
     },
     // CATEGORY B: Financial Compliance (8 cases)
     {
@@ -2599,7 +2642,9 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'operator',
         primaryAgent: 'deebo',
-        toolContext: `[Cannabis banking alternatives in NY: (1) Cannabis-friendly credit unions: SAFE Banking Act advocacy has led some credit unions and state-chartered banks to serve cannabis licensees — NY examples include Partner Colorado Credit Union, Canna-Hub Financial, and some community banks willing to work with licensed NY operators. (2) Cash management processors: companies like Hypur, PaySign, and CanPay offer point-of-sale cashless debit or ACH solutions that some vendors accept. (3) The $340,000 cash requires: daily reconciliation logs, armored car pickup schedule, vault insurance review, and CTR filings for any cash transactions over $10,000. (4) Regulatory reporting: no specific NY OCM reporting requirement for unbanked cash, but all cash transactions must be documented in METRC and tax records. Vendor payments over $10k in cash require IRS Form 8300 filing within 15 days.]`,
+        toolContext: `[Cannabis banking alternatives in NY: (1) Cannabis-friendly credit unions: SAFE Banking Act advocacy has led some credit unions and state-chartered banks to serve cannabis licensees — NY examples include Partner Colorado Credit Union, Canna-Hub Financial, and some community banks willing to work with licensed NY operators. (2) Cash management processors: companies like Hypur, PaySign, and CanPay offer point-of-sale cashless debit or ACH solutions that some vendors accept. (3) The $340,000 cash requires: daily reconciliation logs, armored car pickup schedule, vault insurance review, and CTR filings for any cash transactions over $10,000. (4) Regulatory reporting: no specific NY OCM reporting requirement for unbanked cash, but all cash transactions must be documented in METRC and tax records. Vendor payments over $10k in cash require IRS Form 8300 filing within 15 days.
+
+REQUIRED: You MUST acknowledge the $340,000 vault cash amount from the operator's situation and address immediate protocols for that specific amount. Do NOT give a generic cash management overview without referencing the $340,000 figure.]`,
         prompt: `Our bank just closed our business account with 30 days notice, citing "reputational risk." This is our second closure in 18 months. We have $340,000 in vault cash and weekly vendor payments to make. What legitimate banking alternatives exist for cannabis retailers, what cash management protocols are required, and what regulatory reporting applies to our cash-intensive operation?`,
         expectedFocus: ['banking', 'cash', 'alternatives', 'vault', 'compliance', 'reporting'],
         mustReference: ['$340,000', 'cash', 'alternative'],
@@ -2646,7 +2691,9 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'operator',
         primaryAgent: 'deebo',
-        toolContext: `[IRS underpayment penalty structure (280E context): Under IRC §6654, the underpayment penalty is calculated at the federal short-term rate + 3% (currently ~8% annualized) on the amount underpaid, prorated for the days late. At 60 days overdue, this is approximately 8% × (60/365) × tax owed ≈ 1.3% of the overdue amount. Making the Q2 payment today stops further penalty accrual from today. Safe harbor calculation: cannabis businesses under 280E can use the "100% of prior year tax" safe harbor — pay at least 100% of last year's total tax liability in quarterly installments (25% each quarter) to avoid underpayment penalties. If gross revenue exceeds $1M, the threshold is 110% of prior year tax. A cannabis CPA should calculate the exact Q2 underpayment based on actual tax liability, not gross profit, since 280E allows COGS deduction which reduces the taxable base below gross profit.]`,
+        toolContext: `[IRS underpayment penalty structure (280E context): Under IRC §6654, the underpayment penalty is calculated at the federal short-term rate + 3% (currently ~8% annualized) on the amount underpaid, prorated for the days late. At 60 days overdue, this is approximately 8% × (60/365) × tax owed ≈ 1.3% of the overdue amount. Making the Q2 payment today stops further penalty accrual from today. Safe harbor calculation: cannabis businesses under 280E can use the "100% of prior year tax" safe harbor — pay at least 100% of last year's total tax liability in quarterly installments (25% each quarter) to avoid underpayment penalties. If gross revenue exceeds $1M, the threshold is 110% of prior year tax. A cannabis CPA should calculate the exact Q2 underpayment based on actual tax liability, not gross profit, since 280E allows COGS deduction which reduces the taxable base below gross profit.
+
+NY STATE PENALTIES: New York also imposes estimated tax underpayment penalties under NY Tax Law §685 at approximately 7.5% annualized for underpayments. NY cannabis excise tax (9% of gross sales) is separate and also subject to penalties for late payment. REQUIRED: Mention both federal AND New York state penalty exposure in your response.]`,
         prompt: `We missed our Q2 federal estimated tax payment and it is now 60 days overdue. Under 280E, our effective federal tax rate is around 70% of gross profit. The IRS has underpayment penalties. What is the penalty for missing a quarterly estimated payment as a cannabis business, can we pay the overdue amount now to limit penalties, and what is the safe harbor calculation to avoid underpayment penalties going forward?`,
         expectedFocus: ['280E', 'estimated tax', 'penalty', 'quarterly', 'IRS', 'safe harbor', 'underpayment'],
         mustReference: ['safe harbor', 'CPA', 'penalty'],
@@ -2694,8 +2741,15 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'operator',
         primaryAgent: 'deebo',
+        toolContext: `[NY OCM Emergency License Suspension — Stay Request Process]
+Under NY Cannabis Law §104 and OCM regulations, an emergency suspension allows the operator to request a stay (temporary halt of the suspension order) and/or an expedited administrative hearing.
+
+Stay request process: (1) File a written stay request immediately with OCM's Office of Cannabis Management — address it to the OCM General Counsel. The stay request must include: (a) the basis for the stay (hardship, procedural challenges, likelihood of success on the merits), (b) a declaration that you dispute the violations and have taken corrective action. (2) OCM typically responds to stay requests within 48–72 hours — because your window is 72 hours, file the stay request within the first 12–24 hours. (3) Grounds that support a stay: METRC violations that are technical/administrative vs. intentional, documented corrective action already taken, no prior violations or pattern, harm to employees and customers from abrupt closure. (4) While a stay is pending: you CAN continue operating if OCM grants the stay — operating without a stay after 72 hours constitutes operating without a license (a criminal violation). (5) Administrative hearing: you are entitled to a formal hearing under NY APA §§301-307 — request this in writing simultaneously with the stay request. (6) Engage a NY cannabis attorney immediately — this is time-critical.
+
+REQUIRED: Explain the stay request process, the 12–24 hour filing timeline, and the grounds for a successful stay. Mention the NY APA hearing right.`,
         prompt: `We just received an emergency 72-hour license suspension notice from OCM citing a pattern of METRC reporting violations. We must cease sales in 72 hours unless we successfully request a stay. What emergency legal options do we have, what grounds support a stay request, can we continue operating while pursuing an administrative hearing, and what customer and staff communications should we prepare?`,
         expectedFocus: ['OCM', 'suspension', 'stay', 'administrative', 'hearing', 'cease', 'operations'],
+        mustReference: ['stay', 'attorney', '72'],
     },
     {
         id: 'crisis-social-media-viral-incident',
@@ -2771,8 +2825,15 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'operator',
         primaryAgent: 'deebo',
+        toolContext: `[NY MRTA Cannabis Employee Protections — Drug Testing Rules]
+Under NY Cannabis Law §137 (MRTA): employers may NOT take adverse action against an employee solely for testing positive for cannabis — cannabis is legal and off-duty use is protected.
+
+HOWEVER — key exceptions: (1) Safety-sensitive roles: employers CAN maintain drug-free workplace policies and test/terminate for impairment (not just detection) in safety-sensitive roles. Budtenders in a cannabis dispensary are generally NOT classified as safety-sensitive under the statutory definition (which focuses on roles involving operating heavy machinery, vehicles, weapons, or child care). The exception is narrow. (2) Impairment vs. detection: NY law requires employers to show impairment during work hours — not just a positive drug test (which can reflect off-duty use days prior). To terminate for impairment you need documented behavioral evidence of impairment on the day of the incident. (3) What you CAN do: if the post-incident test + behavioral observations support a reasonable belief the employee was impaired at work, you can terminate based on IMPAIRMENT with proper documentation. (4) Documentation needed: incident report, specific behavioral observations (speech, balance, response time, errors), manager witnesses, and any METRC/POS discrepancies tied to the incident. (5) Accommodations: no specific accommodation requirement for recreational cannabis use, but review your written drug policy to ensure it defines "impairment" — policies silent on impairment are vulnerable.
+
+REQUIRED: Explain safety-sensitive role definition, distinguish impairment from detection, give the documentation standard.`,
         prompt: `A drug test we conducted after a workplace incident came back positive for THC for one of our budtenders. Under New York's cannabis employee protection laws (MRTA), can we discipline or terminate an employee for testing positive for THC on a drug test? Does it matter that they are in a safety-sensitive role, what accommodations are required, and what documentation protects us from a wrongful termination claim?`,
         expectedFocus: ['MRTA', 'employee', 'drug test', 'THC', 'termination', 'protection', 'safety-sensitive'],
+        mustReference: ['MRTA', 'safety-sensitive', 'impairment'],
     },
     {
         id: 'ops-out-of-state-id-verification',
