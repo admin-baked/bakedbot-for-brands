@@ -795,7 +795,7 @@ const MARTY_SLACK_TOOLS = [
     // Outreach — Lead generation & follow-up
     { name: 'outreach_search_leads', description: 'Search NY dispensary leads available for outreach. Returns leads with emails and contact form URLs.', input_schema: { type: 'object' as const, properties: { city: { type: 'string', description: 'Filter by city' }, limit: { type: 'number', description: 'Max results (default 10)' }, hasEmail: { type: 'boolean', description: 'Only leads with verified emails' }, hasContactForm: { type: 'boolean', description: 'Only leads with contact form URLs' } } } },
     { name: 'outreach_send_email', description: 'Send a personalized outreach email to a dispensary lead. Verifies email first, then sends via SES.', input_schema: { type: 'object' as const, properties: { dispensaryName: { type: 'string' }, email: { type: 'string' }, contactName: { type: 'string' }, city: { type: 'string' }, state: { type: 'string' }, templateId: { type: 'string', description: 'Template: competitive-report, founding-partner, caurd-grant, roi-calculator, price-war, pos-integration, loyalty-program, behind-glass-demo, social-proof, direct-personal' }, posSystem: { type: 'string' } }, required: ['dispensaryName', 'email', 'city', 'state', 'templateId'] } },
-    { name: 'outreach_submit_contact_form', description: 'Submit a message via a dispensary website contact form using browser automation (RTRVR).', input_schema: { type: 'object' as const, properties: { websiteUrl: { type: 'string', description: 'Dispensary website URL' }, contactFormUrl: { type: 'string', description: 'Direct contact form URL if known' }, dispensaryName: { type: 'string' }, message: { type: 'string', description: 'Message to submit' }, senderName: { type: 'string', description: 'Name to use (default: Martez Knox)' }, senderEmail: { type: 'string', description: 'Email to use (default: martez@bakedbot.ai)' } }, required: ['websiteUrl', 'dispensaryName', 'message'] } },
+    { name: 'outreach_submit_contact_form', description: 'Submit a personalized message via a dispensary website contact form using browser automation (RTRVR). Message MUST be personalized — reference the dispensary name, city, and a specific reason for reaching out. Do NOT use a generic template.', input_schema: { type: 'object' as const, properties: { websiteUrl: { type: 'string', description: 'Dispensary website URL' }, contactFormUrl: { type: 'string', description: 'Direct contact form URL if known' }, dispensaryName: { type: 'string', description: 'Exact dispensary business name (required — do not omit)' }, city: { type: 'string', description: 'City the dispensary is in' }, ownerName: { type: 'string', description: 'Owner or contact first name if known' }, message: { type: 'string', description: 'Personalized message body. Must mention: dispensary name, city, specific value prop relevant to them (e.g. loyalty program, check-in kiosk, competitor intel). End with calendar link ask.' }, senderName: { type: 'string', description: 'Name to use (default: Martez Knox)' }, senderEmail: { type: 'string', description: 'Email to use (default: martez@bakedbot.ai)' } }, required: ['websiteUrl', 'dispensaryName', 'city', 'message'] } },
     { name: 'outreach_track_crm', description: 'Track an outreach contact in the CRM system for lifecycle management.', input_schema: { type: 'object' as const, properties: { email: { type: 'string' }, dispensaryName: { type: 'string' }, contactName: { type: 'string' }, city: { type: 'string' }, state: { type: 'string' }, status: { type: 'string', description: 'Lifecycle stage: prospect, contacted, demo_scheduled, trial, customer' }, notes: { type: 'string', description: 'Notes about the interaction' } }, required: ['dispensaryName', 'city', 'state', 'status'] } },
     { name: 'outreach_get_stats', description: 'Get outreach campaign stats — emails sent, bad emails, failures, recent activity.', input_schema: { type: 'object' as const, properties: {} } },
 
@@ -1635,6 +1635,24 @@ async function martyToolExecutor(
         }
         case 'outreach_submit_contact_form': {
             try {
+                const dispensaryName = String(args.dispensaryName || '');
+                if (!dispensaryName || dispensaryName === 'undefined') {
+                    return { error: 'dispensaryName is required — do not call this tool without it.' };
+                }
+
+                const { getAdminFirestore } = await import('@/firebase/admin');
+                const db = getAdminFirestore();
+
+                // Dedup: skip if already contacted via contact form
+                const existing = await db.collection('ny_outreach_log')
+                    .where('dispensaryName', '==', dispensaryName)
+                    .where('outreachType', '==', 'contact_form')
+                    .limit(1)
+                    .get();
+                if (!existing.empty) {
+                    return { skipped: true, reason: `Already submitted contact form to ${dispensaryName} — check CRM before re-contacting.` };
+                }
+
                 const { executeAgentTask } = await import('@/server/services/rtrvr/agent');
                 const senderName = String(args.senderName || 'Martez Knox');
                 const senderEmail = String(args.senderEmail || 'martez@bakedbot.ai');
@@ -1642,17 +1660,15 @@ async function martyToolExecutor(
                 const task = `Go to ${targetUrl} and find the contact form. Fill out the form with:
 - Name: ${senderName}
 - Email: ${senderEmail}
-- Subject: Partnership Opportunity — ${String(args.dispensaryName)}
+- Subject: Partnership Opportunity — ${dispensaryName}
 - Message: ${String(args.message)}
 Submit the form and confirm it was submitted successfully. If there's a CAPTCHA, report it.`;
 
                 const result = await executeAgentTask({ input: task, urls: [targetUrl], verbosity: 'steps' });
 
-                // Log to Firestore
-                const { getAdminFirestore } = await import('@/firebase/admin');
-                const db = getAdminFirestore();
                 await db.collection('ny_outreach_log').add({
-                    dispensaryName: String(args.dispensaryName),
+                    dispensaryName,
+                    city: String(args.city || ''),
                     websiteUrl: targetUrl,
                     outreachType: 'contact_form',
                     message: String(args.message),
@@ -1664,7 +1680,7 @@ Submit the form and confirm it was submitted successfully. If there's a CAPTCHA,
                     createdAt: Date.now(),
                 });
 
-                return { success: true, dispensaryName: args.dispensaryName, url: targetUrl, result: String(result).slice(0, 500) };
+                return { success: true, dispensaryName, url: targetUrl, result: String(result).slice(0, 500) };
             } catch (e: unknown) {
                 return { error: `Contact form submission failed: ${e instanceof Error ? e.message : String(e)}` };
             }
@@ -2985,11 +3001,18 @@ You drive outreach to grow BakedBot's customer base. You can:
 - Track contacts in the CRM lifecycle system (outreach_track_crm)
 - Check outreach campaign stats (outreach_get_stats)
 When doing outreach:
-1. *Start small and verifiable.* Send 3-5 at a time so the CEO can review results.
-2. *Personalize every message.* Reference the dispensary name, city, POS system, competitors.
+1. *Start small and verifiable.* Send 3-5 at a time so the CEO can review results before scaling.
+2. *Personalize every message.* Generic "Streamline Your Cannabis Operations" blasts are NOT acceptable. Every message must name the dispensary, city, and one specific angle (loyalty, check-in kiosk, competitor intel, POS). Use this structure:
+   Subject: Quick question — [City] dispensary + BakedBot AI
+   Hi [First Name or Team],
+   Saw [Dispensary Name] in [City] — [1 specific observation about them or their market].
+   We help NY dispensaries run a loyalty check-in kiosk, automate follow-up texts, and track which products drive repeat visits. Thrive Syracuse launched with us recently.
+   Worth a 15-min call? Here's my calendar: https://calendly.com/martezknox
+   Martez Knox, Founder — BakedBot AI
 3. *Track everything.* After sending, always update the CRM with status and notes.
 4. *Follow up persistently.* Check outreach stats, identify who hasn't responded, plan next touch.
 5. *Report results.* After each batch, share: dispensary name, what you sent, template used, next steps.
+6. *No duplicate contacts.* The contact form tool automatically checks for prior contact — if it returns skipped, move on to the next lead.
 
 LINKEDIN — FULL ACCESS (BUSINESS DEVELOPMENT):
 You have complete access to the CEO's LinkedIn. Everything the CEO can do, you can do:
