@@ -3,7 +3,8 @@ import type { NextRequest } from 'next/server';
 import { getCorsHeaders, CORS_PREFLIGHT_HEADERS, isOriginAllowed } from './lib/cors';
 import { checkRateLimit } from './middleware/rate-limit';
 
-const IS_BOT_REGEX = /googlebot|bingbot|yandexbot|duckduckbot|baiduspider|facebot|facebookexternalhit|twitterbot|rogerbot|linkedinbot|embedly|quora\slink\spreview|showyoubot|outbrain|pinterest\/0\.|slackbot|vkShare|W3C_Validator|whatsapp/i;
+// Covers legacy search crawlers + modern AI grounding bots (GPTBot, Claude-Web, Amazonbot, etc.)
+const IS_BOT_REGEX = /googlebot|bingbot|yandexbot|duckduckbot|baiduspider|facebot|facebookexternalhit|twitterbot|rogerbot|linkedinbot|embedly|quora\slink\spreview|showyoubot|outbrain|pinterest\/0\.|slackbot|vkShare|W3C_Validator|whatsapp|GPTBot|Claude-Web|ClaudeBot|Amazonbot|anthropic-ai|cohere-ai|PerplexityBot|YouBot|Applebot|Bytespider|PetalBot|SemrushBot|AhrefsBot|DataForSeoBot/i;
 
 function isBot(userAgent?: string | null): boolean {
   if (!userAgent) return false;
@@ -410,6 +411,10 @@ export async function proxy(request: NextRequest) {
         pathname.startsWith('/ny/') ||
         pathname.startsWith('/agency') ||
         pathname.startsWith('/integrations/');
+    // Public info routes — educational/reference content must be indexable without age gate.
+    // Transactional flows stay gated at the component level via MenuWithAgeGate.
+    const PUBLIC_INFO_PREFIXES = ['/explore', '/strains', '/terpenes', '/lab-results', '/dispensaries', '/states', '/data'];
+    const isPublicInfoRoute = PUBLIC_INFO_PREFIXES.some(p => pathname === p || pathname.startsWith(`${p}/`));
     const isMenuRoute =
         !isProtectedRoute &&
         !isMetaPath &&
@@ -419,6 +424,7 @@ export async function proxy(request: NextRequest) {
         !isBlogRoute &&
         !isAuthRoute &&
         !isB2BRoute &&
+        !isPublicInfoRoute &&
         !pathname.startsWith('/api/') &&
         !pathname.startsWith('/verify-age') &&
         !pathname.startsWith('/_next/') &&
