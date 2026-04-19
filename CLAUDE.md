@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Auth hang fixed: rate-limit/session API/provider fetch timeouts | **Last update:** 2026-04-19 (`b9b1ef339`)
+**Current Status:** 🟢 main green | Auth hang fixed + inbox UX: h-full layout fix + briefing collapse hides insight cards | **Last update:** 2026-04-19 (`48293915c`)
 
 ---
 

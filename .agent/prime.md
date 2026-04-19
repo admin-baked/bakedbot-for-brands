@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Auth hang fixed: rate-limit/session API/provider fetch timeouts
-**Recent work (2026-04-19):** `b9b1ef339` auth hang fix (rate-limit 2s timeout, session API 10s, provider 8s); `49af15d40` email-inbox rebuild
+**Current Status:** 🟢 main green | Auth hang fixed + inbox UX: h-full layout + briefing collapse hides insight cards
+**Recent work (2026-04-19):** `b9b1ef339` auth hang fix + inbox h-full fix + collapse UX; `49af15d40` email-inbox rebuild
 
 ---
 
