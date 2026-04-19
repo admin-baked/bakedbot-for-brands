@@ -706,26 +706,21 @@ async function getCeoGmailClient() {
         logger.warn('[Marty:Gmail] No Gmail tokens found for CEO', { ceoUid });
         return null;
     }
+    // Always use only the refresh_token to get a fresh access token.
+    // Stored access tokens may be stale or decrypt incorrectly — refresh is safer.
     const authClient = await getOAuth2ClientAsync();
-    authClient.setCredentials(credentials);
-
-    // Proactively refresh if the token is expired or about to expire (within 5 min)
-    const isExpired = credentials.expiry_date && credentials.expiry_date < Date.now() + 300_000;
-    if (isExpired || !credentials.access_token) {
-        try {
-            const { credentials: refreshed } = await authClient.refreshAccessToken();
-            authClient.setCredentials(refreshed);
-            // Persist the refreshed tokens so subsequent calls don't re-refresh
-            const { saveGmailToken } = await import('@/server/integrations/gmail/token-storage');
-            await saveGmailToken(ceoUid, refreshed);
-            logger.info('[Marty:Gmail] Access token refreshed successfully');
-        } catch (e) {
-            logger.error('[Marty:Gmail] Token refresh failed — re-auth required', {
-                error: e instanceof Error ? e.message : String(e),
-                hint: 'Visit /dashboard/ceo > Settings > Gmail to re-authenticate',
-            });
-            return null;
-        }
+    authClient.setCredentials({ refresh_token: credentials.refresh_token });
+    try {
+        const { credentials: refreshed } = await authClient.refreshAccessToken();
+        authClient.setCredentials(refreshed);
+        const { saveGmailToken } = await import('@/server/integrations/gmail/token-storage');
+        await saveGmailToken(ceoUid, refreshed);
+        logger.info('[Marty:Gmail] Access token refreshed successfully');
+    } catch (e) {
+        logger.error('[Marty:Gmail] Token refresh failed — re-auth required', {
+            error: e instanceof Error ? e.message : String(e),
+        });
+        return null;
     }
 
     return google.gmail({ version: 'v1', auth: authClient });

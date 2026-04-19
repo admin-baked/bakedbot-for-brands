@@ -66,11 +66,13 @@ async function checkGmail(): Promise<ConnectionCheck> {
             return { ...base, status: 'not_configured', detail: 'Gmail OAuth not connected — no refresh token stored' };
         }
 
-        // Do a real API probe — getProfile is the lightest Gmail call
+        // Always refresh from refresh_token — stored access tokens may be stale
         const { google } = await import('googleapis');
         const { getOAuth2ClientAsync } = await import('@/server/integrations/gmail/oauth');
         const authClient = await getOAuth2ClientAsync();
-        authClient.setCredentials(credentials);
+        authClient.setCredentials({ refresh_token: credentials.refresh_token });
+        const { credentials: refreshed } = await authClient.refreshAccessToken();
+        authClient.setCredentials(refreshed);
         const gmail = google.gmail({ version: 'v1', auth: authClient });
         const profile = await gmail.users.getProfile({ userId: 'me' });
         const email = profile.data.emailAddress ?? 'unknown';
