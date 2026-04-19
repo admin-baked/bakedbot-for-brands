@@ -61,50 +61,29 @@ function InboxContent() {
         ? 'super_admin'
         : 'customer';
 
-    const modeDescription = viewMode === 'inbox'
-        ? isGrower
-            ? 'Thread-based wholesale workflows for yield, buyer-ready inventory, and brand outreach.'
-            : isDispensary
-                ? 'Thread-based conversations for store ops, compliance, and daily retail decision-making.'
-                : 'Thread-based conversations with your AI agents.'
-        : isGrower
-            ? 'Direct chat for cultivation, transfer readiness, and wholesale execution.'
-            : isDispensary
-                ? 'Direct chat for store operations, pricing, and customer-facing follow-up.'
-                : 'Traditional chat experience with your AI agents.';
-
     return (
         <div className="flex h-full flex-col w-full min-h-0 overflow-hidden">
-            {/* View Toggle Header */}
-            <div className="shrink-0 flex flex-col gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6 sm:py-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="space-y-1">
-                        <h1 className="text-base font-semibold sm:text-lg">
-                            {viewMode === 'inbox' ? 'Unified Inbox' : 'Agent Chat'}
-                        </h1>
-                        <p className="max-w-2xl text-[11px] text-muted-foreground sm:text-xs">
-                            {modeDescription}
-                        </p>
-                    </div>
-                    <div className="self-start sm:self-center">
+            {/* Header: view toggle + workspace briefing */}
+            <div className="shrink-0 flex flex-col border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                <div className="flex items-center justify-between px-4 py-2 sm:px-6">
+                    <AnimatePresence initial={false}>
+                        {viewMode === 'inbox' && shouldShowWorkspaceBriefing && (
+                            <motion.div
+                                key="workspace-briefing"
+                                initial={{ opacity: 0, height: 0, y: -8, filter: 'blur(8px)' }}
+                                animate={{ opacity: 1, height: 'auto', y: 0, filter: 'blur(0px)' }}
+                                exit={{ opacity: 0, height: 0, y: -12, filter: 'blur(12px)' }}
+                                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                                className="hidden lg:block overflow-hidden flex-1 min-w-0 mr-3"
+                            >
+                                <InboxWorkspaceBriefing />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                    <div className="ml-auto shrink-0">
                         <InboxViewToggle />
                     </div>
                 </div>
-
-                <AnimatePresence initial={false}>
-                    {viewMode === 'inbox' && shouldShowWorkspaceBriefing && (
-                        <motion.div
-                            key="workspace-briefing"
-                            initial={{ opacity: 0, height: 0, y: -12, scale: 0.985, filter: 'blur(10px)' }}
-                            animate={{ opacity: 1, height: 'auto', y: 0, scale: 1, filter: 'blur(0px)' }}
-                            exit={{ opacity: 0, height: 0, y: -18, scale: 0.97, filter: 'blur(14px)' }}
-                            transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-                            className="overflow-hidden"
-                        >
-                            <InboxWorkspaceBriefing className="hidden lg:block" />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
             </div>
 
             {/* View Content - Animated transitions */}

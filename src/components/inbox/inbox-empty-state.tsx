@@ -525,45 +525,28 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
                 </div>
             </div>
         ) : (
-            <div className={cn('h-full overflow-hidden', className)} data-testid="inbox-empty-state-desktop">
-                <div className="flex h-full min-h-0 flex-col">
-                    <div className="border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                        <div className="mx-auto grid w-full max-w-4xl gap-3 xl:grid-cols-[180px,minmax(0,1fr)] xl:items-start">
-                            <div className="space-y-1.5">
-                                <div className="space-y-1">
-                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                        Start Here
-                                    </p>
-                                    <h1 className="text-lg font-semibold text-foreground xl:text-xl">
-                                        {greeting}!
-                                    </h1>
-                                </div>
-                                <p className="max-w-[15rem] text-xs leading-5 text-muted-foreground">
-                                    {ownerBriefing
-                                        ? 'Keep the briefing above in view while you start the next inbox task here.'
-                                        : suggestion}
-                                </p>
-                            </div>
-
-                            <div className="min-w-0 space-y-2.5">
-                                {renderComposer('min-h-[68px] text-sm')}
-                                {renderPresetSuggestions(presets, {
-                                    justifyClassName: 'justify-start',
-                                    compact: true,
-                                    chipsClassName: 'flex-nowrap overflow-x-auto pb-1 pr-1',
-                                })}
-                                </div>
-                            </div>
-
-                    </div>
-
-                    {ownerBriefing && (
-                        <div className="border-b bg-background/70 px-4 py-3">
-                            <div className="mx-auto w-full max-w-4xl">
-                                {renderOwnerBriefing('grid gap-3 xl:grid-cols-2', true)}
-                            </div>
+            <div className={cn('h-full overflow-hidden flex flex-col', className)} data-testid="inbox-empty-state-desktop">
+                {/* Yesterday / Today — fills available height */}
+                {ownerBriefing ? (
+                    <div className="flex-1 overflow-auto px-6 py-5">
+                        <div className="mx-auto w-full max-w-3xl h-full flex flex-col justify-center gap-4">
+                            {renderOwnerBriefing('grid gap-4 xl:grid-cols-2')}
                         </div>
-                    )}
+                    </div>
+                ) : (
+                    <div className="flex-1" />
+                )}
+
+                {/* Composer + suggestions — pinned to bottom */}
+                <div className="shrink-0 border-t bg-background/95 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                    <div className="mx-auto w-full max-w-3xl space-y-2.5">
+                        {renderComposer('min-h-[56px] text-sm')}
+                        {renderPresetSuggestions(presets, {
+                            justifyClassName: 'justify-start',
+                            compact: true,
+                            chipsClassName: 'flex-nowrap overflow-x-auto pb-1 pr-1',
+                        })}
+                    </div>
                 </div>
             </div>
         )}

@@ -518,7 +518,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
         [favoriteQuickActions, quickActions]
     );
     const favoriteGridActions = useMemo(
-        () => (favoriteQuickActions.length > 0 ? favoriteQuickActions.slice(0, 6) : quickActions.slice(0, 6)),
+        () => (favoriteQuickActions.length > 0 ? favoriteQuickActions.slice(0, 4) : quickActions.slice(0, 4)),
         [favoriteQuickActions, quickActions]
     );
 
@@ -659,12 +659,12 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                                 );
                             })}
                             {/* More chip → Sheet */}
-                            {quickActions.length > 6 && (
+                            {quickActions.length > 4 && (
                                 <Sheet>
                                     <SheetTrigger asChild>
                                         <button className="flex items-center gap-1 shrink-0 rounded-full px-2.5 py-1.5 text-[12px] font-medium border border-border/60 bg-background text-muted-foreground hover:bg-accent transition-colors">
                                             <MoreHorizontalIcon className="h-3 w-3" />
-                                            <span className="whitespace-nowrap">+{quickActions.length - 6} more</span>
+                                            <span className="whitespace-nowrap">+{quickActions.length - 4} more</span>
                                         </button>
                                     </SheetTrigger>
                                     <SheetContent side="bottom" className="max-h-[70dvh] overflow-y-auto rounded-t-2xl">
@@ -754,12 +754,12 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                             </div>
 
                             {/* More Actions Menu */}
-                            {quickActions.length > 6 && (
+                            {quickActions.length > 4 && (
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="outline" size="sm" className="h-8 w-full gap-2">
                                             <MoreHorizontalIcon className="h-4 w-4" />
-                                            More Actions ({quickActions.length - 6})
+                                            More Actions ({quickActions.length - 4})
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="start" className="w-[min(280px,calc(100vw-2rem))] max-h-[400px] overflow-y-auto">
