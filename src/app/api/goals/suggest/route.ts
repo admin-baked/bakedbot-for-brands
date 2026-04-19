@@ -366,6 +366,10 @@ Return a JSON array of 3-5 goal objects:
     });
 
   } catch (error) {
+    // Next.js redirect() throws a NEXT_REDIRECT digest — treat as unauthenticated for API routes
+    if ((error as { digest?: string })?.digest?.startsWith('NEXT_REDIRECT')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const msg = error instanceof Error ? error.message : String(error);
     if (msg.startsWith('Unauthorized') || msg.startsWith('Forbidden')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
