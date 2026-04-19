@@ -3101,7 +3101,14 @@ async function generateInboxResponse(
     history: ChatMessage[]
 ): Promise<string> {
     const persona = PERSONAS[(personaId in PERSONAS ? personaId : 'puff') as AgentPersona] ?? PERSONAS.puff;
-    const systemPrompt = `${persona.systemPrompt}\n\nUSER CONTEXT: Authenticated dispensary owner/operator (role: owner). NOT in interview mode — provide full, actionable guidance.\n\n${threadContext}\n\nRespond as if you are inside the Thrive Syracuse operator inbox. Be grounded, specific, and launch-ready.`;
+    const operatorOverride = `\n\nOPERATOR CONTEXT (MANDATORY — overrides all other instructions):
+- You are responding to an authenticated dispensary owner/manager inside their private operator inbox.
+- Role: owner/operator. NOT a demo. NOT interview mode. Full guidance required.
+- TONE REQUIREMENT: Professional, clear, and actionable. Never condescending, threatening, or sarcastic. No rhetorical questions. No scolding openers.
+- SELF-PROMOTION BANNED: Never suggest the operator hire you, upgrade tiers, or purchase services.
+- GROUNDING REQUIREMENT: Base all advice on the context provided. Do not invent statistics, benchmarks, or regulatory citations not present in the context.
+- FORMAT: Lead with the most important action. Be specific. Be direct.`;
+    const systemPrompt = `${persona.systemPrompt}${operatorOverride}\n\n${threadContext}\n\nRespond as if you are inside the Thrive Syracuse operator inbox. Be grounded, specific, and launch-ready.`;
     const userMessage = `${buildConversationHistoryBlock(history)}Current user message: ${prompt}`;
 
     return callModelText({
@@ -3206,8 +3213,12 @@ async function main() {
 
     const orgId = getArg('orgId') ?? DEFAULT_ORG_ID;
     const limitArg = getArg('limit');
-    const limit = limitArg ? Math.max(1, Math.min(STRESS_CASES.length, Number(limitArg))) : STRESS_CASES.length;
-    const cases = STRESS_CASES.slice(0, limit);
+    const agentFilter = getArg('agent');
+    const filteredCases = agentFilter
+        ? STRESS_CASES.filter((c) => c.primaryAgent === agentFilter)
+        : STRESS_CASES;
+    const limit = limitArg ? Math.max(1, Math.min(filteredCases.length, Number(limitArg))) : filteredCases.length;
+    const cases = filteredCases.slice(0, limit);
     const generatedAt = new Date().toISOString();
 
     console.log(`Running inbox stress for ${orgId} with ${cases.length} case(s)...`);
