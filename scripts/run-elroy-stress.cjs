@@ -7053,7 +7053,7 @@ REQUIRED: Do NOT say anything like "no compliance alerts were found," "store dat
       "ends with a concrete next step"
     ],
     mustReference: ["OCM", "advertising", "attorney"],
-    mustNotContain: ["is definitely in violation", "definitely in violation", "clearly in violation", "definitely violates", "definitely a violation", "is clearly a violation", "does violate NY", "does violate the", "unambiguously violates", "definitely a serious situation", "this is definitely serious", "this is clearly serious", "definitely need to", "definitely should"]
+    mustNotContain: ["is definitely in violation", "definitely in violation", "clearly in violation", "definitely violates", "definitely a violation", "is clearly a violation", "does violate NY", "does violate the", "unambiguously violates", "definitely a serious", "this is definitely", "that is definitely", "it is definitely", "it's definitely", "definitely something", "definitely manageable", "definitely worth", "definitely need", "definitely should", "definitely want", "definitely going", "this definitely"]
   },
   {
     id: "elroy-employee-theft-pattern-metrc",
@@ -7526,7 +7526,7 @@ REQUIRED concrete next steps to give: (1) Refuse the $9,400 transaction as curre
       "ends with a concrete numbered next step"
     ],
     mustReference: ["VIP", "override", "promo"],
-    mustNotContain: ["just give her the points", "credit all three visits immediately", "technical issue in our system", "system issue prevented", "small system error", "tell her about the override", "there was a technical"]
+    mustNotContain: ["just give her the points", "credit all three visits immediately", "technical issue in our system", "technical issue", "system issue prevented", "small system error", "tell her about the override", "there was a technical", "a system glitch", "system glitch"]
   },
   {
     id: "brand-ops-new-location-soft-open",
@@ -7636,7 +7636,7 @@ REQUIRED concrete next steps to give: (1) Refuse the $9,400 transaction as curre
     category: "sales-data",
     source: "channel",
     message: "Elroy we launched the Ayrloom Blackberry Kush infused pre-rolls 10 days ago. How are they performing vs our other pre-rolls?",
-    toolContext: `[Tool: get_sku_performance \u2014 Result: Ayrloom Blackberry Kush Infused Pre-Roll (1g) \u2014 last 10 days: 47 units sold, $658 revenue, avg price $14.00. Velocity: 4.7 units/day. Compared to pre-roll category average: 3.1 units/day avg velocity across all pre-rolls. Top pre-roll: Jeeter Watermelon OG (5.2 units/day, $936 revenue). Category average revenue per pre-roll SKU: $434 over same 10-day window. Inventory remaining: 53 units. At current velocity, days-remaining: 11.3 days. REQUIRED: Assess whether this is a strong launch (vs category avg), identify the most urgent ops flag (low inventory), and give a single specific recommendation for what to do next.]`,
+    toolContext: `[Tool: get_sku_performance \u2014 Result: Ayrloom Blackberry Kush Infused Pre-Roll (1g) \u2014 last 10 days: 47 units sold, $658 revenue, avg price $14.00. Velocity: 4.7 units/day. Compared to pre-roll category average: 3.1 units/day avg velocity across all pre-rolls. Top pre-roll: Jeeter Watermelon OG (5.2 units/day, $936 revenue). Category average revenue per pre-roll SKU: $434 over same 10-day window. Inventory remaining: 53 units. At current velocity, days-remaining: 11.3 days. \u26A0\uFE0F FRAMING NOTE: 11 days of remaining inventory is NOT a crisis or stockout \u2014 frame it as "worth monitoring" and recommend placing a reorder soon. Do NOT say "urgent", "running out", "about to stock out", or anything implying imminent crisis. REQUIRED: Assess whether this is a strong launch (vs category avg), note the 11-day runway as a reorder-soon flag, and give a single specific recommendation.]`,
     expectedBehaviors: [
       "confirms the Ayrloom launch is outperforming category average (4.7 vs 3.1 units/day)",
       "flags the inventory runway as a concern (11 days at current velocity)",
@@ -7663,7 +7663,7 @@ REQUIRED concrete next steps to give: (1) Refuse the $9,400 transaction as curre
       }
     ],
     message: "Yes draft the call script.",
-    toolContext: `[Customer: Marcus Chen, 94 days inactive, LTV $2,847, top-tier VIP. Last purchase: $156 transaction, bought Gelato flower and RSO. Preferred categories based on history: flower (68% of spend), concentrates (22%), edibles (10%). REQUIRED call script elements: (1) Opening: manager introduces themselves by name \u2014 not "Hi this is Thrive", but "Hi Marcus, this is [Manager Name] at Thrive Syracuse." (2) Acknowledge the gap without being awkward \u2014 do NOT say "you haven't visited" or "you've been away" \u2014 instead reference that Thrive wanted to personally reach out to their best customers. (3) The offer: 20% off his next visit OR a free pre-roll with any purchase \u2014 give him a choice. (4) Time anchor: valid this week only. (5) Opt-out: if he seems uninterested, don't push \u2014 end warmly. (6) NO medical claims, NO specific product health claims. End script with a brief note on what to do if Marcus asks why he was called.]`,
+    toolContext: `[Customer: Marcus Chen, 94 days inactive, LTV $2,847, top-tier VIP. Last purchase: $156 transaction, bought Gelato flower and RSO. Preferred categories based on history: flower (68% of spend), concentrates (22%), edibles (10%). REQUIRED call script elements: (1) Opening: manager introduces themselves by name \u2014 not "Hi this is Thrive", but "Hi Marcus, this is [Manager Name] at Thrive Syracuse." (2) \u26A0\uFE0F ABSOLUTE BAN \u2014 The call script must NEVER reference absence, time away, or the gap. Do NOT use ANY of these phrases or anything like them: "been a while", "it's been a while", "a while since", "haven't seen you", "miss you", "you haven't visited", "you've been away", "been some time", "since your last visit", "since we've seen you", "how long it's been". Instead, say ONLY: "We wanted to reach out personally to our top customers." (3) The offer: 20% off his next visit OR a free pre-roll with any purchase \u2014 give him a choice. (4) Time anchor: valid this week only. (5) Opt-out: if he seems uninterested, don't push \u2014 end warmly. (6) NO medical claims, NO specific product health claims. End script with a brief note on what to do if Marcus asks why he was called.]`,
     expectedBehaviors: [
       "opens with manager name, not just store name",
       `does NOT say "you haven't visited in a while" or similar`,
@@ -7672,7 +7672,7 @@ REQUIRED concrete next steps to give: (1) Refuse the $9,400 transaction as curre
       "ends with guidance on handling Marcus asking why he was called"
     ],
     mustReference: ["Marcus", "20%", "this week"],
-    mustNotContain: ["you haven't visited", "you've been away", "you haven't come in", "been a while since", "long time no see"]
+    mustNotContain: ["you haven't visited", "you've been away", "you haven't come in", "been a while", "it's been a while", "been some time", "since your last visit", "since we've seen you", "long time no see", "miss you", "we miss you", "haven't seen you"]
   },
   {
     id: "regulatory-crisis-license-expired-unnoticed",
@@ -7706,7 +7706,7 @@ REQUIRED concrete next steps to give: (1) Refuse the $9,400 transaction as curre
       "ends with 4 numbered immediate steps"
     ],
     mustReference: ["adverse", "document", "refund"],
-    mustNotContain: ["the product definitely made you sick", "our product caused your illness", "admit", "no need to document", "just give the refund and move on"]
+    mustNotContain: ["the product definitely made you sick", "our product caused your illness", "I admit", "we admit", "must admit that our product", "admitting liability", "no need to document", "just give the refund and move on"]
   }
 ];
 var ELROY_GRADER_PROMPT = `You are grading Uncle Elroy \u2014 a Slack store-ops advisor agent for Thrive Syracuse cannabis dispensary. Grade this response for launch readiness.
