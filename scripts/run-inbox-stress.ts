@@ -208,6 +208,7 @@ Give me a reorder priority list and flag anything that could stock out before re
         kind: 'data',
         threadType: 'inventory_promo',
         primaryAgent: 'money_mike',
+        toolContext: `[Analysis note: Concentrate is the LOWEST margin category at 39% — below Flower (43%), Vape (49%), Pre-Roll (51%), and Edibles (58%). Bundling concentrate with a low-margin anchor (e.g., Flower at 43%) drags the blended bundle margin down. The correct strategy is to pair concentrate with the highest-margin category (Edibles at 58%) to protect bundle profitability while moving slow concentrate inventory.]`,
         prompt: `Here is this week's category snapshot:
 
 | Category | Revenue | Gross Margin % | Units | AOV |
@@ -220,6 +221,7 @@ Give me a reorder priority list and flag anything that could stock out before re
 
 What category should we use as the anchor in a weekend bundle if the goal is to move slower concentrate inventory without wrecking margin?`,
         expectedFocus: ['gross margin', 'anchor category', 'bundle', 'concentrate'],
+        mustReference: ['39%', 'edible', 'concentrate'],
     },
     {
         id: 'daily-traffic-gap',
@@ -488,8 +490,11 @@ From only these visible rows, what should I do right now and what data would you
         kind: 'non_data',
         threadType: 'product_discovery',
         primaryAgent: 'smokey',
+        toolContext: `[Compliance rule for pairing suggestions: Use OCCASION-based language, not EFFECT-based language. Say "pairs well with evening occasions" not "for relaxation." Say "some customers enjoy this before bedtime" not "helps with sleep." Say "popular in our slow-wind-down category" not "calming." Pairings to suggest: evening gummies + (1) a myrcene-dominant flower for customers who prefer to combine formats, (2) a low-dose vape pen for customers who want a faster onset alongside the gummy, (3) a CBD tincture for customers who prefer a lighter complement. All talking points must describe WHAT the product is and WHEN customers typically use it, never WHY it works.]`,
         prompt: 'We want budtenders to pair our evening gummies with one more product, but we cannot drift into medical claims. What pairings and talking points would you use?',
         expectedFocus: ['pairings', 'talking points', 'no medical claims', 'budtenders'],
+        mustNotContain: ['relaxation', 'calming', 'sleep', 'stress', 'helps with', 'promotes'],
+        mustReference: ['occasion', 'terpene'],
     },
     {
         id: 'exact-slowest-movers-no-data',
@@ -497,9 +502,11 @@ From only these visible rows, what should I do right now and what data would you
         kind: 'non_data',
         threadType: 'inventory_promo',
         primaryAgent: 'auto',
-        toolContext: `[Tool: get_slow_movers — ERROR: No slow-mover data available. Ask the manager to share their POS inventory report or run a pull from Alleaves.]`,
+        toolContext: `[Tool: get_slow_movers — ERROR: No slow-mover data available. The agent must NOT invent or assume slow-mover data. The correct response is to ask the manager to share their POS inventory report or pull from Alleaves before any analysis can proceed.]`,
         prompt: 'Lets discuss our slowest movers',
         expectedFocus: ['slow movers', 'data', 'POS', 'share'],
+        mustReference: ['Alleaves', 'data'],
+        mustNotContain: ['days on hand', 'units sold', 'velocity'],
     },
 
     // ─── PRICING & INVENTORY EDGE CASES ────────────────────────────────────────
@@ -735,9 +742,11 @@ What can the budtender do right now, and what should we set up for next year so 
         kind: 'non_data',
         threadType: 'product_discovery',
         primaryAgent: 'smokey',
+        toolContext: `[Compliance rule: NEVER confirm cannabis treats or helps arthritis. Redirect to terpene profiles and typical use occasions. Script must use occasion-based language ("some customers use this for evening wind-down") not effect-claiming language ("this helps with pain").]`,
         prompt: 'A customer just asked the budtender: "What do you have that is good for my arthritis?" Give the budtender the exact response script that answers helpfully without making any medical claims.',
-        expectedFocus: ['script', 'budtender', 'arthritis', 'no medical'],
-        mustNotContain: ['arthritis', 'helps with pain', 'relieves', 'good for your'],
+        expectedFocus: ['script', 'budtender', 'terpene', 'occasion'],
+        mustNotContain: ['helps with pain', 'relieves', 'good for your', 'anti-inflammatory', 'pain relief', 'treats'],
+        mustReference: ['terpene', 'occasion'],
     },
     {
         id: 'loyalty-points-missing',
@@ -1043,7 +1052,7 @@ Which one do I do first and is there anything I can delegate or skip?`,
         kind: 'data',
         threadType: 'performance',
         primaryAgent: 'pops',
-        toolContext: `[Historical: Average Tuesday 10 AM–1 PM = 35 transactions, $1,650 revenue. Today so far (10 AM + 11 AM + 1 PM, skipping missing 12 PM): 39 transactions, $1,772 revenue — 3 of 4 hours visible.]`,
+        toolContext: `[Calculation: Visible hours are 10 AM (12 transactions, $524), 11 AM (18 transactions, $836), and 1 PM (9 transactions, $412). Total visible = 39 transactions, $1,772 revenue across 3 of 4 hours. Historical Tuesday 4-hour total = 35 transactions, $1,650. Pro-rating the historical for 3 visible hours: 35 × 0.75 = ~26 expected. Actual 39 visible vs ~26 expected = tracking ~50% above pace. Even excluding the missing 12 PM hour, today is running well above a normal Tuesday.]`,
         prompt: `I only have partial data from this morning — the POS export cut off:
 
 | Hour | Transactions | Revenue |
@@ -1057,6 +1066,7 @@ Historical Tuesday average for 10 AM–1 PM: 35 transactions, $1,650 revenue.
 
 It is now 2 PM. Based on what I have, is today tracking above or below a normal Tuesday and what should I be watching?`,
         expectedFocus: ['above', 'Tuesday', 'watching', 'missing'],
+        mustReference: ['39', 'above'],
     },
     {
         id: 'no-promo-idea-constraint',
@@ -1084,8 +1094,11 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'compliance',
         primaryAgent: 'deebo',
+        toolContext: `[NY OCM advertising (9 NYCRR Part 128) — what IS allowed and what IS NOT: ALLOWED: (1) Product photos — yes, permitted if the imagery does not appeal to minors and is on an age-gated account. (2) Prices — yes, permitted. (3) THC percentages — yes, permitted but cannot be framed as "more potent is better." (4) Compensated influencers — permitted if the account is age-gated. NOT ALLOWED: (1) Advertising within 500 feet of schools/playgrounds. (2) Content that appeals to minors (cartoon-like imagery, candy-resembling edible photos). (3) Misleading health or potency claims. (4) Posts on non-age-gated accounts. Key requirement: age-gate your Instagram account (Instagram's age restriction tool) before posting product content.]`,
         prompt: `I want to post on Instagram to promote our weekly specials. Before I do, what are the OCM rules I need to follow for social media advertising? Specifically: can I show product photos, name prices, mention THC percentages, or use influencers?`,
         expectedFocus: ['OCM', 'social media', 'advertis', 'restrict'],
+        mustReference: ['OCM', 'age', 'minors'],
+        mustNotContain: ['product photos are prohibited', 'photos of products are not allowed', 'cannot show product'],
     },
     {
         id: 'ny-packaging-requirements',
@@ -1111,8 +1124,10 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'compliance',
         primaryAgent: 'deebo',
+        toolContext: `[NY Cannabis Control Board (CCB) employee requirements: (1) All cannabis handlers (anyone who touches product — budtenders, inventory staff) must complete OCM-approved Responsible Vendor Training (RVT) before handling product; training is ~4 hours and must be renewed every 2 years. (2) Background checks: NY cannabis law (NY Cannabis Law §123) requires licensees to conduct criminal background screening but PROHIBITS automatic disqualification for most drug-related offenses — consistent with the MRTA's equity framework. Disqualifying offenses: violent felonies within 5 years, any conviction for selling cannabis to minors, or federal firearms trafficking. (3) Documentation: maintain signed RVT certificates and background check authorizations in employee file; must be producible on inspection within 24 hours. (4) Part-time and seasonal employees: same requirements apply — no exemption for hours or tenure. (5) NY Department of Labor labor law compliance also applies — wage theft, scheduling, and anti-retaliation protections are separate from OCM requirements.]`,
         prompt: `I am hiring two new budtenders and a part-time cashier. What background check requirements does New York state impose on cannabis retail employees? Are there disqualifying offenses, and how do I document compliance?`,
         expectedFocus: ['background', 'employee', 'disqualif', 'NY'],
+        mustReference: ['OCM', 'training', 'documentation'],
     },
     {
         id: 'ny-delivery-rules',
@@ -1129,8 +1144,10 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'compliance',
         primaryAgent: 'deebo',
+        toolContext: `[NY consumption lounge compliance summary: (1) Requires a separate On-Site Consumption License from OCM — cannot operate under a retail dispensary license alone. (2) Ventilation: state building code and local fire marshal requirements apply; the license application requires proof of a dedicated HVAC system that prevents smoke/vapor migration; minimum air exchange rate is governed by local building code (typically 15+ CFM per person). (3) No alcohol on premises when the lounge is operating. (4) Minimum age: 21+ at lounge entry, verified separately from retail floor. (5) Top compliance risks: operating before the license is issued, inadequate ventilation documentation, alcohol on premises, staff working dual roles without documented separation.]`,
         prompt: `I am thinking about adding an on-site consumption lounge in the back of the store. What does New York require to operate a consumption lounge — separate permit, ventilation standards, no alcohol rule, age verification? What are the biggest compliance risks?`,
         expectedFocus: ['consumption lounge', 'permit', 'ventilation', 'risk'],
+        mustReference: ['license', 'ventilation', 'alcohol'],
     },
     {
         id: 'ny-gifting-bundling-rules',
@@ -1194,8 +1211,10 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'performance',
         primaryAgent: 'money_mike',
+        toolContext: `[Known data point: Last August revenue dropped 22% vs June. This is the primary data the operator has shared — all recommendations MUST be anchored to this 22% figure. For example: if June revenue is $X, August is $X × 0.78, so the cash reserve should cover at least the gap = $X × 0.22 × 2 months. Cost lines should be prioritized: variable costs first (vendor orders, hourly staffing), then semi-variable (marketing), then fixed last.]`,
         prompt: `Last August revenue dropped 22% compared to June. I want to prepare this year instead of scrambling. How much cash reserve should I hold going into summer? Which cost lines — staffing, marketing, vendor orders — should I trim first, and by how much?`,
         expectedFocus: ['reserve', 'summer', 'staffing', 'trim'],
+        mustReference: ['22%'],
     },
     {
         id: 'shrinkage-loss-benchmark',
@@ -1333,8 +1352,10 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'compliance',
         primaryAgent: 'deebo',
+        toolContext: `[NY privacy law applicability: (1) HIPAA does not apply to cannabis dispensaries — it covers healthcare providers, not retail cannabis. (2) NY SHIELD Act (2020) requires reasonable data security but does NOT give customers a mandatory right to access their own purchase data. (3) NY Cannabis Law §130 protects cannabis purchase data from disclosure to third parties (e.g., employers, insurers, law enforcement without a warrant) — but this is about restricting outbound disclosure, not mandating access. (4) There is no current NY state law requiring you to produce a customer's full purchase history on demand — this request is voluntary to fulfill. (5) Recommended action: confirm the customer's identity, produce what your POS can export, document the request in writing, and note that cannabis purchase records are confidential and not shared with third parties.]`,
         prompt: `A customer is asking for a complete copy of their purchase history — every transaction for the past 2 years. They mentioned something about HIPAA and their right to their data. What are my actual obligations under NY cannabis law and state privacy law to provide this? Is this a standard request I should fulfill immediately?`,
         expectedFocus: ['purchase history', 'privacy', 'data', 'NY'],
+        mustReference: ['HIPAA', 'voluntary'],
     },
 
     // ── Seasonal / Event Planning (6 cases) ───────────────────────────────
@@ -1353,8 +1374,10 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'inventory_promo',
         primaryAgent: 'money_mike',
+        toolContext: `[Calculation context: Normal weekly flower = 120 units. A 50% buffer = 60 extra units, bringing holiday order to 180 units. A 2-week holiday window with 50% uplift = 240 units needed (vs 240 normal). Given 45-day shelf life for flower and typical vendor lead time of 7–14 days, order placement should be 3 weeks before the holiday window begins (early December for Christmas). This avoids rush orders while staying within freshness window.]`,
         prompt: `Last Christmas week we ran out of our top 3 flower SKUs two days before December 25 and missed sales. This year I want to buffer properly. If our average weekly flower sales are 120 units, what percentage buffer should I order going into the holiday window, and how many weeks out should I place the order with vendors?`,
         expectedFocus: ['buffer', 'holiday', 'inventory', 'order'],
+        mustReference: ['120', 'weeks'],
     },
     {
         id: 'back-to-college-syracuse',
@@ -1389,8 +1412,11 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'marketing',
         primaryAgent: 'craig',
+        toolContext: `[No verified cannabis industry benchmarks for tax refund spending spikes are available. The agent should acknowledge this honestly — do NOT invent specific percentages (e.g., "25-40% revenue spike") or cite unverified "industry data". Instead, recommend the operator check their own POS history for Feb/March vs January, and suggest practical marketing tactics they can prepare regardless of whether the spike materializes.]`,
         prompt: `I have heard that cannabis dispensaries see a noticeable bump in February and March when people get tax refunds. Is this real? If so, what categories see the biggest lift — flower, concentrates, premium SKUs? How should I adjust purchasing and marketing for that window?`,
-        expectedFocus: ['tax refund', 'February', 'March', 'spending'],
+        expectedFocus: ['tax refund', 'February', 'March', 'your own data'],
+        mustNotContain: ['industry data shows', 'typically see a', 'research shows'],
+        mustReference: ['your own', 'POS', 'history'],
     },
 
     // ── Competitive Intelligence Edge Cases (6 cases) ─────────────────────
@@ -1427,8 +1453,10 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'compliance',
         primaryAgent: 'deebo',
+        toolContext: `[NY OCM complaint process: (1) OCM accepts complaints via their official website (cannabis.ny.gov) under the "File a Complaint" section — complaints can be filed anonymously or with contact info. (2) For advertising complaints, OCM's enforcement team reviews and may issue a Notice of Non-Compliance (NOC) to the offending licensee. (3) Risks of filing: filing a complaint is generally protected; there is no retaliatory filing rule. However, if your own advertising has borderline compliance issues, filing against a competitor may draw attention to your own social media — do a self-audit first. (4) What makes this a clear violation vs. borderline: showing product images + prices alone is generally permitted if age-gated. A discount offer ("20% off") can cross into violations if it appears to induce purchase. If the account is not age-gated, that's a separate clear violation. (5) Document the post with screenshots including the date and URL before filing — OCM may take weeks to act and the post could be deleted. (6) Strategic note: competitor complaints are legitimate and common; OCM does act on them. But the cleaner move is to ensure your own compliance is airtight before filing.]`,
         prompt: `A competing dispensary is running Instagram ads showing product photos with prices and what looks like a discount offer. Based on what I know about OCM advertising rules, this looks like a violation. Should I report them to OCM? What is the reporting process and are there any risks to us for filing a complaint?`,
         expectedFocus: ['OCM', 'report', 'violation', 'Instagram'],
+        mustReference: ['OCM', 'screenshot', 'complaint'],
     },
     {
         id: 'price-war-floor-price',
@@ -1513,6 +1541,7 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'multi_turn',
         threadType: 'compliance',
         primaryAgent: 'deebo',
+        toolContext: `[NY commercial auto insurance requirements for cannabis delivery: (1) Employer liability: under NY respondeat superior doctrine, if an employee causes an accident while acting within the scope of their employment (making a delivery), the employer is liable. This is not optional — it is NY common law. (2) Vehicle registration: delivery vehicles must be in the business name (or listed on a business commercial auto policy) — an employee's personal auto policy will typically deny a claim involving commercial cannabis delivery activity. (3) Required coverage: Commercial General Auto Liability, minimum $1M per occurrence for cannabis delivery (some OCM licenses require higher); cargo insurance covering cannabis product in transit (often $50K–$200K depending on delivery volume); Workers' Comp for the driver. (4) OCM requirement: proof of commercial auto insurance must be on file with OCM and listed on your delivery license — personal vehicle policies are specifically excluded. (5) Practical action steps: (a) title delivery vehicles in business name, (b) obtain commercial auto policy with cannabis rider, (c) add cargo insurance, (d) require drivers to carry proof of insurance in vehicle at all times for METRC manifest compliance.]`,
         history: [
             {
                 role: 'user',
@@ -1525,6 +1554,7 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         ],
         prompt: `Okay, so drivers have to be our employees — got it. But what if one of our delivery drivers gets into an accident while making a delivery and it is their fault? Are we liable as the employer? Should the vehicle be in Thrive's name or the employee's name, and what kind of commercial auto insurance do we need?`,
         expectedFocus: ['liability', 'insurance', 'commercial', 'vehicle'],
+        mustReference: ['commercial', 'liability', 'business'],
     },
     {
         id: 'multi-turn-q2-q3-projection',
@@ -1610,8 +1640,10 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'general',
         primaryAgent: 'smokey',
+        toolContext: `[Strain profiles (describe by aroma/flavor/occasion only — no effect claims): Wedding Cake (also called Pink Cookies): dominant terpenes typically caryophyllene, limonene, myrcene; aroma profile — sweet vanilla, earthy pepper, slight citrus; commonly associated with evening or unwinding occasions; typical THC range 22–26%. Gelato (GSC cross): dominant terpenes typically myrcene, caryophyllene, limonene; aroma — sweet citrus with earthy notes and hints of sherbet; typically associated with social or early-evening occasions; THC range 20–25%. Key differentiation talking point: Wedding Cake leans more toward earthy-herbal base notes, Gelato toward sweet-citrus. Customers who prefer dessert-type flavor profiles tend to gravitate toward Gelato; customers who prefer earthier profiles tend toward Wedding Cake. Both are popular for experienced users. Neither should be framed as "stronger" than the other — explain that terpene interaction matters more than THC percentage alone.]`,
         prompt: `A customer is choosing between Wedding Cake and Gelato. How do you explain the difference to help them decide — profile, experience characteristics, and which type of customer usually gravitates toward each?`,
         expectedFocus: ['Wedding Cake', 'Gelato', 'terpene', 'profile'],
+        mustReference: ['terpene', 'aroma'],
     },
     {
         id: 'smokey-indica-sativa-hybrid-modern',
@@ -1628,8 +1660,10 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'general',
         primaryAgent: 'smokey',
+        toolContext: `[Rosin vs. other concentrates — budtender talking points: Rosin is solventless — it is made by applying heat and pressure to cannabis flower or hash, squeezing out the oil with no chemicals involved. All other common concentrates (BHO wax, live resin, shatter, distillate) use a hydrocarbon or CO2 solvent that must then be purged from the final product. Why rosin costs more: lower yield per pound of input material (typically 10–25% for flower rosin vs. 60–80% for BHO), slower production process, and higher quality input material required. Conversation script example: "Rosin is made the same way you'd press a grape — just heat and pressure, nothing else. That means what's in the jar is exactly what was in the plant, terpenes and everything. Other concentrates use a solvent like butane that gets cleaned out, but rosin skips that step entirely. The trade-off is it costs more because you get less rosin out of the same amount of flower, and it takes a skilled tech to do it right. Customers who want the most direct representation of the plant's profile tend to prefer rosin."]`,
         prompt: `Customers keep asking why rosin is so much more expensive than other concentrates. How do we explain what rosin is, how it is made, and why the price premium is justified — all without using any medical language?`,
         expectedFocus: ['solventless', 'extraction', 'price', 'process'],
+        mustReference: ['solventless', 'yield'],
     },
     {
         id: 'smokey-first-time-user-guidance',
@@ -1666,9 +1700,11 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'general',
         primaryAgent: 'smokey',
+        toolContext: `[Compliance rule: Describe terpenes ONLY using aroma, flavor, and use-occasion language. NEVER claim terpenes produce effects like sedation, couch-lock, euphoria, alertness, mood-enhancement, or calming. Correct: "myrcene has an earthy, herbal aroma and is common in strains associated with evening occasions." Incorrect: "myrcene is sedating and causes couch-lock."]`,
         prompt: `A customer is reading the product label and wants to know what the terpene percentages mean. How would Smokey explain myrcene, limonene, and beta-pinene in plain language — what each one contributes to the product experience — without making any medical claims?`,
         expectedFocus: ['myrcene', 'limonene', 'pinene', 'aroma'],
-        mustNotContain: ['helps with', 'relieves', 'treats', 'symptom', 'condition', 'medical', 'therapeutic', 'anxiety', 'sleep', 'depression'],
+        mustNotContain: ['helps with', 'relieves', 'treats', 'symptom', 'condition', 'medical', 'therapeutic', 'anxiety', 'sleep', 'depression', 'sedating', 'couch-lock', 'mood-enhancing', 'alertness', 'energizing', 'calming', 'uplifting'],
+        mustReference: ['aroma', 'occasion'],
     },
     {
         id: 'smokey-live-resin-vs-cured-resin',
@@ -1714,9 +1750,11 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'general',
         primaryAgent: 'smokey',
+        toolContext: `[Microdosing talking points — compliant framing: A microdose is typically defined as 2.5mg THC or less per serving — the goal is a sub-perceptual or minimal-effect experience while still engaging. Best product formats for microdosing: (1) Low-dose edibles (2.5mg THC gummies or mints) — precise, consistent, discreet; (2) 1:1 CBD:THC products at low total THC — commonly 2.5–5mg THC with equal CBD; (3) Low-THC vape pens for more immediate onset with smaller doses. Compliant talking points: "Microdosing is about finding the lowest amount that gives you the kind of experience you're looking for, without going further than you want to go. A lot of customers start at 2.5mg and check in with themselves before taking more. It's a way to get familiar with how cannabis affects you specifically, without committing to a full standard dose." Do NOT: promise outcomes, claim it works for any condition, or imply it is safer or healthier than other doses. DO: mention 2.5mg as a common starting point, emphasize low-dose formats, recommend waiting 2 hours before considering more for edibles.]`,
         prompt: `We are getting more customers interested in micro-dosing. How does Smokey explain the concept of micro-dosing cannabis to a customer, what product formats work best for it, and what talking points keep the conversation legal and compliant?`,
         expectedFocus: ['micro-dose', 'low dose', '2.5mg', 'format'],
         mustNotContain: ['helps with', 'relieves', 'treats', 'symptom', 'condition', 'medical', 'therapeutic', 'anxiety', 'pain'],
+        mustReference: ['2.5', 'format'],
     },
     {
         id: 'smokey-full-spectrum-vs-isolate',
@@ -1744,8 +1782,10 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'general',
         primaryAgent: 'smokey',
+        toolContext: `[Hash rosin vs. flower rosin — technical talking points: Both are solventless (heat + pressure), but the input material differs. Flower rosin: pressed directly from cured or fresh-frozen flower. Yields are typically 10–25% of input weight. The result retains the strain's terpene profile and full spectrum of cannabinoids. Hash rosin: made by first creating ice water hash (bubble hash) or dry sift hash from the trichome heads, THEN pressing that hash with heat. Yields per pound of original flower are lower (~5–15%), but the concentrate is more refined — higher terpene concentration per gram, lighter color, cleaner flavor. Why collectors prefer hash rosin: the extra refinement step creates a more expressive terpene profile and smoother dab. Why it costs more: double the labor and skill required, lower overall yield from starting material. Budtender comparison script: "Both are solventless and made the same basic way — heat and pressure. The difference is flower rosin starts with the whole flower bud, while hash rosin starts with just the trichomes — the tiny resin glands that were separated off the bud first. You get a more refined, expressive concentrate with hash rosin, which is why it costs more. Think of it like making coffee vs. espresso — similar process, but one is a more concentrated extraction."]`,
         prompt: `A customer is comparing a hash rosin and a flower rosin product and wants to know if the price difference is real. How does Smokey explain what sets hash rosin apart from flower rosin — process, input material, yield, and why collectors prefer one over the other?`,
         expectedFocus: ['hash rosin', 'flower rosin', 'input', 'yield'],
+        mustReference: ['yield', 'terpene', 'trichome'],
     },
     {
         id: 'smokey-thca-flower',
@@ -1753,8 +1793,10 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'general',
         primaryAgent: 'smokey',
+        toolContext: `[THCA vs. THC — customer talking points: THCA (tetrahydrocannabinolic acid) is the raw, acidic form of THC found in the living plant. It is non-intoxicating in its raw form. When cannabis is smoked, vaped, or heated (decarboxylation), THCA converts to THC — the compound responsible for psychoactive effects. At a licensed NY dispensary, "THCA flower" is just dispensary flower labeled with its THCA content before decarboxylation. The THCA percentage on the label is effectively telling you the potential THC content when the product is heated. Budtender script: "THCA is what THC looks like before you heat it. The plant doesn't actually make THC directly — it makes THCA. When you smoke or vape it, the heat instantly converts THCA to THC. So when you see a flower with 25% THCA, that means it converts to close to 25% THC when you smoke it. At our dispensary, all the flower is lab-tested and licensed — THCA flower is just regular cannabis with the chemistry explained more accurately on the label. The experience when you consume it is the same as flower labeled by THC." Note: in the context of non-dispensary or hemp-derived "THCA flower" sold online, the legal status is different — but at a licensed dispensary, all flower is regulated cannabis.]`,
         prompt: `A customer picks up a THCA flower product and asks how it is different from regular dispensary flower. How does Smokey explain THCA vs. THC, decarboxylation, and what this means for the customer experience — without medical claims?`,
         expectedFocus: ['THCA', 'decarboxylation', 'heat', 'THC'],
+        mustReference: ['THCA', 'heat', 'convert'],
     },
     {
         id: 'smokey-distillate-vs-live-resin-cart',
@@ -1762,8 +1804,10 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'non_data',
         threadType: 'general',
         primaryAgent: 'smokey',
+        toolContext: `[Distillate vs. live resin carts — objective comparison for customer: Distillate: highly purified THC oil (often 85-95% THC), terpenes are stripped out during distillation and then re-added (often botanically-derived terpenes, not from the original plant). Consistent, clean, and usually the lowest price per mg THC. Live resin: made from fresh-frozen cannabis, preserving the original terpene profile of the live plant before drying changes it. Lower THC by percentage but more complex and authentic flavor. Higher price because of more complex extraction. Budtender script: "Distillate is the straightforward choice — it's consistent, clean, and the most affordable. Live resin costs more but brings along the natural terpene profile from the original plant, which gives it a more complex flavor. For customers who care about the flavor experience and want something closer to flower, live resin is worth the premium. For customers who want consistent, predictable THC at a good price, distillate gets the job done." Neither is objectively 'better' — it's about what the customer values: price, flavor complexity, or consistency.]`,
         prompt: `Customer asks: "My budtender recommended a live resin cart but distillate is cheaper — which is actually better for me?" How does Smokey walk through the differences objectively so the customer can choose based on their preferences and budget?`,
         expectedFocus: ['distillate', 'live resin', 'terpene', 'price'],
+        mustReference: ['distillate', 'live resin', 'terpene'],
     },
     {
         id: 'smokey-topicals-transdermal',
@@ -1791,6 +1835,7 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         kind: 'multi_turn',
         threadType: 'general',
         primaryAgent: 'smokey',
+        toolContext: `[Compliant recommendations for "social" occasion: For a customer transitioning from an indica they loved to something with a more social/daytime character, recommend hybrids with a limonene or pinene terpene profile — these strains tend to have brighter citrus/pine aroma associated with daytime and social occasions. Avoid purely myrcene-dominant strains (earthy/herbal, often evening-associated). Specific framing: (a) Hybrid flower with caryophyllene + limonene terpene profile — bridges familiar smoothness with a brighter character; (b) Low-dose pre-roll (1g or less) for social settings — manageable and familiar format; (c) 2:1 CBD:THC tincture for customers who want a lighter, more controlled experience at social events. Compliant talking points: "For gatherings, a lot of customers like to go with a hybrid that has a lighter, citrusy aroma profile — it tends to pair well with social settings. We have a few options that should feel familiar to what you liked before but with a different character. I'd also suggest starting with a smaller amount if it's a new strain for you, especially at an event." NEVER say "more energizing" or "more social" in a causal sense — say "often preferred for daytime or social occasions."]`,
         history: [
             { role: 'user', content: 'A regular customer says they bought an indica last week and absolutely loved it — they said it was smooth and easy.' },
             { role: 'assistant', content: 'Good to hear — knowing they enjoyed the indica gives us a solid baseline. We can look at hybrids with a similar terpene base that lean a bit more uplifting without losing that smoothness.' },
@@ -1798,6 +1843,7 @@ It is now 2 PM. Based on what I have, is today tracking above or below a normal 
         prompt: `They just came back and said they want "something similar but a little more social — like something I could use at a gathering." What strains or product types does Smokey recommend, and what talking points keep this compliant?`,
         expectedFocus: ['hybrid', 'social', 'terpene', 'uplifting'],
         mustNotContain: ['helps with', 'relieves', 'treats', 'symptom', 'condition', 'medical', 'therapeutic', 'anxiety', 'depression'],
+        mustReference: ['terpene', 'occasion'],
     },
 
     // ─── MRS. PARKER — RETENTION & CRM (20 CASES) ──────────────────────────────
@@ -2267,8 +2313,10 @@ What are the most likely drivers of that 3x gap and what data should I pull to d
         kind: 'non_data',
         threadType: 'inventory_promo',
         primaryAgent: 'money_mike',
+        toolContext: `[NY METRC Transfer Protocol: In New York, licensed retail locations CANNOT directly transfer inventory between retail locations — transfers must flow through a licensed distributor or the brand's licensed processor/distributor entity. The retail licensee must: (1) create a METRC "Package Transfer" under the correct license type, (2) the transfer must be accompanied by a METRC manifest, (3) both locations must be on the same METRC license or a new wholesale transfer transaction is required. Without a distributor license, a retail-to-retail transfer is a compliance violation. The operator should consult their OCM compliance contact or licensed distributor before proceeding.]`,
         prompt: `We have 30 units of a slow-moving SKU sitting at Location A — it has not moved in 45 days. Location B is selling that same SKU at twice the velocity. Can we physically transfer those 30 units from Location A to Location B? What does that process look like in NY from a Metrc and compliance standpoint?`,
         expectedFocus: ['transfer', 'Metrc', 'compliance', 'NY'],
+        mustReference: ['METRC', 'manifest', 'distributor'],
     },
     {
         id: 'multi-loc-staff-sharing',
@@ -2294,12 +2342,15 @@ What are the most likely drivers of that 3x gap and what data should I pull to d
         kind: 'data',
         threadType: 'performance',
         primaryAgent: 'pops',
+        toolContext: `[Data grounding rule: Only use the numbers provided — $28,400 total, Location A $18,600 (418 tx, avg $44.50), Location B $9,800 (198 tx, avg $49.49). Do NOT invent comparison data, YoY growth percentages, or benchmarks not provided. Location B has higher avg ticket ($49.49 vs $44.50) despite lower volume — this is a notable narrative point. Ownership questions will likely focus on: why Location B volume is lower, whether avg ticket advantage at B is sustainable, and what the combined trajectory looks like.]`,
         prompt: `This week we did $28,400 combined across 2 locations:
 - Location A: $18,600 (418 transactions, avg ticket $44.50)
 - Location B: $9,800 (198 transactions, avg ticket $49.49)
 
 I need to present this to ownership tomorrow. How do I frame it — what is the headline number, what is the narrative, and what three questions should I expect from ownership?`,
         expectedFocus: ['$28,400', 'ownership', 'narrative', 'headline'],
+        mustReference: ['$18,600', '$9,800', '$44.50'],
+        mustNotContain: ['15.2%'],
     },
     {
         id: 'multi-loc-ticket-gap',
@@ -2315,11 +2366,13 @@ What are the most likely explanations — upsell training, floor layout, budtend
     {
         id: 'multi-loc-seed-location-c',
         title: 'Grand opening of Location C — seed inventory from Location A/B history',
-        kind: 'non_data',
+        kind: 'data',
         threadType: 'inventory_promo',
         primaryAgent: 'money_mike',
+        toolContext: `[Location A/B performance data: Location A weekly revenue $18,600, avg ticket $44.50, top categories by revenue: Flower 42%, Vape 28%, Edibles 18%, Concentrate 8%, Pre-Roll 4%. Location B weekly revenue $9,800, avg ticket $49.49, top categories: Concentrate 31%, Flower 38%, Vape 22%, Edibles 7%, Pre-Roll 2%. Location B has higher concentrate mix, suggesting premium/concentrate-forward customer base. New location opening inventory benchmark: 60–80 active SKUs, $25–40K in opening inventory, 30-day buffer at expected 50% of Location A volume ($9,300/week = $37,200/month).]`,
         prompt: `We are opening Location C next month. Based on what we know from Location A and Location B, what product mix should we open with? Specifically: how many SKUs, which categories to over-index on, how much opening inventory in dollars, and what does a 30-day sell-through buffer look like for a new location?`,
         expectedFocus: ['opening', 'SKU', 'inventory', 'buffer'],
+        mustReference: ['Location A', 'Location B'],
     },
     {
         id: 'multi-loc-loyalty-cross-location',
@@ -2401,8 +2454,10 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'compliance',
         primaryAgent: 'deebo',
+        toolContext: `[NY cannabis delivery for an NYC dispensary: (1) Licensed NY retailers can deliver under their existing retail license — no separate delivery license required. (2) All deliveries must be tracked in METRC with a delivery manifest; drivers must have OCM background checks; delivery vehicles must be registered on the license; signature required at delivery. (3) Manhattan logistics are more complex than suburban delivery: parking enforcement, doorman buildings, elevator time — average 20–45 min per delivery vs. 5–10 min suburban. (4) Commercially viable for an NYC dispensary with dedicated delivery staff and vehicles — minimum 2 vehicles and 3 drivers for meaningful Manhattan coverage.]`,
         prompt: `Customers are asking if Ecstatic delivers in Manhattan. Is cannabis delivery actually viable in a dense urban market like Manhattan? What are the specific logistical challenges — traffic, building access, doorman buildings, elevator time? And what does the NY delivery license process look like for an NYC location?`,
-        expectedFocus: ['delivery', 'Manhattan', 'logistics', 'license'],
+        expectedFocus: ['delivery', 'Manhattan', 'METRC', 'license', 'driver'],
+        mustReference: ['METRC', 'manifest', 'viable'],
     },
     {
         id: 'ecstatic-instagram-strategy',
@@ -2428,8 +2483,10 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'inventory_promo',
         primaryAgent: 'money_mike',
+        toolContext: `[Event context: NYC key tourist spikes — NYE (Dec 28–Jan 2), NY Fashion Week (Feb 7–12 and Sept 4–11), NYC Pride (June, week of parade), and summer tourist season (July–August). Tourist traffic tends to skew toward premium SKUs, gifting-friendly packaging, and convenience formats (pre-rolls, edibles). Lead times: most NY cannabis distributors are 5–14 days. For events, order 3 weeks before event window with a 30–40% volume buffer and a firm cancel/credit policy with vendor if traffic underdelivers.]`,
         prompt: `NYC has massive tourist spikes around NYE, Fashion Week, Pride, and other events. How should Ecstatic plan inventory around these windows? Which product categories spike most with tourist/event traffic? What lead time do we need for extra stock and how do we avoid over-ordering for an event that may not deliver the expected traffic?`,
-        expectedFocus: ['NYE', 'tourist', 'inventory', 'event'],
+        expectedFocus: ['NYE', 'Fashion Week', 'Pride', 'lead time'],
+        mustReference: ['NYE', 'Fashion Week', 'Pride'],
     },
     {
         id: 'ecstatic-price-point-strategy',
@@ -2456,8 +2513,10 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'operator',
         primaryAgent: 'deebo',
+        toolContext: `[NY OCM NOC response protocol: Notices of Non-Compliance (NOC) require a written response within the stated timeframe (typically 15 days). Response must include: (1) acknowledgment of the notice, (2) explanation of the circumstances, (3) documentation of immediate remediation taken (e.g., post removed within X hours), (4) a corrective action plan with specific timeline. First-offense advertising violations typically result in a Warning or a civil penalty of $500–$5,000 depending on severity. A discount post showing a price ("20% off") may violate OCM's rules against advertising that could be interpreted as inducing consumption or making price-based appeals — though it depends on the exact content and whether age-gating was in place. A cannabis attorney should review the NOC text before responding. Proactive steps: remove the post immediately, document when it was removed, screenshot the OCM notice, and engage a cannabis attorney within 48 hours.]`,
         prompt: `We received an OCM Notice of Non-Compliance today. It cites our Instagram post from last week showing a product discount ("Purple Punch 20% off") as a violation of NY advertising rules. We have 15 days to respond. What should our response include, do we need a lawyer, what remediation steps do we take immediately, and what are the likely penalty ranges for a first offense?`,
-        expectedFocus: ['OCM', 'advertising', 'response', 'violation', 'penalty', 'remediation', 'lawyer'],
+        expectedFocus: ['OCM', 'advertising', 'response', 'violation', 'penalty', 'remediation', 'attorney'],
+        mustReference: ['OCM', 'attorney', 'corrective'],
     },
     {
         id: 'regulator-metrc-physical-audit',
@@ -2510,8 +2569,10 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'operator',
         primaryAgent: 'deebo',
+        toolContext: `[NY OCM "appealing to minors" standard: Under NY Cannabis Law §128 and OCM advertising regulations, content "appeals to minors" if it uses cartoon-like imagery, bright colors or designs with youth appeal, characters or imagery associated with child products, or depictions suggesting cannabis is fun/desirable for youth. Abstract cannabis leaf graphics in a branded adult design generally do not meet this standard — the test is whether a reasonable person would believe the imagery targets youth. OCM complaint process: OCM will notify the licensee of the complaint and provide an opportunity to respond. Response should: (1) include documentation of the signage (photos, design files), (2) explain the adult-oriented branding rationale, (3) provide comparables showing this is standard adult cannabis branding. Proactive modification: while not legally required, voluntarily modifying signage while the inquiry is open shows good faith and can reduce penalty risk. Consult a cannabis attorney before making formal commitments in any OCM response.]`,
         prompt: `A competitor dispensary filed a complaint with OCM claiming our window signage contains product images that appeal to minors. OCM has opened an inquiry. Our signage shows stylized cannabis leaf graphics in a branded design. What is the standard for "appealing to minors" in NY, how do we prepare our response, and should we proactively modify the signage during the inquiry?`,
-        expectedFocus: ['OCM', 'complaint', 'minors', 'signage', 'advertising', 'inquiry', 'response'],
+        expectedFocus: ['OCM', 'minors', 'signage', 'inquiry', 'response', 'standard'],
+        mustReference: ['OCM', 'minors', 'attorney'],
     },
     // CATEGORY B: Financial Compliance (8 cases)
     {
@@ -2538,8 +2599,10 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'operator',
         primaryAgent: 'deebo',
+        toolContext: `[Cannabis banking alternatives in NY: (1) Cannabis-friendly credit unions: SAFE Banking Act advocacy has led some credit unions and state-chartered banks to serve cannabis licensees — NY examples include Partner Colorado Credit Union, Canna-Hub Financial, and some community banks willing to work with licensed NY operators. (2) Cash management processors: companies like Hypur, PaySign, and CanPay offer point-of-sale cashless debit or ACH solutions that some vendors accept. (3) The $340,000 cash requires: daily reconciliation logs, armored car pickup schedule, vault insurance review, and CTR filings for any cash transactions over $10,000. (4) Regulatory reporting: no specific NY OCM reporting requirement for unbanked cash, but all cash transactions must be documented in METRC and tax records. Vendor payments over $10k in cash require IRS Form 8300 filing within 15 days.]`,
         prompt: `Our bank just closed our business account with 30 days notice, citing "reputational risk." This is our second closure in 18 months. We have $340,000 in vault cash and weekly vendor payments to make. What legitimate banking alternatives exist for cannabis retailers, what cash management protocols are required, and what regulatory reporting applies to our cash-intensive operation?`,
-        expectedFocus: ['banking', 'cash', 'account closure', 'cannabis', 'vault', 'alternatives', 'compliance'],
+        expectedFocus: ['banking', 'cash', 'alternatives', 'vault', 'compliance', 'reporting'],
+        mustReference: ['$340,000', 'cash', 'alternative'],
     },
     {
         id: 'finance-cogs-allocation-strategy',
@@ -2583,8 +2646,10 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'operator',
         primaryAgent: 'deebo',
+        toolContext: `[IRS underpayment penalty structure (280E context): Under IRC §6654, the underpayment penalty is calculated at the federal short-term rate + 3% (currently ~8% annualized) on the amount underpaid, prorated for the days late. At 60 days overdue, this is approximately 8% × (60/365) × tax owed ≈ 1.3% of the overdue amount. Making the Q2 payment today stops further penalty accrual from today. Safe harbor calculation: cannabis businesses under 280E can use the "100% of prior year tax" safe harbor — pay at least 100% of last year's total tax liability in quarterly installments (25% each quarter) to avoid underpayment penalties. If gross revenue exceeds $1M, the threshold is 110% of prior year tax. A cannabis CPA should calculate the exact Q2 underpayment based on actual tax liability, not gross profit, since 280E allows COGS deduction which reduces the taxable base below gross profit.]`,
         prompt: `We missed our Q2 federal estimated tax payment and it is now 60 days overdue. Under 280E, our effective federal tax rate is around 70% of gross profit. The IRS has underpayment penalties. What is the penalty for missing a quarterly estimated payment as a cannabis business, can we pay the overdue amount now to limit penalties, and what is the safe harbor calculation to avoid underpayment penalties going forward?`,
         expectedFocus: ['280E', 'estimated tax', 'penalty', 'quarterly', 'IRS', 'safe harbor', 'underpayment'],
+        mustReference: ['safe harbor', 'CPA', 'penalty'],
     },
     // CATEGORY C: Crisis Management (8 cases)
     {
@@ -2638,8 +2703,10 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'operator',
         primaryAgent: 'deebo',
+        toolContext: `[4-hour response protocol for viral regulatory exposure: (1) Immediate (0–30 min): screenshot and preserve the TikTok post with URL and view count. Lock the METRC terminal immediately — unattended unlocked METRC terminals are an OCM compliance violation. Identify who was in the video and place them on administrative leave pending investigation. (2) 30–60 min: contact your cannabis attorney. Do NOT post any public response without legal review. (3) 1–2 hours: assess the two regulatory exposures shown — unlocked METRC terminal (reportable process failure) and smoking on premises (OCM personnel policies violation). Prepare an internal incident report documenting: what happened, when, remediation steps taken. (4) 2–4 hours: proactive OCM contact — YES, proactively contact OCM before they contact you. Call the OCM compliance hotline and report you are aware of the video and have taken immediate remediation steps. Proactive self-disclosure shows good faith and typically reduces penalty severity. (5) Legal action against former employee: potential claims are defamation (if false statements made), trade secret theft (if internal operational footage is proprietary), and tortious interference. However, NY Labor Law §215 whistleblower protections apply if the employee was reporting a genuine legal violation — evaluate this carefully with counsel before pursuing any legal action.]`,
         prompt: `A disgruntled former employee posted a TikTok video (now at 200,000 views) showing our back-of-house operations including what appears to be an unlocked METRC terminal and staff smoking on the premises. OCM has been tagged in replies. What do we do in the next 4 hours, do we need to proactively contact OCM before they contact us, and what legal action can we take against the former employee?`,
         expectedFocus: ['social media', 'OCM', 'proactive', 'response', 'legal', 'former employee', 'reputation'],
+        mustReference: ['OCM', 'proactive', 'attorney'],
     },
     {
         id: 'crisis-data-breach-customer-pos',
@@ -2693,8 +2760,10 @@ What are the most likely explanations — upsell training, floor layout, budtend
         kind: 'non_data',
         threadType: 'operator',
         primaryAgent: 'deebo',
+        toolContext: `[NY Abandoned Property Law (NYABL) — gift card escheatment: (1) NY Abandoned Property Law §§501-502 applies to unredeemed gift cards issued by NY businesses — cannabis dispensaries are covered as retail businesses. (2) Dormancy period: gift card balances are considered abandoned after 5 years of inactivity (no redemption, no customer contact). The 5-year clock typically starts from the last transaction or card issuance, whichever is later. (3) Reporting and remittance: annually by March 10, businesses must file an abandoned property report with the NYS Office of the State Comptroller (OSC) and remit the funds. Failure to report carries penalties of up to $500/day per unreported item. (4) Dormancy fees: NY Cannabis Law does not address gift card dormancy fees, but NYS Banking Law and the NYABL generally permit dormancy fees ONLY if disclosed at time of sale and after 12 months of inactivity — fees cannot reduce balance to zero. (5) Practical exposure for $95K balance: the 3-year-old cards are not yet escheat-eligible (need 5 years), but you should identify which cards are approaching 4–5 years and begin outreach to customers. (6) Record keeping: maintain purchase date, last redemption date, and customer contact info for every card — this is required for the annual report.]`,
         prompt: `We have $95,000 in unredeemed gift card balances on our books from the past 3 years. Our accountant mentioned something about "escheatment" — turning unclaimed property over to the state. Does New York's unclaimed property law apply to cannabis dispensary gift cards, what is the dormancy period before funds must be remitted to the state, and can we charge dormancy fees to reduce the liability?`,
         expectedFocus: ['gift card', 'escheatment', 'unclaimed property', 'NY', 'dormancy', 'state', 'liability'],
+        mustReference: ['5 year', 'Comptroller', 'report'],
     },
     {
         id: 'ops-employee-cannabis-use-positive-test',
