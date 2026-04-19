@@ -2,17 +2,17 @@
  * Health Alert Notification Service
  *
  * Sends email notifications when system health thresholds are breached.
- * Uses Mailjet (already configured in the project).
+ * Routes through AWS SES dispatcher (same as all platform email).
  */
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import type { SystemHealthAlert, AlertThresholdConfig } from '@/types/system-health';
 import { HEALTH_THRESHOLDS } from '@/types/system-health';
+import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { logger } from '@/lib/logger';
 
-const MAILJET_API_KEY = process.env.MAILJET_API_KEY;
-const MAILJET_SECRET_KEY = process.env.MAILJET_SECRET_KEY;
-const ALERT_COOLDOWN_MINUTES = 30; // Don't re-send same alert within 30 mins
+const ALERT_COOLDOWN_MINUTES = 30;
 
 /**
  * Send email notification for critical/warning alerts
@@ -21,8 +21,7 @@ export async function sendAlertNotification(
   alert: SystemHealthAlert,
   recipients: string[]
 ): Promise<boolean> {
-  if (!MAILJET_API_KEY || !MAILJET_SECRET_KEY || recipients.length === 0) {
-    console.log('[HealthAlerts] Email not configured, skipping notification');
+  if (recipients.length === 0) {
     return false;
   }
 
@@ -39,7 +38,7 @@ export async function sendAlertNotification(
     .get();
 
   if (!recentAlert.empty) {
-    console.log(`[HealthAlerts] Alert ${cooldownKey} on cooldown, skipping`);
+    logger.info(`[HealthAlerts] Alert ${cooldownKey} on cooldown, skipping`);
     return false;
   }
 
@@ -85,28 +84,21 @@ export async function sendAlertNotification(
   `;
 
   try {
-    const response = await fetch('https://api.mailjet.com/v3.1/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + Buffer.from(`${MAILJET_API_KEY}:${MAILJET_SECRET_KEY}`).toString('base64'),
-      },
-      body: JSON.stringify({
-        Messages: [{
-          From: { Email: 'alerts@bakedbot.ai', Name: 'BakedBot System Alerts' },
-          To: recipients.map(email => ({ Email: email })),
-          Subject: subject,
-          HTMLPart: htmlBody,
-        }],
-      }),
-    });
+    // Send to each recipient via SES dispatcher
+    const results = await Promise.all(
+      recipients.map(email =>
+        sendGenericEmail({ to: email, subject, htmlBody, communicationType: 'transactional' })
+      )
+    );
 
-    if (!response.ok) {
-      console.error('[HealthAlerts] Mailjet error:', response.status);
-      return false;
+    const failed = results.filter(r => !r.success);
+    if (failed.length > 0) {
+      logger.error('[HealthAlerts] Some recipients failed', { failed: failed.map(r => r.error) });
     }
 
-    // Log the alert
+    const sent = results.filter(r => r.success).length;
+    if (sent === 0) return false;
+
     await db.collection('health_alert_log').add({
       cooldownKey,
       alertType: alert.type,
@@ -116,10 +108,10 @@ export async function sendAlertNotification(
       sentAt: Timestamp.fromDate(new Date()),
     });
 
-    console.log(`[HealthAlerts] Alert sent to ${recipients.length} recipients: ${cooldownKey}`);
+    logger.info(`[HealthAlerts] Alert sent to ${sent}/${recipients.length} recipients: ${cooldownKey}`);
     return true;
   } catch (error) {
-    console.error('[HealthAlerts] Failed to send email:', error);
+    logger.error('[HealthAlerts] Failed to send alert', { error: String(error) });
     return false;
   }
 }

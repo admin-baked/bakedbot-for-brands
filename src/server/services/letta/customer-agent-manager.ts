@@ -3,7 +3,7 @@ import { lettaClient } from '@/server/services/letta/client';
 import { LettaAgent } from '@/server/services/letta/client';
 import { createServerClient } from '@/firebase/server-client';
 import { deebo } from '@/server/agents/deebo';
-import { sendGenericEmail } from '@/lib/email/mailjet';
+import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { extractJsonPayload } from '@/lib/utils/extract-json';
 import { ragService } from '@/server/services/vector-search/rag-service';
 
