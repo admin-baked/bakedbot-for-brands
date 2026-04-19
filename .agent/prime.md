@@ -51,8 +51,8 @@ Agent IDs: `claude` | `codex` | `gemini` | `linus`
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Thrive go-live; kiosk logo fallback + public URL fix deployed
-**Recent work (2026-04-19):** `5c0cdea18` kiosk logo onError fallback + brand-asset-uploader public URL fix
+**Current Status:** 🟢 main green | Stress test toolContexts 550+ lines richer; simplify-guard ENOBUFS fix; Gmail token needs reconnect
+**Recent work (2026-04-19):** `1192d5bf2` inbox+Elroy toolContext depth; `4b68bf675` simplify-guard 128MB maxBuffer
 
 ---
 
