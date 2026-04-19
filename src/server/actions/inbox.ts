@@ -564,7 +564,7 @@ export async function deleteInboxThread(
 export async function createInboxArtifact(input: {
     threadId: string;
     type: InboxArtifactType;
-    data: Carousel | BundleDeal | CreativeContent | ResearchReportArtifactData | VmRunArtifactData;
+    data: Carousel | BundleDeal | CreativeContent | ResearchReportArtifactData | VmRunArtifactData | Record<string, unknown>;
     rationale?: string;
 }): Promise<{ success: boolean; artifact?: InboxArtifact; error?: string }> {
     try {
