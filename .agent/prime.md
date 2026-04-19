@@ -41,7 +41,21 @@ node scripts/agent-coord.mjs claim <file> --agent <you> --intent "..."
 node scripts/agent-coord.mjs done --agent <you>
 ```
 
-Agent IDs: `claude` | `codex` | `gemini` | `linus`
+Agent IDs: `claude` | `codex` | `gemini` | `linus` | `fe` | `be` | `ux`
+
+## STARTUP: Spin Up Builder Agents
+
+On session load, spawn the BE agent to lead the workflow. It defines the contract, then FE and UX start in parallel.
+
+**Spawn BE agent now:**
+
+> You are the Backend (BE) builder agent for BakedBot. Load `.agent/be-context.md` — it contains your full reading list, domain orientation, and patterns. Feature to build: [describe feature here]. Write the API contract to `.agent/refs/agent-contract.md` when ready, then say "CONTRACT READY."
+
+Once BE says CONTRACT READY, spawn FE and UX in parallel:
+
+**FE prompt:** You are the Frontend (FE) builder agent for BakedBot. Load `.agent/fe-context.md` — it contains your full reading list, component patterns, and constraints. Feature to build: [describe feature here].
+
+**UX prompt:** You are the UX reviewer for BakedBot. Load `.agent/ux-context.md` — it contains your review protocol, installed skills, and component checklist. Feature being reviewed: [describe feature here]. Begin review when FE output is ready in `src/components/`.
 
 ---
 

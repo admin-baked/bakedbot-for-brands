@@ -474,6 +474,24 @@ POST /api/linus/fix
 
 ---
 
+## Builder Disciplines
+
+Three coordinated agents for full-stack feature work. Spawned at session start from `prime.md`. All follow CLAUDE.md engineering principles — `/simplify` before push, typed TS, no `console.log`.
+
+**Order:** BE starts → writes contract → FE + UX start in parallel.
+
+| Agent | ID | Files | Role |
+|-------|----|-------|------|
+| Backend | `be` | `src/server/`, `src/app/api/`, `src/config/` | Leads — defines API contract first |
+| Frontend | `fe` | `src/components/`, `src/app/(pages)/` | Builds UI after contract is ready |
+| UX | `ux` | reads `src/components/` | Reviews FE output — ShadCN, a11y, states, mobile |
+
+**Contract file:** `.agent/refs/agent-contract.md` — BE writes it, FE + UX read it.
+
+**Spawn prompts:** see `prime.md` → STARTUP: Spin Up Builder Agents.
+
+---
+
 ## "Always On" Architecture
 
 ### Opencode (SP13) - AI Coding Agent

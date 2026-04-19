@@ -43,6 +43,7 @@ export default async function DispensaryNearZipPage(
         fetchBrandPageData(brandSlug),
         getBrandPageBySlug(brandSlug, 'locations'),
     ]);
+    if (!brand) notFound();
     const locData = pageContent?.locationsContent;
     const primaryLoc = locData?.locations?.[0] ?? null;
 

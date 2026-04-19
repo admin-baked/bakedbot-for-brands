@@ -417,6 +417,18 @@ These agents write and ship code in this repo. All follow the same `/simplify` +
 
 > When Codex or Gemini complete a coding session, they must run `/simplify` before pushing and update `CLAUDE.md` line 15 + `prime.md` recent work block. Memory archive auto-runs if MEMORY.md > 150 lines.
 
+### Builder Discipline Agents (Coordinated 3-Agent Pattern)
+
+Spin up when a feature needs parallel FE + BE + UX work. All use `agent-coord.mjs` for file locking.
+
+| Agent ID | Discipline | File Domain | Coordination Role |
+|----------|------------|-------------|-------------------|
+| `be` | Backend | `src/server/`, `src/app/api/`, `src/config/` | Writes API contract first — unblocks FE + UX |
+| `fe` | Frontend | `src/components/`, `src/app/(pages)/` | Starts after BE contract is published |
+| `ux` | UX Review | `.agent/refs/ux-specs/` (read-only on src/) | Reviews FE output before merge |
+
+**Contract-first rule:** `be` must publish `.agent/refs/agent-contract.md` and broadcast via `agent-coord.mjs message` before `fe` or `ux` start. Full protocol + startup commands: `.agent/refs/agents.md` → Builder Disciplines.
+
 ---
 
 ## Key Files
