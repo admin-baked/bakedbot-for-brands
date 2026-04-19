@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Check-in audit: 5 critical bugs + 11 WCAG a11y fixes; 3-agent builder workflow live
-**Recent work (2026-04-19):** `9ef66a10e` check-in critical bugs + a11y; `8270bed2f` simplify + agent context files
+**Current Status:** 🟢 main green | Check-in production audit: visitId/transaction/Alleaves queue/playbook-assignment-service + UX fixes
+**Recent work (2026-04-19):** `b659f3b21` BE audit fixes; `8c1dd124b` playbook-assignment-service + Deebo gate
 
 ---
 
