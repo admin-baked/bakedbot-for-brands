@@ -21,10 +21,19 @@ import type { AgentResult } from './rtrvr/agent';
  * - Extract: LLM-based structured data extraction (Firecrawl → RTRVR fallback)
  * - Agent: Autonomous multi-page research via Firecrawl /agent (Spark models)
  */
+// Minimum credits to keep in reserve before routing to Jina instead of Firecrawl.
+// Override via FIRECRAWL_CREDIT_RESERVE env var (default 300).
+const CREDIT_RESERVE = parseInt(process.env.FIRECRAWL_CREDIT_RESERVE ?? '300', 10);
+// How long to cache the credit balance check (ms). Avoids hammering the billing API.
+const CREDIT_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
 export class DiscoveryService {
     private app: FirecrawlApp | null = null;
     private readonly apiKey: string | null = null;
     private static instance: DiscoveryService;
+
+    // In-memory credit cache — shared across requests within the same server process.
+    private creditCache: { remaining: number; fetchedAt: number } | null = null;
 
     private constructor() {
         const firecrawlKey = process.env.FIRECRAWL_API_KEY;
@@ -41,7 +50,8 @@ export class DiscoveryService {
             jinaAvailable: true, // always available; key optional (100 RPM with key, 20 without)
             jinaKeyConfigured: !!jinaKey,
             rtrvrAvailable: this.isRTRVRAvailable(),
-            rtrvrKeyLength: rtrvrKey?.length || 0
+            rtrvrKeyLength: rtrvrKey?.length || 0,
+            creditReserve: CREDIT_RESERVE,
         });
     }
 
@@ -62,6 +72,49 @@ export class DiscoveryService {
 
     private isRTRVRAvailable(): boolean {
         return getRTRVRClient().isAvailable();
+    }
+
+    /**
+     * Returns remaining Firecrawl credits (cached 10 min).
+     * Returns Infinity when key is not configured so callers don't need to guard.
+     */
+    public async getRemainingCredits(): Promise<number> {
+        if (!this.apiKey) return Infinity;
+        const now = Date.now();
+        if (this.creditCache && now - this.creditCache.fetchedAt < CREDIT_CACHE_TTL_MS) {
+            return this.creditCache.remaining;
+        }
+        try {
+            const res = await fetch('https://api.firecrawl.dev/v2/team/credit-usage', {
+                headers: { Authorization: `Bearer ${this.apiKey}` },
+                signal: AbortSignal.timeout(5000),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json() as { data?: { remainingCredits?: number } };
+            const remaining = data.data?.remainingCredits ?? 0;
+            this.creditCache = { remaining, fetchedAt: now };
+            logger.info('[Discovery] Firecrawl credit check', { remaining, reserve: CREDIT_RESERVE });
+            return remaining;
+        } catch (err: any) {
+            logger.warn('[Discovery] Credit check failed — assuming budgeted', { error: err.message });
+            return this.creditCache?.remaining ?? 0;
+        }
+    }
+
+    /**
+     * Returns false when Firecrawl is available but below the credit reserve threshold.
+     * Use this before expensive bulk operations to decide whether to skip Firecrawl.
+     */
+    public async hasCreditBudget(needed = 1): Promise<boolean> {
+        if (!this.isFirecrawlAvailable()) return false;
+        const remaining = await this.getRemainingCredits();
+        const ok = remaining >= CREDIT_RESERVE + needed;
+        if (!ok) {
+            logger.warn('[Discovery] Firecrawl credit budget exhausted — routing to Jina', {
+                remaining, reserve: CREDIT_RESERVE, needed,
+            });
+        }
+        return ok;
     }
 
     /**
@@ -136,7 +189,7 @@ export class DiscoveryService {
         let firecrawlFallback: any = null;
 
         // ── 1. Firecrawl (primary — JS rendering, best quality) ───────────────
-        if (this.isFirecrawlAvailable()) {
+        if (await this.hasCreditBudget()) {
             try {
                 const response = await this.app!.scrape(url, { formats }) as any;
                 if (!response.success) throw new Error(`Firecrawl failed: ${response.error}`);
@@ -220,7 +273,7 @@ export class DiscoveryService {
      * Falls back to RTRVR if Firecrawl is unavailable
      */
     public async discoverWithActions(url: string, actions: any[]) {
-        if (this.isFirecrawlAvailable()) {
+        if (await this.hasCreditBudget()) {
             try {
                 // @ts-ignore - Actions are supported in API but strictly typed in some SDK versions
                 const response = await this.app!.scrape(url, {

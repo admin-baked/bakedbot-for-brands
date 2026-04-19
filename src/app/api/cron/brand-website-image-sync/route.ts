@@ -31,6 +31,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { runBrandWebsiteImageSync } from '@/server/services/product-images/brand-website-image-sync';
+import { DiscoveryService } from '@/server/services/firecrawl';
 import { logger } from '@/lib/logger';
 
 export const maxDuration = 300; // 5 minutes
@@ -56,17 +57,31 @@ export async function POST(request: NextRequest) {
         // body is optional
     }
 
-    const { brandSlug, dryRun = false, maxBrands, retailerId } = body;
+    const { brandSlug, dryRun = false, retailerId } = body;
+
+    // Credit pre-flight: each brand costs ~5 credits (1 search + up to 4 page scrapes).
+    // Cap brands processed so we keep 300 credits in reserve.
+    const discovery = DiscoveryService.getInstance();
+    const remaining = await discovery.getRemainingCredits();
+    const creditCappedMax = Math.max(0, Math.floor((remaining - 300) / 5));
+    const maxBrands = body.maxBrands !== undefined
+        ? Math.min(body.maxBrands, creditCappedMax)
+        : creditCappedMax;
+
+    if (maxBrands === 0 && !dryRun) {
+        logger.warn('[BrandImgSyncCron] Skipping — Firecrawl credits too low', { remaining });
+        return NextResponse.json({ success: true, skipped: true, reason: 'insufficient_credits', remaining });
+    }
 
     try {
         logger.info('[BrandImgSyncCron] Starting brand website image sync', {
-            brandSlug, dryRun, maxBrands, retailerId,
+            brandSlug, dryRun, maxBrands, retailerId, remaining,
         });
 
         const result = await runBrandWebsiteImageSync({
             brandSlug,
             dryRun,
-            maxBrands,
+            maxBrands: brandSlug ? undefined : maxBrands, // single-brand runs ignore cap
             retailerId,
         });
 

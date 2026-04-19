@@ -17,6 +17,7 @@ import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireCronSecret } from '@/server/auth/cron';
 import { refreshCompetitiveIntelWorkspace } from '@/server/services/ezal';
+import { DiscoveryService } from '@/server/services/firecrawl';
 import {
   postLinusIncidentSlack,
   type LinusIncidentSlackBlock,
@@ -137,6 +138,23 @@ interface OrgResult {
 }
 
 async function runAllOrgsSweep(): Promise<NextResponse> {
+  // Credit pre-flight: each org costs ~8 credits. Skip entire sweep if budget is too low.
+  const discovery = DiscoveryService.getInstance();
+  const remaining = await discovery.getRemainingCredits();
+  const MIN_CREDITS_FOR_SWEEP = 50;
+  if (remaining < MIN_CREDITS_FOR_SWEEP) {
+    logger.warn('[CompetitiveIntelAllOrgs] Skipping sweep — Firecrawl credits too low', {
+      remaining, required: MIN_CREDITS_FOR_SWEEP,
+    });
+    return NextResponse.json({
+      success: true, skipped: true, reason: 'insufficient_credits',
+      remaining, required: MIN_CREDITS_FOR_SWEEP,
+    });
+  }
+
+  // Cap orgs processed based on available credits (8 credits/org, keep 300 in reserve).
+  const maxOrgsThisRun = Math.floor((remaining - 300) / 8);
+
   const orgIds = await getActiveOrgIds();
 
   if (orgIds.length === 0) {
@@ -144,10 +162,13 @@ async function runAllOrgsSweep(): Promise<NextResponse> {
     return NextResponse.json({ success: true, total: 0, success_count: 0, failed_count: 0 });
   }
 
-  logger.info('[CompetitiveIntelAllOrgs] Starting sweep', { orgCount: orgIds.length });
+  const cappedOrgIds = orgIds.slice(0, maxOrgsThisRun);
+  logger.info('[CompetitiveIntelAllOrgs] Starting sweep', {
+    orgCount: orgIds.length, cappedTo: cappedOrgIds.length, remaining,
+  });
 
   const results: OrgResult[] = [];
-  const batches = chunk(orgIds, BATCH_SIZE);
+  const batches = chunk(cappedOrgIds, BATCH_SIZE);
 
   for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
     const batch = batches[batchIdx];

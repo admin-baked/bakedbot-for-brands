@@ -60,11 +60,22 @@ function saveScreenshot(name, base64) {
 }
 
 async function scrape(url, options = {}) {
+    // Firecrawl v4: scrapeUrl lives on .v1 client.
+    // "Interact with a page" (dashboard tile) = scrape with actions[] array — same endpoint.
     return fc.scrapeUrl(url, {
         formats: ['html'],
         waitFor: 2000,
         ...options,
     });
+}
+
+async function checkCredits() {
+    const res = await fetch('https://api.firecrawl.dev/v2/team/credit-usage', {
+        headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.data ?? null;
 }
 
 // ── Test definitions ────────────────────────────────────────────────────────
@@ -262,7 +273,20 @@ async function main() {
 
     console.log(`\n🔥 BakedBot Firecrawl UI Tests`);
     console.log(`   Environment: ${ENV} (${BASE_URL})`);
-    console.log(`   Tests: ${tests.length}${FILTER ? ` (filtered: ${FILTER})` : ''}\n`);
+    console.log(`   Tests: ${tests.length}${FILTER ? ` (filtered: ${FILTER})` : ''}`);
+
+    // Credit pre-flight
+    const credits = await checkCredits();
+    if (credits) {
+        console.log(`   Credits: ${credits.remainingCredits}/${credits.planCredits} remaining (resets ${new Date(credits.billingPeriodEnd).toLocaleDateString()})`);
+        if (credits.remainingCredits < tests.length * 2) {
+            console.log(`   ⚠️  Low credits — some tests may fail\n`);
+        } else {
+            console.log('');
+        }
+    } else {
+        console.log('   Credits: unknown\n');
+    }
 
     const results = [];
 
