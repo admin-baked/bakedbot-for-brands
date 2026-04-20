@@ -189,10 +189,25 @@ jest.mock('genkit', () => ({
     genkit: jest.fn(() => ({
         definePrompt: jest.fn(() => jest.fn()),
         defineFlow: jest.fn(() => jest.fn()),
+        defineTool: jest.fn(() => jest.fn()),
+        defineModel: jest.fn(() => jest.fn()),
+        defineRetriever: jest.fn(() => jest.fn()),
     })),
     Genkit: jest.fn(),
     tool: jest.fn((_config, impl) => impl),
     z: require('zod'),
+}));
+
+// Mock the internal Genkit instance creator to bypass Proxy issues in tests
+jest.mock('@/ai/genkit', () => ({
+    ai: {
+        definePrompt: jest.fn(() => jest.fn()),
+        defineFlow: jest.fn(() => jest.fn()),
+        defineTool: jest.fn((_config, impl) => impl),
+        defineModel: jest.fn(() => jest.fn()),
+        defineRetriever: jest.fn(() => jest.fn()),
+    },
+    googleAI: jest.fn(() => () => ({})),
 }));
 
 // Mock next/headers to prevent "cookies() called outside request scope"

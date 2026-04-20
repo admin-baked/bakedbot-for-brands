@@ -53,7 +53,7 @@ describe('Demo Agent API', () => {
     describe('request validation', () => {
         it('should require a message in the request body', () => {
             const body = { message: '' };
-            const isValid = body.message && body.message.trim().length > 0;
+            const isValid = !!(body.message && body.message.trim().length > 0);
             
             expect(isValid).toBe(false);
         });

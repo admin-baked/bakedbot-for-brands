@@ -32,7 +32,7 @@ describe('CEO Dashboard Actions', () => {
 
              const result = await getRagIndexStats();
 
-             expect(requireUser).toHaveBeenCalledWith(['owner', 'super_user']);
+             expect(requireUser).toHaveBeenCalledWith(['super_user']);
              expect(ragService.getStats).toHaveBeenCalled();
              expect(result).toEqual(mockStats);
         });
