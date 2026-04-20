@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Test infrastructure overhaul: 351→247 failing suites (104 fixed); TDZ fix in agent-runner; TS clean | **Last update:** 2026-04-20 (`ebbcfe318`)
+**Current Status:** 🟢 main green | Campaigns UX overhaul: resume/duplicate/retry, tabbed detail, performance funnel, audience preview, delivered:0 fix | **Last update:** 2026-04-20 (`ebe85872b`)
 
 ---
 

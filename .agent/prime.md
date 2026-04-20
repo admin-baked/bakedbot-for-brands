@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Test infra overhaul: 351→247 suites (104 fixed) + TS clean (0 errors)
-**Recent work (2026-04-20):** `ebbcfe318` test infra overhaul (mock fixes, TDZ fix, global polyfills); `e79817f7d` brand-menu-client mocks
+**Current Status:** 🟢 main green | Campaigns UX overhaul + delivered:0 fix
+**Recent work (2026-04-20):** `ebe85872b` campaigns UX overhaul (resume/duplicate/retry, tabbed detail, performance funnel, audience preview)
 
 ---
 
