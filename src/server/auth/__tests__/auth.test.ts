@@ -117,14 +117,14 @@ describe('Auth Module', () => {
 
   describe('roleMatches()', () => {
     it('should match direct role', async () => {
-      const { roleMatches } = await import('../auth');
+      const { roleMatches } = await import('../role-utils');
 
       expect(roleMatches('brand_admin', ['brand_admin'])).toBe(true);
       expect(roleMatches('super_user', ['super_user'])).toBe(true);
     });
 
     it('should match role group: brand', async () => {
-      const { roleMatches } = await import('../auth');
+      const { roleMatches } = await import('../role-utils');
 
       expect(roleMatches('brand_admin', ['brand'])).toBe(true);
       expect(roleMatches('brand_member', ['brand'])).toBe(true);
@@ -132,7 +132,7 @@ describe('Auth Module', () => {
     });
 
     it('should match role group: dispensary', async () => {
-      const { roleMatches } = await import('../auth');
+      const { roleMatches } = await import('../role-utils');
 
       expect(roleMatches('dispensary_admin', ['dispensary'])).toBe(true);
       expect(roleMatches('dispensary_staff', ['dispensary'])).toBe(true);
@@ -140,7 +140,7 @@ describe('Auth Module', () => {
     });
 
     it('should support role hierarchy: admin qualifies for staff', async () => {
-      const { roleMatches } = await import('../auth');
+      const { roleMatches } = await import('../role-utils');
 
       // brand_admin should qualify for brand_member requirement
       expect(roleMatches('brand_admin', ['brand_member'])).toBe(true);
@@ -150,7 +150,7 @@ describe('Auth Module', () => {
     });
 
     it('should reject cross-domain role matching', async () => {
-      const { roleMatches } = await import('../auth');
+      const { roleMatches } = await import('../role-utils');
 
       expect(roleMatches('brand_admin', ['dispensary'])).toBe(false);
       expect(roleMatches('dispensary_admin', ['brand'])).toBe(false);
@@ -158,7 +158,7 @@ describe('Auth Module', () => {
     });
 
     it('should support multiple required roles (OR logic)', async () => {
-      const { roleMatches } = await import('../auth');
+      const { roleMatches } = await import('../role-utils');
 
       // User with brand_admin should match either brand or super_user requirement
       expect(roleMatches('brand_admin', ['super_user', 'brand'])).toBe(true);

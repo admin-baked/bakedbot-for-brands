@@ -9,48 +9,16 @@ import { DecodedIdToken } from 'firebase-admin/auth';
 import { SUPER_ADMIN_EMAILS } from '@/lib/super-admin-config';
 import { logger } from '@/lib/logger';
 import {
-  UserRole,
   isBrandRole,
   isDispensaryRole,
   BRAND_ALL_ROLES,
   DISPENSARY_ALL_ROLES
 } from '@/types/roles';
+import { roleMatches } from './role-utils';
+import type { Role } from './role-utils';
 
 // Re-export Role type for backward compatibility
-export type Role = UserRole;
-
-/**
- * Check if a user's role matches one of the required roles.
- * Handles role hierarchy (e.g., brand_admin can act as brand_member)
- */
-export function roleMatches(userRole: string, requiredRoles: Role[]): boolean {
-  // Direct match
-  if (requiredRoles.includes(userRole as Role)) {
-    return true;
-  }
-
-  // Check for role group matches
-  for (const required of requiredRoles) {
-    // If 'brand' is required, accept any brand role (admin or member)
-    if (required === 'brand' && isBrandRole(userRole)) {
-      return true;
-    }
-    // If 'dispensary' is required, accept any dispensary role
-    if (required === 'dispensary' && isDispensaryRole(userRole)) {
-      return true;
-    }
-    // If 'brand_member' is required, brand_admin also qualifies
-    if (required === 'brand_member' && (userRole === 'brand_admin' || userRole === 'brand')) {
-      return true;
-    }
-    // If 'dispensary_staff' is required, dispensary_admin also qualifies
-    if (required === 'dispensary_staff' && (userRole === 'dispensary_admin' || userRole === 'dispensary')) {
-      return true;
-    }
-  }
-
-  return false;
-}
+export type { Role };
 
 /**
  * A server-side utility to require an authenticated user and optionally enforce roles.
