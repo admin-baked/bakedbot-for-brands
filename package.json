@@ -1,6 +1,6 @@
 {
   "name": "nextn",
-  "version": "4.10.7-CL",
+  "version": "4.10.10-GEM",
   "private": true,
   "engines": {
     "node": "20"

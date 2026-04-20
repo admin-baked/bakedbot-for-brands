@@ -181,7 +181,7 @@ Before every , bump  + kiosk footer () using format ****.
 
 Patch bump guide: +1 small fix · +2 multi-file · +3 new feature · +5 refactor · +7-10 subsystem overhaul
 
-**Current version: 4.10.7-CL** — Full rules: AGENTS.md Versioning Convention
+**Current version: 4.10.10-GEM** — Full rules: AGENTS.md Versioning Convention
 
 ## Key Directories
 

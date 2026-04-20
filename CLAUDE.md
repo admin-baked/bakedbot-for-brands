@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Campaigns UX overhaul: resume/duplicate/retry, tabbed detail, performance funnel, audience preview, delivered:0 fix | **Last update:** 2026-04-20 (`ebe85872b`)
+**Current Status:** 🟢 main green | Graceful Service Pause: suspended status, 3-day grace period, ServicePausedOverlay UI, billing guard, admin toggle | **Last update:** 2026-04-20 (`4.10.10-GEM`)
 
 ---
 
@@ -156,7 +156,6 @@ Use `/shipit` to run this as a single command.
 
 ---
 
-## ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â´ PR Governance (MANDATORY ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â CI will fail without this)
 
 Every PR body **must** include all 8 sections below. GitHub's PR template (`.github/PULL_REQUEST_TEMPLATE.md`) has the full checklist, but when creating PRs via API/MCP/CLI the template is NOT auto-applied ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â you must fill it in manually.
 
