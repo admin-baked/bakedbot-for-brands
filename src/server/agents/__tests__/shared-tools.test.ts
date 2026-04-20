@@ -1,5 +1,4 @@
 
-import { describe, it, expect } from 'vitest';
 import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs } from '../shared-tools';
 
 describe('Shared Tools Definitions', () => {

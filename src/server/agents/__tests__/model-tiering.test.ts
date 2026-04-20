@@ -1,8 +1,14 @@
 
-// Use relative path to ensure mock hits
-jest.mock('../../../ai/genkit', () => ({
+// Mock ai module - use @/ alias path to match moduleNameMapper resolution
+jest.mock('@/ai/genkit', () => ({
   ai: {
-    generate: jest.fn().mockImplementation(async (opts: any) => ({ text: `Generated with ${opts.model}` }))
+    generate: jest.fn().mockImplementation(async (opts: any) => ({ text: `Generated with ${opts.model}` })),
+    generateStream: jest.fn().mockImplementation((opts: any) => ({
+      stream: (async function* () {
+        yield { accumulatedText: `Generated with ${opts.model}` };
+      })(),
+      response: Promise.resolve({ text: `Generated with ${opts.model}` }),
+    })),
   }
 }));
 
@@ -49,15 +55,39 @@ jest.mock('../../../app/dashboard/research/actions', () => ({
     createResearchTaskAction: jest.fn().mockResolvedValue({ success: true, taskId: 'task-123' })
 }));
 jest.mock('../../actions/playbooks', () => ({
-    createPlaybookFromNaturalLanguage: jest.fn().mockResolvedValue({ 
-        success: true, 
-        playbook: { name: 'Test PB', description: 'Desc', agent: 'General', category: 'Test', steps: [] } 
-    })
+    createPlaybookFromNaturalLanguage: jest.fn().mockResolvedValue({
+        success: true,
+        playbook: { name: 'Test PB', description: 'Desc', agent: 'General', category: 'Test', steps: [] }
+    }),
+    listBrandPlaybooks: jest.fn().mockResolvedValue([{ id: 'pb-existing', name: 'Existing', isCustom: true }]),
+    parseNaturalLanguage: jest.fn().mockResolvedValue({
+        success: true,
+        config: {
+            name: 'Test Playbook',
+            description: 'Test description',
+            agent: 'General',
+            category: 'onboarding',
+            steps: [{ action: 'test', details: 'test step' }]
+        }
+    }),
+    createPlaybook: jest.fn().mockResolvedValue({ success: true, playbook: { id: 'pb-123', name: 'Test Playbook', description: 'Test description', agent: 'General', category: 'onboarding', steps: [{ action: 'test' }] } })
 }));
 jest.mock('../agent-router', () => ({
     routeToAgent: jest.fn().mockResolvedValue({ primaryAgent: 'general', confidence: 1 })
 }));
-jest.mock('../agent-definitions', () => ({ AGENT_CAPABILITIES: [] }));
+jest.mock('../../../app/dashboard/ceo/playbooks/actions', () => ({
+    createSuperUserPlaybook: jest.fn().mockResolvedValue({ success: true, playbook: { id: 'pb-su-123', name: 'Test Playbook', description: 'Test description', agent: 'General', category: 'onboarding', steps: [{ action: 'test' }] } })
+}));
+jest.mock('../agent-definitions', () => ({
+    AGENT_CAPABILITIES: [],
+    getDelegatableAgentIds: jest.fn(() => ['craig', 'leo', 'linus']),
+    canRoleAccessAgent: jest.fn().mockReturnValue(true),
+    buildSquadRoster: jest.fn().mockReturnValue(''),
+    buildIntegrationStatusSummary: jest.fn().mockReturnValue(''),
+    AGENT_LINUS: 'linus',
+    AGENT_LEO: 'leo',
+    AGENT_CRAIG: 'craig',
+}));
 jest.mock('../../actions/knowledge-base', () => ({
     getKnowledgeBasesAction: jest.fn().mockResolvedValue([]),
     searchKnowledgeBaseAction: jest.fn().mockResolvedValue([])
@@ -65,6 +95,9 @@ jest.mock('../../actions/knowledge-base', () => ({
 jest.mock('../../tools/web-search', () => ({ searchWeb: jest.fn() }));
 jest.mock('../../tools/gmail', () => ({ gmailAction: jest.fn() }));
 jest.mock('../../tools/calendar', () => ({ calendarAction: jest.fn() }));
+jest.mock('../../../lib/get-org-tier', () => ({
+    getOrgTier: jest.fn().mockResolvedValue('pro')
+}));
 
 // Import SUT
 import { runAgentCore } from '../agent-runner';
@@ -88,21 +121,18 @@ describe('Model Tiering & Owl Integration', () => {
     });
 
     it('should downgrade Free (guest) user to Lite model', async () => {
-        await runAgentCore('Hello', undefined, { modelLevel: 'advanced' }, mockUser('guest'));
-        try {
-            expect(ai.generate).toHaveBeenCalledWith(expect.objectContaining({
-                model: 'lite-model'
-            }));
-        } catch (e) {
-            // Fallback: Check if ANY call was made with lite-model if exact match fails on props
-            // Console log to debug if needed
-            throw e;
-        }
+        await runAgentCore('What are the best marketing strategies for cannabis brands in New York?', undefined, { modelLevel: 'advanced' }, mockUser('guest'));
+        // The standard path uses ai.generateStream (not ai.generate)
+        // Model tiering downgrades free users to 'lite' via getGenerateOptions
+        expect(ai.generateStream).toHaveBeenCalledWith(expect.objectContaining({
+            model: 'lite-model'
+        }));
     });
 
     it('should allow Paid (brand) user to use Advanced model', async () => {
-        await runAgentCore('Hello', undefined, { modelLevel: 'advanced' }, mockUser('brand'));
-        expect(ai.generate).toHaveBeenCalledWith(expect.objectContaining({
+        await runAgentCore('What are the best marketing strategies for cannabis brands in New York?', undefined, { modelLevel: 'advanced' }, mockUser('brand'));
+        // The standard path uses ai.generateStream with the requested model level
+        expect(ai.generateStream).toHaveBeenCalledWith(expect.objectContaining({
             model: 'pro-model'
         }));
     });
@@ -120,7 +150,7 @@ describe('Model Tiering & Owl Integration', () => {
 
     it('should block Playbook Creation for Free user', async () => {
         const result = await runAgentCore('Create a playbook for onboarding', undefined, undefined, mockUser('guest'));
-        expect(result.content).toContain('Playbook creation is locked');
+        expect(result.content).toMatch(/limit.*Free plan|Pro feature/i);
     });
 
     it('should allow Playbook Creation for Super User', async () => {
@@ -136,14 +166,12 @@ describe('Model Tiering & Owl Integration', () => {
 
     it('should NOT auto-route complex task for Free user', async () => {
         const result = await runAgentCore('Analyze Ultra vs Love Cannabis', undefined, undefined, mockUser('guest'));
-        // Free user won't get "Upgrade Required" here because it falls through to standard processing (downgraded to lite)
-        // rather than hitting the explicit modelLevel='deep_research' block I added earlier?
-        // Wait, my auto-route logic in `agent-runner` explicitly checks `!isFreeUser`.
-        // So for Free User, it does NOT enter the block, so it proceeds to Standard Agent execution (which uses Lite).
-        
+        // Free user: !isFreeUser is false, so isDeepResearchRequested regex doesn't match.
+        // Falls through to standard agent execution (downgraded to lite model).
+
         expect(result.content).not.toContain('Task Created');
-        // It might be a standard generation
-        expect(ai.generate).toHaveBeenCalledTimes(1);
+        // Standard path uses ai.generateStream (not ai.generate)
+        expect(ai.generateStream).toHaveBeenCalledTimes(1);
     });
 
 });

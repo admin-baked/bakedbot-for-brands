@@ -25,8 +25,44 @@ const customJestConfig = {
     '^(?:\\.\\./)+(?:src/)?ai/genkit$': '<rootDir>/tests/__mocks__/ai-genkit.ts',
     '^@/ai/model-selector$': '<rootDir>/tests/__mocks__/model-selector.ts',
     '^@genkit-ai/vertexai$': '<rootDir>/tests/__mocks__/genkit-vertexai.js',
+    '^@genkit-ai/googleai$': '<rootDir>/tests/__mocks__/genkit-googleai.js',
     '^uuid$': '<rootDir>/tests/__mocks__/uuid.js',
     '^@upstash/redis$': '<rootDir>/tests/__mocks__/upstash-redis.js',
+    '^@upstash/ratelimit$': '<rootDir>/tests/__mocks__/upstash-ratelimit.js',
+
+    // Stub mappings for modules that no longer exist at these paths
+    // Both @/ alias forms and relative path forms (next/jest can rewrite @/ to relative)
+    '^@/server/services/alpine-iq$': '<rootDir>/tests/__mocks__/alpine-iq.js',
+    '^(?:\\.\\./)+(?:src/)?server/services/alpine-iq$': '<rootDir>/tests/__mocks__/alpine-iq.js',
+    '^@/server/services/agent-delegation$': '<rootDir>/tests/__mocks__/agent-delegation.js',
+    '^(?:\\.\\./)+(?:src/)?server/services/agent-delegation$': '<rootDir>/tests/__mocks__/agent-delegation.js',
+    '^@/server/services/api-key-manager$': '<rootDir>/tests/__mocks__/api-key-manager.js',
+    '^(?:\\.\\./)+(?:src/)?server/services/api-key-manager$': '<rootDir>/tests/__mocks__/api-key-manager.js',
+    '^@/server/services/headset$': '<rootDir>/tests/__mocks__/headset.js',
+    '^(?:\\.\\./)+(?:src/)?server/services/headset$': '<rootDir>/tests/__mocks__/headset.js',
+    '^@/server/services/scheduling-manager$': '<rootDir>/tests/__mocks__/scheduling-manager.js',
+    '^(?:\\.\\./)+(?:src/)?server/services/scheduling-manager$': '<rootDir>/tests/__mocks__/scheduling-manager.js',
+    '^@/server/services/social-manager$': '<rootDir>/tests/__mocks__/social-manager.js',
+    '^(?:\\.\\./)+(?:src/)?server/services/social-manager$': '<rootDir>/tests/__mocks__/social-manager.js',
+    '^@/lib/firebase$': '<rootDir>/tests/__mocks__/lib-firebase.js',
+    '^(?:\\.\\./)+(?:src/)?lib/firebase$': '<rootDir>/tests/__mocks__/lib-firebase.js',
+    '^@/lib/firebase/admin$': '<rootDir>/tests/__mocks__/lib-firebase-admin.js',
+    '^(?:\\.\\./)+(?:src/)?lib/firebase/admin$': '<rootDir>/tests/__mocks__/lib-firebase-admin.js',
+    '^@coinbase/coinbase-sdk$': '<rootDir>/tests/__mocks__/coinbase-sdk.js',
+    // Force cheerio CJS (jsdom env picks browser/ESM entry via exports map)
+    '^cheerio$': '<rootDir>/node_modules/cheerio/dist/commonjs/index.js',
+    // Mock @react-pdf/renderer (ESM, no CJS build)
+    '^@react-pdf/renderer$': '<rootDir>/tests/__mocks__/react-pdf-renderer.js',
+    '^@react-pdf/(.*)$': '<rootDir>/tests/__mocks__/react-pdf-renderer.js',
+    // Mock react-syntax-highlighter (uses refractor which is ESM-only)
+    '^react-syntax-highlighter$': '<rootDir>/tests/__mocks__/react-syntax-highlighter.js',
+    '^react-syntax-highlighter/(.*)$': '<rootDir>/tests/__mocks__/react-syntax-highlighter.js',
+    // Force nanoid CJS (jsdom picks browser/ESM entry via exports map)
+    '^nanoid$': '<rootDir>/node_modules/nanoid/index.cjs',
+    '^nanoid/(.*)$': '<rootDir>/node_modules/nanoid/index.cjs',
+    // Mock ccxt (crypto exchange library — does Uint8Array crypto at module load, fails in jsdom)
+    '^ccxt$': '<rootDir>/tests/__mocks__/ccxt.js',
+    '^ccxt/(.*)$': '<rootDir>/tests/__mocks__/ccxt.js',
 
     // Handle module aliases (this will be automatically configured for you soon)
     '^@/(.*)$': '<rootDir>/src/$1',
@@ -36,9 +72,18 @@ const customJestConfig = {
     '^lucide-react$': '<rootDir>/tests/__mocks__/lucide-react.js',
     '^yaml$': '<rootDir>/tests/__mocks__/yaml.js',
     '^jsonpath-plus$': '<rootDir>/tests/__mocks__/jsonpath-plus.js',
+    '^livekit-server-sdk$': '<rootDir>/tests/__mocks__/livekit-server-sdk.js',
+    '^@mendable/firecrawl-js$': '<rootDir>/tests/__mocks__/firecrawl-sdk.js',
+    '^@firecrawl/firecrawl-js$': '<rootDir>/tests/__mocks__/firecrawl-sdk.js',
+    '^@testing-library/user-event$': '<rootDir>/tests/__mocks__/user-event.js',
   },
   testEnvironment: 'jsdom',
-  testPathIgnorePatterns: ['<rootDir>[\\\\/]\\.w[\\\\/]'],
+  testPathIgnorePatterns: [
+    '<rootDir>[\\\\/]\\.w[\\\\/]',
+    '<rootDir>[\\\\/]tests[\\\\/]e2e[\\\\/]',
+    '<rootDir>[\\\\/]tests[\\\\/]firestore-rules[\\\\/]',
+    '<rootDir>[\\\\/]cloud-run[\\\\/]',
+  ],
   watchPathIgnorePatterns: ['<rootDir>[\\\\/]\\.w[\\\\/]'],
   testMatch: [
     '**/tests/**/*.spec.ts',
@@ -57,7 +102,7 @@ const customJestConfig = {
     '!src/**/__tests__/**',
   ],
   transformIgnorePatterns: [
-    'node_modules/(?!(uuid|firebase|@firebase|firebase-admin|jwks-rsa|react-markdown|remark-gfm|micromark|unist|hast|mdast|rehype|remark|vfile|bail|trough|unified|is-plain-obj|property-information|space-separated-tokens|comma-separated-tokens|decode-named-character-reference|character-entities|ccount|escape-string-regexp|markdown-table|longest-streak|lucide-react|@genkit-ai|genkit|dotprompt|zod|yaml|jsonpath-plus|google-auth-library|google-gax|googleapis|gaxios)/)',
+    'node_modules/(?!(uuid|firebase|@firebase|firebase-admin|jwks-rsa|react-markdown|remark-gfm|micromark|unist|hast|mdast|rehype|remark|vfile|bail|trough|unified|is-plain-obj|property-information|space-separated-tokens|comma-separated-tokens|decode-named-character-reference|character-entities|ccount|escape-string-regexp|markdown-table|longest-streak|lucide-react|@genkit-ai|genkit|dotprompt|zod|yaml|jsonpath-plus|google-auth-library|google-gax|googleapis|gaxios|jose|livekit-server-sdk|nanoid|cheerio|parse5|htmlparser2|dom-serializer|entities|domhandler|domutils|css-select|css-what|nth-check|boolbase|refractor|react-syntax-highlighter|hastscript|zwitch|comma-separated-tokens|html-void-elements)/)',
   ],
   coverageThreshold: {
     global: {

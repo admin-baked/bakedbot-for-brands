@@ -23,7 +23,7 @@ export type Role = UserRole;
  * Check if a user's role matches one of the required roles.
  * Handles role hierarchy (e.g., brand_admin can act as brand_member)
  */
-function roleMatches(userRole: string, requiredRoles: Role[]): boolean {
+export function roleMatches(userRole: string, requiredRoles: Role[]): boolean {
   // Direct match
   if (requiredRoles.includes(userRole as Role)) {
     return true;

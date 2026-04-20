@@ -8,8 +8,6 @@
  * - Brand vs Dispensary role separation
  */
 
-import { describe, it, expect } from 'vitest';
-
 describe('RBAC - Role-Based Access Control', () => {
   describe('Brand Roles Hierarchy', () => {
     const brandRoles = ['brand', 'brand_member', 'brand_admin'];
@@ -55,7 +53,7 @@ describe('RBAC - Role-Based Access Control', () => {
           'view_analytics',
           'modify_settings',
         ],
-        dispensary_staff: ['manage_inventory', 'process_orders'],
+        dispensary_staff: ['manage_inventory', 'process_orders', 'view_own_shifts'],
         dispensary: ['view_menu', 'process_orders'],
       };
 

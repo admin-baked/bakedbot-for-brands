@@ -475,6 +475,28 @@ export async function runAgentCore(
     jobCallbacks?: AgentJobCallbacks
 ): Promise<AgentResult> {
 
+    const publishDraftContent = async (
+        content: string,
+        options?: {
+            draftState?: AgentJobDraftState;
+            force?: boolean;
+        }
+    ) => {
+        const trimmedContent = typeof content === 'string' ? content.trim() : '';
+        if (!trimmedContent) {
+            return;
+        }
+
+        try {
+            await jobCallbacks?.onDraftContent?.(trimmedContent, options);
+        } catch (error) {
+            logger.warn('[AgentRunner] Failed to publish draft content', {
+                jobId,
+                error: error instanceof Error ? error.message : String(error),
+            });
+        }
+    };
+
     const finalizeAgentResult = async <T extends AgentResult>(result: T): Promise<T> => {
         await publishDraftContent(result.content, {
             draftState: 'ready',
@@ -646,27 +668,6 @@ All agents are online and ready. Type an agent name or describe your task to get
         : PERSONAS.puff;
 
     const executedTools: AgentResult['toolCalls'] = [];
-    const publishDraftContent = async (
-        content: string,
-        options?: {
-            draftState?: AgentJobDraftState;
-            force?: boolean;
-        }
-    ) => {
-        const trimmedContent = typeof content === 'string' ? content.trim() : '';
-        if (!trimmedContent) {
-            return;
-        }
-
-        try {
-            await jobCallbacks?.onDraftContent?.(trimmedContent, options);
-        } catch (error) {
-            logger.warn('[AgentRunner] Failed to publish draft content', {
-                jobId,
-                error: error instanceof Error ? error.message : String(error),
-            });
-        }
-    };
 
     try {
         await emitThought(jobId, 'Authenticating', 'Verifying user context...');

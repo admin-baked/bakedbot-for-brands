@@ -11,6 +11,54 @@ import { TextEncoder, TextDecoder } from 'util';
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
+// Polyfill ReadableStream/WritableStream/TransformStream for jsdom (required by undici/fetch)
+if (typeof ReadableStream === 'undefined') {
+  const streamWeb = require('stream/web');
+  global.ReadableStream = streamWeb.ReadableStream;
+  global.WritableStream = streamWeb.WritableStream;
+  global.TransformStream = streamWeb.TransformStream;
+}
+
+// Polyfill MessageChannel/MessagePort for jsdom (required by undici)
+if (typeof MessagePort === 'undefined') {
+  const { MessageChannel, MessagePort } = require('worker_threads');
+  global.MessageChannel = MessageChannel;
+  global.MessagePort = MessagePort;
+}
+
+// Polyfill setImmediate for jsdom environment (exists in Node but not jsdom)
+if (typeof setImmediate === 'undefined') {
+  global.setImmediate = (fn, ...args) => setTimeout(fn, 0, ...args);
+  global.clearImmediate = (id) => clearTimeout(id);
+}
+
+// Polyfill window.matchMedia for jsdom (used by responsive hooks and media queries)
+if (typeof window !== 'undefined' && !window.matchMedia) {
+  window.matchMedia = jest.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  }));
+}
+
+// Polyfill localStorage for jsdom (some tests use it directly)
+if (typeof window !== 'undefined' && !window.localStorage) {
+  const store = new Map();
+  window.localStorage = {
+    getItem: (key) => store.get(key) ?? null,
+    setItem: (key, value) => store.set(key, String(value)),
+    removeItem: (key) => store.delete(key),
+    clear: () => store.clear(),
+    get length() { return store.size; },
+    key: (index) => Array.from(store.keys())[index] ?? null,
+  };
+}
+
 // Polyfill fetch/Request/Response for Next server imports in Jest (jsdom env)
 if (typeof Request === 'undefined') {
   class HeadersPolyfill {
@@ -145,4 +193,58 @@ jest.mock('genkit', () => ({
     Genkit: jest.fn(),
     tool: jest.fn((_config, impl) => impl),
     z: require('zod'),
+}));
+
+// Mock next/headers to prevent "cookies() called outside request scope"
+jest.mock('next/headers', () => ({
+    cookies: jest.fn(() => ({
+        get: jest.fn(),
+        getAll: jest.fn(() => []),
+        set: jest.fn(),
+        delete: jest.fn(),
+        has: jest.fn(() => false),
+        toString: jest.fn(() => ''),
+    })),
+    headers: jest.fn(() => new Map()),
+}));
+
+// Mock @/firebase/provider to prevent "useFirebase must be used within FirebaseProvider"
+jest.mock('@/firebase/provider', () => {
+    const React = require('react');
+    const FirebaseContext = React.createContext(undefined);
+    return {
+        useFirebase: jest.fn(() => ({
+            auth: null,
+            firestore: null,
+            user: null,
+            loading: false,
+        })),
+        FirebaseProvider: ({ children }) => children,
+        FirebaseContext,
+    };
+});
+
+// Mock @/firebase/auth/use-user to provide default test user
+jest.mock('@/firebase/auth/use-user', () => ({
+    useUser: jest.fn(() => ({
+        user: { uid: 'test-uid', email: 'test@example.com', role: 'brand_admin', orgId: 'org_test' },
+        loading: false,
+    })),
+}));
+
+// Mock next/navigation to prevent "app router not mounted" and "router.replace is not a function"
+jest.mock('next/navigation', () => ({
+    useRouter: jest.fn(() => ({
+        push: jest.fn(),
+        replace: jest.fn(),
+        back: jest.fn(),
+        forward: jest.fn(),
+        refresh: jest.fn(),
+        prefetch: jest.fn(),
+    })),
+    useSearchParams: jest.fn(() => new URLSearchParams()),
+    usePathname: jest.fn(() => '/'),
+    useParams: jest.fn(() => ({})),
+    redirect: jest.fn(),
+    notFound: jest.fn(),
 }));

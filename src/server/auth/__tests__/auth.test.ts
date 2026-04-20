@@ -7,53 +7,72 @@
  * - roleMatches() — verifies role hierarchy and matching
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 // Mock cookies
-vi.mock('next/headers', () => ({
-  cookies: vi.fn(),
+jest.mock('next/headers', () => ({
+  cookies: jest.fn(),
+}));
+
+// Override the global next/navigation mock so redirect throws (like real Next.js)
+jest.mock('next/navigation', () => ({
+  ...jest.requireActual('next/navigation'),
+  useRouter: jest.fn(() => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), forward: jest.fn(), refresh: jest.fn(), prefetch: jest.fn() })),
+  useSearchParams: jest.fn(() => new URLSearchParams()),
+  usePathname: jest.fn(() => '/'),
+  useParams: jest.fn(() => ({})),
+  redirect: jest.fn((url: string) => { throw new Error(`NEXT_REDIRECT: ${url}`); }),
+  notFound: jest.fn(),
+}));
+
+// Mock server dependencies
+jest.mock('@/firebase/server-client', () => ({
+  createServerClient: jest.fn(),
+}));
+jest.mock('@/lib/logger', () => ({
+  logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
 }));
 
 describe('Auth Module', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     // Reset NODE_ENV for each test
     process.env.NODE_ENV = 'production';
   });
 
   describe('requireUser()', () => {
-    it('should throw error when no session cookie found in production', async () => {
+    it('should redirect to login when no session cookie found in production', async () => {
       const mockCookies = {
-        get: vi.fn((name) => {
+        get: jest.fn((name) => {
           if (name === '__session') return undefined;
           return { value: '' };
         }),
-        getAll: vi.fn(() => []),
+        getAll: jest.fn(() => []),
       };
 
-      vi.mocked(cookies).mockResolvedValueOnce(mockCookies as any);
+      jest.mocked(cookies).mockResolvedValueOnce(mockCookies as any);
 
       const { requireUser } = await import('../auth');
 
-      await expect(requireUser()).rejects.toThrow('Unauthorized: No session cookie found');
+      await expect(requireUser()).rejects.toThrow('NEXT_REDIRECT: /login');
     });
 
     it('should allow dev bypass with x-simulated-role cookie in development', async () => {
       process.env.NODE_ENV = 'development';
 
       const mockCookies = {
-        get: vi.fn((name) => {
+        get: jest.fn((name) => {
           if (name === '__session') return undefined;
           if (name === 'x-simulated-role') return { value: 'brand_admin' };
           return undefined;
         }),
-        getAll: vi.fn(() => [
+        getAll: jest.fn(() => [
           { name: 'x-simulated-role', value: 'brand_admin' },
         ]),
       };
 
-      vi.mocked(cookies).mockResolvedValueOnce(mockCookies as any);
+      jest.mocked(cookies).mockResolvedValueOnce(mockCookies as any);
 
       const { requireUser } = await import('../auth');
 
@@ -68,16 +87,16 @@ describe('Auth Module', () => {
       process.env.NODE_ENV = 'development';
 
       const mockCookies = {
-        get: vi.fn((name) => {
+        get: jest.fn((name) => {
           if (name === 'x-simulated-role') return { value: 'brand_member' };
           return undefined;
         }),
-        getAll: vi.fn(() => [
+        getAll: jest.fn(() => [
           { name: 'x-simulated-role', value: 'brand_member' },
         ]),
       };
 
-      vi.mocked(cookies).mockResolvedValueOnce(mockCookies as any);
+      jest.mocked(cookies).mockResolvedValueOnce(mockCookies as any);
 
       const { requireUser } = await import('../auth');
 
@@ -86,8 +105,8 @@ describe('Auth Module', () => {
       expect(token.role).toBe('brand_member');
 
       // Reset for next test
-      vi.clearAllMocks();
-      vi.mocked(cookies).mockResolvedValueOnce(mockCookies as any);
+      jest.clearAllMocks();
+      jest.mocked(cookies).mockResolvedValueOnce(mockCookies as any);
 
       // Should fail with insufficient role
       await expect(requireUser(['super_user'])).rejects.toThrow(
@@ -157,33 +176,33 @@ describe('Auth Module', () => {
       process.env.NODE_ENV = 'production';
 
       const mockCookies = {
-        get: vi.fn((name) => {
+        get: jest.fn((name) => {
           if (name === 'x-simulated-role') return { value: 'super_user' };
           return undefined;
         }),
-        getAll: vi.fn(() => []),
+        getAll: jest.fn(() => []),
       };
 
-      vi.mocked(cookies).mockResolvedValueOnce(mockCookies as any);
+      jest.mocked(cookies).mockResolvedValueOnce(mockCookies as any);
 
       const { requireUser } = await import('../auth');
 
-      // Should still throw because we're in production with no real session
-      await expect(requireUser()).rejects.toThrow('Unauthorized');
+      // Should redirect to login because we're in production with no real session
+      await expect(requireUser()).rejects.toThrow('NEXT_REDIRECT: /login');
     });
 
     it('should handle missing role field gracefully', async () => {
       process.env.NODE_ENV = 'development';
 
       const mockCookies = {
-        get: vi.fn((name) => {
+        get: jest.fn((name) => {
           if (name === 'x-simulated-role') return undefined;
           return undefined;
         }),
-        getAll: vi.fn(() => []),
+        getAll: jest.fn(() => []),
       };
 
-      vi.mocked(cookies).mockResolvedValueOnce(mockCookies as any);
+      jest.mocked(cookies).mockResolvedValueOnce(mockCookies as any);
 
       const { requireUser } = await import('../auth');
 
