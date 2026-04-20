@@ -8,8 +8,6 @@
  * - Edge case handling (unicode, very long inputs, etc.)
  */
 
-import { describe, it, expect } from 'vitest';
-
 /**
  * Sample sanitization function implementations for testing
  * In production, these would live in src/lib/sanitize.ts

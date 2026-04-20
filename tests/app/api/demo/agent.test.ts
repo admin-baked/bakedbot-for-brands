@@ -4,8 +4,6 @@
  * Tests the demo agent responses to ensure no hallucinated data.
  */
 
-import { describe, it, expect } from 'vitest';
-
 // Import the demo responses directly for testing
 const DEMO_RESPONSES = {
     smokey: {

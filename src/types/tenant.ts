@@ -40,7 +40,9 @@ export interface Tenant {
 
     // Billing
     planId?: string;
-    subscriptionStatus?: 'trial' | 'active' | 'past_due' | 'canceled';
+    subscriptionStatus?: 'trial' | 'active' | 'past_due' | 'canceled' | 'suspended' | 'trial_expired';
+    isManualSuspended?: boolean;
+    delinquencyAt?: Timestamp;
     customerId?: string; // Authorize.net Customer Profile ID
 
     // Settings

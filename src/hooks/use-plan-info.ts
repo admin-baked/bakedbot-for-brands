@@ -127,6 +127,8 @@ export function usePlanInfo() {
     const { user, firestore } = useFirebase();
     const [planInfo, setPlanInfo] = useState<PlanInfo>(DEFAULT_PLAN);
     const [isLoading, setIsLoading] = useState(true);
+    const [subscriptionStatus, setSubscriptionStatus] = useState<string | undefined>(undefined);
+    const [isSuperUser, setIsSuperUser] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -155,6 +157,7 @@ export function usePlanInfo() {
 
                 // Unlock all features for Super Admins, Super Users, and Owners
                 if (userData?.role === 'super_admin' || userData?.role === 'super_user' || userData?.role === 'owner') {
+                     setIsSuperUser(true);
                      setPlanInfo({
                          ...DEFAULT_PLAN,
                          planId: 'enterprise',
@@ -183,6 +186,7 @@ export function usePlanInfo() {
                     if (orgData?.billing?.planId) {
                         planId = orgData.billing.planId as PlanId;
                         isActive = orgData.billing.subscriptionStatus === 'active';
+                        setSubscriptionStatus(orgData.billing.subscriptionStatus);
                     }
                 }
 
@@ -230,5 +234,8 @@ export function usePlanInfo() {
         isOptimize: pid === 'optimize',
         isRetainOrHigher: ['retain', 'optimize', 'enterprise'].includes(pid),
         isOptimizeOrHigher: ['optimize', 'enterprise'].includes(pid),
+        // Subscription & access flags
+        subscriptionStatus,
+        isSuperUser,
     };
 }

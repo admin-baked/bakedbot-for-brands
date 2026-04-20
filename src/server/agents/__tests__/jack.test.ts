@@ -1,10 +1,20 @@
 
-import { describe, it, expect, vi } from 'vitest';
 import { jackAgent } from '../jack';
 
-vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn() } }));
-vi.mock('@/server/services/letta/block-manager', () => ({
-    lettaBlockManager: { attachBlocksForRole: vi.fn() }
+jest.mock('@/lib/logger', () => ({ logger: { info: jest.fn(), warn: jest.fn() } }));
+jest.mock('@/server/services/letta/block-manager', () => ({
+    lettaBlockManager: { attachBlocksForRole: jest.fn() },
+    BLOCK_LABELS: { AGENT_LINUS: 'agent_linus', AGENT_LEO: 'agent_leo', AGENT_CRAIG: 'agent_craig', AGENT_MARTY: 'agent_marty', AGENT_PUFF: 'agent_puff' }
+}));
+jest.mock('@/server/agents/agent-definitions', () => ({
+    getDelegatableAgentIds: jest.fn(() => ['craig', 'leo', 'linus']),
+    canRoleAccessAgent: jest.fn().mockReturnValue(true),
+    buildSquadRoster: jest.fn().mockReturnValue(''),
+    buildIntegrationStatusSummary: jest.fn().mockReturnValue(''),
+    AGENT_LINUS: 'linus',
+    AGENT_LEO: 'leo',
+    AGENT_CRAIG: 'craig',
+    AGENT_CAPABILITIES: [],
 }));
 
 describe('Jack Agent (CRO)', () => {

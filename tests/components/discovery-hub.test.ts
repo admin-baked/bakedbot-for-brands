@@ -3,8 +3,6 @@
  * Tests for the Discovery Hub UI consolidation
  */
 
-import { describe, it, expect, vi } from 'vitest';
-
 describe('Discovery Hub', () => {
     describe('sidebar navigation', () => {
         it('should use Compass icon for Discovery Hub', () => {

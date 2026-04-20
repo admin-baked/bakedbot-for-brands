@@ -3,10 +3,16 @@ import { DomainMemory } from '@/lib/intuition/domain-memory';
 import { Trace } from '@/types/intuition-os';
 
 // Mock Firestore
-const mockSet = jest.fn();
-const mockGet = jest.fn();
-const mockCollection = jest.fn().mockReturnThis();
-const mockDoc = jest.fn().mockReturnThis();
+// NOTE: must use var (not const/let) here because jest.mock factories are hoisted
+// above variable declarations, which causes TDZ errors with const/let.
+// eslint-disable-next-line no-var
+var mockSet = jest.fn();
+// eslint-disable-next-line no-var
+var mockGet = jest.fn();
+// eslint-disable-next-line no-var
+var mockCollection = jest.fn().mockReturnThis();
+// eslint-disable-next-line no-var
+var mockDoc = jest.fn().mockReturnThis();
 
 jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn().mockResolvedValue({

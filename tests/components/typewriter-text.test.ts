@@ -3,15 +3,13 @@
  * Tests for the typewriter animation effect used in chat responses
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
 describe('TypewriterText', () => {
     beforeEach(() => {
-        vi.useFakeTimers();
+        jest.useFakeTimers();
     });
 
     afterEach(() => {
-        vi.useRealTimers();
+        jest.useRealTimers();
     });
 
     describe('delay prop behavior', () => {
@@ -29,14 +27,14 @@ describe('TypewriterText', () => {
             expect(displayedText).toBe('');
 
             // After delay
-            vi.advanceTimersByTime(delay);
+            jest.advanceTimersByTime(delay);
             hasStarted = true;
 
             expect(hasStarted).toBe(true);
 
             // After typing animation (simplified simulation)
             for (let i = 0; i < fullText.length; i++) {
-                vi.advanceTimersByTime(speed);
+                jest.advanceTimersByTime(speed);
                 displayedText = fullText.slice(0, i + 1);
             }
 
@@ -48,7 +46,7 @@ describe('TypewriterText', () => {
             let hasStarted = false;
 
             // Immediate start
-            vi.advanceTimersByTime(delay);
+            jest.advanceTimersByTime(delay);
             hasStarted = true;
 
             expect(hasStarted).toBe(true);
@@ -76,7 +74,7 @@ describe('TypewriterText', () => {
 
     describe('onComplete callback', () => {
         it('should call onComplete when animation finishes', () => {
-            const onComplete = vi.fn();
+            const onComplete = jest.fn();
             const text = 'Done!';
             const speed = 10;
 
@@ -85,7 +83,7 @@ describe('TypewriterText', () => {
             // Simulate typing complete
             while (currentIndex < text.length) {
                 currentIndex++;
-                vi.advanceTimersByTime(speed);
+                jest.advanceTimersByTime(speed);
             }
 
             // Trigger onComplete

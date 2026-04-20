@@ -3,11 +3,9 @@
  * Tests for the SEO page publishing and status management
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 describe('SEO Page Publishing', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        jest.clearAllMocks();
     });
 
     describe('page status management', () => {

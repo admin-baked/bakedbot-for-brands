@@ -86,11 +86,11 @@ describe('BrandLoginPage', () => {
             json: jest.fn().mockResolvedValue({})
         } as any);
 
-        // We need to mock window.location.href assignment
-        Object.defineProperty(window, 'location', {
-            value: { href: '' },
-            writable: true
-        });
+        // Mock window.location.href assignment (jsdom location is non-configurable)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        delete (window as any).location;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).location = { href: '', assign: jest.fn(), replace: jest.fn(), reload: jest.fn() };
 
         render(<BrandLoginPage />);
 

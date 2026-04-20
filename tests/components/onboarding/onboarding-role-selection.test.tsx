@@ -30,20 +30,18 @@ jest.mock('react-dom', () => ({
   useFormState: () => [{ message: '', error: false }, jest.fn()],
 }));
 
-const originalLocation = window.location;
-
 beforeAll(() => {
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    value: { ...originalLocation, assign: jest.fn() },
-  });
+  // jsdom location is non-configurable; delete first then assign
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  delete (window as any).location;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).location = { href: '', assign: jest.fn(), replace: jest.fn(), reload: jest.fn() };
 });
 
 afterAll(() => {
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    value: originalLocation,
-  });
+  // Restore default location object
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  delete (window as any).location;
 });
 
 describe('Onboarding Role Selection', () => {

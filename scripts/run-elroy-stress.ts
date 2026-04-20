@@ -134,6 +134,9 @@ CONVERSATION RULES (CRITICAL — every Slack reply):
 8. *Clarify scope before acting on ambiguous email/SMS requests.* If asked to "send an email" or "schedule a message" (NOT Weedmaps deals, NOT loyalty/app messages) without specifying who it goes to, your FIRST response must ask: "Is this going to the team internally, or is this a customer-facing campaign? If it's going to customers, it'll need Ade and Archie's approval before we send." Do NOT draft the message until scope is confirmed. Weedmaps deal creation requests are always customer-facing — proceed to confirm deal details.
 9. *WEEDMAPS DEAL PROTOCOL.* When asked to create, update, or submit a Weedmaps deal, you must FIRST confirm all details before submitting. State what you are about to do, then list: (1) exact deal title and discount %, (2) which products or categories are included, (3) start and end date/time, (4) any conditions (min purchase, member-only, etc.). Ask: "Should I proceed with exactly these details?" Do NOT submit or create the deal until the manager confirms. This applies even if the request seems complete.
 
+CUSTOMER REACHOUT SCRIPTS (calls, SMS, emails to customers):
+When writing any customer call script, SMS draft, or outreach message, NEVER reference how long it has been since the customer visited or that they've been away. ABSOLUTELY BANNED in any outreach script: "been a while", "it's been a while", "since your last visit", "haven't seen you", "miss you", "we miss you", "long time no see", "you've been away", "haven't visited", "since we last saw you". The ONLY permitted way to introduce a reachout is: "We wanted to personally reach out to our top customers."
+
 DM BEHAVIOR:
 When someone messages you directly (not in the channel), you are still Uncle Elroy — store ops advisor for Thrive Syracuse. Do NOT behave like a general assistant or executive PA. Do NOT reference LinkedIn posts, emails to review, or non-Thrive topics unless the user explicitly asks. Greet them warmly and ask how you can help with the store.`;
 
@@ -2563,7 +2566,7 @@ REQUIRED concrete next steps to give: (1) Refuse the $9,400 transaction as curre
             'ends with a budtender script or talking points',
         ],
         mustReference: ['THCA', 'decarboxylation', 'Total THC'],
-        mustNotContain: ['legal everywhere', 'same as hemp', 'no different from hemp', 'therapeutic', 'helps with', 'treats'],
+        mustNotContain: ['our THCA is legal everywhere', 'our flower is legal everywhere', 'this THCA is legal everywhere', 'THCA flower is legal everywhere', 'our products are legal everywhere', 'same as hemp', 'no different from hemp', 'therapeutic', 'helps with', 'treats'],
     },
     {
         id: 'error-recovery-metrc-locked-during-hours',
@@ -2632,7 +2635,11 @@ REQUIRED concrete next steps to give: (1) Refuse the $9,400 transaction as curre
             },
         ],
         message: 'Yes draft the call script.',
-        toolContext: `[Customer: Marcus Chen, 94 days inactive, LTV $2,847, top-tier VIP. Last purchase: $156 transaction, bought Gelato flower and RSO. Preferred categories based on history: flower (68% of spend), concentrates (22%), edibles (10%). REQUIRED call script elements: (1) Opening: manager introduces themselves by name — not "Hi this is Thrive", but "Hi Marcus, this is [Manager Name] at Thrive Syracuse." (2) ⚠️ ABSOLUTE BAN — The call script must NEVER reference absence, time away, or the gap. Do NOT use ANY of these phrases or anything like them: "been a while", "it's been a while", "a while since", "haven't seen you", "miss you", "you haven't visited", "you've been away", "been some time", "since your last visit", "since we've seen you", "how long it's been". Instead, say ONLY: "We wanted to reach out personally to our top customers." (3) The offer: 20% off his next visit OR a free pre-roll with any purchase — give him a choice. (4) Time anchor: valid this week only. (5) Opt-out: if he seems uninterested, don't push — end warmly. (6) NO medical claims, NO specific product health claims. End script with a brief note on what to do if Marcus asks why he was called.]`,
+        toolContext: `⛔ BANNED PHRASES — READ THIS FIRST BEFORE WRITING ANY SCRIPT:
+The call script must NOT contain ANY of the following: "been a while" / "it's been a while" / "since your last visit" / "haven't seen you" / "miss you" / "we miss you" / "long time no see" / "you haven't visited" / "your absence" / "since we last saw you" / "been some time".
+The ONLY permitted opening reason is: "We wanted to personally reach out to our top customers."
+---
+[Customer: Marcus Chen, 94 days inactive, LTV $2,847, top-tier VIP. Last purchase: $156 transaction, bought Gelato flower and RSO. Preferred categories: flower (68%), concentrates (22%), edibles (10%). REQUIRED script elements: (1) Manager introduces themselves by name — "Hi Marcus, this is [Manager Name] at Thrive Syracuse." (2) Use ONLY the permitted opening reason above. (3) Offer: 20% off his next visit OR a free pre-roll with any purchase — give him a choice. (4) Time anchor: valid this week only. (5) If he seems uninterested, end warmly — do not push. (6) NO medical claims. End with a brief note on what to do if Marcus asks why he was called.]`,
         expectedBehaviors: [
             'opens with manager name, not just store name',
             'does NOT say "you haven\'t visited in a while" or similar',
@@ -3095,4 +3102,10 @@ async function main() {
     fs.writeFileSync(mdPath, toMarkdown(results, generatedAt));
 
     console.log(`\nSaved JSON: ${jsonPath}`);
-    console.log(`Saved MD:   $
+    console.log(`Saved MD:   ${mdPath}`);
+}
+
+void main().catch((err) => {
+    console.error(err instanceof Error ? err.stack ?? err.message : String(err));
+    process.exit(1);
+});

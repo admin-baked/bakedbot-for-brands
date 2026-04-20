@@ -1,6 +1,6 @@
 
 import { createServerClient } from '@/firebase/server-client';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp as AdminTimestamp, FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
 import { Tenant } from '@/types/tenant';
 
@@ -51,7 +51,7 @@ export async function getTenantServiceStatus(orgId: string, userRole?: string): 
            return { active: true, paused: false, status: 'past_due', gracePeriodRemainingDays: GRACE_PERIOD_DAYS };
         }
 
-        const delinquencyDate = delinquencyAt instanceof Timestamp ? delinquencyAt.toDate() : new Date(delinquencyAt as any);
+        const delinquencyDate = delinquencyAt instanceof AdminTimestamp ? delinquencyAt.toDate() : new Date(delinquencyAt as any);
         const diffMs = Date.now() - delinquencyDate.getTime();
         const diffDays = diffMs / (1000 * 60 * 60 * 24);
 
@@ -92,7 +92,7 @@ export async function transitionDelinquentTenants(): Promise<{ processed: number
     
     const delinquentSnap = await firestore.collection('tenants')
       .where('subscriptionStatus', '==', 'past_due')
-      .where('delinquencyAt', '<=', Timestamp.fromDate(threeDaysAgo))
+      .where('delinquencyAt', '<=', AdminTimestamp.fromDate(threeDaysAgo))
       .get();
 
     if (delinquentSnap.empty) {

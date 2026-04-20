@@ -222,7 +222,8 @@ export interface CheckAIStudioActionResult {
     | 'AI_STUDIO_CREDITS_EXHAUSTED'
     | 'AI_STUDIO_DISABLED_BY_ADMIN'
     | 'VIDEO_NOT_ALLOWED_IN_AUTOMATION'
-    | 'PLAYBOOK_SLOTS_EXHAUSTED';
+    | 'PLAYBOOK_SLOTS_EXHAUSTED'
+    | 'SERVICE_PAUSED';
   creditsRequired: number;
   budgetBucket: AIStudioBudgetBucket;
   modelTier: AIStudioModelTier;

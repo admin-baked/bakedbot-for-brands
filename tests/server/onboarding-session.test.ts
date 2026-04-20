@@ -3,11 +3,9 @@
  * Tests for session cookie creation after signup to fix dispensary flow
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 describe('Onboarding Session Cookie', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        jest.clearAllMocks();
     });
 
     describe('session cookie creation after signup', () => {

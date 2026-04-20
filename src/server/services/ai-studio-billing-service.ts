@@ -23,6 +23,7 @@ import { canUseAIStudioAction, canRunPlaybookAIAction } from '@/lib/ai-studio/en
 import { getBaseActionCost, isVideoAction, isHighCostAction } from '@/lib/ai-studio/action-costs';
 import { resolveModelTier, computeCreditsCharged } from '@/lib/ai-studio/model-routing';
 import { getModelMultiplier } from '@/lib/ai-studio/model-tier-map';
+import { getTenantServiceStatus } from './billing-guard';
 import type {
   AIStudioBalanceDoc,
   AIStudioUsageEvent,
@@ -139,6 +140,20 @@ export async function checkAIStudioActionAllowed(
       getEffectiveAIStudioEntitlement(orgId),
       getAdminFirestore().collection('org_ai_studio_overrides').doc(orgId).get(),
     ]);
+
+    // Service Pause Gate
+    const serviceStatus = await getTenantServiceStatus(orgId);
+    if (!serviceStatus.active) {
+      return {
+        allowed: false,
+        errorCode: 'SERVICE_PAUSED',
+        reason: serviceStatus.reason || 'Service is currently paused',
+        creditsRequired: 0,
+        budgetBucket: automationTriggered ? 'automation' : 'manual',
+        modelTier: 'economy',
+        modelMultiplier: 1.0,
+      };
+    }
 
     // Admin hard stop
     if (overrideSnap.exists && (overrideSnap.data() as { forceHardStop?: boolean }).forceHardStop) {

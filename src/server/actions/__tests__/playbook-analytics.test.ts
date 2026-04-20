@@ -12,11 +12,16 @@ import {
 } from '../playbook-analytics';
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
+import { canAccessOrg } from '@/server/auth/rbac';
 import { logger } from '@/lib/logger';
 
 jest.mock('@/firebase/server-client');
 jest.mock('@/server/auth/auth');
 jest.mock('@/lib/logger');
+jest.mock('@/server/auth/rbac', () => ({
+  canAccessOrg: jest.fn(),
+  requirePermission: jest.fn(),
+}));
 
 describe('Playbook Analytics', () => {
   const mockFirestore = {

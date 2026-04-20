@@ -2,8 +2,6 @@
  * Unit Tests: Discovery MCP Types and Exports
  */
 
-import { describe, it, expect } from 'vitest';
-
 describe('Discovery MCP Module', () => {
     it('should export executeMCPTool function', async () => {
         const mcp = await import('@/server/services/rtrvr/mcp');

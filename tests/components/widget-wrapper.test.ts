@@ -3,8 +3,6 @@
  * Tests for the dashboard widget container with drag handle and controls
  */
 
-import { describe, it, expect, vi } from 'vitest';
-
 describe('WidgetWrapper', () => {
     describe('isStatic prop', () => {
         it('should have drag-handle class when isStatic is false (default)', () => {
@@ -46,7 +44,7 @@ describe('WidgetWrapper', () => {
 
     describe('onRemove callback', () => {
         it('should show remove option when onRemove is provided', () => {
-            const onRemove = vi.fn();
+            const onRemove = jest.fn();
             const hasRemoveOption = !!onRemove;
             
             expect(hasRemoveOption).toBe(true);
@@ -63,7 +61,7 @@ describe('WidgetWrapper', () => {
     describe('menu visibility', () => {
         it('should show menu when at least one action is available', () => {
             const onExpand = undefined;
-            const onSettings = vi.fn();
+            const onSettings = jest.fn();
             const onRemove = undefined;
             
             const showMenu = !!(onExpand || onSettings || onRemove);

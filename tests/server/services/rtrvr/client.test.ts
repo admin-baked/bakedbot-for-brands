@@ -2,8 +2,6 @@
  * Unit Tests: Discovery Browser Client Exports
  */
 
-import { describe, it, expect } from 'vitest';
-
 describe('Discovery Browser Client Module', () => {
     it('should export getRTRVRClient function', async () => {
         const client = await import('@/server/services/rtrvr/client');

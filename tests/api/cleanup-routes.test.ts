@@ -3,24 +3,22 @@
  * Tests for the brand/dispensary cleanup cron routes
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 // Mock Firebase Admin
-vi.mock('@/firebase/admin', () => ({
-    getAdminFirestore: vi.fn(() => ({
-        collection: vi.fn(() => ({
-            doc: vi.fn(() => ({
-                delete: vi.fn().mockResolvedValue(undefined)
+jest.mock('@/firebase/admin', () => ({
+    getAdminFirestore: jest.fn(() => ({
+        collection: jest.fn(() => ({
+            doc: jest.fn(() => ({
+                delete: jest.fn().mockResolvedValue(undefined)
             })),
-            get: vi.fn().mockResolvedValue({
+            get: jest.fn().mockResolvedValue({
                 docs: [
-                    { id: 'brand-1', ref: { delete: vi.fn() } },
-                    { id: 'brand-2', ref: { delete: vi.fn() } },
+                    { id: 'brand-1', ref: { delete: jest.fn() } },
+                    { id: 'brand-2', ref: { delete: jest.fn() } },
                 ]
             }),
-            listDocuments: vi.fn().mockResolvedValue([
-                { id: 'brand-1', delete: vi.fn() },
-                { id: 'brand-2', delete: vi.fn() },
+            listDocuments: jest.fn().mockResolvedValue([
+                { id: 'brand-1', delete: jest.fn() },
+                { id: 'brand-2', delete: jest.fn() },
             ])
         }))
     }))
@@ -28,15 +26,15 @@ vi.mock('@/firebase/admin', () => ({
 
 describe('Cleanup Routes', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        jest.clearAllMocks();
     });
 
     describe('GET /api/cron/cleanup-brands', () => {
         it('should delete all documents from seo_pages_brand collection', async () => {
             const collection = 'seo_pages_brand';
             const mockDocs = [
-                { id: 'cookies-chicago', ref: { delete: vi.fn() } },
-                { id: 'stiiizy-denver', ref: { delete: vi.fn() } },
+                { id: 'cookies-chicago', ref: { delete: jest.fn() } },
+                { id: 'stiiizy-denver', ref: { delete: jest.fn() } },
             ];
             
             // Simulate batch delete

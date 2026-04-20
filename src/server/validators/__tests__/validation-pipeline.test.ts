@@ -1,21 +1,20 @@
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createValidationPipeline } from '../validation-pipeline';
 
 // Mock Validators
-vi.mock('../marketing-validator', () => ({
-    marketingValidator: { validate: vi.fn(() => Promise.resolve({ isValid: true, errors: [] })) }
+jest.mock('../marketing-validator', () => ({
+    marketingValidator: { validate: jest.fn(() => Promise.resolve({ isValid: true, errors: [] })) }
 }));
-vi.mock('../compliance-validator', () => ({
-     complianceValidator: { validate: vi.fn(() => Promise.resolve({ isValid: true, errors: [] })) }
+jest.mock('../compliance-validator', () => ({
+     complianceValidator: { validate: jest.fn(() => Promise.resolve({ isValid: true, errors: [] })) }
 }));
-vi.mock('../financial-validator', () => ({
-    financialValidator: { validate: vi.fn(() => Promise.resolve({ isValid: true, errors: [] })) }
+jest.mock('../financial-validator', () => ({
+    financialValidator: { validate: jest.fn(() => Promise.resolve({ isValid: true, errors: [] })) }
 }));
 
 describe('Validation Pipeline', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        jest.clearAllMocks();
     });
 
     it('should create a pipeline for a known agent role', () => {

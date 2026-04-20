@@ -3,18 +3,16 @@
  * Tests for the chat project context selector dropdown
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 // Mock server action
-vi.mock('@/server/actions/projects', () => ({
-    getProjects: vi.fn()
+jest.mock('@/server/actions/projects', () => ({
+    getProjects: jest.fn()
 }));
 
 import { getProjects } from '@/server/actions/projects';
 
 describe('ProjectSelector', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        jest.clearAllMocks();
         // Clear localStorage
         localStorage.clear();
     });
@@ -56,7 +54,7 @@ describe('ProjectSelector', () => {
                 { id: 'project-2', name: 'Marketing', color: '#3b82f6' }
             ];
             
-            (getProjects as ReturnType<typeof vi.fn>).mockResolvedValue(mockProjects);
+            (getProjects as jest.Mock).mockResolvedValue(mockProjects);
             
             const projects = await getProjects();
             
@@ -66,7 +64,7 @@ describe('ProjectSelector', () => {
         });
 
         it('should handle empty projects list', async () => {
-            (getProjects as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+            (getProjects as jest.Mock).mockResolvedValue([]);
             
             const projects = await getProjects();
             
@@ -74,7 +72,7 @@ describe('ProjectSelector', () => {
         });
 
         it('should handle getProjects error gracefully', async () => {
-            (getProjects as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Failed to fetch'));
+            (getProjects as jest.Mock).mockRejectedValue(new Error('Failed to fetch'));
             
             await expect(getProjects()).rejects.toThrow('Failed to fetch');
         });

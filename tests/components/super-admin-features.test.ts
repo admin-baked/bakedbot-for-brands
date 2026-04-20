@@ -3,8 +3,6 @@
  * Tests for Super Admin intelligence unlock and sidebar features
  */
 
-import { describe, it, expect, vi } from 'vitest';
-
 describe('Super Admin Features', () => {
     describe('intelligence unlock', () => {
         it('should show Intelligence tab for super users only', () => {

@@ -41,7 +41,14 @@ jest.mock('@/app/dashboard/ceo/agents/personas', () => ({
     }
 }));
 jest.mock('@/server/agents/agent-definitions', () => ({
-    AGENT_CAPABILITIES: [{ id: 'craig', name: 'Craig' }]
+    AGENT_CAPABILITIES: [{ id: 'craig', name: 'Craig' }],
+    getDelegatableAgentIds: jest.fn(() => ['craig', 'leo', 'linus']),
+    AGENT_LINUS: 'linus',
+    AGENT_LEO: 'leo',
+    AGENT_CRAIG: 'craig',
+    canRoleAccessAgent: jest.fn().mockReturnValue(true),
+    buildSquadRoster: jest.fn().mockReturnValue('Squad: Craig'),
+    buildIntegrationStatusSummary: jest.fn().mockReturnValue('Integrations: OK'),
 }));
 
 describe('AgentRunner Gauntlet Loop', () => {

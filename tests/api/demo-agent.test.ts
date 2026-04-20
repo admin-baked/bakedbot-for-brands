@@ -3,19 +3,17 @@
  * Tests for the public demo agent endpoint
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 // Mock Firecrawl
-vi.mock('@firecrawl/firecrawl-js', () => ({
-    default: vi.fn().mockImplementation(() => ({
-        search: vi.fn().mockResolvedValue({ data: [] }),
-        scrapeUrl: vi.fn().mockResolvedValue({ data: { markdown: '' } })
+jest.mock('@firecrawl/firecrawl-js', () => ({
+    default: jest.fn().mockImplementation(() => ({
+        search: jest.fn().mockResolvedValue({ data: [] }),
+        scrapeUrl: jest.fn().mockResolvedValue({ data: { markdown: '' } })
     }))
 }));
 
 describe('Demo Agent API', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        jest.clearAllMocks();
     });
 
     describe('response sanitization', () => {

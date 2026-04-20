@@ -1,5 +1,12 @@
 // Mock Genkit immediately to prevent ESM import issues
 jest.mock('genkit', () => ({
+    genkit: jest.fn(() => ({
+        definePrompt: jest.fn(),
+        defineTool: jest.fn((config, impl) => impl),
+        defineFlow: jest.fn(),
+        generate: jest.fn().mockResolvedValue({ text: 'mock response' }),
+        run: jest.fn(),
+    })),
     tool: jest.fn(),
 }));
 
@@ -65,9 +72,13 @@ jest.mock('@/lib/cache/agent-runner-cache', () => ({
 jest.mock('@/server/agents/harness', () => ({ runAgent: jest.fn() }));
 jest.mock('@/server/agents/persistence', () => ({ persistence: { saveLog: jest.fn(), loadLogs: jest.fn() } }));
 jest.mock('@/server/agents/agent-definitions', () => ({
-    buildSquadRoster: jest.fn(),
-    buildIntegrationStatusSummary: jest.fn(),
+    buildSquadRoster: jest.fn().mockReturnValue('Squad: Pops'),
+    buildIntegrationStatusSummary: jest.fn().mockReturnValue('Integrations: OK'),
+    getDelegatableAgentIds: jest.fn(() => ['craig', 'leo', 'linus']),
     canRoleAccessAgent: jest.fn().mockReturnValue(false),
+    AGENT_LINUS: 'linus',
+    AGENT_LEO: 'leo',
+    AGENT_CRAIG: 'craig',
     AGENT_CAPABILITIES: [
         { id: 'pops', name: 'Pops', specialty: 'Analytics', keywords: [], description: '' },
         { id: 'general', name: 'Assistant', specialty: 'General', keywords: [], description: '' }

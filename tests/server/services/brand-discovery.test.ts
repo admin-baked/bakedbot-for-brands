@@ -3,25 +3,23 @@
  * Tests for the brand discovery and SEO page generation service
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 // Mock Firecrawl service
-vi.mock('@/server/services/firecrawl', () => ({
+jest.mock('@/server/services/firecrawl', () => ({
     FirecrawlService: {
-        getInstance: vi.fn(() => ({
-            mapSite: vi.fn(),
-            extractData: vi.fn(),
-            scrapeUrl: vi.fn()
+        getInstance: jest.fn(() => ({
+            mapSite: jest.fn(),
+            extractData: jest.fn(),
+            scrapeUrl: jest.fn()
         }))
     }
 }));
 
 // Mock Firebase
-vi.mock('@/firebase/admin', () => ({
-    getAdminFirestore: vi.fn(() => ({
-        collection: vi.fn(() => ({
-            doc: vi.fn(() => ({
-                set: vi.fn().mockResolvedValue(undefined)
+jest.mock('@/firebase/admin', () => ({
+    getAdminFirestore: jest.fn(() => ({
+        collection: jest.fn(() => ({
+            doc: jest.fn(() => ({
+                set: jest.fn().mockResolvedValue(undefined)
             }))
         }))
     }))
@@ -29,7 +27,7 @@ vi.mock('@/firebase/admin', () => ({
 
 describe('BrandDiscoveryService', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        jest.clearAllMocks();
     });
 
     describe('discoverBrands', () => {

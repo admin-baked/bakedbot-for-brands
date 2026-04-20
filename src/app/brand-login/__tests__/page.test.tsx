@@ -17,16 +17,17 @@ jest.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: jest.fn() }),
 }));
 
-// Mock window.location
+// Mock window.location (jsdom marks it non-configurable in newer versions)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+delete (window as any).location;
 const mockLocation = {
   href: '',
   assign: jest.fn(),
+  replace: jest.fn(),
+  reload: jest.fn(),
 };
-
-Object.defineProperty(window, 'location', {
-  value: mockLocation,
-  writable: true,
-});
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).location = mockLocation;
 
 describe('BrandLoginPage Logic', () => {
   const mockPush = jest.fn();

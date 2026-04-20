@@ -3,15 +3,13 @@
  * Tests for the simulated thinking steps shown during agent processing
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
 describe('Episodic Thinking Simulation', () => {
     beforeEach(() => {
-        vi.useFakeTimers();
+        jest.useFakeTimers();
     });
 
     afterEach(() => {
-        vi.useRealTimers();
+        jest.useRealTimers();
     });
 
     describe('simulateDemoSteps', () => {
@@ -77,13 +75,13 @@ describe('Episodic Thinking Simulation', () => {
                 }, delay);
             });
             
-            vi.advanceTimersByTime(500);
+            jest.advanceTimersByTime(500);
             expect(completedSteps).toBe(1); // Only first step
             
-            vi.advanceTimersByTime(600);
+            jest.advanceTimersByTime(600);
             expect(completedSteps).toBe(3); // Through 1000ms
             
-            vi.advanceTimersByTime(1500);
+            jest.advanceTimersByTime(1500);
             expect(completedSteps).toBe(5); // All complete
         });
 
@@ -116,12 +114,12 @@ describe('Episodic Thinking Simulation', () => {
             });
             
             // At 2.5s, simulation should be done but server still running
-            vi.advanceTimersByTime(2500);
+            jest.advanceTimersByTime(2500);
             expect(simulationComplete).toBe(true);
             expect(serverComplete).toBe(false);
             
             // At 3.5s, both should be done
-            vi.advanceTimersByTime(1000);
+            jest.advanceTimersByTime(1000);
             expect(serverComplete).toBe(true);
         });
 

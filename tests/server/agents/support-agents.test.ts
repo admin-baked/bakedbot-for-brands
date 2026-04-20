@@ -15,7 +15,14 @@ jest.mock('@mendable/firecrawl-js', () => ({ default: class FirecrawlApp { scrap
 jest.mock('@/ai/genkit', () => ({ ai: { generate: jest.fn().mockResolvedValue({ text: 'Mock response' }), defineTool: jest.fn() } }));
 jest.mock('@/lib/logger', () => ({ logger: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn() } }));
 jest.mock('@/server/services/letta/block-manager', () => ({
-    lettaBlockManager: { attachBlocksForRole: jest.fn().mockResolvedValue(true) }
+    lettaBlockManager: { attachBlocksForRole: jest.fn().mockResolvedValue(true) },
+    BLOCK_LABELS: {
+        AGENT_LINUS: 'agent_linus',
+        AGENT_LEO: 'agent_leo',
+        AGENT_CRAIG: 'agent_craig',
+        AGENT_MARTY: 'agent_marty',
+        AGENT_PUFF: 'agent_puff',
+    }
 }));
 jest.mock('@/server/agents/harness', () => ({
     runMultiStepTask: jest.fn().mockResolvedValue({

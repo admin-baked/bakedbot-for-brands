@@ -70,7 +70,7 @@ describe('Phase 12: Proactive Insights System', () => {
       // Hypothetical fetch call would use: signal: controller.signal
       clearTimeout(timeoutId);
 
-      expect(webhook Url).toBeDefined();
+      expect(webhookUrl).toBeDefined();
     });
 
     it('fails gracefully when Slack webhook unavailable', async () => {

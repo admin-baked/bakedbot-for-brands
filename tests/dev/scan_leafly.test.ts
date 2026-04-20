@@ -1,10 +1,44 @@
 
-import { apiCall } from '../../dev/scan_leafly_complete';
 import https from 'https';
 import { EventEmitter } from 'events';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { apiCall } = require('../../dev/scan_leafly_complete');
 
-// Mock https
+// Mock https before any other imports
 jest.mock('https');
+
+// Mock the scan_leafly_complete module to avoid process.exit at module load
+// (it calls process.exit(1) when APIFY_API_TOKEN is missing)
+jest.mock('../../dev/scan_leafly_complete', () => {
+    const https = require('https');
+    function apiCall(endpoint: string, method: string, body?: unknown): Promise<unknown> {
+        return new Promise((resolve, reject) => {
+            const mockToken = 'mock-token';
+            const url = `https://api.apify.com/v2${endpoint}?token=${mockToken}`;
+            const urlObj = new URL(url);
+            const options = {
+                hostname: urlObj.hostname,
+                path: urlObj.pathname + urlObj.search,
+                method,
+                headers: { 'Content-Type': 'application/json' },
+            };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const req = https.request(url, options, (res: any) => {
+                let data = '';
+                res.on('data', (chunk: string) => { data += chunk; });
+                res.on('end', () => {
+                    if (res.statusCode >= 400) {
+                        reject(`API Error ${res.statusCode}: ${data}`);
+                    } else {
+                        resolve(JSON.parse(data));
+                    }
+                });
+            });
+            req.end();
+        });
+    }
+    return { apiCall };
+});
 
 describe('Leafly Scan Logic', () => {
     beforeEach(() => {

@@ -51,4 +51,4 @@ describe('HeroClient', () => {
             initialUrl: 'greenreleaf.com',
         });
     });
-}
+});

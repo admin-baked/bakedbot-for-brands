@@ -1,22 +1,22 @@
 /**
  * Cloud Tasks Dispatch Tests
  * Tests for the agent job dispatch functionality with proper error handling
+ *
+ * @jest-environment node
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 // Mock googleapis
-const mockTasksCreate = vi.fn();
-const mockGetClient = vi.fn();
+const mockTasksCreate = jest.fn();
+const mockGetClient = jest.fn();
 
-vi.mock('googleapis', () => ({
+jest.mock('googleapis', () => ({
     google: {
         auth: {
-            GoogleAuth: vi.fn().mockImplementation(() => ({
+            GoogleAuth: jest.fn().mockImplementation(() => ({
                 getClient: mockGetClient
             }))
         },
-        cloudtasks: vi.fn().mockImplementation(() => ({
+        cloudtasks: jest.fn().mockImplementation(() => ({
             projects: {
                 locations: {
                     queues: {
@@ -31,22 +31,22 @@ vi.mock('googleapis', () => ({
 }));
 
 // Mock logger
-vi.mock('@/lib/logger', () => ({
+jest.mock('@/lib/logger', () => ({
     logger: {
-        error: vi.fn(),
-        warn: vi.fn(),
-        info: vi.fn()
+        error: jest.fn(),
+        warn: jest.fn(),
+        info: jest.fn()
     }
 }));
 
 // Mock secrets
-vi.mock('@/server/utils/secrets', () => ({
-    getSecret: vi.fn().mockResolvedValue(null)
+jest.mock('@/server/utils/secrets', () => ({
+    getSecret: jest.fn().mockResolvedValue(null)
 }));
 
 describe('Cloud Tasks Dispatch', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        jest.clearAllMocks();
         mockGetClient.mockResolvedValue({ credentials: {} });
         mockTasksCreate.mockResolvedValue({ data: { name: 'task-123' } });
     });
@@ -97,17 +97,17 @@ describe('Cloud Tasks Dispatch', () => {
             mockGetClient.mockRejectedValue(new Error('Could not load default credentials'));
 
             // Re-import to get fresh module with new mock behavior
-            vi.resetModules();
+            jest.resetModules();
 
             // Re-setup mocks after reset
-            vi.doMock('googleapis', () => ({
+            jest.doMock('googleapis', () => ({
                 google: {
                     auth: {
-                        GoogleAuth: vi.fn().mockImplementation(() => ({
-                            getClient: vi.fn().mockRejectedValue(new Error('Could not load default credentials'))
+                        GoogleAuth: jest.fn().mockImplementation(() => ({
+                            getClient: jest.fn().mockRejectedValue(new Error('Could not load default credentials'))
                         }))
                     },
-                    cloudtasks: vi.fn()
+                    cloudtasks: jest.fn()
                 }
             }));
 
@@ -165,20 +165,20 @@ describe('Cloud Tasks Dispatch', () => {
         });
 
         it('should throw with descriptive error when auth fails', async () => {
-            vi.resetModules();
+            jest.resetModules();
 
-            vi.doMock('googleapis', () => ({
+            jest.doMock('googleapis', () => ({
                 google: {
                     auth: {
-                        GoogleAuth: vi.fn().mockImplementation(() => ({
-                            getClient: vi.fn().mockRejectedValue(new Error('Auth failed'))
+                        GoogleAuth: jest.fn().mockImplementation(() => ({
+                            getClient: jest.fn().mockRejectedValue(new Error('Auth failed'))
                         }))
                     },
-                    cloudtasks: vi.fn()
+                    cloudtasks: jest.fn()
                 }
             }));
-            vi.doMock('@/lib/logger', () => ({
-                logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() }
+            jest.doMock('@/lib/logger', () => ({
+                logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn() }
             }));
 
             const { getCloudTasksClient } = await import('@/server/jobs/client');

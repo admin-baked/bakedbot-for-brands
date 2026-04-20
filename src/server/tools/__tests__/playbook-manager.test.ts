@@ -1,37 +1,36 @@
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createPlaybook } from '../playbook-manager';
 
 // Mock dependencies
-const mockSet = vi.fn();
-const mockDoc = vi.fn(() => ({ set: mockSet }));
-const mockCollection = vi.fn(() => ({ doc: mockDoc }));
+const mockSet = jest.fn();
+const mockDoc = jest.fn(() => ({ set: mockSet }));
+const mockCollection = jest.fn(() => ({ doc: mockDoc }));
 const mockFirestore = {
     collection: mockCollection,
-    batch: vi.fn(() => ({
-        set: vi.fn(),
-        commit: vi.fn()
+    batch: jest.fn(() => ({
+        set: jest.fn(),
+        commit: jest.fn()
     }))
 };
 
-vi.mock('@/firebase/admin', () => ({
+jest.mock('@/firebase/admin', () => ({
     getAdminFirestore: () => mockFirestore
 }));
 
-vi.mock('firebase-admin/firestore', () => ({
+jest.mock('firebase-admin/firestore', () => ({
     FieldValue: {
         serverTimestamp: () => 'MOCK_TIMESTAMP',
         increment: () => 'MOCK_INCREMENT'
     }
 }));
 
-vi.mock('../scheduler', () => ({
-    scheduleTask: vi.fn(() => Promise.resolve({ jobId: 'mock-job-id' }))
+jest.mock('../scheduler', () => ({
+    scheduleTask: jest.fn(() => Promise.resolve({ jobId: 'mock-job-id' }))
 }));
 
 describe('Playbook Manager', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        jest.clearAllMocks();
     });
 
     describe('createPlaybook', () => {

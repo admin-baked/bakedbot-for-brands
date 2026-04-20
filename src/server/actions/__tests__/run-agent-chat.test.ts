@@ -13,6 +13,13 @@ jest.mock('@/server/agents/agent-router', () => ({
 }));
 
 jest.mock('@/server/agents/agent-definitions', () => ({
+    getDelegatableAgentIds: jest.fn(() => ['craig', 'leo', 'linus']),
+    canRoleAccessAgent: jest.fn().mockReturnValue(true),
+    buildSquadRoster: jest.fn().mockReturnValue('Squad: Craig'),
+    buildIntegrationStatusSummary: jest.fn().mockReturnValue('Integrations: OK'),
+    AGENT_LINUS: 'linus',
+    AGENT_LEO: 'leo',
+    AGENT_CRAIG: 'craig',
     AGENT_CAPABILITIES: [
         { id: 'general', name: 'General Assistant', specialty: 'General tasks' },
         { id: 'craig', name: 'Craig', specialty: 'Marketing' }

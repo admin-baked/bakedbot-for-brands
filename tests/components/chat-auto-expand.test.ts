@@ -3,8 +3,6 @@
  * Tests for the chat container auto-unfurl behavior with typewriter text
  */
 
-import { describe, it, expect, vi } from 'vitest';
-
 describe('Chat Auto-Expand Behavior', () => {
     describe('container styling', () => {
         it('should NOT use overflow-hidden on main container', () => {

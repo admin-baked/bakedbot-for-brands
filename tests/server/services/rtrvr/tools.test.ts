@@ -4,8 +4,7 @@
  * Tests the tool definitions and access control functions.
  */
 
-import { describe, it, expect } from 'vitest';
-import { 
+import {
     DISCOVERY_BROWSER_TOOLS,
     DISCOVERY_BROWSER_ALLOWED_AGENTS,
     canAgentUseDiscoveryBrowser,
