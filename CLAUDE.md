@@ -4,13 +4,20 @@
 
 ---
 
-## ÃƒÂ°Ã…Â¸Ã…Â¡Ã‚Â¨ FIRST: Check Build Health
+## FIRST: Check Build Health
+
+**Two checks at session start. No exceptions.**
 
 ```powershell
+# 1. Is the PREVIOUS push green in CI?
+npm run ci:health
+
+# 2. Does the local build compile?
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**If failing, fix build errors before any other work. No exceptions.**
+If `ci:health` shows red: **fix the CI failure before doing any new work.** Don't push on top of a broken build.
+If `check:types` fails: **fix type errors before any other work.**
 
 **Current Status:** 🟢 main green | Campaigns UX overhaul (4 phases); null-safe toLocaleString fix; Graceful Service Pause (GEM) | **Last update:** 2026-04-20 (`e56e3cc37`)
 
@@ -56,11 +63,13 @@ After completing ANY code modifications AND **before every `git push` / Firebase
 
 | Command | Purpose |
 |---------|---------|
+| `npm run ci:health` | **Session start** — verify previous push CI is green |
 | `.\scripts\npm-safe.cmd run check:types` | TypeScript check (run before/after changes) |
 | `.\scripts\npm-safe.cmd test` | Run Jest tests |
 | `.\scripts\npm-safe.cmd test -- path/to/file.test.ts` | Test specific file |
 | `.\scripts\npm-safe.cmd run lint` | ESLint check |
 | `.\scripts\npm-safe.cmd run dev` | Local dev server |
+| `bash scripts/safe-push.sh` | **Safe deploy** — CI check + pull + type check + push + verify |
 | `git push origin main` | **Deploy to production** ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â triggers Firebase App Hosting CI/CD |
 | `npm run gh:checks` | Check CI status for HEAD commit (check runs + statuses) |
 | `npm run gh:checks:wait` | Poll until all checks pass (30s interval, 15min timeout) |
