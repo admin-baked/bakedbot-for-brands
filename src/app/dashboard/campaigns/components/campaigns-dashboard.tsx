@@ -47,6 +47,7 @@ export function CampaignsDashboard({ userId, orgId: defaultOrgId, isSuperUser }:
     const [error, setError] = useState<string | null>(null);
     const [showWizard, setShowWizard] = useState(false);
     const [activeTab, setActiveTab] = useState('all');
+    const [sortBy, setSortBy] = useState<'newest' | 'openRate' | 'clickRate' | 'revenue'>('newest');
     // Super user org switcher — defaults to platform org
     const [selectedOrgId, setSelectedOrgId] = useState(
         isSuperUser ? 'org_bakedbot_platform' : (defaultOrgId ?? '')
@@ -93,6 +94,11 @@ export function CampaignsDashboard({ userId, orgId: defaultOrgId, isSuperUser }:
         if (activeTab === 'drafts') return c.status === 'draft';
         if (activeTab === 'completed') return ['sent', 'cancelled', 'failed'].includes(c.status);
         return true;
+    }).sort((a, b) => {
+        if (sortBy === 'openRate') return (b.performance?.openRate ?? 0) - (a.performance?.openRate ?? 0);
+        if (sortBy === 'clickRate') return (b.performance?.clickRate ?? 0) - (a.performance?.clickRate ?? 0);
+        if (sortBy === 'revenue') return (b.performance?.revenue ?? 0) - (a.performance?.revenue ?? 0);
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
     if (loading) {
@@ -180,10 +186,22 @@ export function CampaignsDashboard({ userId, orgId: defaultOrgId, isSuperUser }:
                             <TabsTrigger value="completed">Completed</TabsTrigger>
                         </TabsList>
 
-                        <Button onClick={() => setShowWizard(true)}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            New Campaign
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <select
+                                value={sortBy}
+                                onChange={e => setSortBy(e.target.value as typeof sortBy)}
+                                className="text-sm border rounded-md px-2 py-1.5 bg-background"
+                            >
+                                <option value="newest">Newest</option>
+                                <option value="openRate">Open Rate</option>
+                                <option value="clickRate">Click Rate</option>
+                                <option value="revenue">Revenue</option>
+                            </select>
+                            <Button onClick={() => setShowWizard(true)}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                New Campaign
+                            </Button>
+                        </div>
                     </div>
 
                     <TabsContent value={activeTab} className="mt-4">

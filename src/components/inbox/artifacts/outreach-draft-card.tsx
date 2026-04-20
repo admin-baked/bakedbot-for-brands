@@ -10,7 +10,7 @@
  * Phase 1 — Campaign Inbox Fast Path
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Send,
     Clock,
@@ -55,6 +55,8 @@ import {
     approveAndSendDraft,
     rejectDraft,
 } from '@/server/actions/ny-outreach-dashboard';
+import { getCampaign } from '@/server/actions/campaigns';
+import type { CampaignPerformance } from '@/types/campaign';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -501,15 +503,18 @@ export function OutreachDraftCard({ artifact }: OutreachDraftCardProps) {
                     </div>
                 </div>
                 {campaignId && (
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2"
-                        onClick={() => router.push('/dashboard/campaigns')}
-                    >
-                        <ExternalLink className="h-4 w-4" />
-                        View in Campaigns
-                    </Button>
+                    <>
+                        <CampaignResultsInline campaignId={campaignId} />
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-2"
+                            onClick={() => router.push(`/dashboard/campaigns/${campaignId}`)}
+                        >
+                            <ExternalLink className="h-4 w-4" />
+                            View Full Report
+                        </Button>
+                    </>
                 )}
             </div>
         );
@@ -796,6 +801,39 @@ export function OutreachDraftCard({ artifact }: OutreachDraftCardProps) {
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+function CampaignResultsInline({ campaignId }: { campaignId: string }) {
+    const [perf, setPerf] = useState<CampaignPerformance | null>(null);
+
+    useEffect(() => {
+        getCampaign(campaignId).then(c => {
+            if (c?.performance && c.performance.sent > 0) setPerf(c.performance);
+        }).catch(() => {});
+    }, [campaignId]);
+
+    if (!perf) return null;
+
+    return (
+        <div className="grid grid-cols-4 gap-2 text-center text-xs border rounded-lg p-3">
+            <div>
+                <p className="text-muted-foreground">Sent</p>
+                <p className="font-bold">{perf.sent}</p>
+            </div>
+            <div>
+                <p className="text-muted-foreground">Opens</p>
+                <p className="font-bold">{perf.openRate?.toFixed(1) ?? 0}%</p>
+            </div>
+            <div>
+                <p className="text-muted-foreground">Clicks</p>
+                <p className="font-bold">{perf.clickRate?.toFixed(1) ?? 0}%</p>
+            </div>
+            <div>
+                <p className="text-muted-foreground">Revenue</p>
+                <p className="font-bold text-green-600">${(perf.revenue ?? 0).toLocaleString()}</p>
+            </div>
         </div>
     );
 }

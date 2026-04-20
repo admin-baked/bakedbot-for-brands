@@ -378,6 +378,70 @@ async function getBrandInsights(orgId: string): Promise<BrandInsights> {
             }
         }
 
+        // 2b. Upcoming campaign sends (within 48h)
+        try {
+            const { getCampaigns } = await import('@/server/actions/campaigns');
+            const allCampaigns = await getCampaigns(orgId, { status: 'scheduled' });
+            const now = Date.now();
+            const in48h = now + 48 * 60 * 60 * 1000;
+
+            const upcoming = (allCampaigns || []).filter(c =>
+                c.scheduledAt && new Date(c.scheduledAt).getTime() > now && new Date(c.scheduledAt).getTime() < in48h
+            );
+
+            if (upcoming.length > 0) {
+                const next = upcoming[0];
+                const hoursUntil = Math.round((new Date(next.scheduledAt!).getTime() - now) / (60 * 60 * 1000));
+                insights.campaign.push({
+                    id: `upcoming-send-${next.id}`,
+                    category: 'campaign',
+                    agentId: 'craig',
+                    agentName: 'Craig',
+                    title: 'Upcoming Campaign',
+                    headline: `${next.name} sends in ${hoursUntil}h`,
+                    subtext: `${next.audience?.resolvedCount || next.audience?.estimatedCount || 0} recipients`,
+                    severity: 'info',
+                    actionable: true,
+                    ctaLabel: 'Review',
+                    threadType: 'campaign',
+                    threadPrompt: `Review my upcoming campaign "${next.name}" before it sends.`,
+                    lastUpdated: new Date(),
+                    dataSource: 'campaigns',
+                });
+            }
+
+            // 2c. Low-performing sent campaigns
+            const sentCampaigns = await getCampaigns(orgId, { status: 'sent' });
+            const lowPerformers = (sentCampaigns || []).filter(c =>
+                c.performance && c.performance.sent > 0 &&
+                (c.performance.openRate < 10 || (c.performance.bounceRate ?? 0) > 8)
+            );
+
+            if (lowPerformers.length > 0) {
+                const worst = lowPerformers[0];
+                insights.campaign.push({
+                    id: `low-perf-${worst.id}`,
+                    category: 'campaign',
+                    agentId: 'craig',
+                    agentName: 'Craig',
+                    title: 'Campaign Health',
+                    headline: `${worst.name}: ${worst.performance!.openRate.toFixed(1)}% open rate`,
+                    subtext: worst.performance!.bounceRate && worst.performance!.bounceRate > 8
+                        ? `Bounce rate ${worst.performance!.bounceRate.toFixed(1)}% — review audience`
+                        : 'Consider testing subject lines',
+                    severity: 'warning',
+                    actionable: true,
+                    ctaLabel: 'Analyze',
+                    threadType: 'campaign',
+                    threadPrompt: `Analyze why my campaign "${worst.name}" has low performance and suggest improvements.`,
+                    lastUpdated: new Date(),
+                    dataSource: 'campaigns',
+                });
+            }
+        } catch {
+            // Campaign queries may fail for new orgs — safe to ignore
+        }
+
         // 3. Retail Coverage (Leo)
         if (dashboardData) {
             const coverageValue = dashboardData.coverage.value;
