@@ -242,7 +242,7 @@ describe('CreativeCommandCenter regressions', () => {
   it('passes the selected product and image into branded generation', async () => {
     renderCreativeCenter();
 
-    fireEvent.change(screen.getByPlaceholderText(/Describe your campaign idea/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Describe the post/i), {
       target: { value: 'Lets create an image post featuring one of our Products. Use our brand colors.' },
     });
 
@@ -254,7 +254,7 @@ describe('CreativeCommandCenter regressions', () => {
       name: /Ayrloom - Gummies 10pk - 2:1 Sunny Days - 100mg/i,
     }));
     fireEvent.click(screen.getByRole('button', { name: /Branded/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Generate with Craig/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Generate$/i }));
 
     await waitFor(() => expect(mockGenerate).toHaveBeenCalled());
 
@@ -273,7 +273,7 @@ describe('CreativeCommandCenter regressions', () => {
   it('renders a slideshow preview and forwards the selected product into Remotion', async () => {
     renderCreativeCenter();
 
-    fireEvent.change(screen.getByPlaceholderText(/Describe your campaign idea/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Describe the post/i), {
       target: { value: 'Feature our Sunny Days gummies with brand colors.' },
     });
 
@@ -350,10 +350,10 @@ describe('CreativeCommandCenter regressions', () => {
 
     renderCreativeCenter();
 
-    fireEvent.change(screen.getByPlaceholderText(/Describe your campaign idea/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Describe the post/i), {
       target: { value: 'Create a fresh educational post for today.' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /Generate with Craig/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Generate$/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/Generation failed/i)).toBeInTheDocument();

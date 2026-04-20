@@ -51,9 +51,9 @@ jest.mock('@/components/ui/dropdown-menu', () => ({
 
 describe('Widget Components', () => {
     describe('WIDGET_COMPONENTS registry', () => {
-        it('should have 14 registered widgets', () => {
+        it('should have 21 registered widgets', () => {
             const count = Object.keys(WIDGET_COMPONENTS).length;
-            expect(count).toBe(14);
+            expect(count).toBe(21);
         });
 
         it('should have all expected widget types', () => {
@@ -71,7 +71,14 @@ describe('Widget Components', () => {
                 'recent-reviews',
                 'editor-requests',
                 'compliance-alerts',
-                'rule-changes'
+                'rule-changes',
+                'brand-kpis',
+                'next-best-actions',
+                'competitive-intel',
+                'managed-pages',
+                'brand-chat',
+                'quick-actions',
+                'brand-alerts'
             ];
 
             expectedTypes.forEach(type => {

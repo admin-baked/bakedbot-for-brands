@@ -33,6 +33,7 @@ jest.mock('lucide-react', () => ({
     Package: () => <div data-testid="package-icon">Package</div>,
     ArrowRight: () => <div data-testid="arrow-right">Arrow</div>,
     X: () => <div data-testid="x-icon">X</div>,
+    SlidersHorizontal: () => <div data-testid="sliders-icon">Sliders</div>,
 }));
 
 jest.mock('@/hooks/use-store', () => ({
@@ -154,9 +155,76 @@ jest.mock('@/components/checkout/checkout-flow', () => ({
     CheckoutFlow: () => <div data-testid="checkout-flow">Checkout</div>,
 }));
 
+jest.mock('@/components/checkout/smokey-agent-checkout', () => ({
+    SmokeyAgentCheckout: () => <div data-testid="smokey-checkout">SmokeyCheckout</div>,
+}));
+
 jest.mock('@/components/chatbot', () => ({
     __esModule: true,
     default: () => <div data-testid="chatbot">Chatbot</div>,
+}));
+
+jest.mock('@/components/menu/ManagedProductGrid', () => ({
+    ManagedProductGrid: ({ products }: any) => (
+        <div data-testid="managed-product-grid">{products?.length ?? 0} products</div>
+    ),
+}));
+
+jest.mock('@/components/demo/demo-header', () => ({
+    DemoHeader: () => <div data-testid="demo-header">Header</div>,
+}));
+
+jest.mock('@/components/demo/hero-carousel', () => ({
+    HeroCarousel: () => <div data-testid="hero-carousel">HeroCarousel</div>,
+}));
+
+jest.mock('@/components/demo/featured-brands-carousel', () => ({
+    FeaturedBrandsCarousel: () => <div data-testid="featured-brands">FeaturedBrands</div>,
+}));
+
+jest.mock('@/components/demo/menu-info-bar', () => ({
+    MenuInfoBar: () => <div data-testid="menu-info-bar">MenuInfoBar</div>,
+}));
+
+jest.mock('@/components/demo/menu-filter-sidebar', () => ({
+    MenuFilterSidebar: () => <div data-testid="menu-filter-sidebar">Filters</div>,
+    EMPTY_FILTERS: { categories: [], effects: [], brands: [], priceRange: [0, 1000] },
+}));
+
+jest.mock('@/components/demo/category-tabs-nav', () => ({
+    CategoryTabsNav: () => <div data-testid="category-tabs-nav">CategoryTabs</div>,
+}));
+
+jest.mock('@/components/ui/sheet', () => ({
+    Sheet: ({ children }: any) => <div>{children}</div>,
+    SheetContent: ({ children }: any) => <div>{children}</div>,
+    SheetHeader: ({ children }: any) => <div>{children}</div>,
+    SheetTitle: ({ children }: any) => <div>{children}</div>,
+    SheetTrigger: ({ children }: any) => <div>{children}</div>,
+}));
+
+jest.mock('@/components/checkin/visitor-checkin-promo', () => ({
+    VisitorCheckinPromo: () => <div data-testid="checkin-promo">CheckinPromo</div>,
+}));
+
+jest.mock('@/components/dispensary/dispensary-info-panel', () => ({
+    DispensaryInfoPanel: () => <div data-testid="dispensary-info">DispensaryInfo</div>,
+}));
+
+jest.mock('@/hooks/use-toast', () => ({
+    useToast: () => ({ toast: jest.fn() }),
+}));
+
+jest.mock('@/lib/feature-flags', () => ({
+    isShippingCheckoutEnabled: jest.fn(() => false),
+}));
+
+jest.mock('@/lib/utils/product-image', () => ({
+    normalizeCategoryName: jest.fn((name: string) => name ?? 'Other'),
+}));
+
+jest.mock('@/lib/checkin/visitor-checkin-pilot', () => ({
+    isVisitorCheckinPilot: jest.fn(() => false),
 }));
 
 // Import after all mocks
