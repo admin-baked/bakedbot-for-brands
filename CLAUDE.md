@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Graceful Service Pause: suspended status, billing-guard service, glassmorphic overlay, admin toggle, simplify optimized | **Last update:** 2026-04-20 (`4.10.19-GEM`)
+**Current Status:** 🟢 main green | Campaigns UX overhaul (4 phases); null-safe toLocaleString fix; Graceful Service Pause (GEM) | **Last update:** 2026-04-20 (`e56e3cc37`)
 
 ---
 
