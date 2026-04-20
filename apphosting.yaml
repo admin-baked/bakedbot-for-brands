@@ -9,7 +9,7 @@ env:
   # --optimize-for-size reduces V8 working set; lower ceiling = less swap = less thrash.
   # 3584 (3.5GB) + optimize-for-size empirically reduces peak swap vs bare 5GB.
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=3584 --optimize-for-size"
+    value: "--max-old-space-size=3584"
     availability: [ BUILD ]
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"
