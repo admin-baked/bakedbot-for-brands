@@ -19,8 +19,9 @@ import {
   refreshWalletBalance,
 } from '@/lib/x402/cdp-wallets';
 import { X402_ROUTE_PRICING } from '@/types/x402';
+import { getTenantServiceStatus } from './billing-guard';
 import { FieldValue } from 'firebase-admin/firestore';
-import QRCode from 'qrcode';
+import * as QRCode from 'qrcode';
 import type { X402Usage, X402Wallet } from '@/types/x402';
 
 // ============================================================================
@@ -66,14 +67,8 @@ export async function checkOrgBalance(
  */
 export async function hasActiveSubscription(orgId: string): Promise<boolean> {
   try {
-    const db = getAdminFirestore();
-    const tenantDoc = await db.collection('tenants').doc(orgId).get();
-    if (!tenantDoc.exists) return false;
-    const data = tenantDoc.data();
-    // Active subscription = plan exists and not cancelled
-    return (
-      !!data?.planId && !!data?.subscriptionId && data?.subscriptionStatus !== 'cancelled'
-    );
+    const status = await getTenantServiceStatus(orgId);
+    return status.active;
   } catch {
     return false;
   }
