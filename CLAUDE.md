@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Test mock fixes (brand-menu-client 14 tests, widget count 14→21, creative placeholder); TS clean | **Last update:** 2026-04-20 (`e79817f7d`)
+**Current Status:** 🟢 main green | Test infrastructure overhaul: 351→247 failing suites (104 fixed); TDZ fix in agent-runner; TS clean | **Last update:** 2026-04-20 (`ebbcfe318`)
 
 ---
 

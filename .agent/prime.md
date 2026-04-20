@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Test mock fixes + TS clean (0 errors)
-**Recent work (2026-04-20):** `e79817f7d` test mock fixes (brand-menu-client 15 mocks, widget count 14→21, creative placeholder/button)
+**Current Status:** 🟢 main green | Test infra overhaul: 351→247 suites (104 fixed) + TS clean (0 errors)
+**Recent work (2026-04-20):** `ebbcfe318` test infra overhaul (mock fixes, TDZ fix, global polyfills); `e79817f7d` brand-menu-client mocks
 
 ---
 
