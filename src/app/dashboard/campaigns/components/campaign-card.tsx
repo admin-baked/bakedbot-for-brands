@@ -11,14 +11,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
     Mail, MessageSquare, Users, MoreHorizontal, Play, Pause,
-    Trash2, Eye, Clock, CheckCircle, Shield, Send, Sparkles,
+    Trash2, Eye, Clock, CheckCircle, Shield, Send, Sparkles, Copy, RotateCcw,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { Campaign } from '@/types/campaign';
 import { CAMPAIGN_STATUS_INFO, CAMPAIGN_GOALS } from '@/types/campaign';
 import {
     cancelCampaign, pauseCampaign, approveCampaign,
-    submitForComplianceReview,
+    submitForComplianceReview, resumeCampaign, duplicateCampaign,
 } from '@/server/actions/campaigns';
 
 interface CampaignCardProps {
@@ -44,9 +44,17 @@ export function CampaignCard({ campaign, onRefresh }: CampaignCardProps) {
             case 'pause':
                 await pauseCampaign(campaign.id);
                 break;
+            case 'resume':
+                await resumeCampaign(campaign.id);
+                break;
             case 'cancel':
                 await cancelCampaign(campaign.id);
                 break;
+            case 'duplicate': {
+                const clone = await duplicateCampaign(campaign.id);
+                if (clone) router.push(`/dashboard/campaigns/${clone.id}`);
+                return;
+            }
         }
         onRefresh();
     };
@@ -65,6 +73,9 @@ export function CampaignCard({ campaign, onRefresh }: CampaignCardProps) {
                             <Badge className={statusInfo.color} variant="secondary">
                                 {statusInfo.label}
                             </Badge>
+                            {campaign.performance && campaign.performance.sent > 0 && (
+                                <HealthDot perf={campaign.performance} />
+                            )}
                         </div>
 
                         <p className="text-sm text-muted-foreground mb-2">
@@ -164,6 +175,18 @@ export function CampaignCard({ campaign, onRefresh }: CampaignCardProps) {
                                 </DropdownMenuItem>
                             )}
 
+                            {campaign.status === 'paused' && (
+                                <DropdownMenuItem onClick={() => handleAction('resume')}>
+                                    <Play className="h-4 w-4 mr-2" />
+                                    Resume Sending
+                                </DropdownMenuItem>
+                            )}
+
+                            <DropdownMenuItem onClick={() => handleAction('duplicate')}>
+                                <Copy className="h-4 w-4 mr-2" />
+                                Duplicate
+                            </DropdownMenuItem>
+
                             {emailContent?.htmlBody && (
                                 <>
                                     <DropdownMenuSeparator />
@@ -228,4 +251,17 @@ export function CampaignCard({ campaign, onRefresh }: CampaignCardProps) {
             )}
         </Card>
     );
+}
+
+function HealthDot({ perf }: { perf: { bounceRate?: number; openRate?: number } }) {
+    const bounceRate = perf.bounceRate ?? 0;
+    const openRate = perf.openRate ?? 0;
+
+    if (bounceRate > 10 || openRate < 10) {
+        return <span className="w-2 h-2 rounded-full bg-red-500 inline-block" title="At risk" />;
+    }
+    if (bounceRate > 5 || openRate < 20) {
+        return <span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" title="Needs attention" />;
+    }
+    return <span className="w-2 h-2 rounded-full bg-green-500 inline-block" title="Healthy" />;
 }

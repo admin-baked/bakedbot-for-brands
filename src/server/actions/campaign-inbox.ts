@@ -505,7 +505,7 @@ export async function sendCampaignFromInbox(params: {
         const performanceData = {
             totalRecipients: recipients.length,
             sent: sentCount,
-            delivered: 0,
+            delivered: sentCount,
             opened: 0,
             clicked: 0,
             bounced: failedCount,

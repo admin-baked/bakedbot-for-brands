@@ -12,6 +12,7 @@ import type {
     CampaignAudience,
     CampaignContent,
     CampaignPerformance,
+    CampaignRecipient,
 } from '@/types/campaign';
 import type { InboxAgentPersona } from '@/types/inbox';
 
@@ -557,6 +558,176 @@ export async function pauseCampaign(campaignId: string): Promise<boolean> {
             campaignId,
         });
         return false;
+    }
+}
+
+// =============================================================================
+// RESUME / DUPLICATE / RETRY
+// =============================================================================
+
+export async function resumeCampaign(campaignId: string): Promise<boolean> {
+    try {
+        if (!isValidDocId(campaignId)) return false;
+        const { firestore } = await createServerClient();
+        const user = await requireUser([...CAMPAIGN_ALLOWED_ROLES]);
+        const allowed = await userCanAccessCampaign(firestore, campaignId, user);
+        if (!allowed) {
+            logger.warn('[CAMPAIGNS] Blocked unauthorized resume attempt', {
+                actor: user.uid,
+                actorRole: user.role,
+                campaignId,
+            });
+            return false;
+        }
+
+        const doc = await firestore.collection('campaigns').doc(campaignId).get();
+        if (!doc.exists || doc.data()?.status !== 'paused') return false;
+
+        await firestore.collection('campaigns').doc(campaignId).update({
+            status: 'scheduled',
+            scheduledAt: new Date(),
+            updatedAt: new Date(),
+        });
+
+        logger.info('[CAMPAIGNS] Campaign resumed', { campaignId });
+        return true;
+    } catch (error) {
+        logger.error('[CAMPAIGNS] Failed to resume campaign', {
+            error: (error as Error).message,
+            campaignId,
+        });
+        return false;
+    }
+}
+
+export async function duplicateCampaign(
+    campaignId: string,
+    newName?: string,
+): Promise<Campaign | null> {
+    try {
+        if (!isValidDocId(campaignId)) return null;
+        const { firestore } = await createServerClient();
+        const user = await requireUser([...CAMPAIGN_ALLOWED_ROLES]);
+        const allowed = await userCanAccessCampaign(firestore, campaignId, user);
+        if (!allowed) return null;
+
+        const doc = await firestore.collection('campaigns').doc(campaignId).get();
+        if (!doc.exists) return null;
+
+        const source = doc.data()!;
+        const now = new Date();
+
+        const clone = {
+            orgId: source.orgId,
+            createdBy: user.uid,
+            createdByAgent: source.createdByAgent || null,
+            threadId: undefined,
+            name: newName || `${source.name} (Copy)`,
+            description: source.description || null,
+            goal: source.goal,
+            status: 'draft' as CampaignStatus,
+            channels: source.channels,
+            audience: source.audience,
+            content: source.content || {},
+            tags: source.tags || [],
+            createdAt: now,
+            updatedAt: now,
+        };
+
+        const ref = await firestore.collection('campaigns').add(clone);
+        logger.info('[CAMPAIGNS] Campaign duplicated', { sourceId: campaignId, newId: ref.id });
+
+        return { id: ref.id, ...clone } as Campaign;
+    } catch (error) {
+        logger.error('[CAMPAIGNS] Failed to duplicate campaign', {
+            error: (error as Error).message,
+            campaignId,
+        });
+        return null;
+    }
+}
+
+export async function retryCampaign(campaignId: string): Promise<boolean> {
+    try {
+        if (!isValidDocId(campaignId)) return false;
+        const { firestore } = await createServerClient();
+        const user = await requireUser([...CAMPAIGN_ALLOWED_ROLES]);
+        const allowed = await userCanAccessCampaign(firestore, campaignId, user);
+        if (!allowed) return false;
+
+        const doc = await firestore.collection('campaigns').doc(campaignId).get();
+        if (!doc.exists || doc.data()?.status !== 'failed') return false;
+
+        await firestore.collection('campaigns').doc(campaignId).update({
+            status: 'draft',
+            updatedAt: new Date(),
+        });
+
+        logger.info('[CAMPAIGNS] Campaign retried (reset to draft)', { campaignId });
+        return true;
+    } catch (error) {
+        logger.error('[CAMPAIGNS] Failed to retry campaign', {
+            error: (error as Error).message,
+            campaignId,
+        });
+        return false;
+    }
+}
+
+export async function getCampaignRecipients(
+    campaignId: string,
+    options?: { limit?: number; offset?: number; status?: string },
+): Promise<{ recipients: CampaignRecipient[]; total: number } | null> {
+    try {
+        if (!isValidDocId(campaignId)) return null;
+        const { firestore } = await createServerClient();
+        const user = await requireUser([...CAMPAIGN_ALLOWED_ROLES]);
+        const allowed = await userCanAccessCampaign(firestore, campaignId, user);
+        if (!allowed) return null;
+
+        let query: FirebaseFirestore.Query = firestore
+            .collection('campaigns')
+            .doc(campaignId)
+            .collection('recipients');
+
+        if (options?.status) {
+            query = query.where('status', '==', options.status);
+        }
+
+        const countSnap = await query.count().get();
+        const total = countSnap.data().count;
+
+        query = query.orderBy('sentAt', 'desc').limit(options?.limit ?? 50);
+        if (options?.offset) {
+            const skipSnap = await firestore
+                .collection('campaigns')
+                .doc(campaignId)
+                .collection('recipients')
+                .orderBy('sentAt', 'desc')
+                .limit(options.offset)
+                .get();
+            const lastDoc = skipSnap.docs[skipSnap.docs.length - 1];
+            if (lastDoc) query = query.startAfter(lastDoc);
+        }
+
+        const snap = await query.get();
+        const recipients = snap.docs.map(d => ({
+            id: d.id,
+            ...d.data(),
+            sentAt: d.data().sentAt?.toDate?.() ?? null,
+            deliveredAt: d.data().deliveredAt?.toDate?.() ?? null,
+            openedAt: d.data().openedAt?.toDate?.() ?? null,
+            clickedAt: d.data().clickedAt?.toDate?.() ?? null,
+            bouncedAt: d.data().bouncedAt?.toDate?.() ?? null,
+        })) as CampaignRecipient[];
+
+        return { recipients, total };
+    } catch (error) {
+        logger.error('[CAMPAIGNS] Failed to get recipients', {
+            error: (error as Error).message,
+            campaignId,
+        });
+        return null;
     }
 }
 
