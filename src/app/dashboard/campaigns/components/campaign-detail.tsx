@@ -306,23 +306,23 @@ export function CampaignDetail({ campaignId, userId }: CampaignDetailProps) {
                                     <BarChart3 className="h-4 w-4" />
                                     Performance
                                 </CardTitle>
-                                {perf.lastUpdated && (
+                                {perf?.lastUpdated && (
                                     <CardDescription>
                                         Updated {new Date(perf.lastUpdated).toLocaleString()}
                                     </CardDescription>
                                 )}
                             </CardHeader>
                             <CardContent className="space-y-3">
-                                <MetricRow label="Sent" value={perf.sent} />
-                                <MetricRow label="Delivered" value={perf.delivered ?? perf.sent} />
-                                <MetricRow label="Opens" value={perf.opened} rate={perf.openRate} />
-                                <MetricRow label="Clicks" value={perf.clicked} rate={perf.clickRate} />
-                                <MetricRow label="Bounced" value={perf.bounced} />
+                                <MetricRow label="Sent" value={perf?.sent ?? 0} />
+                                <MetricRow label="Delivered" value={perf?.delivered ?? perf?.sent ?? 0} />
+                                <MetricRow label="Opens" value={perf?.opened ?? 0} rate={perf?.openRate} />
+                                <MetricRow label="Clicks" value={perf?.clicked ?? 0} rate={perf?.clickRate} />
+                                <MetricRow label="Bounced" value={perf?.bounced ?? 0} />
                                 <Separator />
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium">Revenue</span>
                                     <span className="text-lg font-bold text-green-600">
-                                        ${(perf.revenue ?? 0).toLocaleString()}
+                                        ${(perf?.revenue ?? 0).toLocaleString()}
                                     </span>
                                 </div>
                                 {campaign.status === 'sending' && (
@@ -379,11 +379,11 @@ function PerformanceSection({ campaign }: { campaign: Campaign }) {
         );
     }
 
-    const sent = perf.sent || 0;
-    const delivered = perf.delivered ?? sent;
-    const opened = perf.opened || 0;
-    const clicked = perf.clicked || 0;
-    const bounced = perf.bounced || 0;
+    const sent = perf?.sent ?? 0;
+    const delivered = perf?.delivered ?? sent;
+    const opened = perf?.opened ?? 0;
+    const clicked = perf?.clicked ?? 0;
+    const bounced = perf?.bounced ?? 0;
 
     const deliveredPct = sent > 0 ? (delivered / sent) * 100 : 0;
     const openedPct = sent > 0 ? (opened / sent) * 100 : 0;
@@ -566,12 +566,13 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function MetricRow({ label, value, rate }: { label: string; value: number; rate?: number }) {
+    const safeValue = value ?? 0;
     return (
         <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">{label}</span>
             <div className="flex items-center gap-2">
-                <span className="font-medium">{value.toLocaleString()}</span>
-                {rate !== undefined && (
+                <span className="font-medium">{safeValue.toLocaleString()}</span>
+                {rate != null && (
                     <span className="text-xs text-muted-foreground">({rate.toFixed(1)}%)</span>
                 )}
             </div>
@@ -604,12 +605,14 @@ function FunnelBar({ label, value, total, color }: {
     total: number;
     color: string;
 }) {
-    const pct = total > 0 ? (value / total) * 100 : 0;
+    const safeValue = value ?? 0;
+    const safeTotal = total ?? 0;
+    const pct = safeTotal > 0 ? (safeValue / safeTotal) * 100 : 0;
     return (
         <div className="space-y-1">
             <div className="flex items-center justify-between text-sm">
                 <span>{label}</span>
-                <span className="font-medium">{value.toLocaleString()} ({pct.toFixed(1)}%)</span>
+                <span className="font-medium">{safeValue.toLocaleString()} ({pct.toFixed(1)}%)</span>
             </div>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
                 <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
