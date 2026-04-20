@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | Auth hang fixed (rate-limit/session/provider timeouts); Elroy stress hardening ("definitely" banned, mustNotContainPattern, temperature); TS clean | **Last update:** 2026-04-19 (`3a04b30d0`)
+**Current Status:** 🟢 main green | Test mock fixes (brand-menu-client 14 tests, widget count 14→21, creative placeholder); TS clean | **Last update:** 2026-04-20 (`e79817f7d`)
 
 ---
 

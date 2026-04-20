@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Auth hang fixed + Elroy stress hardening + TS clean (0 errors)
-**Recent work (2026-04-19):** `3a04b30d0` elroy stress (banned "definitely", mustNotContainPattern); `b9b1ef339` auth hang fix (rate-limit/session/provider timeouts)
+**Current Status:** 🟢 main green | Test mock fixes + TS clean (0 errors)
+**Recent work (2026-04-20):** `e79817f7d` test mock fixes (brand-menu-client 15 mocks, widget count 14→21, creative placeholder/button)
 
 ---
 
