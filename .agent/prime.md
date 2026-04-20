@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Campaigns UX overhaul + delivered:0 fix
-**Recent work (2026-04-20):** `ebe85872b` campaigns UX overhaul (resume/duplicate/retry, tabbed detail, performance funnel, audience preview)
+**Current Status:** 🟢 main green | Graceful Service Pause: 3rd-party pause gate, glassmorphic overlay, admin toggle, simplify review optimized
+**Recent work (2026-04-20):** `4a5eb1c6c` Graceful Service Pause (billing-guard, overlay UI, admin actions, cron maintenance) + simplify audit optimizations
 
 ---
 
