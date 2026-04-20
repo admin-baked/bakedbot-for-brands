@@ -136,13 +136,13 @@ export async function checkAIStudioActionAllowed(
   const { orgId, actionType, automationTriggered, sourceSurface } = input;
 
   try {
-    const [entitlement, overrideSnap] = await Promise.all([
+    const [entitlement, overrideSnap, serviceStatus] = await Promise.all([
       getEffectiveAIStudioEntitlement(orgId),
       getAdminFirestore().collection('org_ai_studio_overrides').doc(orgId).get(),
+      getTenantServiceStatus(orgId),
     ]);
 
     // Service Pause Gate
-    const serviceStatus = await getTenantServiceStatus(orgId);
     if (!serviceStatus.active) {
       return {
         allowed: false,

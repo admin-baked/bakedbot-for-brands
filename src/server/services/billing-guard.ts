@@ -51,7 +51,7 @@ export async function getTenantServiceStatus(orgId: string, userRole?: string): 
            return { active: true, paused: false, status: 'past_due', gracePeriodRemainingDays: GRACE_PERIOD_DAYS };
         }
 
-        const delinquencyDate = delinquencyAt instanceof AdminTimestamp ? delinquencyAt.toDate() : new Date(delinquencyAt as any);
+        const delinquencyDate = delinquencyAt instanceof AdminTimestamp ? delinquencyAt.toDate() : new Date(delinquencyAt as unknown as string | number);
         const diffMs = Date.now() - delinquencyDate.getTime();
         const diffDays = diffMs / (1000 * 60 * 60 * 24);
 

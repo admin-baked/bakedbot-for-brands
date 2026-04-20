@@ -31,7 +31,9 @@ export async function toggleTenantSuspension(
       return { success: false, error: 'Tenant record not found' };
     }
 
-    await tenantRef.update({
+    const batch = db.batch();
+
+    batch.update(tenantRef, {
       isManualSuspended: suspended,
       subscriptionStatus: suspended ? 'suspended' : 'active', // Assuming resuming sets back to active
       updatedAt: FieldValue.serverTimestamp(),
@@ -40,15 +42,17 @@ export async function toggleTenantSuspension(
       'meta.suspendedAt': suspended ? FieldValue.serverTimestamp() : null
     });
 
-    // Also update organization document for consistency if needed
+    // Also update organization document for consistency
     const orgRef = db.collection('organizations').doc(orgId);
     const orgSnap = await orgRef.get();
     if (orgSnap.exists) {
-      await orgRef.update({
+      batch.update(orgRef, {
         'billing.subscriptionStatus': suspended ? 'suspended' : 'active',
         updatedAt: FieldValue.serverTimestamp()
       });
     }
+
+    await batch.commit();
 
     revalidatePath('/dashboard');
     
