@@ -43,7 +43,7 @@ export function ServicePausedOverlay() {
         >
           {/* Header Gradient */}
           <div className="h-32 bg-gradient-to-br from-red-500 to-amber-600 flex items-center justify-center relative">
-            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
+            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.3) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
             <div className="relative bg-white/20 backdrop-blur-xl p-4 rounded-2xl border border-white/30 shadow-xl">
               <ShieldAlert className="w-10 h-10 text-white" />
             </div>
