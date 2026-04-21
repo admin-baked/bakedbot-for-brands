@@ -19,7 +19,7 @@ npm run ci:health
 If `ci:health` shows red: **fix the CI failure before doing any new work.** Don't push on top of a broken build.
 If `check:types` fails: **fix type errors before any other work.**
 
-**Current Status:** 🟢 main green | Campaigns UX overhaul (4 phases); null-safe toLocaleString fix; Graceful Service Pause (GEM) | **Last update:** 2026-04-20 (`e56e3cc37`)
+**Current Status:** 🟢 main green | Thrive CRM data/playbook hardening; agent coordination status fix; version 4.10.27-COD | **Last update:** 2026-04-20 (`8040ec18e`)
 
 ---
 

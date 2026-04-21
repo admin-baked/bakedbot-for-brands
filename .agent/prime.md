@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Campaigns UX overhaul (4 phases) + null-safe fix + Graceful Service Pause (GEM)
-**Recent work (2026-04-20):** `e56e3cc37` campaigns UX overhaul (resume/duplicate/retry, tabbed detail, inbox integration, sort); `4a5eb1c6c` Graceful Service Pause
+**Current Status:** 🟢 main green | Thrive CRM data/playbook hardening + agent coordination status fix + version 4.10.27-COD
+**Recent work (2026-04-20):** `8040ec18e` Thrive CRM audit fixes (POS-backed counts/spending/retention, pagination/sort/date filters, playbook activation); `e56e3cc37` campaigns UX overhaul; `4a5eb1c6c` Graceful Service Pause
 
 ---
 
@@ -181,7 +181,7 @@ Before every , bump  + kiosk footer () using format ****.
 
 Patch bump guide: +1 small fix · +2 multi-file · +3 new feature · +5 refactor · +7-10 subsystem overhaul
 
-**Current version: 4.10.10-GEM** — Full rules: AGENTS.md Versioning Convention
+**Current version: 4.10.27-COD** — Full rules: AGENTS.md Versioning Convention
 
 ## Key Directories
 
