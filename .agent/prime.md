@@ -66,7 +66,7 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 ```
 
 **Current Status:** 🟢 main green | Thrive CRM hardening + Test suite Jest conversion & stable (4.10.32-GEM)
-**Recent work (2026-04-20):** `8040ec18e` Thrive CRM audit fixes; Systemic test remediation (18 files Jest conversion); global mocks implemented; Version bump 4.10.32-GEM.
+**Recent work (2026-04-21):** `62633d4c8` Inbox agent routing resilience — specialist fallback to general synthesis; intent-router "revenue" fix; App Check retry storm fix.
 
 ---
 
