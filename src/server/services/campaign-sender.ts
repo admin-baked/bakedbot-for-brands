@@ -542,7 +542,7 @@ export async function executeCampaign(campaignId: string): Promise<{
             completedAt: new Date(),
             performance: {
                 totalRecipients: 0, sent: 0, delivered: 0, opened: 0,
-                clicked: 0, bounced: 0, unsubscribed: 0, revenue: 0,
+                clicked: 0, bounced: 0, unsubscribed: 0, revenue: 0, conversions: 0,
                 openRate: 0, clickRate: 0, bounceRate: 0, conversionRate: 0,
                 lastUpdated: new Date(),
             },
@@ -622,6 +622,7 @@ export async function executeCampaign(campaignId: string): Promise<{
         bounced: failedCount,
         unsubscribed: 0,
         revenue: 0,
+        conversions: 0,
         openRate: 0,
         clickRate: 0,
         bounceRate: sentCount > 0 ? (failedCount / (sentCount + failedCount)) * 100 : 0,

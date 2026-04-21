@@ -511,6 +511,7 @@ export async function sendCampaignFromInbox(params: {
             bounced: failedCount,
             unsubscribed: 0,
             revenue: 0,
+            conversions: 0,
             openRate: 0,
             clickRate: 0,
             bounceRate: recipients.length > 0 ? failedCount / recipients.length : 0,

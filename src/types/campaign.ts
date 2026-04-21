@@ -310,6 +310,7 @@ export function createDefaultPerformance(): CampaignPerformance {
         bounced: 0,
         unsubscribed: 0,
         revenue: 0,
+        conversions: 0,
         openRate: 0,
         clickRate: 0,
         bounceRate: 0,
