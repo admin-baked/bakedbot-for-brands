@@ -57,48 +57,93 @@ function analyzeFile(filePath, content) {
   const findings = [];
   const lines = content.split('\n');
 
-  // Pattern 1: Collection.where().orderBy() — requires composite index
-  const compoundPattern = /\.collection\(['"](\w+)['"]\)\s*\.where\(/;
-  const matches = [...content.matchAll(/\.collection\(['"](\w+)['"]\)[^;]*\.where\(/g)];
-
-  matches.forEach((match, idx) => {
-    const collection = match[1];
-    // Check if it also has .orderBy()
-    if (content.includes('.orderBy(')) {
-      findings.push({
-        file: filePath,
-        line: lines.slice(0, content.indexOf(match[0])).length,
-        type: 'COMPOSITE_INDEX',
-        collection,
-        issue: 'WHERE + ORDER BY requires composite index',
-        risk: 'MEDIUM'
-      });
-    }
+  // Strip block comments and inline comments for line-by-line analysis
+  let inBlockComment = false;
+  const cleanLines = lines.map(line => {
+    if (line.includes('/*')) inBlockComment = true;
+    let l = inBlockComment ? '' : line.split('//')[0];
+    if (line.includes('*/')) inBlockComment = false;
+    return l;
   });
 
-  // Pattern 2: Collection scan without .where()
-  const scanPattern = /\.collection\(['"](\w+)['"]\)\s*(?!\.where)[^;]*;/g;
-  const scans = [...content.matchAll(scanPattern)];
+  let inLoop = false;
+  let loopStartLine = 0;
+  let braceDepth = 0;
+  let loopDepth = -1;
 
-  scans.forEach(match => {
-    if (!match[0].includes('.where') && !match[0].includes('.doc(')) {
+  for (let i = 0; i < cleanLines.length; i++) {
+    const line = cleanLines[i];
+    
+    // Pattern 1: Collection.where().orderBy() — requires composite index
+    if (line.includes('.collection(') && line.includes('.where(') && line.includes('.orderBy(')) {
+      const match = line.match(/\.collection\(['"](\w+)['"]\)/);
+      if (match) {
+        findings.push({
+          file: filePath,
+          line: i + 1,
+          type: 'COMPOSITE_INDEX',
+          collection: match[1],
+          issue: 'WHERE + ORDER BY requires composite index',
+          risk: 'MEDIUM'
+        });
+      }
+    }
+
+    // Loop tracker
+    const openBraces = (line.match(/\{/g) || []).length;
+    const closeBraces = (line.match(/\}/g) || []).length;
+
+    if (line.match(/for\s*\(.*\)|\.forEach\(/) || line.match(/while\s*\(/)) {
+       loopDepth = braceDepth + 1; // Assuming loop opens a brace soon
+       if (line.includes('{')) {
+         loopDepth = braceDepth; // It opened on this line
+       }
+       inLoop = true;
+       loopStartLine = i + 1;
+    }
+
+    braceDepth += openBraces - closeBraces;
+
+    if (inLoop && braceDepth < loopDepth) {
+       inLoop = false;
+       loopDepth = -1;
+    }
+
+    // Pattern 4: Query inside loop
+    if (inLoop && line.includes('.get(') && (line.includes('.collection(') || line.includes('.where(') || cleanLines.slice(Math.max(0, i-5), i).some(l => l.includes('.collection(') || l.includes('query')))) {
+       if (!line.includes('.batch(')) {
+           // Ensure it's not a known false positive where get is unrelated
+           findings.push({
+             file: filePath,
+             line: i + 1,
+             type: 'N_PLUS_ONE',
+             issue: `Query read (.get()) inside loop (loop started at line ${loopStartLine}) — N+1 pattern`,
+             risk: 'CRITICAL'
+           });
+       }
+    }
+  }
+
+  // Cross-line pattern checks for Pattern 2 & 3
+  // Pattern 2: Collection scan without .where()
+  const scanMatches = [...content.matchAll(/\.collection\(['"](\w+)['"]\)[^;]*\.get\(/g)];
+  scanMatches.forEach(match => {
+    if (!match[0].includes('.where') && !match[0].includes('.doc(') && !match[0].includes('.count(')) {
       findings.push({
         file: filePath,
         line: lines.slice(0, content.indexOf(match[0])).length,
         type: 'COLLECTION_SCAN',
         collection: match[1],
-        issue: 'No .where() — reads all documents',
+        issue: 'No .where() before .get() — reads all documents',
         risk: 'HIGH'
       });
     }
   });
 
   // Pattern 3: Query without .limit()
-  const noLimitPattern = /\.where\([^)]+\)(?!.*\.limit\()/;
   const limitMatches = [...content.matchAll(/\.where\([^)]+\)[^;]*\.get\(\)/g)];
-
   limitMatches.forEach(match => {
-    if (!match[0].includes('.limit(')) {
+    if (!match[0].includes('.limit(') && !match[0].includes('.count(')) {
       findings.push({
         file: filePath,
         line: lines.slice(0, content.indexOf(match[0])).length,
@@ -108,23 +153,6 @@ function analyzeFile(filePath, content) {
       });
     }
   });
-
-  // Pattern 4: Query inside loop (N+1 pattern)
-  const loopPattern = /for\s*\([^)]*\)|\.forEach\([^)]*\)/;
-  const inLoop = content.match(loopPattern);
-  if (inLoop) {
-    const loopIndex = content.indexOf(inLoop[0]);
-    const afterLoop = content.substring(loopIndex);
-    if (afterLoop.includes('.collection(') || afterLoop.includes('.where(')) {
-      findings.push({
-        file: filePath,
-        line: lines.slice(0, loopIndex).length,
-        type: 'N_PLUS_ONE',
-        issue: 'Query inside loop — N+1 pattern',
-        risk: 'CRITICAL'
-      });
-    }
-  }
 
   return findings;
 }

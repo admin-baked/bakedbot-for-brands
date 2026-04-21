@@ -15,6 +15,7 @@ export async function getCarousels(orgId: string): Promise<{ success: boolean; d
         const snapshot = await db.collection(CAROUSELS_COLLECTION)
             .where('orgId', '==', orgId)
             .orderBy('displayOrder', 'asc')
+            .limit(100)
             .get();
 
         const carousels = snapshot.docs.map(doc => ({

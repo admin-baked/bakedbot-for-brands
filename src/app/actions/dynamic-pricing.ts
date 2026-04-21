@@ -84,6 +84,7 @@ export async function getPricingRules(
       .collection(PRICING_RULES_COLLECTION)
       .where('orgId', '==', orgId)
       .orderBy('priority', 'desc')
+      .limit(100)
       .get();
 
     const toISOString = (val: any): string | undefined => {
@@ -1000,6 +1001,7 @@ export async function publishPricesToMenu(
       .collection('publicViews')
       .doc('products')
       .collection('items')
+      .limit(1000)
       .get();
 
     if (productsSnapshot.empty) {
@@ -1136,6 +1138,7 @@ export async function revertAllPricesOnMenu(
       .doc('products')
       .collection('items')
       .where('dynamicPricingApplied', '==', true)
+      .limit(500)
       .get();
 
     if (productsSnapshot.empty) {
@@ -1320,6 +1323,7 @@ export async function previewPricingRuleImpact(
       .collection('products')
       .doc('menu')
       .collection('items')
+      .limit(1000)
       .get();
 
     const allProducts: any[] = productsSnapshot.docs.map(doc => ({

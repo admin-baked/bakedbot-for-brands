@@ -101,6 +101,7 @@ export async function getBundles(orgId: string): Promise<{ success: boolean; dat
         const snapshot = await db.collection(BUNDLES_COLLECTION)
             .where('orgId', '==', orgId)
             .orderBy('createdAt', 'desc')
+            .limit(500)
             .get();
 
         // Helper to convert Firestore Timestamps to ISO strings for serialization
@@ -256,6 +257,7 @@ export async function getActiveBundles(orgId: string): Promise<BundleDeal[]> {
         // Fallback: Query by orgId only and filter in memory
         const fallbackSnapshot = await db.collection(BUNDLES_COLLECTION)
             .where('orgId', '==', orgId)
+            .limit(100)
             .get();
 
         if (fallbackSnapshot.empty) {
