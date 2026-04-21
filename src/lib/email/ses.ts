@@ -13,6 +13,7 @@
 import {
     SESClient,
     SendEmailCommand,
+    SendRawEmailCommand,
     VerifyDomainIdentityCommand,
     VerifyDomainDkimCommand,
     GetIdentityVerificationAttributesCommand,
@@ -60,6 +61,50 @@ export async function sendSesEmail(opts: SesEmailOptions): Promise<{ messageId: 
         ? 'List-Unsubscribe=One-Click'
         : undefined;
 
+    const configSetName = process.env.SES_CONFIGURATION_SET || 'bakedbot-tracking';
+
+    // Use SendRawEmailCommand when we need custom headers (List-Unsubscribe),
+    // otherwise use the simpler SendEmailCommand
+    if (listUnsubscribeHeader) {
+        const boundary = `----=_Part_${Date.now()}`;
+        const rawParts = [
+            `From: ${fromAddress}`,
+            `To: ${toAddresses.join(', ')}`,
+            `Subject: ${opts.subject}`,
+            ...(opts.replyTo ? [`Reply-To: ${opts.replyTo}`] : []),
+            `List-Unsubscribe: ${listUnsubscribeHeader}`,
+            ...(listUnsubscribePostHeader ? [`List-Unsubscribe-Post: ${listUnsubscribePostHeader}`] : []),
+            `MIME-Version: 1.0`,
+            `Content-Type: multipart/alternative; boundary="${boundary}"`,
+            `X-SES-CONFIGURATION-SET: ${configSetName}`,
+            '',
+            ...(opts.textBody ? [
+                `--${boundary}`,
+                'Content-Type: text/plain; charset=UTF-8',
+                '',
+                opts.textBody,
+            ] : []),
+            `--${boundary}`,
+            'Content-Type: text/html; charset=UTF-8',
+            '',
+            opts.htmlBody,
+            `--${boundary}--`,
+        ];
+        const rawCommand = new SendRawEmailCommand({
+            RawMessage: { Data: Buffer.from(rawParts.join('\r\n')) },
+            ConfigurationSetName: configSetName,
+        });
+        try {
+            const result = await client.send(rawCommand);
+            logger.info('[SES] Email sent (raw)', { messageId: result.MessageId, to: toAddresses });
+            return { messageId: result.MessageId ?? '' };
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : String(error);
+            logger.error('[SES] Raw send failed', { error: msg, to: toAddresses, subject: opts.subject });
+            throw error;
+        }
+    }
+
     const command = new SendEmailCommand({
         Source: fromAddress,
         Destination: { ToAddresses: toAddresses },
@@ -70,15 +115,9 @@ export async function sendSesEmail(opts: SesEmailOptions): Promise<{ messageId: 
                 ...(opts.textBody && { Text: { Data: opts.textBody, Charset: 'UTF-8' } }),
             },
         },
+        ConfigurationSetName: configSetName,
         ...(opts.replyTo && { ReplyToAddresses: [opts.replyTo] }),
-        ...(listUnsubscribeHeader && {
-            Tags: [], // placeholder — SES custom headers go via ConfigurationSet in prod
-        }),
     });
-
-    // Note: SES SendEmailCommand doesn't support arbitrary headers directly.
-    // List-Unsubscribe is injected via the HTML body footer (appendUnsubscribeFooter in campaign-sender).
-    // For full RFC 8058 header support, upgrade to SendRawEmailCommand (future task).
 
     try {
         const result = await client.send(command);

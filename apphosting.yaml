@@ -49,6 +49,10 @@ env:
     value: "us-east-1"
     availability:
       - RUNTIME
+  - variable: SES_CONFIGURATION_SET
+    value: "bakedbot-tracking"
+    availability:
+      - RUNTIME
   # Cloudflare DNS — system token for managing bakedbot.ai subdomains
   - variable: CLOUDFLARE_API_TOKEN
     secret: CLOUDFLARE_API_TOKEN@1
