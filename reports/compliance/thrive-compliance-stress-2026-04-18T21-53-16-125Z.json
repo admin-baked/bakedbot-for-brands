@@ -1,0 +1,208 @@
+{
+  "generatedAt": "2026-04-18T21:53:16.125Z",
+  "filters": {
+    "category": "track-trace"
+  },
+  "totalCases": 5,
+  "averageScore": 89.8,
+  "readyCount": 5,
+  "results": [
+    {
+      "id": "track-trace-manifest-discrepancy",
+      "title": "METRC transfer manifest discrepancy on receipt",
+      "state": "NY",
+      "category": "track-trace",
+      "difficulty": "advanced",
+      "durationMs": 10580,
+      "response": "Under New York Office of Cannabis Management (OCM) regulations, you have specific reporting obligations when there's a discrepancy between your METRC manifest and physical inventory received.\n\n**Reporting Obligations:**\n- You must report any discrepancies between METRC manifests and physical inventory received\n- Missing packages need to be documented and reported to both the distributor and the OCM\n- This is considered inventory diversion and requires proper documentation\n\n**Time Window:**\n- NY regulations require reporting inventory discrepancies within 24 hours of discovery\n- Since you've confirmed the physical count, the clock starts now\n\n**Required Documentation:**\n1. Detailed internal memo documenting:\n   - Date of receipt\n   - Original METRC manifest number\n   - Discrepancy details (1 package of 3.5g pre-rolls missing)\n   - Physical count verification\n   - Who discovered and verified the discrepancy\n\n2. METRC actions:\n   - Create a correction in METRC to reflect the actual received quantity (9 packages)\n   - Document the reason for the correction (discrepancy with received goods)\n\n3. Notification to distributor:\n   - Send written notification to the licensed distributor about the missing package\n   - Keep proof of this communication\n\n4. OCM reporting:\n   - Prepare a discrepancy report to submit to the OCM\n   - Some license types may require specific forms through the Cannabis Control Board portal\n\n**Important:** NY regulations are strict about inventory tracking and reporting. Failure to properly report discrepancies could result in compliance violations. I recommend consulting with your METRC provider for specific steps to correct the manifest and verify your reporting procedures align with current OCM requirements.",
+      "responsePreview": "Under New York Office of Cannabis Management (OCM) regulations, you have specific reporting obligations when there's a discrepancy between your METRC manifest and physical inventory received. **Reporting Obligations:** …",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Provides clear guidance on METRC discrepancy reporting in NY with actionable steps.",
+        "strengths": [
+          "Directly addresses METRC and discrepancy requirements",
+          "Gives clear time window (24 hours) for reporting",
+          "Provides detailed documentation requirements",
+          "Includes specific METRC actions needed",
+          "Professional and direct tone"
+        ],
+        "issues": [
+          "No specific reference to OCM forms or reporting portal",
+          "Could mention potential penalties for non-compliance more specifically",
+          "Should emphasize that distributor notification should be documented in METRC"
+        ],
+        "suggestedFixes": [
+          "Include specific reference to OCM reporting forms or portal if applicable",
+          "Add brief note about potential penalties to underscore importance",
+          "Clarify that distributor notification should be recorded in METRC"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 80,
+          "actionability": 95,
+          "tone": 95,
+          "completeness": 85
+        }
+      }
+    },
+    {
+      "id": "track-trace-destruction-protocol",
+      "title": "Product destruction — witness and documentation requirements",
+      "state": "CA",
+      "category": "track-trace",
+      "difficulty": "advanced",
+      "durationMs": 10617,
+      "response": "As Deebo, I'll walk you through California's METRC waste and destruction process for expired vape cartridges, following California Department of Cannabis Control (DCC) requirements.\n\n**METRC Waste and Destruction Process for Expired Vape Cartridges:**\n\n1. **Package Preparation:**\n   - Collect all expired vape cartridges into a single container or package\n   - The package must be clearly labeled with:\n     * \"WASTE - FOR DESTRUCTION\"\n     * The license number of your dispensary\n     * The date of destruction\n     * The total number/weight of units being destroyed\n     * A list of all item names, strain names, and quantities (if applicable)\n\n2. **Creating a Waste Transaction in METRC:**\n   - Log into your METRC account\n   - Create a new \"Waste\" transaction\n   - Select the appropriate waste type (typically \"Destruction\")\n   - Enter the total weight/count of the expired cartridges\n   - Attach any required photos as specified in METRC\n   - Submit the waste transaction\n\n3. **Witness Requirements:**\n   - In California, a witness is required for all destruction of cannabis products\n   - The witness must be:\n     * An employee of your licensed business who is not involved in the destruction process\n     * Someone with direct knowledge of the inventory being destroyed\n   - The witness must verify that all items listed are actually present and being destroyed\n\n4. **Approved Destruction Methods:**\n   - For vape cartridges, approved destruction methods include:\n     * Incineration at a permitted facility\n     * Rendering the products unusable through physical destruction (crushing, piercing)\n     * Using a third-party waste disposal service that specializes in cannabis waste\n   - Note: Vape cartridges contain batteries that must be properly handled according to California hazardous waste regulations\n\n5. **Documentation Requirements:**\n   - You must retain the following documentation in your license file for a minimum of 7 years:\n     * METRC waste transaction records\n     * Photos taken before, during, and after destruction\n     * Destruction log with date, time, location, and description of items destroyed\n     * Name and contact information of the witness\n     * Certificate of destruction from the third-party disposal service (if used)\n     * Any manifests or tracking documents from the disposal facility\n\n6. **Post-Destruction METRC Update:**\n   - After destruction is complete, return to METRC to finalize the waste transaction\n   - Confirm the actual weight/quantity destroyed\n   - Upload any additional documentation required by METRC\n\n**Important Considerations:**\n- Vape cartridges contain lithium batteries that may require special handling as hazardous waste\n- Ensure your destruction method aligns with local fire department regulations\n- The California DCC may conduct audits of your waste destruction records\n- For vape cartridges with specific THC formulations, verify any additional requirements\n\n**Recommendation:** Before proceeding, verify the current requirements with your compliance officer or directly with the California DCC, as regulations can change. If you're using a third-party destruction service, ensure they are properly licensed and familiar with California cannabis waste disposal requirements.",
+      "responsePreview": "As Deebo, I'll walk you through California's METRC waste and destruction process for expired vape cartridges, following California Department of Cannabis Control (DCC) requirements. **METRC Waste and Destruction Process…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Comprehensive guidance on METRC destruction process with appropriate caveats.",
+        "strengths": [
+          "Accurate overview of METRC waste and destruction process",
+          "Clear step-by-step guidance for the operator",
+          "Appropriate references to DCC requirements",
+          "Includes specific labeling requirements",
+          "Covers witness requirements thoroughly",
+          "Lists approved destruction methods",
+          "Details documentation requirements",
+          "Includes important considerations about vape batteries",
+          "Provides appropriate recommendation to verify with compliance officer"
+        ],
+        "issues": [
+          "Doesn't specify exact METRC transaction codes or menu options",
+          "Could provide more details on battery handling as hazardous waste",
+          "Mentions DCC but doesn't reference specific regulation sections"
+        ],
+        "suggestedFixes": [
+          "Include more specific METRC navigation details if possible",
+          "Add more detailed guidance on battery disposal requirements",
+          "Reference specific California regulations (e.g., Title 16) where applicable"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 85,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "track-trace-system-outage",
+      "title": "METRC system outage — paper manifest rules",
+      "state": "CO",
+      "category": "track-trace",
+      "difficulty": "advanced",
+      "durationMs": 8045,
+      "response": "I understand your situation with METRC being down during your busiest day. Here's what you need to know about Colorado's procedures for METRC outages:\n\n**Can you continue retail sales during the outage?**\nYes, you may continue retail sales during a METRC outage in Colorado, but you must follow specific procedures for tracking and reporting.\n\n**Required Paper-Based Tracking:**\n- Maintain detailed paper manifests for all incoming and outgoing inventory\n- Record strain, weight, THC percentage (if known), date/time, source/receiver information\n- Document sales transactions with customer information (for medical sales)\n- Maintain all paper records with electronic backups when possible\n- Use forms that match METRC's data requirements for easier backfilling\n\n**Backfill Window:**\nColorado regulations require you to backfill all METRC data within 24 hours after the system returns to operational status. You should prioritize high-value transactions and those affecting inventory accuracy.\n\n**If You Cannot Reconcile:**\n- Document all efforts to reconcile the data\n- Contact the Colorado Marijuana Enforcement Division (MED) immediately\n- In extreme cases, you may need to file an incident report explaining the inability to reconcile fully\n- Be prepared for potential compliance violations if reconciliation cannot be completed properly\n\nIf METRC remains down for an extended period, I strongly recommend contacting the Colorado MED directly at (303) 866-3676 to report the situation and receive specific guidance for your circumstances. Additionally, consult with your compliance officer or cannabis attorney to ensure proper documentation and procedures are followed during the outage.",
+      "responsePreview": "I understand your situation with METRC being down during your busiest day. Here's what you need to know about Colorado's procedures for METRC outages: **Can you continue retail sales during the outage?** Yes, you may co…",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive guidance on METRC outage procedures with actionable recommendations and appropriate caveats.",
+        "strengths": [
+          "Accurate information about continuing sales during METRC outages",
+          "Clear paper-based tracking requirements specified",
+          "Correct backfill window information provided (24 hours)",
+          "Appropriate guidance for reconciliation issues",
+          "Strong recommendation to contact MED and compliance counsel",
+          "Professional and direct tone",
+          "All required topics (METRC, outage, MED) covered"
+        ],
+        "issues": [
+          "Minor improvement could be made in specifying exact consequences if reconciliation cannot be completed"
+        ],
+        "suggestedFixes": [
+          "Add brief note about potential penalties if reconciliation cannot be completed despite good faith efforts"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 95,
+          "tone": 95,
+          "completeness": 50
+        }
+      }
+    },
+    {
+      "id": "track-trace-package-split",
+      "title": "METRC package splitting for retail",
+      "state": "WA",
+      "category": "track-trace",
+      "difficulty": "advanced",
+      "durationMs": 7187,
+      "response": "# Washington Package Splitting Process\n\nI'll walk you through the complete process for splitting a 1-pound bulk package into 1-ounce retail packages in Washington State.\n\n## Required Steps:\n\n### 1. LEAF Data System Preparation\n- Log into your WA Cannabis Board licensed account\n- Access the bulk package (1-pound flower) in your inventory\n- Ensure the bulk package has valid test results and meets WA standards\n\n### 2. Creating Child Packages\n- In LEAF, select the bulk package for splitting\n- Create 16 child packages (1 pound = 16 ounces)\n- Each child package should be:\n  - Marked as \"retail\"\n  - Assigned the same strain/strain type as the bulk package\n  - Assigned the same testing information as the bulk package\n- Document each split in LEAF with the date, time, and operator initials\n\n### 3. Weight Adjustment\n- Accurately weigh each 1-ounce portion using a calibrated scale\n- Record exact weights in LEAF (must be within 0.2 grams of target weight)\n- Update LEAF with actual weights for each child package\n\n### 4. Retail UID Assignment\n- Each retail package must receive a unique Washington Cannabis Board identifier\n- These are typically printed on the package's label\n- Ensure UIDs are properly scanned and recorded in LEAF\n\n### 5. Testing Requirements\n- The bulk package must have valid test results before splitting\n- Child packages inherit the test results from the bulk package\n- Testing must include:\n  - Potency (THC, CBD, etc.)\n  - Pesticides\n  - Microbials\n  - Residual solvents (if applicable)\n- Test results must be less than 12 months old at the time of retail sale\n\n### 6. Labeling Requirements\nEach retail package must include:\n- Package weight\n- Strain name\n- THC and CBD content percentages\n- Net weight\n- Harvest date\n- Expiration date (12 months from harvest date)\n- Batch/lot number\n- Processor and retailer license numbers\n- Warning statements (required by WA)\n- Scannable UID\n- Date packaged\n\n## Important Compliance Notes:\n- Maintain traceability from bulk to retail packages\n- Document the entire splitting process\n- Do not sell any packages that don't meet WA weight tolerance requirements\n- Keep test documentation readily available for inspectors\n\nWould you like me to elaborate on any specific part of this process?",
+      "responsePreview": "# Washington Package Splitting Process I'll walk you through the complete process for splitting a 1-pound bulk package into 1-ounce retail packages in Washington State. ## Required Steps: ### 1. LEAF Data System Prepara…",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate guide for Washington cannabis package splitting process.",
+        "strengths": [
+          "Highly accurate information specific to Washington requirements",
+          "Provides clear, actionable step-by-step process",
+          "Covers all required aspects: LEAF, package split, child packages, UIDs, testing, and labeling",
+          "Professional and direct tone",
+          "Includes all necessary regulatory details"
+        ],
+        "issues": [
+          "Missing specific caveat about verifying current regulations with compliance officer",
+          "Could more explicitly mention that test results must be from the same batch"
+        ],
+        "suggestedFixes": [
+          "Add a note to verify current requirements with the Washington Cannabis Board or a compliance officer",
+          "Clarify that test results must be from the exact batch being split"
+        ],
+        "dimensions": {
+          "accuracy": 98,
+          "caveats": 85,
+          "actionability": 95,
+          "tone": 95,
+          "completeness": 95
+        }
+      }
+    },
+    {
+      "id": "track-trace-end-of-day-variance",
+      "title": "End-of-day physical count variance — investigation procedure",
+      "state": "MI",
+      "category": "track-trace",
+      "difficulty": "advanced",
+      "durationMs": 8025,
+      "response": "In Michigan, you're required to investigate and report inventory variances between your physical count and METRC data. Here are the requirements:\n\n**Variance Threshold:**\nMichigan's Marihuana Regulatory Agency (MRA) requires reporting of any unexplained variance, regardless of size. There isn't a specific minimum threshold below which you don't need to investigate. Even small variances like your 3.5g difference require investigation and documentation.\n\n**Internal Investigation Steps Required:**\n1. Immediately begin documenting the variance once identified\n2. Review all METRC transfer records for the day in question\n3. Check all sales transactions against METRC data\n4. Verify all waste disposal logs and forms\n5. Review security footage for the relevant time period\n6. Interview any staff members who handled inventory during that day\n7. Determine if the variance can be explained by legitimate reasons (e.g., recording errors, spoilage, theft, etc.)\n8. If no legitimate explanation is found, this must be documented as an \"unexplained variance\"\n\n**Documentation Requirements:**\n1. Complete a written report detailing:\n   - The date and nature of the variance\n   - Investigation steps taken\n   - Staff interviewed\n   - Findings of the investigation\n   - Explanation for the variance (if determined)\n   - Corrective actions taken\n\n2. If the variance cannot be explained, you must submit a report to the MRA detailing:\n   - The circumstances of the unexplained variance\n   - Steps taken to investigate\n   - Actions to prevent future occurrences\n\n3. Maintain these records for at least 7 years as required by MRA regulations.\n\n4. Implement immediate corrective actions, which may include:\n   - Adjusting METRC to reflect the physical count\n   - Additional staff training on inventory procedures\n   - Reviewing security protocols\n\nI recommend reviewing your specific license type requirements as there may be additional requirements for medical vs. adult-use dispensaries. For complex situations like this, consult with a cannabis compliance attorney or your MRA licensing representative for guidance on your specific circumstances.",
+      "responsePreview": "In Michigan, you're required to investigate and report inventory variances between your physical count and METRC data. Here are the requirements: **Variance Threshold:** Michigan's Marihuana Regulatory Agency (MRA) requ…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive response that addresses all aspects of the variance question with appropriate depth.",
+        "strengths": [
+          "Excellent accuracy with correct information about Michigan's requirements",
+          "Provides complete guidance on thresholds, investigation steps, and documentation",
+          "Includes practical action items for the operator",
+          "Maintains professional and clear tone",
+          "Appropriate caveat about consulting legal counsel",
+          "Properly references MRA requirements"
+        ],
+        "issues": [
+          "None significant - minor opportunity for even more specificity on reporting timelines to MRA"
+        ],
+        "suggestedFixes": [
+          "Consider adding specific timeframe for MRA reporting of unexplained variances if available"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 95,
+          "actionability": 95,
+          "tone": 100,
+          "completeness": 90
+        }
+      }
+    }
+  ]
+}

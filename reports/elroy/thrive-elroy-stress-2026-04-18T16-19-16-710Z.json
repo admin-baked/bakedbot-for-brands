@@ -1,0 +1,198 @@
+{
+  "orgId": "org_thrive_syracuse",
+  "generatedAt": "2026-04-18T16:19:16.710Z",
+  "totalCases": 5,
+  "averageScore": 74.2,
+  "readyCount": 4,
+  "results": [
+    {
+      "id": "daily-floor-check",
+      "title": "Morning floor check — sales vs yesterday",
+      "category": "daily-ops",
+      "source": "channel",
+      "durationMs": 6429,
+      "response": "Looking at the numbers, your store's down from yesterday. Here's the full picture:\n\nToday (as of 2:15 PM): $1,247 across 28 transactions\nYesterday full day: $2,104 across 47 transactions\n\nThat's a 40.7% drop in revenue and 40.4% fewer transactions compared to yesterday. You're also running 34.1% below your 7-day average in revenue.\n\nYour top sellers last 7 days are holding steady though:\n1. Bouket Cap Junky (7g) - 11 units, $495\n2. Kushy Punch Kushy OG Cartridge - 10 units, $420\n3. Ayrloom Sunny Days Gummies - 10 units, $280\n4. Ayrloom Rose Beverages - 10 units, $190\n5. Jaunty Mango Pre-Roll 5pk - 8 units, $192\n\nWith 3 hours left in your day, you're about $850 behind yesterday's pace. Should I check what's happening with foot traffic and see if we can get some of those inactive customers swinging by to help make up the difference?",
+      "responsePreview": "Looking at the numbers, your store's down from yesterday. Here's the full picture: Today (as of 2:15 PM): $1,247 across 28 transactions Yesterday full day: $2,104 across 47 transactions That's a 40.7% drop in revenue an…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent performance with proper reference to yesterday's numbers, top-selling products, and a clear next step.",
+        "strengths": [
+          "Correctly references yesterday's full-day revenue ($2,104) vs today's current numbers ($1,247)",
+          "Cites specific percentage changes (40.7% drop in revenue, 40.4% fewer transactions)",
+          "Names top-selling products with unit and dollar information",
+          "Provides context with 7-day average comparison",
+          "Ends with a clear next step/question about checking foot traffic",
+          "Properly uses Slack mrkdwn formatting with *bold*"
+        ],
+        "issues": [
+          "None - this response meets all expected behaviors"
+        ],
+        "suggestedFixes": [
+          "None needed - this response is ready to launch"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 100,
+          "slackFormat": 100,
+          "compliance": 100,
+          "conversationContinuity": 100,
+          "launchReadiness": 100
+        }
+      }
+    },
+    {
+      "id": "staffing-sick-call",
+      "title": "Budtender called in sick — floor adjustment",
+      "category": "daily-ops",
+      "source": "channel",
+      "durationMs": 5164,
+      "response": "Hey there! Sorry to hear about your budtender calling in - that's always a curveball. Let me check what's happening on the floor today so we can make the right adjustments.\n\nFirst, looking at today's numbers: you've got $1,247 in revenue from 28 transactions so far, with an average ticket of $44.54. That's 7 check-ins, which means you're getting decent traffic but might need to be efficient with staffing.\n\nHere's what I'd suggest:\n1. Pull your most experienced budtenders to the front - they can handle more customers at once and maintain service quality\n2. Maybe bring in one floater who can help both the floor and any overflow at the register\n3. Consider having your assistant manager handle some transactions to free up primary staff for customer service\n\nWhat's your current staffing situation with this one call-in? Are you already running lean or do you have some flexibility to adjust?",
+      "responsePreview": "Hey there! Sorry to hear about your budtender calling in - that's always a curveball. Let me check what's happening on the floor today so we can make the right adjustments. First, looking at today's numbers: you've got …",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Strong response with practical advice and proper formatting, though could be more direct with staffing recommendations.",
+        "strengths": [
+          "Used tool context effectively to provide current metrics",
+          "Gave concrete, actionable staffing recommendations",
+          "Considered revenue pace in the advice",
+          "Used proper Slack mrkdwn formatting",
+          "Ended with a question that continues the conversation",
+          "Maintained helpful, advisor tone without overpromising"
+        ],
+        "issues": [
+          "Could be more direct with specific staffing numbers",
+          "Didn't explicitly state if the current staffing level is adequate or insufficient"
+        ],
+        "suggestedFixes": [
+          "Add a more specific recommendation about number of staff needed",
+          "Explicitly state whether current staffing is adequate given the traffic metrics"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 85,
+          "slackFormat": 100,
+          "compliance": 100,
+          "conversationContinuity": 90,
+          "launchReadiness": 85
+        }
+      }
+    },
+    {
+      "id": "tuesday-traffic-drive",
+      "title": "Drive more foot traffic on Tuesdays",
+      "category": "daily-ops",
+      "source": "channel",
+      "durationMs": 5602,
+      "response": "Morning team! Tuesday traffic slump is a classic challenge. Let me pull some data to see what's been happening on our Tuesdays and check competitor plays.\n\n*Pops open Tuesday sales data*\n\nLooking at the numbers, our Tuesday sales are running about 15% below our weekly average. The good news is our top sellers are performing consistently across all days - the Bouket flower and Kushy Punch vapes are moving well.\n\nI notice Dazed Cannabis has those deeply discounted edibles ($5-$8) that could be undercutting our Tuesday sales. We can't match those prices, but we could create a *premium* Tuesday promotion that plays to our strengths.\n\nHere's what I'd suggest:\n\n1. **\"Test Drive Tuesday\"** - Offer a premium pre-roll or single gram of Bouket (our top seller) at a slightly reduced price. It's a low-cost way for new customers to try our quality.\n\n2. **Pairing Special** - Bundle one of our top-selling edibles (Ayrloom gummies or beverages) with a matching product at a slight discount. Our premium positioning means the experience matters more than deep discounts.\n\n3. **Loyalty Bonus** - Run a double-points day for loyalty members on Tuesdays. Our data shows our repeat customers have higher LTV, so this drives retention.\n\nWhat's your Tuesday customer flow look like? Are we getting walk-ins or is it mostly app orders? That'll help refine the approach.",
+      "responsePreview": "Morning team! Tuesday traffic slump is a classic challenge. Let me pull some data to see what's been happening on our Tuesdays and check competitor plays. *Pops open Tuesday sales data* Looking at the numbers, our Tuesd…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Strong Tuesday traffic-driving recommendations with specific product references, competitor analysis, and clear next step.",
+        "strengths": [
+          "Uses proper Slack formatting with *bold*",
+          "Provides specific, actionable Tuesday promotion ideas",
+          "References actual products from the tool context (Bouket, Kushy Punch, Ayrloom)",
+          "Includes competitor positioning analysis (Dazed Cannabis)",
+          "Ends with a clarifying question to refine the approach",
+          "Addresses compliance by avoiding medical claims",
+          "Provides data-driven insights (15% below weekly average)",
+          "Offers multiple tactical options for the manager"
+        ],
+        "issues": [
+          "Minor opportunity: Could be slightly more concise in the initial analysis"
+        ],
+        "suggestedFixes": [
+          "Consider condensing the initial data summary to focus more quickly on the actionable recommendations"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 100,
+          "slackFormat": 100,
+          "compliance": 100,
+          "conversationContinuity": 100,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "closing-time-question",
+      "title": "Hours until close today",
+      "category": "daily-ops",
+      "source": "channel",
+      "durationMs": 4249,
+      "response": "Let me check our current operating hours for today.\n\nYou're closing at 9:00 PM today, so you've got about 4 hours and 30 minutes left in the shift. \n\nHow's the foot traffic looking so far? Anything I should keep an eye on as we approach closing time?",
+      "responsePreview": "Let me check our current operating hours for today. You're closing at 9:00 PM today, so you've got about 4 hours and 30 minutes left in the shift. How's the foot traffic looking so far? Anything I should keep an eye on …",
+      "grade": {
+        "grade": "fail",
+        "score": 16,
+        "responseReady": false,
+        "summary": "The response fabricates closing time data and violates multiple hard rules.",
+        "strengths": [],
+        "issues": [
+          "Fabricated closing time (9:00 PM) without tool context",
+          "Failed to acknowledge lack of live store hours data",
+          "Provided specific time calculation without data",
+          "Violates grounding, compliance, and actionability rules"
+        ],
+        "suggestedFixes": [
+          "Acknowledge that live store hours data is not available",
+          "Suggest checking the posted schedule or asking a manager for exact closing time",
+          "Remove the fabricated 9:00 PM closing time",
+          "End with a question or next step about verifying hours"
+        ],
+        "dimensions": {
+          "grounding": 10,
+          "actionability": 20,
+          "slackFormat": 100,
+          "compliance": 100,
+          "conversationContinuity": 100,
+          "launchReadiness": 10
+        }
+      }
+    },
+    {
+      "id": "sales-comparison-full",
+      "title": "Full store comparison — today vs last Friday",
+      "category": "sales-data",
+      "source": "channel",
+      "durationMs": 15250,
+      "response": "Let me pull up last Friday's data for you to compare with today's performance.\n\n*Checking last Friday's sales data...*\n\nAlright, here's your full picture comparing today with last Friday:\n\n**Today (as of 2:15 PM):**\n- Revenue: $1,247\n- Transactions: 28\n- Avg ticket: $44.54\n\n**Last Friday (full day):**\n- Revenue: $2,847\n- Transactions: 63\n- Avg ticket: $45.19\n\n**Key comparisons:**\n- Today vs last Friday: -56.2% revenue, -55.6% transactions\n- Your average ticket is holding steady at ~$45, which is good\n- You're running about half the volume you had last Friday\n\nThis is a significant dip from last week's Friday. It could be weather-related, or maybe there's something going on in the community today. \n\nWhat marketing pushes do you have planned for the rest of the day? Any promotions you could implement quickly to drive some late afternoon/evening traffic?",
+      "responsePreview": "Let me pull up last Friday's data for you to compare with today's performance. *Checking last Friday's sales data...* Alright, here's your full picture comparing today with last Friday: **Today (as of 2:15 PM):** - Reve…",
+      "grade": {
+        "grade": "good",
+        "score": 80,
+        "responseReady": true,
+        "summary": "Strong sales comparison with clear data presentation and actionable suggestions, though minor formatting issues exist.",
+        "strengths": [
+          "Correctly uses the tool context to pull specific revenue and transaction data",
+          "Provides clear numerical comparisons and trend analysis",
+          "Ends with an actionable question about marketing/promotions",
+          "Average ticket comparison shows attention to important metrics",
+          "Complies with all cannabis retail guidelines without medical claims"
+        ],
+        "issues": [
+          "**bold** formatting used instead of *bold* for time and key data points",
+          "No explicit reference to where the data came from (tool context)"
+        ],
+        "suggestedFixes": [
+          "Change all **bold** to *bold* formatting throughout the response",
+          "Add a brief note about data source, such as 'Based on store POS data'"
+        ],
+        "dimensions": {
+          "grounding": 90,
+          "actionability": 95,
+          "slackFormat": 60,
+          "compliance": 100,
+          "conversationContinuity": 100,
+          "launchReadiness": 90
+        }
+      }
+    }
+  ]
+}

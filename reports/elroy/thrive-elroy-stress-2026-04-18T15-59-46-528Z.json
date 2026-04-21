@@ -1,0 +1,128 @@
+{
+  "orgId": "org_thrive_syracuse",
+  "generatedAt": "2026-04-18T15:59:46.528Z",
+  "totalCases": 3,
+  "averageScore": 89,
+  "readyCount": 3,
+  "results": [
+    {
+      "id": "daily-floor-check",
+      "title": "Morning floor check — sales vs yesterday",
+      "category": "daily-ops",
+      "source": "channel",
+      "durationMs": 7142,
+      "response": "Well let's break down today's numbers, Jamie. \n\nLooking at the sales snapshot, we're seeing a significant dip from yesterday. Today at 2:15 PM, we're at $1,247 with 28 transactions, while yesterday we did $2,104 with 47 transactions full day. That's a 40.7% revenue drop and 40.4% fewer transactions compared to yesterday. We're also running 34.1% below our 7-day average sales.\n\nOur top movers over the past week are still holding strong though - Bouket Small Bud leading the pack, followed by Kushy Punch cartridges and Ayrloom edibles. The edibles category seems particularly popular with both gummies and beverages performing well.\n\nI'm wondering - is the lower traffic today due to the weather, or could there be something else impacting foot traffic? Also, how are the new promotional displays performing? Want me to dig deeper into any specific area of concern?",
+      "responsePreview": "Well let's break down today's numbers, Jamie. Looking at the sales snapshot, we're seeing a significant dip from yesterday. Today at 2:15 PM, we're at $1,247 with 28 transactions, while yesterday we did $2,104 with 47 t…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent daily floor check report with strong data grounding, clear metrics, and actionable follow-up questions.",
+        "strengths": [
+          "Properly references yesterday vs today revenue with specific dollar amounts",
+          "Calculates and presents percent change accurately",
+          "Identifies top-selling products",
+          "Uses proper Slack formatting with *bold* for emphasis",
+          "Ends with engaging questions that continue the conversation",
+          "Shows 7-day average context for broader perspective",
+          "Maintains compliant language without medical claims"
+        ],
+        "issues": [
+          "Slightly late in the day for a full-day comparison (only showing 2:15 PM data)",
+          "Could provide more analysis on potential reasons for the sales dip"
+        ],
+        "suggestedFixes": [
+          "Note that comparison is partial day vs full day to manage expectations",
+          "Consider adding brief section on common factors affecting Sunday sales if available in data"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "slackFormat": 100,
+          "compliance": 100,
+          "conversationContinuity": 100,
+          "launchReadiness": 100
+        }
+      }
+    },
+    {
+      "id": "staffing-sick-call",
+      "title": "Budtender called in sick — floor adjustment",
+      "category": "daily-ops",
+      "source": "channel",
+      "durationMs": 5795,
+      "response": "Hey there, store manager! Tough break with the budtender calling in sick. Let's make sure your floor runs smooth as silk today.\n\nFirst off, today's looking decent - you've got $1,247 on the board from 28 transactions so far, with an average ticket of $44.54. That's 7 check-ins today, so traffic's steady.\n\nWith one budtender down, I'd suggest:\n- Pair your junior staff with your experienced ones so they can shadow and learn\n- Push your pre-rolls and flower products - they're self-service friendly\n- Consider having customers pre-select products from the menu while they wait\n- Set up a dedicated express lane for returning customers who know what they want\n\nYour top sellers this week have been Blue Dream flower and Northern Lights edibles - make sure those are easily accessible.\n\nWould you like me to check who might need a win-back call today, or should we look at what's sitting in inventory that could be promoted to help keep the momentum up?",
+      "responsePreview": "Hey there, store manager! Tough break with the budtender calling in sick. Let's make sure your floor runs smooth as silk today. First off, today's looking decent - you've got $1,247 on the board from 28 transactions so …",
+      "grade": {
+        "grade": "good",
+        "score": 82,
+        "responseReady": true,
+        "summary": "Solid response with practical advice that references current metrics and provides actionable steps.",
+        "strengths": [
+          "References specific current metrics (revenue, transactions, check-ins)",
+          "Provides concrete staffing adjustment recommendations",
+          "Considers revenue pace in advice",
+          "Ends with a question that invites further discussion",
+          "No medical claims",
+          "No refusal to answer"
+        ],
+        "issues": [
+          "Could provide more specific guidance on which staff to pair based on experience level",
+          "Could clarify how to set up express lane with one staff member down",
+          "Doesn't explicitly mention how adjustments impact customer experience or compliance"
+        ],
+        "suggestedFixes": [
+          "Add specific pairing recommendations based on staff experience levels",
+          "Clarify implementation steps for express lane with current staffing",
+          "Briefly note how adjustments maintain compliance standards"
+        ],
+        "dimensions": {
+          "grounding": 90,
+          "actionability": 85,
+          "slackFormat": 90,
+          "compliance": 100,
+          "conversationContinuity": 100,
+          "launchReadiness": 85
+        }
+      }
+    },
+    {
+      "id": "tuesday-traffic-drive",
+      "title": "Drive more foot traffic on Tuesdays",
+      "category": "daily-ops",
+      "source": "channel",
+      "durationMs": 7828,
+      "response": "Alright team, let's look at those Tuesday blues head-on. First thing I'm checking is our current foot traffic trends to see what we're working with.\n\nLooking at our top sellers, we've got some strong performers with the Bouket flower and Kushy Punch vapes leading the charge. For Tuesdays specifically, I'm noticing a few opportunities:\n\n1. Since RISE is offering 10% off daily, we need to counter that. How about a *Tuesday Terp Treat* featuring our top-shelf flower at a slight discount - maybe 10% off any 3.5g of indoor flower? This directly competes with RISE while maintaining our premium positioning.\n\n2. Our Vibe competitor is doing pre-roll BOGO on Thursdays. We could flip that and do *Pre-Roll Pair-Up Tuesdays* - buy one, get one 50% off on any Jaunty or similar pre-rolls. Pre-rolls are our #5 seller, so this could move more inventory.\n\n3. Edibles are sitting in the middle of our mix. With Dazed deeply discounting edibles at $5-$8, we could do a *Sweet Treat Tuesday* on our Ayrloom gummies and beverages, maybe 15% off to stay premium but more competitive.\n\nWhat's our foot traffic looking like currently on Tuesdays? If we know that number, we can better measure if these promotions are moving the needle. Also, are we tracking which days our loyalty members tend to shop? That could help us target offers more precisely.\n\nWant me to dig deeper into any of these angles, or should we pull some specific Tuesday sales data first?",
+      "responsePreview": "Alright team, let's look at those Tuesday blues head-on. First thing I'm checking is our current foot traffic trends to see what we're working with. Looking at our top sellers, we've got some strong performers with the …",
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Strong Tuesday traffic-driving recommendations with competitive context and clear next steps.",
+        "strengths": [
+          "Specific Tuesday promotions with actionable tactics",
+          "References actual products from context (Bouket flower, Kushy Punch vapes, Jaunty pre-rolls, Ayrloom gummies)",
+          "Includes competitor positioning (RISE, Vibe, Dazed)",
+          "Ends with clear next steps and questions",
+          "Proper Slack formatting with *bold* text"
+        ],
+        "issues": [
+          "Could provide more specific data points from tool context",
+          "No compliance issues to note"
+        ],
+        "suggestedFixes": [
+          "Include specific foot traffic numbers from the tool context to strengthen recommendations",
+          "Consider adding one more promotion option to provide even more choices"
+        ],
+        "dimensions": {
+          "grounding": 85,
+          "actionability": 95,
+          "slackFormat": 100,
+          "compliance": 100,
+          "conversationContinuity": 100,
+          "launchReadiness": 90
+        }
+      }
+    }
+  ]
+}

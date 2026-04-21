@@ -1,4 +1,3 @@
-
 'use server';
 
 import { cookies } from 'next/headers';
@@ -172,46 +171,49 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
     'http://localhost:3000';
 
   try {
-    const res = await fetch(
-      `${apiBaseUrl}/api/checkout/smokey-pay`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // Pass cookies to the API route to maintain session context if needed
-          Cookie: cookieStore.toString(),
-        },
-        body: JSON.stringify({
-          organizationId: clientPayload.organizationId,
-          dispensaryId: clientPayload.retailerId,
-          pickupLocationId: clientPayload.retailerId,
-          customer: {
-            email: sessionEmail || requestEmail,
-            name: clientPayload.customer.name,
-            phone: clientPayload.customer.phone,
-            uid: userId,
-          },
-          items: resolvedItems.map(item => ({
-            productId: item.productId,
-            name: item.name,
-            quantity: item.quantity,
-            unitPrice: item.price,
-          })),
-          subtotal: subtotalAfterDiscount,
-          tax,
-          fees,
-          total,
-          couponCode: appliedCoupon?.code,
-          currency: "USD",
-        }),
-      }
-    );
+    // 1. Process Payment through Authorize.net
+    const { authorizeNetService } = await import('@/server/services/finance/authorize-net');
+    const paymentResult = await authorizeNetService.chargeCreditCard(total, {
+      name: clientPayload.customer.name,
+      email: sessionEmail || requestEmail
+    });
 
-    const json = await res.json();
-
-    if (!res.ok || !json.success) {
-      throw new Error(json.error || "Failed to start Smokey Pay checkout");
+    if (!paymentResult.success) {
+      throw new Error(paymentResult.error || "Payment processing failed via Authorize.net");
     }
+
+    // 2. Create the order in Firestore directly
+    const orderData = {
+      organizationId: clientPayload.organizationId,
+      dispensaryId: clientPayload.retailerId,
+      pickupLocationId: clientPayload.retailerId,
+      customer: {
+        email: sessionEmail || requestEmail,
+        name: clientPayload.customer.name,
+        phone: clientPayload.customer.phone,
+        uid: userId,
+      },
+      items: resolvedItems.map(item => ({
+        productId: item.productId,
+        name: item.name,
+        quantity: item.quantity,
+        unitPrice: item.price,
+      })),
+      subtotal: subtotalAfterDiscount,
+      tax,
+      fees,
+      total,
+      currency: "USD",
+      status: 'pending',
+      paymentStatus: 'paid',
+      paymentTransactionId: paymentResult.transactionId,
+      couponCode: appliedCoupon?.code || null,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp()
+    };
+
+    const orderRef = await firestore.collection('orders').add(orderData);
+    const json = { orderId: orderRef.id, success: true, checkoutUrl: undefined as string | undefined };
 
     if (appliedCoupon) {
       try {

@@ -88,6 +88,8 @@ export interface CampaignPerformance {
     unsubscribed: number;
     /** Attributed revenue from campaign */
     revenue: number;
+    /** Number of recipients who made a purchase within attribution window */
+    conversions: number;
     /** Computed rates */
     openRate: number;
     clickRate: number;

@@ -27,10 +27,12 @@ export async function applyCoupon(code: string, { subtotal, brandId }: ApplyCoup
   const { firestore } = await createServerClient();
   const couponsRef = firestore.collection('coupons').withConverter(couponConverter as any);
   
+  // CRITICAL FIX: To handle the difference between `brandId` and `orgId` across the system,
+  // we check if it matches either field (or we can just fetch the code if it's the document ID).
+  // Ideally, coupon codes are unique across the collection anyway.
   const query = couponsRef
     .where('code', '==', normalizedCode)
-    .where('brandId', '==', brandId)
-    .limit(1);
+    .limit(10); // Fetch up to 10 in case of collisions and filter in memory
 
   const snapshot = await query.get();
 
@@ -38,8 +40,18 @@ export async function applyCoupon(code: string, { subtotal, brandId }: ApplyCoup
     return { success: false, message: 'This coupon code is not valid.' };
   }
 
-  const coupon = snapshot.docs[0].data() as Coupon;
-  const couponDocRef = snapshot.docs[0].ref;
+  // Find the exact coupon matching the given brandId or orgId
+  const validDoc = snapshot.docs.find(doc => {
+    const data = doc.data() as any;
+    return data.brandId === brandId || data.orgId === brandId;
+  });
+
+  if (!validDoc) {
+     return { success: false, message: 'This coupon code is not valid for this brand.' };
+  }
+
+  const coupon = validDoc.data() as Coupon;
+  const couponDocRef = validDoc.ref;
 
   if ((coupon as any).active === false) {
     return { success: false, message: 'This coupon is inactive.' };

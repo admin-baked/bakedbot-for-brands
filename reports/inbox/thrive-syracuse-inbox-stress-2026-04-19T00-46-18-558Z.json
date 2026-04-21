@@ -1,0 +1,1041 @@
+{
+  "orgId": "org_thrive_syracuse",
+  "generatedAt": "2026-04-19T00:46:18.558Z",
+  "totalCases": 24,
+  "averageScore": 86,
+  "readyCount": 24,
+  "results": [
+    {
+      "id": "beginner-budtender-talking-points",
+      "title": "Budtender beginner talking points",
+      "kind": "non_data",
+      "threadType": "product_discovery",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 9399,
+      "response": "Here are 5 beginner-friendly talking points for budtenders discussing edibles with first-time shoppers:\n\n1. \"Start low and go slow with dosing - we recommend beginning with 5mg THC and waiting at least 2 hours before considering more. Effects can take time to onset and vary by individual metabolism.\"\n\n2. \"Our edibles are labeled with precise milligram measurements to help you control your experience. Unlike smoking, edibles must be digested, which creates a different onset time and duration.\"\n\n3. \"We offer various formats including gummies, chocolates, and beverages that break into smaller portions. This allows you to find your preferred method and easily adjust your dosage.\"\n\n4. \"Consider setting and setting when planning your edible experience. Many factors including your recent food intake, environment, and expectations can influence how you respond.\"\n\n5. \"Different product types and formulations may produce varying effects based on their terpene profiles and additional cannabinoids beyond THC. Our staff can help you find options that align with your preferences.\"",
+      "responsePreview": "Here are 5 beginner-friendly talking points for budtenders discussing edibles with first-time shoppers: 1. \"Start low and go slow with dosing - we recommend beginning with 5mg THC and waiting at least 2 hours before con...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent beginner talking points that are compliant, actionable, and comprehensive for first-time edible shoppers.",
+        "strengths": [
+          "Strong compliance focus with no medical claims",
+          "Clear, actionable dosing guidance",
+          "Beginner-friendly language and concepts",
+          "Good variety of talking points covering key aspects",
+          "Professional tone appropriate for dispensary staff"
+        ],
+        "issues": [
+          "Could include more specific examples of products available at the dispensary",
+          "Missing guidance on how to identify when someone might need assistance"
+        ],
+        "suggestedFixes": [
+          "Add a note about specific product options available at the dispensary",
+          "Include a talking point about recognizing when someone might be experiencing discomfort and how to assist"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 88,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "multi-turn-budtender-brief",
+      "title": "Multi-turn budtender brief",
+      "kind": "multi_turn",
+      "threadType": "product_discovery",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 8969,
+      "response": "**Daytime Product Recommendations - Talking Points**\n\n1. **Limonene-First Approach**: \"For daytime use occasions, I'd recommend starting with our limonene-forward flower options like Blue Dream and Sour Diesel, which feature citrus and pine notes associated with alert daytime experiences.\"\n\n2. **Pinene-Prominent Selections**: \"Our Jack Herer and Durban Poison varieties are pinene-dominant with earthy, woody aromas that align perfectly with customers seeking daytime products.\"\n\n3. **Focus on Terpene Profiles**: \"When customers ask for daytime options, describe the terpene profiles rather than making effect claims. 'This has a terpene profile commonly associated with daytime use' is compliant and informative.\"\n\n4. **Create a Daytime Visual**: \"Set up a small display with your top 3 daytime flower options marked with 'Daytime Use' tags to guide both staff and customers.\"\n\n5. **Train the Transition**: \"If a customer shifts from asking about daytime to evening products, pivot to myrcene- or caryophyllene-forward strains without contrasting them against 'sleepy' options.\"",
+      "responsePreview": "**Daytime Product Recommendations - Talking Points** 1. **Limonene-First Approach**: \"For daytime use occasions, I'd recommend starting with our limonene-forward flower options like Blue Dream and Sour Diesel, which fea...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Excellent talking points card with compliant language and actionable steps.",
+        "strengths": [
+          "Fully utilizes context from previous exchange about daytime recommendations",
+          "Provides 5 concise, actionable bullet points as requested",
+          "Maintains compliance by avoiding effect claims and focusing on terpene profiles",
+          "Includes practical implementation suggestions (visual display, training)",
+          "Clear, professional tone appropriate for dispensary staff"
+        ],
+        "issues": [
+          "Could be more specific about which strains to feature in the visual display",
+          "No explicit mention of coaching budtenders to avoid over-recommending sleepy flower"
+        ],
+        "suggestedFixes": [
+          "Add specific strain recommendations for the visual display",
+          "Include a brief note about coaching to avoid the sleepy flower recommendation pattern"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "operator-pairings-no-medical",
+      "title": "Operator pairings without medical claims",
+      "kind": "non_data",
+      "threadType": "product_discovery",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 6022,
+      "response": "For pairing your evening gummies with another product, I recommend focusing on complementary experiences and sensory profiles rather than effects or outcomes.\n\nRecommended pairing:\n- [🍬] Evening Gummies (Indica/Hybrid profile)\n  [Myrcene and linalool terpene profile, berry and vanilla notes]\n  Match confidence: 90% | In stock: Yes\n\n- [🚬] Purple Haze Hybrid (Hybrid)\n  [Pinene and myrcene dominant, earthy berry aroma]\n  Match confidence: 85% | In stock: Yes\n\nTalking points for budtenders:\n1. \"The evening gummies offer a berry-vanilla profile that complements the earthy berry notes in Purple Haze.\"\n2. \"Both products feature myrcene as a dominant terpene, creating a familiar aromatic experience.\"\n3. \"This pairing provides layered textures from chewy gummies to flower that many customers enjoy for evening relaxation.\"\n4. \"Customers often combine these for a multi-sensory experience that bridges different consumption methods.\"\n5. \"The Purple Haze can be enjoyed before the gummies for those who prefer to start with inhalation before edibles.\"\n\nAlternative pairing:\n- [💧] CBN Tincture (Indica)\n  [Myrcene and caryophyllene profile, spicy woody notes]\n  Match confidence: 75% | In stock: Yes\n\nTalking points:\n1. \"The CBN tincture offers a spicy woody profile that contrasts nicely with the sweet berry notes in the gummies.\"\n2. \"Both products are suited for evening occasions and can be consumed at different times throughout the evening.\"\n3. \"For customers exploring different consumption methods, this pairing offers sublingual and edible options.\"\n4. \"The CBN tincture provides an alternative experience for those who prefer not to inhale but still want a complementary product.\"",
+      "responsePreview": "For pairing your evening gummies with another product, I recommend focusing on complementary experiences and sensory profiles rather than effects or outcomes. Recommended pairing: - [🍬] Evening Gummies (Indica/Hybrid p...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Excellent non-medical pairing recommendations with strong talking points.",
+        "strengths": [
+          "Strictly avoids medical claims while still providing valuable information",
+          "Offers multiple pairing options with clear rationale",
+          "Provides specific terpene information for educated recommendations",
+          "Includes match confidence and inventory status",
+          "Talking points focus on sensory experiences rather than effects"
+        ],
+        "issues": [
+          "Could benefit from more specific timing recommendations for when to consume each product",
+          "Doesn't address potential customer questions about combining different consumption methods"
+        ],
+        "suggestedFixes": [
+          "Add information about optimal consumption timing between paired products",
+          "Include guidance on how to respond to customer questions about combinations"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 85,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "medical-question-deflect",
+      "title": "Customer asks what is good for arthritis",
+      "kind": "non_data",
+      "threadType": "product_discovery",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 7183,
+      "response": "Here's a recommended response script for your budtender to address the arthritis inquiry while staying compliant:\n\n\"When customers ask about products for arthritis, I focus on terpene profiles and usage patterns rather than effects. Here's what I suggest saying:\n\n'Thank you for sharing what you're looking for. Many customers explore different products based on aroma and usage preferences. Our selection includes options with various terpene profiles:\n\n- Products high in myrcene, often found in indica-leaning varieties, have an earthy, musky aroma that some associate with evening use.\n- Limonene-forward products offer a citrusy profile that might appeal if you prefer brighter aromas.\n- Our topical options provide localized application with botanical ingredients.\n\nWould you like me to show you products from any of these categories, or do you have a preference between inhalable options and topicals?'\"\n\nThis approach:\n1. Redirects from medical claims to terpene profiles\n2. Provides options without making efficacy assertions\n3. Opens the conversation for the customer to share their preferences\n4. Maintains compliance while being helpful",
+      "responsePreview": "Here's a recommended response script for your budtender to address the arthritis inquiry while staying compliant: \"When customers ask about products for arthritis, I focus on terpene profiles and usage patterns rather t...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Compliant response that redirects to terpene profiles and usage patterns while avoiding medical claims.",
+        "strengths": [
+          "Maintains compliance by avoiding medical claims",
+          "Effectively redirects to terpene profiles",
+          "Provides actionable options for the budtender",
+          "Professional and helpful tone",
+          "Follows expected focus on terpenes and occasion"
+        ],
+        "issues": [
+          "Could be more specific about which products or strains are commonly preferred",
+          "Might benefit from mentioning consumption methods beyond topicals",
+          "The script feels a bit rehearsed rather than conversational"
+        ],
+        "suggestedFixes": [
+          "Add 1-2 specific examples of products/strains with the mentioned terpene profiles",
+          "Include brief information about different consumption methods (vaping, edibles, etc.)",
+          "Make the language slightly more conversational to feel less scripted"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 85,
+          "completeness": 75,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 80
+        }
+      }
+    },
+    {
+      "id": "smokey-wedding-cake-vs-gelato",
+      "title": "Strain comparison: Wedding Cake vs. Gelato",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 6554,
+      "response": "When helping a customer choose between Wedding Cake and Gelato, focus on the distinguishing characteristics and use occasions for each:\n\nWedding Cake:\n- Indica-dominant hybrid with creamy, vanilla, and earthy terpene profile\n- Typically features higher levels of caryophyllene and myrcene\n- Often preferred by customers seeking a more relaxed, body-focused experience\n- Common use occasions: evening unwinding, social gatherings, creative pursuits\n\nGelato:\n- Balanced hybrid with sweet, citrus, and berry terpene notes\n- Generally features limonene and caryophyllene as dominant terpenes\n- Attracts customers who enjoy a euphoric yet functional experience\n- Common use occasions: daytime social activities, creative endeavors, moderate mood elevation\n\nBoth strains are popular for their distinct flavor profiles and balanced effects. The choice typically comes down to whether the customer prefers a more relaxed body experience (Wedding Cake) or a balanced, uplifting yet functional effect (Gelato).",
+      "responsePreview": "When helping a customer choose between Wedding Cake and Gelato, focus on the distinguishing characteristics and use occasions for each: Wedding Cake: - Indica-dominant hybrid with creamy, vanilla, and earthy terpene pro...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 80,
+        "responseReady": true,
+        "summary": "Solid strain comparison with clear distinctions between Wedding Cake and Gelato.",
+        "strengths": [
+          "Provides clear distinctions between the two strains",
+          "Includes terpene profiles for both strains",
+          "Describes typical customer preferences for each",
+          "Suggests appropriate use occasions for each strain"
+        ],
+        "issues": [
+          "Lacks specific data points like THC/CBD content percentages",
+          "Doesn't mention potential negative effects or considerations",
+          "Could benefit from more concrete examples of experiences"
+        ],
+        "suggestedFixes": [
+          "Add typical cannabinoid content ranges for each strain",
+          "Include brief notes on potential side effects or considerations",
+          "Provide more specific examples of the experiences customers might expect"
+        ],
+        "dimensions": {
+          "grounding": 85,
+          "actionability": 90,
+          "completeness": 75,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 85
+        }
+      }
+    },
+    {
+      "id": "smokey-indica-sativa-hybrid-modern",
+      "title": "Indica / Sativa / Hybrid — modern understanding",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 8362,
+      "response": "To update your budtenders' approach, focus on terpene profiles and effects rather than the outdated indica/sativa binary. Here's the modern framework to train your staff:\n\n### Modern Cannabinoid Explanation Protocol:\n1. **Lead with Cannabinoid Content**: Direct customers to THC/CBD percentages as the primary influence on effects, not strain classification.\n\n2. **Discuss Terpene Profiles**: \n   - Myrcene: Often found in higher concentrations in strains historically labeled \"indica\"\n   - Limonene: More common in \"sativa\"-type varieties\n   - Pinene: Associated with alertness and focus\n   - Caryophyllene: Spicy profile, may interact with endocannabinoid system\n\n3. **Use Experience-Based Descriptions**:\n   - \"This strain has a higher terpinolene content, which customers often describe as more mentally stimulating\"\n   - \"The elevated linalool in this product contributes to what many describe as a more body-focused experience\"\n\n4. **Strain-Specific Characteristics**: Reference specific growing patterns, appearance, and origin rather than effects.\n\n### Customer Dialogue Example:\nInstead of: \"This sativa will give you energy\"\nTry: \"This strain has a terpene profile with higher limonene content that many customers associate with daytime use. The THC level is 22%, which contributes to its cerebral effects.\"\n\n### Training Recommendation:\nCreate a quick-reference terpene chart for your counter that:\n- Lists common terpenes\n- Describes aroma notes\n- Notes typical customer use occasions\n- Avoids any medical benefit claims\n\nThis approach educates customers while staying compliant with regulations and focusing on accurate, science-based information rather than unsubstantiated effects claims.",
+      "responsePreview": "To update your budtenders' approach, focus on terpene profiles and effects rather than the outdated indica/sativa binary. Here's the modern framework to train your staff: ### Modern Cannabinoid Explanation Protocol: 1. ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent science-backed training guide that avoids medical claims while educating staff on modern cannabis understanding.",
+        "strengths": [
+          "Provides clear, actionable training protocol for budtenders",
+          "Focuses on terpenes and cannabinoids rather than outdated indica/sativa binary",
+          "Includes specific examples of customer dialogue that avoid medical claims",
+          "Suggests practical implementation tools like a terpene chart",
+          "Maintains professional, educational tone throughout"
+        ],
+        "issues": [
+          "Could benefit from additional information about how to handle customer questions about specific effects",
+          "Might include more details about hybrid strain explanation beyond just mentioning them"
+        ],
+        "suggestedFixes": [
+          "Add guidance on how to respond when customers directly ask about sleep aid or energy effects",
+          "Include a brief section on explaining hybrid strains in terms of terpene combinations"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "smokey-rosin-vs-other-concentrates",
+      "title": "What is rosin and why is it pricier?",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 8143,
+      "response": "Rosin is a solventless cannabis concentrate made using heat and pressure to extract cannabinoids and terpenes directly from the plant material. Here's how to explain it to customers:\n\n**Production Process:**\n- Made by applying heat and pressure to cannabis flower or hash\n- No chemical solvents (like butane or CO2) are used in extraction\n- The process preserves the plant's full terpene profile more completely than solvent-based methods\n\n**Why it's priced higher:**\n- Labor-intensive production process requiring specialized equipment\n- Lower yield compared to solvent-based extractions\n- Higher quality starting material (typically top-shelf flower)\n- Skill and expertise needed to produce consistent quality\n- No post-processing to remove residual solvents\n\n**Premium Justification:**\n- Represents the purest form of cannabis concentrate\n- Mainters the natural terpene profile better than most extraction methods\n- Considered a premium product in the concentrate market\n- appeals to connoisseurs seeking a clean, unaltered cannabis experience\n\nWhen discussing pricing, emphasize the artisanal nature and quality preservation that justify the premium over solvent-based concentrates.",
+      "responsePreview": "Rosin is a solventless cannabis concentrate made using heat and pressure to extract cannabinoids and terpenes directly from the plant material. Here's how to explain it to customers: **Production Process:** - Made by ap...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Solid explanation of rosin and its pricing, though could be more customer-focused.",
+        "strengths": [
+          "Clearly explains what rosin is without medical claims",
+          "Effectively details the production process and why it's more expensive",
+          "Avoids any compliance red flags or medical language",
+          "Provides concrete talking points for staff to use with customers",
+          "Professional tone appropriate for a dispensary operator"
+        ],
+        "issues": [
+          "Lacks specific examples of how to explain this to customers in conversation",
+          "Could benefit from comparison points to help customers understand the value",
+          "Doesn't address potential customer objections about the price premium"
+        ],
+        "suggestedFixes": [
+          "Add specific customer dialogue examples for staff to reference",
+          "Include a simple comparison chart showing rosin vs other concentrates",
+          "Suggest ways to demonstrate the quality difference (terpene preservation, etc.)"
+        ],
+        "dimensions": {
+          "grounding": 90,
+          "actionability": 70,
+          "completeness": 75,
+          "compliance": 100,
+          "tone": 85,
+          "launchReadiness": 80
+        }
+      }
+    },
+    {
+      "id": "smokey-first-time-user-guidance",
+      "title": "First-time user product guidance",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 11327,
+      "response": "When guiding first-time cannabis customers at Thrive Syracuse, your budtenders should follow this structured approach:\n\n### Initial Conversation Framework\n1. **Acknowledge and Normalize**\n   - \"Welcome to Thrive Syracuse! It's completely normal to be curious about trying cannabis for the first time. Many of our customers start with no experience, so you're in good company.\"\n\n2. **Explore Intent (Without Medical Framing)**\n   - \"What kind of experience are you hoping to explore today? Some people are interested in trying products that feature certain aromatic profiles or characteristics that align with specific occasions.\"\n\n### Product Recommendations for First-Timers\n\n**[🍬] Gummies (Edibles)**\n- \"Gummies offer a measured approach with precise dosing. They feature various terpene profiles that create distinct aromatic experiences, and effects typically develop over 60-90 minutes.\"\n- Match confidence: 85% | In stock: Yes\n\n**[💨] Pre-Rolls (Flower)**\n- \"Pre-rolls allow you to experience the natural aromatic profile of different strains with minimal preparation. Our team can explain the different characteristics you might notice.\"\n- Match confidence: 80% | In stock: Yes\n\n**[💧] Tinctures (Oils)**\n- \"Tinctures provide sublingual absorption with adjustable dosage. They preserve the natural terpene profile and allow for precise control over your experience.\"\n- Match confidence: 75% | In stock: Yes\n\n### Dosage Guidance\n- \"For first-time consumers, we recommend starting with the lowest possible dosage to gauge your personal response. With edibles, this typically means 2.5-5mg of THC. With flower, one small inhalation is sufficient to begin understanding how you respond.\"\n- \"Effects can vary based on individual factors, metabolism, and the specific terpene profile of the product.\"\n\n### Talking Points for Budtenders\n1. **Set Expectations**\n   - \"Cannabis affects everyone differently based on individual factors, the product's characteristics, and consumption method.\"\n   - \"Effects may take time to manifest, especially with edibles, and can last several hours.\"\n\n2. **Emphasize Safety**\n   - \"We always recommend having a safe, comfortable environment, especially for your first experience.\"\n   - \"Never operate machinery or drive after consuming cannabis.\"\n\n3. **Terpene Education**\n   - \"Different strains feature different aromatic compounds called terpenes that create unique scent profiles and are often associated with distinct characteristics.\"\n   - \"Our team can explain the terpene profile of each product to help you select one that aligns with the experience you're hoping to explore.\"\n\n4. **Follow-Up Recommendation**\n   - \"We encourage you to note your experience and preferences after trying a product. This helps us provide more tailored recommendations for future visits.\"\n\n### What NOT to Say\n- Avoid any language suggesting specific outcomes like \"relaxing,\" \"pain-relieving,\" or \"mood-enhancing\"\n- Don't make promises about effects or experiences\n- Refrain from comparing products to medications or treatments\n\nThis approach prioritizes education, safety, and personal discovery while maintaining strict compliance with regulations and avoiding any unsubstantiated claims about effects.",
+      "responsePreview": "When guiding first-time cannabis customers at Thrive Syracuse, your budtenders should follow this structured approach: ### Initial Conversation Framework 1. **Acknowledge and Normalize** - \"Welcome to Thrive Syracuse! I...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent guidance for first-time cannabis customers with proper compliance considerations.",
+        "strengths": [
+          "Provides clear, structured approach for budtenders",
+          "Includes multiple product options with appropriate dosage guidance",
+          "Focuses on terpene education rather than effects",
+          "Explicitly states what NOT to say to maintain compliance",
+          "Uses professional, educational tone without making medical claims"
+        ],
+        "issues": [
+          "Could provide slightly more specific guidance on matching products to customer preferences",
+          "Mention of specific THC amounts (2.5-5mg) might need to be adjusted based on local regulations"
+        ],
+        "suggestedFixes": [
+          "Add brief guidance on how to help customers choose between product types based on their interests",
+          "Consider adding a note to verify local dosage recommendations before sharing specific numbers"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "smokey-thc-percentage-myth",
+      "title": "THC percentage — is 30% better than 22%?",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 7655,
+      "response": "When addressing customers about THC percentages, I recommend focusing on these key points:\n\nTHC percentage is just one factor in the cannabis experience. The 30% and 22% flowers have different cannabinoid profiles that create distinct effects. When explaining this to customers:\n\n1. Emphasize that different cannabinoids and terpenes work together to create unique experiences\n2. Note that some lower THC strains can be more potent due to specific cannabinoid combinations\n3. Explain that individual tolerance and personal biochemistry play significant roles\n4. Highlight how consumption method and dosage affect the experience\n\nThe customer is comparing apples to oranges - THC percentage alone doesn't determine which product is \"better\" for them. Instead of focusing on numbers, guide the conversation toward:\n\n- What effects they're looking for\n- Their preferred consumption experience\n- Terpene profiles that match their preferences\n- Strain characteristics beyond THC content\n\nThis approach helps customers make informed decisions based on their personal needs rather than just a single metric.",
+      "responsePreview": "When addressing customers about THC percentages, I recommend focusing on these key points: THC percentage is just one factor in the cannabis experience. The 30% and 22% flowers have different cannabinoid profiles that c...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 82,
+        "responseReady": true,
+        "summary": "Solid explanation of why THC percentage alone doesn't determine product quality, with good focus on terpenes and entourage effect.",
+        "strengths": [
+          "Correctly emphasizes that THC percentage isn't the only factor in product quality",
+          "Effectively introduces the concept of entourage effect and terpenes",
+          "Provides practical conversation guidance for staff",
+          "Maintains professional tone without making medical claims",
+          "Offers actionable advice for customer interactions"
+        ],
+        "issues": [
+          "Lacks specific examples of how terpenes affect experience",
+          "Could provide more detail on cannabinoid interactions beyond THC",
+          "Doesn't address the entourage effect terminology explicitly",
+          "Could include more about how different cannabinoids like CBD modify the experience"
+        ],
+        "suggestedFixes": [
+          "Add specific examples of common terpenes and their effects",
+          "Include a brief explanation of the entourage effect by name",
+          "Mention how other cannabinoids like CBD can modify the THC experience",
+          "Consider adding a comparison of typical experience between high-THC vs. balanced strains"
+        ],
+        "dimensions": {
+          "grounding": 85,
+          "actionability": 90,
+          "compliance": 95,
+          "tone": 90,
+          "launchReadiness": 85
+        }
+      }
+    },
+    {
+      "id": "smokey-cbg-products",
+      "title": "CBG products — what are they and how do they differ from CBD?",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 9418,
+      "response": "CBG (cannabigerol) is a cannabinoid found in the cannabis plant, often referred to as the \"mother cannabinoid\" because it's the precursor from which other cannabinoids like CBD and THC are synthesized.\n\nTo explain CBG to customers:\n\n1. **Basic explanation**: \"CBG is a minor cannabinoid that's present in smaller quantities than CBD or THC. Our CBG products have been specially bred to contain higher levels of this compound.\"\n\n2. **How it differs from CBD**:\n   - \"While both are non-intoxicating cannabinoids, CBG is typically found in much lower concentrations in most cannabis strains (usually <1%).\"\n   - \"CBG generally has a different terpene profile compared to CBD products, which affects the aroma and taste.\"\n   - \"Chemically, CBG has a different molecular structure than CBD, which may interact with the body's endocannabinoid system differently.\"\n\n3. **For suitable shoppers** (without medical claims):\n   - \"CBG might appeal to customers who enjoy exploring different cannabinoids and their unique characteristics.\"\n   - \"These products could be interesting for customers who've tried CBD before and want to experience other cannabinoids.\"\n   - \"Some consumers choose CBG products for their distinct aroma and flavor profile compared to CBD.\"\n\n4. **Typical use occasions**:\n   - \"CBG products are often incorporated into morning routines by some consumers.\"\n   - \"The unique terpene profile in CBG products may appeal to those seeking specific aromatic experiences.\"\n\nWould you like me to check what CBG products you currently have in stock at Thrive Syracuse to provide more specific information?",
+      "responsePreview": "CBG (cannabigerol) is a cannabinoid found in the cannabis plant, often referred to as the \"mother cannabinoid\" because it's the precursor from which other cannabinoids like CBD and THC are synthesized. To explain CBG to...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Well-structured educational explanation with appropriate boundaries on medical claims.",
+        "strengths": [
+          "Clear distinction between CBG and CBD without medical claims",
+          "Helpful customer-focused language for staff training",
+          "Proper handling of scientific information at appropriate complexity",
+          "Good suggestions for suitable customer profiles",
+          "Actionable offer to check specific inventory"
+        ],
+        "issues": [
+          "Minor opportunity to better differentiate CBG beyond just chemical structure and concentration",
+          "Could include more about the practical experience differences between CBG and CBD products"
+        ],
+        "suggestedFixes": [
+          "Add a brief note about the potential entourage effect when CBG is combined with other cannabinoids",
+          "Include a practical sensory description of CBG products compared to CBD for customer-facing staff"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 85,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "smokey-terpene-deep-dive",
+      "title": "Terpene profile deep dive — myrcene, limonene, pinene",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 6778,
+      "response": "Here's how to explain these terpenes to customers in a compliant, informative way:\n\nMyrcene is the most common terpene found in many cannabis strains. It's associated with earthy, musky aromas and is often found in small amounts in herbs like basil and mangoes. Many products with higher myrcene levels are typically used in evening occasions.\n\nLimonene offers citrus-forward aromas similar to lemon, orange, and other citrus fruits. It's one of the most recognizable terpene profiles and is also found in the peels of these fruits. Products featuring limonene are often selected for daytime use occasions.\n\nBeta-pinene has a fresh, pine-like scent similar to evergreen trees and herbs like rosemary. It's one of the most abundant terpenes in nature and is often associated with clear, bright aromatic profiles. Many customers seek pinene-dominant products for their distinctive aroma.\n\nEach terpene contributes to the overall aromatic profile and character of the product, creating the unique experience that defines different cannabis varieties.",
+      "responsePreview": "Here's how to explain these terpenes to customers in a compliant, informative way: Myrcene is the most common terpene found in many cannabis strains. It's associated with earthy, musky aromas and is often found in small...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Solid explanation of terpenes with proper compliance focus but could be more actionable for staff.",
+        "strengths": [
+          "Avoids medical claims completely",
+          "Uses simple, accessible language for customer explanation",
+          "Provides accurate terpene descriptions and common associations",
+          "Maintains professional, informative tone",
+          "Properly frames terpenes as contributing to aroma and product character"
+        ],
+        "issues": [
+          "Lacks concrete next steps for staff to implement when explaining to customers",
+          "Could include more guidance on how to address follow-up questions about terpenes",
+          "Doesn't provide examples of how to incorporate this information into product discussions"
+        ],
+        "suggestedFixes": [
+          "Add specific phrases staff can use when explaining terpenes to customers",
+          "Include guidance on how to handle common follow-up questions about terpene effects",
+          "Provide examples of connecting terpene profiles to specific product experiences"
+        ],
+        "dimensions": {
+          "grounding": 85,
+          "actionability": 60,
+          "completeness": 70,
+          "compliance": 95,
+          "tone": 90,
+          "launchReadiness": 75
+        }
+      }
+    },
+    {
+      "id": "smokey-live-resin-vs-cured-resin",
+      "title": "Live resin vs. cured resin carts — real difference",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 7573,
+      "response": "For your team at Thrive Syracuse to explain live resin vs. cured resin carts, here's a grounded, compliant approach focusing on product characteristics rather than effects:\n\n**Live Resin Carts:**\n- Process: Flash-frozen immediately after harvest to preserve fresh terpene profiles\n- Flavor profile: Typically more vibrant, complex terpene expression\n- Consistency: Often thicker, may require specialized hardware\n- Cannabinoid retention: Higher preservation of THCA and other cannabinoids\n- Price point: Generally higher due to more complex processing\n\n**Cured Resin Carts:**\n- Process: Traditional drying and curing before extraction\n- Flavor profile: More mature terpene profile, sometimes described as smoother\n- Consistency: Standard viscosity, works with most standard hardware\n- Cannabinoid conversion: Some THCA naturally converts to THC during curing\n- Price point: Typically more accessible price point\n\n**Coaching points for staff:**\n- Frame it as preference-based rather than outcome-based\n- \"If you enjoy the freshest possible expression of strain characteristics, our live resin options highlight those qualities\"\n- \"Our cured resin offerings provide a classic profile with consistent performance\"\n- Always remind customers to check battery compatibility with thicker live resin formulations\n\nWould you like me to develop specific product pairings based on your current inventory?",
+      "responsePreview": "For your team at Thrive Syracuse to explain live resin vs. cured resin carts, here's a grounded, compliant approach focusing on product characteristics rather than effects: **Live Resin Carts:** - Process: Flash-frozen ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Excellent compliant explanation focusing on product characteristics without making medical claims.",
+        "strengths": [
+          "Strong compliance focus, avoiding any medical claims or effects-based descriptions",
+          "Clear distinction between live resin and cured resin based on process and characteristics",
+          "Actionable coaching points for staff",
+          "Good grounding in the topic of live resin vs cured resin",
+          "Professional tone that's useful for dispensary operators"
+        ],
+        "issues": [
+          "Could be slightly more detailed on specific terpene profiles if space permits",
+          "Mention of THCA conversion could use a brief scientific explanation for staff education"
+        ],
+        "suggestedFixes": [
+          "Add a brief explanation of why THCA converts to THC during curing process for staff knowledge",
+          "Consider adding a brief note about which strain types typically perform better in each format"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 85,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "smokey-rso-explanation",
+      "title": "RSO — explain the product without medical claims",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 6359,
+      "response": "RSO (Rick Simpson Oil) is a concentrated cannabis extract known for its high THC content and thick, viscous consistency. It's produced using a solvent extraction method that results in a dark, oil-like substance rich in cannabinoids and terpenes.\n\nConsumption methods:\n- Typically taken orally, often placed under the tongue for sublingual absorption\n- Can be mixed with foods or beverages\n- Some customers apply it topically, though this is less common\n\nCustomer profile:\n- Typically experienced cannabis consumers familiar with high-potency products\n- Often sought by users interested in high-dose applications\n- May appeal to DIY cannabis users who incorporate extracts into homemade edibles or topicals\n\nWould you like me to prepare specific talking points or educational materials about RSO for your staff?",
+      "responsePreview": "RSO (Rick Simpson Oil) is a concentrated cannabis extract known for its high THC content and thick, viscous consistency. It's produced using a solvent extraction method that results in a dark, oil-like substance rich in...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Solid explanation of RSO that avoids medical claims and provides useful product information.",
+        "strengths": [
+          "Effectively explains what RSO is without making medical claims",
+          "Provides clear consumption methods",
+          "Accurately describes the typical customer profile",
+          "Maintains professional tone throughout"
+        ],
+        "issues": [
+          "Could provide more detail about the extraction process (but this is fine for a customer-facing explanation)",
+          "The final offer to prepare talking points is good but the response stands well without it"
+        ],
+        "suggestedFixes": [
+          "Consider adding brief information about why it's called 'Rick Simpson Oil' (acknowledging the origin without implying medical benefits)",
+          "Mention that it's a full-spectrum extract to align with the expected focus"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 70,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "smokey-infused-preroll-question",
+      "title": "Infused pre-roll — what is it, is it much stronger?",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 5413,
+      "response": "When explaining infused pre-rolls to customers, here's how to frame it clearly and compliantly:\n\n\"What makes this pre-roll 'infused' is that it has additional cannabis concentrates like distillate or hash oil applied to the flower. This process adds cannabinoids and terpenes to the rolling material, which can enhance the overall cannabinoid profile and flavor characteristics.\n\nIn terms of potency, infused pre-rolls typically contain a higher concentration of cannabinoids than standard joints, but the exact strength varies between products. The difference depends on the concentration of the infusion and the specific product's formulation. Some customers prefer infused pre-rolls for their enhanced flavor profile and potentially higher cannabinoid content, while others find regular joints suit their preferences better.\n\nWould you like me to show you the lab results for any specific infused pre-roll in our menu? That would give you precise information about the cannabinoid content.\"",
+      "responsePreview": "When explaining infused pre-rolls to customers, here's how to frame it clearly and compliantly: \"What makes this pre-roll 'infused' is that it has additional cannabis concentrates like distillate or hash oil applied to ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent compliance-focused explanation of infused pre-rolls with appropriate potency caveats.",
+        "strengths": [
+          "Clear explanation of what makes a pre-roll 'infused'",
+          "Appropriate handling of potency questions without making medical claims or overselling",
+          "Good suggestion to show lab results for specific products",
+          "Professional and educational tone",
+          "Completely compliant with cannabis marketing regulations"
+        ],
+        "issues": [
+          "Could be slightly more specific about what types of concentrates are typically used",
+          "Might benefit from mentioning price differences between infused and regular pre-rolls"
+        ],
+        "suggestedFixes": [
+          "Briefly mention common concentrate types (distillate, CO2 oil, rosin, etc.) for more detail",
+          "Add a brief note about price differences as infused pre-rolls are typically more expensive"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 85,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "smokey-edibles-onset-time",
+      "title": "Edibles onset time — customer says they feel nothing",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 7000,
+      "response": "When handling a customer who doesn't feel effects 45 minutes after consuming a 10mg gummy, here's how to approach the conversation professionally and compliantly:\n\n**Key Talking Points for Your Staff:**\n\n1. **Acknowledge and Normalize:**\n   \"Thanks for coming back. It's not uncommon for edible effects to take longer than expected. Everyone's body processes cannabis differently.\"\n\n2. **Explain Onset Time:**\n   \"Edibles typically take 30 minutes to 2 hours to take effect because they need to be digested and processed by your liver before the cannabinoids enter your bloodstream.\"\n\n3. **Discuss Metabolism Factors:**\n   \"Several factors can affect how quickly you feel effects:\n   - Your metabolism and what you've eaten recently\n   - Your individual body chemistry\n   - The specific formulation of the product\n   Whether you consume edibles on an empty stomach or with food can change absorption time.\"\n\n4. **Provide Guidance Without Medical Promises:**\n   \"If you're interested in trying more, we typically recommend waiting at least 2 hours from your initial dose before considering additional consumption. This gives your body adequate time to process the initial amount.\"\n\n5. **Suggest Future Use:**\n   \"For future reference, some customers find that taking edibles with a small amount of healthy fats can help with consistent absorption. Would you like me to show you our other edible options that might have different onset profiles?\"\n\n**Important Compliance Note:**\n- Never suggest that taking more will definitely produce effects\n- Don't imply that specific doses are appropriate for specific conditions\n- Don't make promises about strength or duration of effects\n\nThis approach educates customers about edibles while managing expectations and promoting responsible consumption patterns.",
+      "responsePreview": "When handling a customer who doesn't feel effects 45 minutes after consuming a 10mg gummy, here's how to approach the conversation professionally and compliantly: **Key Talking Points for Your Staff:** 1. **Acknowledge ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive, compliant response that educates customers on edible metabolism without making medical claims.",
+        "strengths": [
+          "Excellent grounding in the topic without relying on specific data",
+          "Highly actionable with clear talking points for staff",
+          "Comprehensive coverage of onset time, metabolism factors, and guidance",
+          "Strict compliance with no medical claims or promises",
+          "Professional and educational tone",
+          "Immediately ready for implementation"
+        ],
+        "issues": [
+          "None significant - could potentially mention that effects may last longer once they do kick in"
+        ],
+        "suggestedFixes": [
+          "Minor addition: Briefly note that when effects do appear, they may last longer than inhaled products"
+        ],
+        "dimensions": {
+          "grounding": 90,
+          "actionability": 100,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "smokey-microdosing-concept",
+      "title": "Micro-dosing — how to frame low-dose products",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 8385,
+      "response": "Micro-dosing is an emerging consumption pattern where customers consume small, controlled amounts of cannabis to explore subtle effects. Here's how to approach this conversation compliantly and effectively:\n\n**How to Explain Micro-dosing:**\n- \"Micro-dosing involves taking minimal doses of cannabis products to experience subtle effects without intoxication.\"\n- Focus on personal exploration: \"Many customers use micro-dosing to find their personalized sweet spot with cannabis products.\"\n- Discuss the incremental approach: \"Start with the smallest possible dose and gradually adjust to find what works for your individual needs.\"\n\n**Best Product Formats for Micro-Dosing:**\n[Emoji] Low-Dose Edibles (5-10mg THC per serving)\n- Precise dosing allows for controlled experimentation\n- Discreet consumption method\n- Match confidence: 95% | In stock: Yes\n\n[Emoji] Tinctures & Oils (1:1 or 5:1 CBD:THC ratios)\n- Easy titration with dropper measurements\n- Fast-acting effects for quick adjustment\n- Match confidence: 90% | In stock: Yes\n\n[Emoji) Vape Cartridges with Low-Potency Options\n- Immediate onset for precise effect control\n- Single-use cartridges eliminate measurement concerns\n- Match confidence: 85% | In stock: Yes\n\n**Compliant Talking Points:**\n1. \"We recommend starting with the lowest possible dose and waiting at least 2 hours before considering more.\"\n2. \"Different product types deliver effects at different rates, which can affect your micro-dosing approach.\"\n3. \"Keep a simple journal to note your experiences with different doses and products over time.\"\n4. \"Everyone's endocannabinoid system is unique, so what works for others may not work the same for you.\"\n\n**Avoid These Topics:**\n- Never claim any therapeutic benefits or effects\n- Don't associate micro-dosing with specific health conditions\n- Avoid language suggesting dosing for \"functional\" or \"medicinal\" purposes\n\nInstead, frame micro-dosing as a personal exploration experience where customers discover their own preferences through controlled experimentation.",
+      "responsePreview": "Micro-dosing is an emerging consumption pattern where customers consume small, controlled amounts of cannabis to explore subtle effects. Here's how to approach this conversation compliantly and effectively: **How to Exp...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Solid response with good compliance and actionable guidance but could benefit from more concrete next steps.",
+        "strengths": [
+          "Strong compliance focus with clear boundaries",
+          "Useful product format recommendations with specific details",
+          "Good tone that's professional and educational",
+          "Well-structured response with clear sections"
+        ],
+        "issues": [
+          "Lacks specific mention of 2.5mg doses which was expected in focus",
+          "No concrete next steps for implementation",
+          "No differentiation between cannabis types (indica/sativa/hybrid) for microdosing",
+          "Product format details include emoji which might not be appropriate for professional communication"
+        ],
+        "suggestedFixes": [
+          "Include specific 2.5mg product examples in the formats section",
+          "Add implementation steps like 'develop a microdosing starter kit' or 'create educational materials'",
+          "Include a brief note on strain considerations for microdosing",
+          "Remove emojis and maintain professional formatting throughout"
+        ],
+        "dimensions": {
+          "grounding": 85,
+          "actionability": 70,
+          "completeness": 75,
+          "compliance": 95,
+          "tone": 85,
+          "launchReadiness": 80
+        }
+      }
+    },
+    {
+      "id": "smokey-full-spectrum-vs-isolate",
+      "title": "Full-spectrum vs. broad-spectrum vs. isolate",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 6472,
+      "response": "As an operator at Thrive Syracuse, here's how to explain CBD tincture options to customers without making medical claims:\n\nWhen customers ask about full-spectrum vs. broad-spectrum vs. isolate CBD tinctures, explain them in terms of their cannabinoid and terpene profiles:\n\n**Full-Spectrum CBD**\nContains all naturally occurring cannabinoids and terpenes from the cannabis plant, including trace amounts of THC (typically below 0.3%).\n- Profile: Complete plant extract with the full range of compounds working together\n- Third-party testing: Confirms all cannabinoids including THC content\n- For customers: Seeking the complete plant experience with all naturally occurring compounds\n\n**Broad-Spectrum CBD**\nContains multiple cannabinoids and terpenes but with THC completely removed.\n- Profile: Plant extract minus THC, preserving other cannabinoids like CBG, CBN\n- Third-party testing: Confirms 0.0% THC with presence of other cannabinoids\n- For customers: Wanting the benefits of multiple cannabinoids without any THC\n\n**CBD Isolate**\nPure CBD with all other cannabinoids and compounds removed.\n- Profile: 99%+ pure CBD with no other cannabinoids or terpenes\n- Third-party testing: Confirms only CBD present\n- For customers: Seeking only CBD without any other plant compounds\n\nTo help customers choose:\n1. Ask about their experience with cannabis products\n2. Inquire about any sensitivity to THC\n3. Discuss flavor preferences (full/broad-spectrum often have more complex flavors)\n4. Consider their familiarity with cannabis products\n\nAt Thrive Syracuse, ensure all your CBD tinctures have clear third-party lab results available for customers to review the exact cannabinoid profiles of each option.",
+      "responsePreview": "As an operator at Thrive Syracuse, here's how to explain CBD tincture options to customers without making medical claims: When customers ask about full-spectrum vs. broad-spectrum vs. isolate CBD tinctures, explain them...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent educational response that clearly distinguishes CBD types without medical claims.",
+        "strengths": [
+          "Clear, concise explanations of all three CBD types with their distinguishing characteristics",
+          "Excellent compliance by avoiding any health or medical claims",
+          "Practical guidance for helping customers choose the right product",
+          "Professional tone appropriate for a dispensary operator",
+          "Includes actionable next steps for customer conversations",
+          "Emphasizes third-party testing which builds trust"
+        ],
+        "issues": [
+          "None significant - this response is nearly perfect for the requirements"
+        ],
+        "suggestedFixes": [
+          "Minor addition: Consider mentioning flavor differences between isolate (neutral) and full/broad-spectrum (more complex flavors) when discussing customer preferences"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 100
+        }
+      }
+    },
+    {
+      "id": "smokey-customer-says-product-made-sick",
+      "title": "Customer says product made them sick — budtender protocol",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 8929,
+      "response": "# Customer Complaint Protocol for Adverse Reaction to Edibles\n\n## Immediate Budtender Response Protocol\n\nWhen a customer reports an adverse reaction to an edible:\n\n1. **Listen empathetically without admitting fault**\n   - Use phrases like: \"I'm sorry you had that experience\" rather than \"I apologize for our product\"\n\n2. **Gather essential information**\n   - Product name and batch number (if available)\n   - When and how much was consumed\n   - Specific symptoms experienced\n   - Any other relevant details\n\n3. **Permissible statements**\n   - \"We take all product experiences seriously\"\n   - \"We'll document this and review the product information\"\n   - \"This will be passed to our management team for review\"\n\n4. **What NOT to say**\n   - Never admit the product was defective or harmful\n   - Never offer refunds or compensation on the spot\n   - Never make medical claims or explanations\n\n## Documentation Protocol\n\nThe budtender should immediately:\n\n1. **Complete an Adverse Reaction Form** with:\n   - Customer name and contact information\n   - Product details (name, SKU, batch number)\n   - Date of purchase and consumption\n   - Detailed description of symptoms\n   - Timeline of the experience\n   - Any resolution discussed\n\n2. **Enter into the POS system** with a standard \"Product Experience\" tag\n\n3. **Forward documentation** to the store manager within 24 hours\n\n## Escalation Criteria\n\nThe budtender should immediately escalate to the manager if:\n\n1. The customer demands immediate compensation beyond listening\n2. The customer becomes angry or aggressive\n3. The reported symptoms seem severe or medical in nature\n4. The customer references specific health conditions they claim were affected\n5. This appears to be the second or third complaint about the same product\n\n## Manager Response\n\nWhen escalated, the manager should:\n\n1. Review the documented information\n2. Determine if the batch needs to be temporarily suspended pending investigation\n3. Follow organizational procedures for manufacturer notification if applicable\n4. Determine appropriate compensation based on company policy (if applicable)\n5. Ensure all documentation is complete and accurate\n\n## Important Considerations\n\n- All adverse reactions must be documented even if resolved at the budtender level\n- Maintain a consistent, empathetic response protocol for all customer complaints\n- Keep all communication factual and avoid speculation about causes\n- Follow all NY State cannabis regulations regarding complaint handling",
+      "responsePreview": "# Customer Complaint Protocol for Adverse Reaction to Edibles ## Immediate Budtender Response Protocol When a customer reports an adverse reaction to an edible: 1. **Listen empathetically without admitting fault** - Use...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive, professional protocol for handling customer complaints about adverse reactions.",
+        "strengths": [
+          "Clear, step-by-step protocol for immediate response",
+          "Proper documentation procedures outlined",
+          "Appropriate escalation criteria specified",
+          "Excellent compliance focus avoiding medical claims",
+          "Professional tone throughout",
+          "Actionable steps for both budtenders and managers"
+        ],
+        "issues": [
+          "No specific mention of required forms in inventory",
+          "Could benefit from examples of exactly what to document in the POS system"
+        ],
+        "suggestedFixes": [
+          "Include reference to specific form name/number used for documentation",
+          "Add brief example of proper POS tagging or documentation entry"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "smokey-hash-rosin-vs-flower-rosin",
+      "title": "Hash rosin vs. flower rosin — the difference",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 5178,
+      "response": "When explaining the difference between hash rosin and flower rosin to customers, focus on the process and input materials as the key differentiators:\n\nHash rosin starts with kief or hash as the input material, which is then gently pressed using heat and pressure. This requires a smaller starting material volume but goes through an additional processing step before rosin extraction.\n\nFlower rosin uses the full cannabis flower as input, extracting the compounds directly from the bud. This process typically yields more volume since the entire flower is utilized.\n\nRegarding pricing:\n- Hash rosin often commands a premium due to the concentration of trichomes and the additional processing steps required\n- Flower rosin pricing reflects the quality of the starting flower and the yield from the entire plant\n\nCollectors may prefer hash rosin for its potency and purity, while flower rosin enthusiasts appreciate the full spectrum experience including the plant's natural terpene profile in its original form.\n\nWhen discussing with your customer, frame it as a preference between two different extraction methods rather than one being inherently \"better\" than the other. The price difference is real and reflects the distinct production methods and input materials.",
+      "responsePreview": "When explaining the difference between hash rosin and flower rosin to customers, focus on the process and input materials as the key differentiators: Hash rosin starts with kief or hash as the input material, which is t...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Solid explanation of hash rosin vs flower rosin differences with good compliance.",
+        "strengths": [
+          "Clear explanation of input material differences",
+          "Professional tone without medical claims",
+          "Good handling of pricing justification",
+          "Balanced approach to collector preferences",
+          "Actionable framing for customer conversations"
+        ],
+        "issues": [
+          "Could provide more specific detail about yield differences",
+          "Lacks concrete data points to support price differences",
+          "Could elaborate more on the specific processing steps"
+        ],
+        "suggestedFixes": [
+          "Add approximate yield percentages to quantify differences",
+          "Include brief mention of specific pressure/temperature differences if applicable",
+          "Consider adding a brief example of a customer conversation flow"
+        ],
+        "dimensions": {
+          "grounding": 85,
+          "actionability": 90,
+          "completeness": 75,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 80
+        }
+      }
+    },
+    {
+      "id": "smokey-thca-flower",
+      "title": "THCA flower — what is it and how does it differ?",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 5989,
+      "response": "When a customer asks about THCA flower, here's how I would explain the difference from regular dispensary flower without making medical claims:\n\nTHCA (tetrahydrocannabinolic acid) is the raw, non-activated form of THC found in the cannabis plant before any heat is applied. Traditional dispensary flower contains mostly THC, which is the activated form that occurs through a process called decarboxylation.\n\nWhen cannabis is freshly harvested, it contains THCA rather than THC. Decarboxylation is the process that occurs when heat is applied to the flower - through smoking, vaping, or cooking - which converts THCA into THC. This is why traditional flower is often \"cured\" or stored to allow for partial decarboxylation to occur naturally over time.\n\nTHCA flower offers customers a different cannabinoid profile experience. For customers who prefer raw cannabinoids or are exploring different consumption methods, THCA flower provides an alternative option. The experience will differ from traditional flower due to the different chemical composition before heating.\n\nMany customers appreciate having this option as part of a diverse product selection, as it represents the plant in a more natural state before processing or heating.",
+      "responsePreview": "When a customer asks about THCA flower, here's how I would explain the difference from regular dispensary flower without making medical claims: THCA (tetrahydrocannabinolic acid) is the raw, non-activated form of THC fo...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 80,
+        "responseReady": true,
+        "summary": "Good educational explanation of THCA vs THC with proper compliance.",
+        "strengths": [
+          "Clear explanation of THCA and decarboxylation process",
+          "Avoids medical claims and compliant language",
+          "Professional tone appropriate for dispensary staff",
+          "Correctly distinguishes between raw and activated forms"
+        ],
+        "issues": [
+          "Lacks concrete next steps for Smokey when explaining to customers",
+          "Could benefit from more specific details about customer experience differences",
+          "Missing practical examples of how to explain this to customers",
+          "Doesn't address how to answer follow-up questions customers might have"
+        ],
+        "suggestedFixes": [
+          "Add specific talking points for staff when explaining to customers",
+          "Include examples of how to explain the different experiences",
+          "Provide guidance on addressing common customer questions",
+          "Add information about proper storage for THCA flower"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 60,
+          "completeness": 75,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 85
+        }
+      }
+    },
+    {
+      "id": "smokey-distillate-vs-live-resin-cart",
+      "title": "Distillate vs. live resin cart — which is better?",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 6368,
+      "response": "When helping customers choose between distillate and live resin carts, train your staff to provide objective, preference-based guidance without making medical claims or value judgments:\n\nKey talking points for your budtenders:\n\n1. **Process Differences**\n- Distillate: Uses post-harvest processing to isolate cannabinoids, typically resulting in 90-99% THC with minimal terpenes\n- Live resin: Flash-frozen at harvest, preserving the full terpene profile and creating a more complex cannabinoid + terpene synergy\n\n2. **Terpene Profiles**\n- Live resin maintains the plant's original terpene composition (myrcene, limonene, pinene, etc.)\n- Distillate often has terpenes added back separately, creating artificial profiles\n\n3. **Flavor & Experience**\n- Live resin: Rich, full-spectrum flavor reflecting the original strain\n- Distillate: Cleaner taste with flavor profiles determined by added terpenes\n\n4. **Price Points**\n- Distillate: Generally more affordable due to simpler extraction\n- Live resin: Premium pricing due to specialized processing and quality\n\n5. **Customer Selection Guidance**\n- Budget-conscious consumers: Distillate offers higher THC value per dollar\n- Flavor enthusiasts: Live resin provides authentic strain-specific taste\n- Experience preference: Some customers prefer the entourage effect of live resin\n\n6. **Stock Recommendation**\nMaintain both options to serve different customer preferences and budgets. Position live resin as premium and distillate as value-oriented.\n\nExample customer response:\n\"The difference comes down to preservation of the plant's natural compounds versus price point. Live resin maintains the full terpene profile and original flavor characteristics, while distillate offers a higher THC concentration at a lower price. Many customers who prioritize flavor choose live resin, while those focused on THC value per dollar prefer distillate. What aspects are most important to your experience?\"",
+      "responsePreview": "When helping customers choose between distillate and live resin carts, train your staff to provide objective, preference-based guidance without making medical claims or value judgments: Key talking points for your budte...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent objective guidance on distillate vs live resin with actionable customer talking points.",
+        "strengths": [
+          "Provides clear, unbiased comparison of product differences",
+          "Includes practical talking points for budtenders",
+          "Offers customer selection guidance based on preferences",
+          "Maintains professional tone without medical claims",
+          "Gives concrete example of customer response",
+          "Focuses on experience factors rather than medical benefits"
+        ],
+        "issues": [
+          "Could include more specific guidance on storage requirements for each product type",
+          "Might benefit from brief mention of viscosity differences that affect cartridge performance"
+        ],
+        "suggestedFixes": [
+          "Add brief note about storage conditions that affect each product type",
+          "Include one sentence about viscosity differences and potential impact on cartridge performance"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "smokey-topicals-transdermal",
+      "title": "Topicals and transdermal patches — explain without medical language",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 6430,
+      "response": "Here's a compliant talking-point script for your budtenders explaining topicals and transdermal patches:\n\n---\n\n### Topicals vs. Transdermal Patches: Customer Talking Points\n\n**Topicals**\n- \"Topicals are cannabis-infused products designed for external application to the skin.\"\n- \"They feature a localized delivery system, with cannabinoids interacting with skin receptors rather than entering the bloodstream.\"\n- \"Our topical selection includes balms, creams, and salves with various terpene profiles like limonene for uplifting scents or linalool for floral notes.\"\n- \"Customers typically apply topicals directly to targeted areas and experience effects primarily in that region.\"\n- \"Many users incorporate topicals into their self-care routines for external application without systemic effects.\"\n\n**Transdermal Patches**\n- \"Transdermal patches use advanced delivery technology to cannabinoids through the skin and into the bloodstream over time.\"\n- \"Unlike topicals, patches provide sustained, consistent cannabinoid release throughout the wear period.\"\n- \"Our patches feature precise dosing and are applied to clean, dry skin for optimal absorption.\"\n- \"The slow-release mechanism makes patches ideal for customers seeking longer-lasting effects with convenient application.\"\n- \"Patches are typically worn for 8-12 hours depending on the specific product formulation.\"\n\n**Key Differences to Highlight**\n- \"Topicals offer immediate, targeted relief at application sites, while patches provide systemic, extended delivery.\"\n- \"Topicals are ideal for specific areas of focus, whereas patches deliver effects throughout the body.\"\n- \"Application methods differ: topicals are massaged into the skin as needed, while patches are applied and left in place.\"\n- \"Onset times vary—topicals may provide quicker localized effects, while patches build gradually but last longer.\"\n\n**Who Might Enjoy Each**\n- \"Topicals appeal to customers seeking targeted application for specific areas.\"\n- \"Patches suit customers looking for convenient, all-day effects without reapplication.\"\n- \"Both options provide smoke-free alternatives for cannabis consumption.\"\n\nThis framework maintains compliance while helping customers make informed decisions based on their preferences and needs.",
+      "responsePreview": "Here's a compliant talking-point script for your budtenders explaining topicals and transdermal patches: --- ### Topicals vs. Transdermal Patches: Customer Talking Points **Topicals** - \"Topicals are cannabis-infused pr...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent compliant talking points script clearly distinguishing topicals and transdermal patches for budtenders.",
+        "strengths": [
+          "Clear distinction between topicals and transdermal patches without medical claims",
+          "Well-structured talking points that are easy for budtenders to follow",
+          "Effectively explains how each product works and who might prefer them",
+          "Maintains full compliance by avoiding medical claims and focusing on product features",
+          "Provides concrete language that budtenders can use immediately",
+          "Balances product education with regulatory constraints"
+        ],
+        "issues": [
+          "Could potentially add more detail about terpene profiles if available in inventory",
+          "No specific application technique tips beyond clean, dry skin"
+        ],
+        "suggestedFixes": [
+          "Consider adding brief application technique tips if space allows",
+          "Include a brief note about patch removal for first-time users"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 100,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 100
+        }
+      }
+    },
+    {
+      "id": "smokey-product-return-replacement",
+      "title": "Customer returning a product they did not like — replacement guidance",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 6979,
+      "response": "When handling a customer return for a vape cartridge they disliked, I recommend a structured approach that respects their experience while guiding them toward a better fit:\n\n1. **Acknowledge and Validate**\n   - \"I understand completely. Everyone's preferences are different when it comes to cannabis products, and what works well for some may not align with others. Thank you for bringing this back to us.\"\n\n2. **Gather Product-Specific Feedback**\n   - \"To help me find something you might enjoy more, could you tell me which specific vape cartridge you purchased?\"\n   - \"You mentioned the taste was off - were you looking for something with different terpene notes or a different consistency?\"\n\n3. **Avoid Making Medical Claims**\n   - Instead of \"that one didn't work for your condition\" - \"Different products affect individuals differently based on various factors.\"\n\n4. **Guide Based on Terpene Profiles**\n   - \"Our vape cartridges vary in terpene profiles. Some are more citrus-forward, others have earthy or pine notes. What flavors do you typically enjoy?\"\n   - \"Some cartridges feature higher THC content while others have more balanced ratios. Are you looking for something stronger or with different effects?\"\n\n5. **Present Alternatives**\n   - Once you know their preferences, offer 2-3 options with different terpene profiles or formulations.\n   - \"Based on what you're looking for, you might enjoy our [Product Name] which has a [terpene profile] characteristic.\"\n\n6. **Explain Your Return Policy**\n   - \"We stand by our products, but we also want to help you find something you'll enjoy. We can offer you a store credit for a different product that might better match your preferences.\"\n\n7. **Follow-Up Opportunity**\n   - \"If you'd like, I can make a note in your profile about your preferences for future visits.\"\n\nThis approach maintains professionalism, respects the customer's experience, and focuses on product characteristics (terpenes, formulations) rather than effects or medical claims.",
+      "responsePreview": "When handling a customer return for a vape cartridge they disliked, I recommend a structured approach that respects their experience while guiding them toward a better fit: 1. **Acknowledge and Validate** - \"I understan...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 82,
+        "responseReady": true,
+        "summary": "Solid response that handles the return process professionally while avoiding compliance issues.",
+        "strengths": [
+          "Clear structure for handling customer returns",
+          "Proper validation of customer experience",
+          "Appropriate guidance on terpene profiles without medical claims",
+          "Includes explanation of return policy",
+          "Provides follow-up opportunity"
+        ],
+        "issues": [
+          "Could be more specific about the actual replacement process (e.g., exchange vs credit)",
+          "Lacks concrete examples of products to recommend",
+          "No guidance on what to do if the customer is still dissatisfied"
+        ],
+        "suggestedFixes": [
+          "Clarify the specific return/replacement process (can they exchange immediately or must they store credit?)",
+          "Include 1-2 specific product examples with different terpene profiles",
+          "Add guidance for handling potentially dissatisfied customers after the exchange",
+          "Mention any documentation needed for the return"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 75,
+          "completeness": 80,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 85
+        }
+      }
+    },
+    {
+      "id": "smokey-indica-to-social-multi-turn",
+      "title": "Multi-turn: customer loved indica, wants something more social",
+      "kind": "multi_turn",
+      "threadType": "general",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 6259,
+      "response": "Based on the customer's preference for smooth indica-like effects that are more social for gatherings, here are my recommendations and talking points:\n\n**Recommendations:**\n\n🌿 Blue Dream (Hybrid Indica-Dominant)\nMyrcene and caryophyllene-forward profile with sweet berry notes. Known for maintaining smoothness while offering more conversational flow.\nMatch confidence: 85% | In stock: Yes\n\n🌿 Pineapple Express (Hybrid Balanced)\nLimonene and pinene-rich with tropical fruit aromas. Provides a balanced experience that's both smooth and engaging for social settings.\nMatch confidence: 80% | In stock: Yes\n\n🌿 Granddaddy Purple (Hybrid Indica-Dominant)\nBerry terpene profile with smooth inhale. Features a relaxed yet conversational effect that maintains the smooth quality they enjoyed.\nMatch confidence: 75% | In stock: Yes\n\n🌿 Pre-roll Variety Pack (Social)\nCurated selection with hybrid strains featuring citrus and pine terpenes. Offers options for different social situations while maintaining smooth characteristics.\nMatch confidence: 90% | In stock: Yes\n\n**Compliant Talking Points:**\n- \"This strain has a similar terpene profile to the indica you enjoyed, with additional citrus notes that many associate with more conversational experiences.\"\n- \"Our customers often choose this hybrid for gatherings because it maintains that smooth quality you liked while offering a different aromatic experience.\"\n- \"The limonene in this strain creates a bright citrus aroma that many find complements social occasions.\"\n- \"This pre-roll variety gives you options for different social settings while keeping that smooth characteristic you appreciated.\"\n\nFocus on terpene profiles and aroma characteristics rather than effects. The customer understands their desired experience - guide them to products with complementary profiles while staying compliant.",
+      "responsePreview": "Based on the customer's preference for smooth indica-like effects that are more social for gatherings, here are my recommendations and talking points: **Recommendations:** 🌿 Blue Dream (Hybrid Indica-Dominant) Myrcene ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Well-researched recommendations with good compliance focus, though could be more actionable.",
+        "strengths": [
+          "Good use of terpene knowledge to guide recommendations",
+          "Strong compliance focus with appropriate talking points",
+          "Maintained consistency with customer's previous positive experience",
+          "Clear product information with match confidence percentages"
+        ],
+        "issues": [
+          "Lacks specific next steps for the customer",
+          "Could suggest how to choose between multiple options",
+          "No mention of price points or quantities",
+          "Limited differentiation between similar hybrid options"
+        ],
+        "suggestedFixes": [
+          "Add specific next steps like 'Would you like me to pull one of these for you to try today?'",
+          "Include price ranges or mention that budtenders can discuss options based on budget",
+          "Suggest how the customer might decide between the different hybrid strains",
+          "Consider asking if they have any preference between indica-dominant vs. balanced hybrids"
+        ],
+        "dimensions": {
+          "grounding": 85,
+          "actionability": 60,
+          "completeness": 75,
+          "compliance": 95,
+          "tone": 85,
+          "launchReadiness": 80
+        }
+      }
+    }
+  ]
+}

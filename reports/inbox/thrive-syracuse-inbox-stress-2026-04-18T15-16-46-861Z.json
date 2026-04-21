@@ -1,0 +1,51 @@
+{
+  "orgId": "org_thrive_syracuse",
+  "generatedAt": "2026-04-18T15:16:46.861Z",
+  "totalCases": 1,
+  "averageScore": 92,
+  "readyCount": 1,
+  "results": [
+    {
+      "id": "slow-movers-table",
+      "title": "Slow movers with inventory table",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "auto",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 10167,
+      "response": "Let's analyze these slow movers and maximize our margin protection. Here's my ranked action plan:\n\n**1. MFNY Hash Burger 1g (Concentrate)**\n- Current margin: $24.00 (52.2%)\n- Days on hand: 285 (highest)\n- Recommendation: **Bundle with a fast-moving flower** at 10% discount\n- Create \"MFNY Hash Burger + Heady Tree Blueberry\" bundle for $65 (reg. $80)\n- This maintains $18 margin (45% of original combined margin) while moving two slow items\n\n**2. Heady Tree Blueberry 3.5g (Flower)**\n- Current margin: $18.60 (54.7%)\n- Days on hand: 186\n- Recommendation: **BOGO offer** for existing customers\n- \"Buy one Heady Tree, get 50% off second\" - moves two units at effective 27% margin\n- Better than full discount, maintains value perception\n\n**3. Nanticoke Disposable 1g (Vape)**\n- Current margin: $23.50 (56.0%)\n- Days on hand: 210\n- Recommendation: **Bundle with edible** at 15% discount\n- \"Nanticoke Vape + Off Hours Gummies\" bundle for $52 (reg. $62)\n- Preserves $15 margin (41% of original combined margin)\n\n**4. Jaunty Lime 5pk (Pre-Roll)**\n- Current margin: $12.80 (53.3%)\n- Days on hand: 142\n- Recommendation: **Loyalty discount** - 10% off for email subscribers\n- Maintains $11.52 margin (90% of original)\n\n**5. Ayrloom Blackberry 2pk (Edible)**\n- Current margin: $10.50 (58.3%)\n- Days on hand: 247\n- Recommendation: **Hold** - strongest margin, expiration farthest out\n- Only discount if inventory approaches expiration date\n\n**6. Off Hours Orange Gummies (Edible)**\n- Current margin: $13.10 (65.5%) - strongest margin\n- Days on hand: 135\n- Recommendation: **Hold** - best performer in this subset\n\n**Write-off consideration:** None recommended yet. All products have 6+ months shelf life and decent margins. \n\nBundle strategy is key here - we maintain margin while moving slow inventory by pairing with other items. The worst performers (MFNY Hash Burger, Heady Tree Blueberry) should be bundled immediately to prevent further inventory aging.",
+      "responsePreview": "Let's analyze these slow movers and maximize our margin protection. Here's my ranked action plan: **1. MFNY Hash Burger 1g (Concentrate)** - Current margin: $24.00 (52.2%) - Days on hand: 285 (highest) - Recommendation:...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive action plan for slow-moving inventory with margin protection strategies.",
+        "strengths": [
+          "Used all provided inventory data to create a detailed ranked action plan",
+          "Included margin calculations for each recommended action",
+          "Provided specific, actionable bundle suggestions and discount strategies",
+          "Demonstrated clear prioritization based on days on hand and inventory risk",
+          "Maintained margin protection while providing solutions to move inventory"
+        ],
+        "issues": [
+          "No mention of expiration dates in the write-off consideration despite having that data",
+          "Could provide more specific timeline for when to hold vs. discount"
+        ],
+        "suggestedFixes": [
+          "Include expiration date considerations in the ranking rationale",
+          "Add recommended timeline for implementing each action"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    }
+  ]
+}

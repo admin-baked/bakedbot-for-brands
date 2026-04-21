@@ -26,7 +26,7 @@ export function SmokeyWidget() {
       {open && (
         <div className="fixed bottom-24 right-6 w-80 max-w-[90vw] rounded-2xl border bg-white shadow-xl flex flex-col overflow-hidden">
           <div className="px-4 py-2 border-b flex items-center justify-between">
-            <span className="font-display text-sm">Smokey · Demo</span>
+            <span className="font-display text-sm">Smokey · Ecstatic Edibles</span>
             <button
               type="button"
               onClick={() => setOpen(false)}
@@ -37,8 +37,7 @@ export function SmokeyWidget() {
           </div>
           <div className="px-4 py-3 text-xs text-gray-700 space-y-2 max-h-64 overflow-auto">
             <p>
-              This is a demo of Smokey, the AI budtender. In production this is
-              wired to your product catalog and compliance guardrails.
+              Welcome to the Ecstatic Edibles experience! I'm Smokey, your AI budtender. I'm connected directly to our live menu.
             </p>
             <ul className="list-disc list-inside space-y-1">
               <li>&quot;Show me relaxing vapes around $40.&quot;</li>

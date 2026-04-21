@@ -1,0 +1,142 @@
+{
+  "orgId": "org_thrive_syracuse",
+  "generatedAt": "2026-04-18T15:31:43.585Z",
+  "totalCases": 3,
+  "averageScore": 86.3,
+  "readyCount": 3,
+  "results": [
+    {
+      "id": "slow-movers-table",
+      "title": "Slow movers with inventory table",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "auto",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 28227,
+      "response": "Let's analyze these slow movers and create a margin-protecting action plan.\n\nRanked Action Plan:\n\n1. **MFNY Hash Burger 1g** (SKU: Concentrate)\n   - DAYS ON HAND: 285 (highest)\n   - UNITS SOLD: Only 2 in 30 days\n   - CURRENT MARGIN: 52.2% ($24 gross profit per unit)\n   - ACTION: DISCOUNT to $35 (23.9% margin) - this is our biggest concern with the highest days on hand and lowest velocity. Need to move fast before expiration.\n\n2. **Heady Tree Blueberry 3.5g** (SKU: Flower)\n   - DAYS ON HAND: 186\n   - UNITS SOLD: Only 5 in 30 days\n   - CURRENT MARGIN: 54.7% ($18.60 gross profit per unit)\n   - ACTION: CREATE BUNDLE - \"Blueberry Bliss Bundle\" with this + Off Hours Orange Gummies ($39 total, $32.30 margin, 32.8% margin)\n\n3. **Nanticoke Disposable 1g** (SKU: Vape)\n   - DAYS ON HAND: 210\n   - UNITS SOLD: Only 4 in 30 days\n   - CURRENT MARGIN: 56.0% ($23.50 gross profit per unit)\n   - ACTION: DISCOUNT to $38 (51.3% margin) - still healthy margins but needs velocity before expiration.\n\n4. **Ayrloom Blackberry 2pk** (SKU: Edible)\n   - DAYS ON HAND: 247\n   - UNITS SOLD: 9 in 30 days\n   - CURRENT MARGIN: 58.3% ($10.50 gross profit per unit)\n   - ACTION: BUNDLE with Jaunty Lime 5pk as \"Summer Fruit Duo\" ($35 total, $16.30 margin, 46.6% margin)\n\n5. **Jaunty Lime 5pk** (SKU: Pre-Roll)\n   - DAYS ON HAND: 142 (lowest of the slow movers)\n   - UNITS SOLD: 11 in 30 days (best velocity of this group)\n   - CURRENT MARGIN: 53.3% ($12.80 gross profit per unit)\n   - ACTION: HOLD - this has the best velocity among slow movers, so we'll hold off on major action.\n\n6. **Off Hours Orange Gummies** (SKU: Edible)\n   - DAYS ON HAND: 135 (lowest in this group)\n   - UNITS SOLD: 14 in 30 days (highest velocity)\n   - CURRENT MARGIN: 65.5% ($13.10 gross profit per unit)\n   - ACTION: HOLD - this is actually moving reasonably well with the best margins and lowest days on hand.\n\nPriority is moving the MFNY Hash Burger first - we need to get that 19 units sold before expiration in May. The 285 days on hand is concerning and we need to protect at least some margin while clearing inventory.",
+      "responsePreview": "Let's analyze these slow movers and create a margin-protecting action plan. Ranked Action Plan: 1. **MFNY Hash Burger 1g** (SKU: Concentrate) - DAYS ON HAND: 285 (highest) - UNITS SOLD: Only 2 in 30 days - CURRENT MARGI...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive margin-protecting action plan for slow-moving inventory with clear prioritization.",
+        "strengths": [
+          "Correctly used all provided inventory data points",
+          "Created a clear ranked action plan with specific recommendations",
+          "Included margin calculations in each recommendation",
+          "Addressed expiration dates in the prioritization",
+          "Provided concrete pricing and bundling suggestions",
+          "Maintained professional tone throughout"
+        ],
+        "issues": [
+          "Could have provided more explanation for the chosen discount percentages",
+          "Bundle ideas were good but could have included more details on implementation"
+        ],
+        "suggestedFixes": [
+          "Add brief rationale for discount percentage choices to help owner understand the margin trade-offs",
+          "Include 1-2 sentence implementation tips for the bundles suggested"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "expiring-inventory-writeoff",
+      "title": "Expiring inventory triage",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "money_mike",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 13249,
+      "response": "Let's analyze the margins and movement on these items:\n\n**Ayrloom Pineapple Gummies:**\n- Current margin: 60% ($10.80 retail - $7.20 cost)\n- 14-day velocity: 5 units (slow mover)\n- Assessment: Moderate margin but poor velocity. A small markdown (15-20%) would likely move more units without sacrificing too much margin.\n\n**Dank Infused Pre-Roll 2pk:**\n- Current margin: 50% ($28 retail - $14 cost)\n- 14-day velocity: 3 units (poor mover)\n- Assessment: Thin margins with slow sales. Consider bundling with a similarly slow-moving item or a 25% markdown.\n\n**MFNY Rainbow Beltz 1g:**\n- Current margin: 49% ($48 retail - $24.50 cost)\n- 14-day velocity: 1 unit (extremely poor)\n- Assessment: Fat margin but virtually no movement. This is high-risk for expiration. Create an exclusive bundle with a faster-moving item or a 30% limited-time promotion.\n\n**Generic House Tincture:**\n- Current margin: 63% ($32 retail - $11.80 cost)\n- 14-day velocity: 2 units (slow mover)\n- Assessment: Good margin but low velocity. Bundle this with a pre-roll or edible to increase perceived value without significant margin impact.\n\n**Triage Recommendations:**\n1. **Immediate Markdown (25-30%):** MFNY Rainbow Beltz 1g - high value but zero traction\n2. **Bundle Deals:** \n   - Generic House Tincture + Dank Infused Pre-Roll 2pk (bundle at $45, maintaining ~56% margin)\n   - Ayrloom Pineapple Gummies + Dank Infused Pre-Roll 2pk (bundle at $40, maintaining ~55% margin)\n3. **Write-off Risk:** None currently at immediate risk, but if these bundles don't move in 7-10 days, consider the MFNY Rainbow Beltz for potential write-off\n\nIt's all about the margins. We need to protect margins on the higher-value items while moving volume on the slower sellers. The bundles will help clear multiple SKUs at once while maintaining profitability.",
+      "responsePreview": "Let's analyze the margins and movement on these items: **Ayrloom Pineapple Gummies:** - Current margin: 60% ($10.80 retail - $7.20 cost) - 14-day velocity: 5 units (slow mover) - Assessment: Moderate margin but poor vel...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 82,
+        "responseReady": true,
+        "summary": "Solid inventory triage analysis with actionable recommendations but missing specific timelines.",
+        "strengths": [
+          "Correctly used the provided inventory data to calculate margins and assess velocity",
+          "Gave specific markdown percentages and bundle pricing recommendations",
+          "Identified clear categories for immediate action (markdown, bundle, write-off)",
+          "Maintained professional tone appropriate for a dispensary operator"
+        ],
+        "issues": [
+          "No specific timeline for implementation (when should markdowns be applied?)",
+          "Lack of explanation for bundle selection logic",
+          "No recommendations for tracking success of these strategies",
+          "Write-off assessment could be more detailed (how long before expiration is too late?)"
+        ],
+        "suggestedFixes": [
+          "Add specific implementation timeline (e.g., 'Apply markdowns within 3 days')",
+          "Explain bundle selection criteria (e.g., 'Bundled items should have complementary effects')",
+          "Include success metrics (e.g., 'Measure bundle performance after 7 days')",
+          "Add clear write-off timeline (e.g., 'Items within 30 days of expiration with no sales')"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 80,
+          "completeness": 75,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 75
+        }
+      }
+    },
+    {
+      "id": "top-sellers-restock",
+      "title": "Top sellers and restock risk",
+      "kind": "data",
+      "threadType": "performance",
+      "configuredAgent": "pops",
+      "resolvedAgent": "pops",
+      "personaId": "pops",
+      "durationMs": 12213,
+      "response": "Looking at this top-sellers snapshot, I'll calculate the inventory cover days for each SKU to establish reorder priority.\n\n**Reorder Priority List:**\n\n1. **MFNY Hash Burger 1g (Concentrate)** - URGENT\n   - Current stock: 5 units\n   - Daily sales rate: ~2.1 units/day (15 units ÷ 7 days)\n   - Inventory cover: ~2.4 days (5 units ÷ 2.1 units/day)\n   - Lead time: 9 days\n   - **Risk: Will stock out in ~6.6 days before replacement arrives**\n\n2. **Ayrloom Blood Orange Gummies (Edible)** - HIGH PRIORITY\n   - Current stock: 11 units\n   - Daily sales rate: ~3.4 units/day (24 units ÷ 7 days)\n   - Inventory cover: ~3.2 days (11 units ÷ 3.4 units/day)\n   - Lead time: 7 days\n   - **Risk: Will stock out in ~3.8 days before replacement arrives**\n\n3. **Jaunty Mango 5pk (Pre-Roll)** - HIGH PRIORITY\n   - Current stock: 9 units\n   - Daily sales rate: ~3.0 units/day (21 units ÷ 7 days)\n   - Inventory cover: ~3.0 days (9 units ÷ 3.0 units/day)\n   - Lead time: 4 days\n   - **Risk: Will stock out in ~1 day before replacement arrives**\n\n4. **Matter. Blue Dream 3.5g (Flower)** - MEDIUM PRIORITY\n   - Current stock: 18 units\n   - Daily sales rate: ~4.1 units/day (29 units ÷ 7 days)\n   - Inventory cover: ~4.4 days (18 units ÷ 4.1 units/day)\n   - Lead time: 5 days\n   - **Risk: Will stock out in ~0.6 days after replacement arrives**\n\n5. **Nanticoke Disposable 1g (Vape)** - LOW PRIORITY\n   - Current stock: 22 units\n   - Daily sales rate: ~1.9 units/day (13 units ÷ 7 days)\n   - Inventory cover: ~11.6 days (22 units ÷ 1.9 units/day)\n   - Lead time: 6 days\n   - **No immediate risk**\n\n**Alert for Money Mike:** The MFNY Hash Burger 1g is a high-velocity SKU with concerning margin exposure - it's selling through faster than any other concentrate in your top sellers. Verify current margins on this SKU as it represents a significant revenue driver that could impact monthly performance if stockout occurs.\n\n**Recommendation:** Immediately reorder MFNY Hash Burger and Ayrloom Blood Orange Gummies at priority levels. The Jaunty Mango 5pk needs attention within 24 hours. Consider adjusting order quantities for Matter. Blue Dream to prevent the narrow 0.6-day buffer from becoming a stockout.",
+      "responsePreview": "Looking at this top-sellers snapshot, I'll calculate the inventory cover days for each SKU to establish reorder priority. **Reorder Priority List:** 1. **MFNY Hash Burger 1g (Concentrate)** - URGENT - Current stock: 5 u...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Comprehensive reorder analysis with clear prioritization and stockout risks.",
+        "strengths": [
+          "Correctly calculated inventory cover days for each SKU",
+          "Provided clear reorder priority list with risk flags",
+          "Used all the provided data in the calculations",
+          "Included actionable recommendations",
+          "Professional tone appropriate for dispensary operator"
+        ],
+        "issues": [
+          "Stockout calculations contain mathematical errors",
+          "Unnecessary reference to 'Money Mike' who wasn't mentioned in the prompt",
+          "Recommendation for Matter. Blue Dream is confusing (0.6 days after arrival means it will arrive before stockout)"
+        ],
+        "suggestedFixes": [
+          "Recalculate stockout days accurately (lead time - inventory cover)",
+          "Remove references to unnamed individuals",
+          "Clarify the buffer for Matter. Blue Dream which has a positive 0.6-day buffer",
+          "Consider suggesting specific reorder quantities where appropriate"
+        ],
+        "dimensions": {
+          "grounding": 90,
+          "actionability": 85,
+          "completeness": 80,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 75
+        }
+      }
+    }
+  ]
+}

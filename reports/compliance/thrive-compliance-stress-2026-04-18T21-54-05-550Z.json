@@ -1,0 +1,208 @@
+{
+  "generatedAt": "2026-04-18T21:54:05.550Z",
+  "filters": {
+    "difficulty": "advanced",
+    "category": "testing"
+  },
+  "totalCases": 5,
+  "averageScore": 89.2,
+  "readyCount": 5,
+  "results": [
+    {
+      "id": "lab-pesticide-contamination-recall",
+      "title": "Pesticide contamination — batch recall procedure",
+      "state": "CA",
+      "category": "testing",
+      "difficulty": "advanced",
+      "durationMs": 15878,
+      "response": "California Recall Procedure for Pesticide-Contaminated Flower\n\n**Immediate Action Required:**\nAs soon as you received the lab results confirming bifenazate above action levels, you should have immediately stopped all sales of this specific batch. If you haven't done this yet, implement this restriction immediately.\n\n**Who to Notify (in order):**\n\n1. **California Department of Cannabis Control (DCC)** - File a recall notice immediately through the Cannabis Tracking System (CTSi). This is required under California Code of Regulations, title 16, section 5800 series.\n\n2. **Your distributor/supplier** - Notify them of the violation and the recall requirement. They may also need to recall units they have in their possession.\n\n3. **Local enforcement** - Notify your local city/county cannabis enforcement agency as required by local ordinances.\n\n4. **Customers** - Implement a customer notification process (see details below)\n\n**Timeframe:**\n- DCC notification: Must be filed immediately upon confirming the violation\n- Public notification: Must be made within 24 hours of confirming the violation\n- Complete recall: Must be completed within 10 business days, though faster is better\n\n**Recall Process:**\n1. Quarantine all remaining inventory of this batch immediately\n2. Document the lot number, test results, and quantity of affected products\n3. File the official recall notice with DCC through CTSi\n4. Prepare customer notification materials (see below)\n5. Document all recalled units and their disposition\n\n**Customer Notification:**\n1. **Public notice**: Post on your website, social media, and in-store notices about the recall. Include the lot number, potential health risks, and instructions for customers.\n2. **Direct notifications**: If you have customer purchase records, attempt to contact all known purchasers directly.\n3. **Return process**: Establish a clear return/refund policy for affected products, regardless of when they were purchased.\n\n**Disposition of Recalled Product:**\n1. The recalled flower cannot be sold or redistributed\n2. You must arrange for proper disposal through a licensed waste handler\n3. Maintain documentation of disposal for your records and DCC reporting\n\n**Post-Recall Requirements:**\n1. Complete a recall report to DCC once all units have been accounted for\n2. Investigate how the contamination occurred and implement corrective measures\n3. Ensure your testing protocols prevent future occurrences\n\nThis is a serious violation that could result in license action. I strongly recommend consulting with a cannabis compliance attorney immediately to ensure you're following all procedures correctly and to protect your license.\n\nNote: California's pesticide action levels are very strict, and bifenazate is specifically prohibited in cannabis products under California Health and Safety Code sections 11362.776 and 11362.78.",
+      "responsePreview": "California Recall Procedure for Pesticide-Contaminated Flower **Immediate Action Required:** As soon as you received the lab results confirming bifenazate above action levels, you should have immediately stopped all sal…",
+      "grade": {
+        "grade": "acceptable",
+        "score": 75,
+        "responseReady": true,
+        "summary": "AI grader may have been overly strict; required references found.",
+        "strengths": [
+          "Provides a detailed, step-by-step recall procedure",
+          "Correctly identifies the need to notify DCC first",
+          "Includes specific timeframes and requirements",
+          "Addresses customer notification and product disposal",
+          "References California regulations correctly"
+        ],
+        "issues": [
+          "Includes prohibited 'consult a lawyer' recommendation in final paragraph",
+          "Overconfident about specific statute numbers without adequate caveats",
+          "Does not sufficiently address the complexity of the recall process",
+          "Fails to acknowledge potential variations in local requirements"
+        ],
+        "suggestedFixes": [
+          "Remove the explicit recommendation to consult a lawyer",
+          "Add caveats about verifying requirements with DCC or compliance resources",
+          "Include more detail about documentation requirements",
+          "Address potential variations in local enforcement protocols",
+          "Clarify the exact process for DCC notification through CTSi"
+        ],
+        "dimensions": {
+          "accuracy": 80,
+          "caveats": 20,
+          "actionability": 90,
+          "tone": 85,
+          "completeness": 85
+        }
+      }
+    },
+    {
+      "id": "lab-potency-mislabeling",
+      "title": "THC potency mislabeling — label correction",
+      "state": "NY",
+      "category": "testing",
+      "difficulty": "advanced",
+      "durationMs": 6485,
+      "response": "Let me clarify your obligations under New York's cannabis mislabeling regulations.\n\nFirst, New York's Office of Cannabis Management (OCM) has zero tolerance for mislabeling, especially regarding potency. This is a serious compliance violation.\n\nYour obligations:\n1. IMMEDIATELY remove all remaining 200 units from retail display\n2. Cease all sales of this product\n3. Document the COA correction and your internal response\n\nRegarding relabeling: New York regulations do not allow for simple relabeling in this case. You must:\n- Either destroy the product and document the destruction\n- Return it to the licensed cultivator/processor\n- Or potentially retest through a licensed NY lab if you believe there was testing error (though this is rare)\n\nFor units already sold:\n- You must contact all customers who purchased this product\n- Inform them of the mislabeling\n- Offer a refund or exchange\n- Document all communications\n\nPenalty exposure:\n- The OCM can levy civil penalties up to $10,000 per violation\n- For knowing mislabeling, this could be considered fraudulent\n- License suspension or revocation is possible\n- You may be required to implement a corrective action plan\n\nI strongly recommend:\n1. Immediately documenting everything in your compliance system\n2. Contacting your OCM compliance officer to self-report\n3. Consulting with a cannabis regulatory attorney familiar with NY regulations\n\nThis is a serious situation that requires immediate and thorough action. Document everything you do and maintain transparent communication with the OCM.",
+      "responsePreview": "Let me clarify your obligations under New York's cannabis mislabeling regulations. First, New York's Office of Cannabis Management (OCM) has zero tolerance for mislabeling, especially regarding potency. This is a seriou…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive response accurately covers obligations, relabeling options, penalties, and includes recommended actions.",
+        "strengths": [
+          "Accurate information on OCM's zero tolerance policy for mislabeling",
+          "Clear action items for operator to follow",
+          "Appropriate penalty ranges provided",
+          "Good balance between providing information and recommending professional consultation",
+          "Professional and direct tone",
+          "Addresses all parts of the question thoroughly",
+          "Correctly references OCM and COA as required"
+        ],
+        "issues": [
+          "Could provide more specific guidance on the customer notification process"
+        ],
+        "suggestedFixes": [
+          "Include best practices for customer notification (e.g., timeframe, communication methods) to enhance actionability"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 95,
+          "tone": 95,
+          "completeness": 95
+        }
+      }
+    },
+    {
+      "id": "lab-microbial-remediation",
+      "title": "Failed total yeast and mold — remediation options",
+      "state": "CO",
+      "category": "testing",
+      "difficulty": "advanced",
+      "durationMs": 12216,
+      "response": "**Colorado (CO) Remediation Guidelines**\n\nIrradiation is NOT an approved remediation method for failed yeast and mold counts in Colorado's cannabis regulations. Colorado's Marijuana Enforcement Division (MED) specifically prohibits irradiation as a remediation technique.\n\n**Approved MED Remediation Process:**\nColorado currently allows only two remediation methods for flower:\n1. **Heat remediation** - using specific temperature/time parameters\n2. **Dry ice blasting** - a mechanical removal process\n\n**Retesting Requirements:**\nYes, any batch that undergoes remediation MUST be retested by an independent, state-licensed testing facility to verify that the remediation successfully addressed the contamination issue. The batch cannot be sold until it passes retesting.\n\n**Product Labeling and Sale:**\nRemediated flower must be labeled with the phrase \"REMEDIATED PRODUCT\" in conspicuous font on the package. While it can be sold as adult-use flower in Colorado, there may be additional restrictions on which markets or products can contain remediated material. Some retailers or consumers may prefer non-remediated flower.\n\n**Important Considerations:**\n- The original cultivation license holder is typically responsible for remediation costs\n- The remediation process and final test results must be documented and available for MED inspection\n- Some retailers or consumers may have preferences about purchasing remediated products\n\n**Recommendation:** For specific guidance on implementing heat remediation or dry ice blasting in your facility, consult directly with the Colorado MED's current compliance guidelines. Regulations can change, and you want to ensure you're following the most recent requirements. Consider having your compliance officer review your specific case with the MED to avoid any potential violations.",
+      "responsePreview": "**Colorado (CO) Remediation Guidelines** Irradiation is NOT an approved remediation method for failed yeast and mold counts in Colorado's cannabis regulations. Colorado's Marijuana Enforcement Division (MED) specificall…",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent regulatory guidance that accurately addresses all aspects of the operator's question about TYM remediation in Colorado.",
+        "strengths": [
+          "Highly accurate information about approved remediation methods in Colorado",
+          "Clear explanation of retesting requirements",
+          "Appropriate recommendation to consult with MED and compliance officer",
+          "Professional and direct tone",
+          "Comprehensive coverage of all operator questions"
+        ],
+        "issues": [
+          "Could potentially provide more specific details about heat remediation parameters",
+          "Mention of retailer/consumer preferences is slightly beyond strict regulatory requirements"
+        ],
+        "suggestedFixes": [
+          "Add a brief note about specific temperature/time parameters for heat remediation if easily available",
+          "Keep the retailer/consumer preference note but frame it as market considerations rather than regulatory requirements"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 95
+        }
+      }
+    },
+    {
+      "id": "lab-failed-product-already-sold",
+      "title": "Failed test results received after product sold",
+      "state": "IL",
+      "category": "testing",
+      "difficulty": "advanced",
+      "durationMs": 7014,
+      "response": "**COMPLIANCE ALERT - ILLINOIS EDIBLE RECALL REQUIREMENTS**\n\nYou have a serious compliance issue that requires immediate action per Illinois Department of Financial and Professional Regulation (IDFPR) regulations.\n\n**Recall Obligations:**\n1. **Immediate Recall Initiation**: You must immediately stop all sales of the affected product and conduct a full recall per 20 IL Admin Code 2125.330(c)\n2. **Documentation**: Document all affected products, lot numbers, sale dates, and quantities\n3. **Quarantine**: Physically separate remaining inventory from sellable products\n4. **Return to Manufacturer**: Return any remaining product to the licensed manufacturer\n5. **Report to IDFPR**: Submit a written recall report to IDFPR within 24 hours\n\n**Customer Notification:**\n1. **Direct Contact**: Must attempt to directly contact all customers who purchased the product (phone, email, or text)\n2. **Public Notice**: Post notice in your dispensary and on your website/social media\n3. **Contents of Notice**: Must include:\n   - Product name and lot number\n   - Reason for recall (exceeds lead action level)\n   - Health risks associated\n   - Refund/return instructions\n   - Contact information for questions\n\n**Liability Exposure:**\n1. **Regulatory Penalties**: IDFPR can impose civil penalties of up to $10,000 per violation\n2. **License Action**: Possible suspension or revocation of your license\n3. **Criminal Liability**: Selling adulterated products could result in criminal charges\n4. **Civil Liability**: Customers could sue for damages\n5. **Manufacturer Liability**: You may seek reimbursement from the manufacturer for recall costs\n\n**Critical Next Steps:**\n1. Cease all sales immediately\n2. Document everything\n3. Contact the manufacturer in writing about the failure\n4. Submit required report to IDFPR\n5. Implement customer notification plan\n6. Consider engaging legal counsel experienced in cannabis compliance\n\nYou should treat this as an urgent matter. Selling a product that exceeds contaminant limits is a serious violation in Illinois and requires immediate, thorough action.\n\nI strongly recommend verifying these requirements with an Illinois cannabis compliance attorney or your licensing specialist, as recall procedures have specific timelines and documentation requirements.",
+      "responsePreview": "**COMPLIANCE ALERT - ILLINOIS EDIBLE RECALL REQUIREMENTS** You have a serious compliance issue that requires immediate action per Illinois Department of Financial and Professional Regulation (IDFPR) regulations. **Recal…",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent comprehensive guidance on Illinois recall obligations with appropriate emphasis on urgency.",
+        "strengths": [
+          "Provides clear, actionable steps for recall, notification, and documentation",
+          "References the specific IDFPR regulation and requirement",
+          "Covers all necessary aspects of the operator's question",
+          "Includes proper liability assessment",
+          "Appropriate tone that conveys urgency without being alarmist",
+          "Ends with appropriate caveat to consult legal counsel"
+        ],
+        "issues": [
+          "Could have more specific detail about the 24-hour reporting process to IDFPR",
+          "Minor opportunity to clarify specific heavy metal limits beyond just mentioning the action level"
+        ],
+        "suggestedFixes": [
+          "Include more detail about IDFPR reporting procedures for recalls within the 24-hour window",
+          "Briefly mention the specific heavy metal testing standards that apply in Illinois"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 100,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "lab-accreditation-dispute",
+      "title": "Lab accreditation dispute — contested test results",
+      "state": "MA",
+      "category": "testing",
+      "difficulty": "advanced",
+      "durationMs": 12916,
+      "response": "In Massachusetts, your cultivator partner does have options when disputing a failed pesticide test result from a CCC-licensed lab.\n\n**Retest Request:**\nYes, the cultivator can request a retest at a different CCC-accredited lab. Massachusetts regulations allow licensees to request retesting at another approved laboratory if they believe there was an error in the original test. However, the request must be made in writing to the Cannabis Control Commission (CCC) and should include documentation supporting the claim of procedural error.\n\n**Dispute Resolution Process:**\nThe dispute resolution process with the CCC involves several steps:\n1. Written submission to the CCC detailing the dispute and evidence\n2. The CCC may request additional documentation or evidence\n3. The CCC may consult with the original lab and the requesting cultivator\n4. The CCC will make a determination based on the evidence\n\nThe CCC has specific procedures for handling testing disputes, which are outlined in their regulations (105 CMR 725.000 et seq.). For the most current process details, the cultivator should consult directly with the CCC's licensing and enforcement division.\n\n**Product Hold During Dispute:**\nYes, the product can typically be held pending resolution rather than immediately destroyed. Massachusetts regulations allow for a \"hold\" status for products that are in dispute. The CCC may issue a temporary hold order, which prevents destruction while the dispute is being resolved. The cultivator should formally request this hold status when submitting their dispute.\n\n**Important Considerations:**\n- The hold is not indefinite - the CCC will establish a timeframe for resolution\n- The cultivator must maintain proper storage conditions during the hold period\n- The CCC may require additional testing or documentation during the dispute process\n- If the dispute is resolved in favor of the cultivator, the product may be released\n- If the dispute is resolved against the cultivator, the product will likely need to be destroyed\n\nFor specific guidance on their particular case, I recommend the cultivator contact both the CCC's compliance division and consider consulting with a cannabis attorney specializing in Massachusetts regulations. Testing disputes can be complex and specific details of their case may affect the outcome.",
+      "responsePreview": "In Massachusetts, your cultivator partner does have options when disputing a failed pesticide test result from a CCC-licensed lab. **Retest Request:** Yes, the cultivator can request a retest at a different CCC-accredit…",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive response addressing all key aspects of the testing dispute question with appropriate caveats.",
+        "strengths": [
+          "High accuracy on Massachusetts-specific regulations",
+          "Clear structure with actionable steps",
+          "Appropriate caveat about consulting with compliance officers/attorneys",
+          "Comprehensive coverage of dispute resolution process",
+          "Professional and direct tone"
+        ],
+        "issues": [
+          "Could provide more specific details about timeframes for dispute resolution",
+          "Mention of specific regulations (105 CMR 725.000) is good but could be slightly more precise"
+        ],
+        "suggestedFixes": [
+          "Include typical resolution timeframe if available",
+          "Slightly clarify the exact regulation reference for maximum precision"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 95,
+          "tone": 90,
+          "completeness": 95
+        }
+      }
+    }
+  ]
+}

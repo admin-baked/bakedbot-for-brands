@@ -1,0 +1,52 @@
+{
+  "orgId": "org_thrive_syracuse",
+  "generatedAt": "2026-04-18T15:12:10.544Z",
+  "totalCases": 1,
+  "averageScore": 78,
+  "readyCount": 1,
+  "results": [
+    {
+      "id": "slow-movers-table",
+      "title": "Slow movers with inventory table",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "auto",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 15366,
+      "response": "Looking at your inventory, I see some serious margin opportunities being left on the table. Let's break this down by margin potential and velocity:\n\n**Ranked Action Plan:**\n\n1. **MFNY Hash Burger 1g (Concentrate) - URGENT**\n   - Current margin: 52.2% ($24 gross profit on $46 retail)\n   - Days on hand: 285 (extremely slow)\n   - Action: Bundle with a fast-moving pre-roll (like Jaunty Lime) at $59 total ($13 savings). Keeps margins healthy while moving high-cost inventory.\n\n2. **Ayrloom Blackberry 2pk (Edible) - BUNDLE OPPORTUNITY**\n   - Current margin: 58.3% ($10.50 gross profit on $18 retail)\n   - Days on hand: 247 (too long)\n   - Action: Bundle with Off Hours Orange Gummies at $32 total ($6 savings). Both are edibles with good margins.\n\n3. **Heady Tree Blueberry 3.5g (Flower) - PROMO NEEDED**\n   - Current margin: 54.7% ($18.60 gross profit on $34 retail)\n   - Days on hand: 186 (slow for flower)\n   - Action: Run a 10% discount ($30.60) to increase velocity without killing margins.\n\n4. **Jaunty Lime 5pk (Pre-Roll) - STATUS QUO**\n   - Current margin: 53.3% ($12.80 gross profit on $24 retail)\n   - Days on hand: 142 (acceptable for pre-rolls)\n   - Action: Hold current pricing. Strong margin profile, moving at acceptable rate.\n\n5. **Off Hours Orange Gummies (Edible) - BUNDLE CANDIDATE**\n   - Current margin: 65.5% ($13.10 gross profit on $20 retail)\n   - Days on hand: 135 (best velocity in this subset)\n   - Action: Use as anchor in bundles rather than discounting alone.\n\n6. **Nanticoke Disposable 1g (Vape) - WRITE-OFF CANDIDATE**\n   - Current margin: 56.0% ($23.50 gross profit on $42 retail)\n   - Days on hand: 210 (slow)\n   - Action: Consider write-off if moving to promo doesn't work. High cost tied up too long.\n\n**Bottom Line:** Your margins are solid across the board, but velocity is killing your cash flow. Bundle the high-cost, slow items with your faster movers to maintain margin profiles while clearing inventory. Remember: It's all about the margins, but cash flow is king.",
+      "responsePreview": "Looking at your inventory, I see some serious margin opportunities being left on the table. Let's break this down by margin potential and velocity: **Ranked Action Plan:** 1. **MFNY Hash Burger 1g (Concentrate) - URGENT...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Well-structured action plan that correctly analyzes inventory data while maintaining compliance.",
+        "strengths": [
+          "Correctly used all provided inventory data to create actionable recommendations",
+          "Ranked action plan based on multiple factors (margin, velocity, inventory cost)",
+          "Provided specific bundle ideas with pricing that protect margins",
+          "Clear identification of urgent vs. lower priority items"
+        ],
+        "issues": [
+          "No specific timeframe suggested for implementing these actions",
+          "Limited explanation of how write-offs would be handled administratively",
+          "Could benefit from more analysis of why certain items are moving slowly"
+        ],
+        "suggestedFixes": [
+          "Add implementation timeline with suggested order of operations",
+          "Include brief guidance on the write-off process if that option is pursued",
+          "Add a brief section on potential root causes for slow movement to prevent future issues"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 85,
+          "completeness": 80,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 75
+        }
+      }
+    }
+  ]
+}

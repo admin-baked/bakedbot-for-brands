@@ -33,49 +33,49 @@ const PRESET_WIDGET_RESPONSES: Record<string, { content: string }> = {
     content: "**Simple Plans. Massive Growth.** 🚀\n\n*   **Claim Pro ($99/mo)**: Claim your page & capture organic traffic.\n*   **The Specialist ($499/mo)**: Hire one AI agent (like me, or Ezal).\n*   **The Empire ($1,499/mo)**: Full 7-agent automation suite.\n\nCheck the **Pricing** page for the deep dive!"
   },
   "Try the Product Demo": { // Button click text
-    content: "**Welcome to the 40 Tons Experience!** 🌿\n\nI'm connected to the 40 Tons live inventory. Ask me anything, like:\n\n*   _\"Do you have anything for sleep?\"_\n*   _\"Show me your pre-rolls.\"_\n*   _\"What's fresh today?\"_"
+    content: "**Welcome to the Ecstatic Edibles Experience!** 🌿\n\nI'm connected to the Ecstatic Edibles live inventory. Ask me anything, like:\n\n*   _\"Do you have anything for sleep?\"_\n*   _\"Show me your pre-rolls.\"_\n*   _\"What's fresh today?\"_"
   }
 };
 
 const DEMO_PRODUCTS: Product[] = [
   {
-    id: '40t-1',
-    name: '40 Tons - Black Market (Indica)',
-    description: 'A potent indica strain enforcing relaxation. Known for its earthy tones and heavy effects.',
-    price: 45,
-    imageUrl: 'https://picsum.photos/seed/40t-black-market/400/400',
-    imageHint: 'Black market cannabis flower',
-    category: 'Flower',
-    thcPercent: 28,
-    cbdPercent: 0.5,
+    id: 'ee-1',
+    name: 'Ecstatic Edibles - Blissful Brownies',
+    description: 'A potent indica-infused brownie enforcing deep relaxation. Known for its rich chocolate flavors and heavy effects.',
+    price: 35,
+    imageUrl: 'https://picsum.photos/seed/ee-blissful-brownie/400/400',
+    imageHint: 'Chocolate brownie edible',
+    category: 'Edibles',
+    thcPercent: 50, // mg
+    cbdPercent: 5,
     strainType: 'Indica',
-    brandId: '40tons'
+    brandId: 'ecstatic-edibles'
   },
   {
-    id: '40t-2',
-    name: '40 Tons - Justice (Sativa)',
-    description: 'Uplifting sativa dominant strain. Perfect for creativity and advocacy work.',
-    price: 55,
-    imageUrl: 'https://picsum.photos/seed/40t-justice/400/400',
-    imageHint: 'Justice sativa flower',
-    category: 'Flower',
-    thcPercent: 24,
-    cbdPercent: 0.1,
-    strainType: 'Sativa',
-    brandId: '40tons'
-  },
-  {
-    id: '40t-3',
-    name: 'Freedom Gummies (Berry)',
-    description: 'Sweet berry flavored gummies for a balanced hybrid effect. 10mg per piece.',
+    id: 'ee-2',
+    name: 'Ecstatic Edibles - Euphoria Gummies (Sativa)',
+    description: 'Uplifting sativa dominant gummies. Perfect for daytime creativity and outdoor activities.',
     price: 25,
-    imageUrl: 'https://picsum.photos/seed/40t-freedom-gummies/400/400',
-    imageHint: 'Freedom gummies berry flavor',
+    imageUrl: 'https://picsum.photos/seed/ee-euphoria-gummy/400/400',
+    imageHint: 'Euphoria gummies in a jar',
+    category: 'Edibles',
+    thcPercent: 20, // mg per serving
+    cbdPercent: 1,
+    strainType: 'Sativa',
+    brandId: 'ecstatic-edibles'
+  },
+  {
+    id: 'ee-3',
+    name: 'Ecstatic Edibles - Balanced Caramels',
+    description: 'Sweet, buttery caramels for a balanced hybrid effect. 10mg per piece.',
+    price: 20,
+    imageUrl: 'https://picsum.photos/seed/ee-balanced-caramel/400/400',
+    imageHint: 'Caramel candies',
     category: 'Edibles',
     thcPercent: 10,  // mg
-    cbdPercent: 0,
+    cbdPercent: 10,
     strainType: 'Hybrid',
-    brandId: '40tons'
+    brandId: 'ecstatic-edibles'
   }
 ];
 

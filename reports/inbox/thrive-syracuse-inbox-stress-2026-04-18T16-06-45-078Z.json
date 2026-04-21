@@ -1,0 +1,1091 @@
+{
+  "orgId": "org_thrive_syracuse",
+  "generatedAt": "2026-04-18T16:06:45.078Z",
+  "totalCases": 25,
+  "averageScore": 78.6,
+  "readyCount": 22,
+  "results": [
+    {
+      "id": "slow-movers-table",
+      "title": "Slow movers with inventory table",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "auto",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 16703,
+      "response": "Looking at this inventory, I'm focused on margin protection and moving stagnant stock. Here's my ranked action plan:\n\n1. **MFNY Hash Burger 1g (SKU: MFNY Hash Burger 1g)**\n   - **Issue:** Extremely slow mover (2 units in 30 days), highest cost per unit ($22.00)\n   - **Action:** Bundle with a faster-moving concentrate or create a \"Connoisseur Experience\" bundle with a premium preroll\n   - **Margin concern:** With 285 days on hand, this needs immediate action to prevent obsolescence\n\n2. **Heady Tree Blueberry 3.5g (SKU: Heady Tree Blueberry 3.5g)**\n   - **Issue:** Slow sales (5 units in 30 days), 186 days on hand\n   - **Action:** Bundle with a mid-tier preroll to create a \"Stoner's Starter Pack\" \n   - **Margin note:** 54.7% margin provides room for bundling without destroying value\n\n3. **Nanticoke Disposable 1g (SKU: Nanticoke Disposable 1g)**\n   - **Issue:** Low velocity (4 units in 30 days), 210 days on hand\n   - **Action:** Create a \"Disposable Duo\" bundle with another vape or incorporate into a category bundle\n   - **Margin opportunity:** 56% margin allows for bundling\n\n4. **Ayrloom Blackberry 2pk (SKU: Ayrloom Blackberry 2pk)**\n   - **Issue:** Low velocity despite decent margin (58.3%), 247 days on hand\n   - **Action:** Consider slight price reduction (10-15%) rather than bundling\n   - **Rationale:** Edibles have longer shelf life, so we can afford to hold if promotion doesn't move volume\n\n5. **Jaunty Lime 5pk (SKU: Jaunty Lime 5pk)**\n   - **Least urgent:** Only 142 days on hand and reasonable velocity\n   - **Action:** Monitor closely, no immediate action needed\n   - **Margin check:** 53.3% margin is acceptable for slow-moving prerolls\n\n**Strategic Recommendation:**\nCreate a \"Summer Relief Bundle\" with the MFNY Hash Burger (fastest to move), Nanticoke Disposable, and a Jaunty preroll. This moves the worst performer while maintaining margins on the other items. Keep the bundle price at $75-$80 (20% discount off total retail) to preserve 45%+ overall margin.\n\nThe Off Hours Orange Gummies are actually performing reasonably well with 14 units sold in 30 days - I'd keep those on regular pricing rather than discounting.",
+      "responsePreview": "Looking at this inventory, I'm focused on margin protection and moving stagnant stock. Here's my ranked action plan: 1. **MFNY Hash Burger 1g (SKU: MFNY Hash Burger 1g)** - **Issue:** Extremely slow mover (2 units in 30...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive inventory action plan that effectively uses the provided data to prioritize slow-moving products.",
+        "strengths": [
+          "Effectively uses all the provided inventory data to create a prioritized action plan",
+          "Provides specific, actionable recommendations for each product",
+          "Maintains focus on margin protection while suggesting appropriate discounting strategies",
+          "Correctly identifies the actual strong performer (Off Hours Orange Gummies) among the listed products",
+          "Suggests a strategic bundle option that addresses multiple slow-moving items"
+        ],
+        "issues": [
+          "The MFNY Hash Burger has the highest days on hand (285) but is ranked first mainly due to low 30-day sales - could better explain this prioritization logic",
+          "Could provide more specific discount percentages for items recommended for price reduction"
+        ],
+        "suggestedFixes": [
+          "Clarify the prioritization methodology between days on hand, velocity, and unit cost",
+          "Add specific recommended discount percentages for price reduction actions"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "expiring-inventory-writeoff",
+      "title": "Expiring inventory triage",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "money_mike",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 8526,
+      "response": "Looking at your expiring inventory, I'm calculating the margin impact on each item. It's all about the margins.\n\n**Immediate Markdown Candidates:**\n- Ayrloom Pineapple Gummies: 60% margin ($10.80/unit). With 41 units and only 5 sold in 14 days, this needs action. I'd recommend a 15-20% markdown to $14.40-$15.30 to move volume without sacrificing too much margin.\n\n**Bundle Opportunities:**\n- Dank Infused Pre-Roll 2pk: 50% margin ($14/unit). Pair with Generic House Tincture (63% margin) for a \"Pre-Roll & Tincture Experience\" bundle at $48-$52 (still maintaining 50%+ margin combined).\n\n**Write-Off Risk Assessment:**\n- MFNY Rainbow Beltz 1g: 49% margin ($23.50/unit). With only 1 unit sold in 14 days and high cost, this has the highest write-off risk if not moved in the next 30 days.\n\n**My Recommendation:**\n1. Mark down Pineapple Gummies immediately\n2. Create the Pre-Roll + Tincture bundle\n3. Run a 48-hour flash sale on Rainbow Beltz at $40 (17% discount) to move inventory before it becomes a write-off\n\nI can help implement these promotions with precise margin tracking. Hire me (The Specialist) to connect to your POS for real-time vendor cost tracking and margin optimization.",
+      "responsePreview": "Looking at your expiring inventory, I'm calculating the margin impact on each item. It's all about the margins. **Immediate Markdown Candidates:** - Ayrloom Pineapple Gummies: 60% margin ($10.80/unit). With 41 units and...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "poor",
+        "score": 40,
+        "responseReady": false,
+        "summary": "Response includes unsupported claims and ignores key inventory data.",
+        "strengths": [
+          "Identified different strategies for inventory (markdown, bundle, write-off)",
+          "Provided some specific pricing recommendations"
+        ],
+        "issues": [
+          "Made up margin percentages without showing calculations",
+          "Ignored the expiration dates in the assessment",
+          "Included a sales pitch for services",
+          "Failed to properly analyze sales velocity for risk assessment",
+          "Didn't calculate days until expiration for prioritization"
+        ],
+        "suggestedFixes": [
+          "Calculate actual margins using the provided retail and unit cost data",
+          "Include expiration date analysis in the assessment",
+          "Remove the sales pitch for services",
+          "Base recommendations on actual sales velocity provided in the data",
+          "Prioritize items based on both expiration proximity and sales velocity"
+        ],
+        "dimensions": {
+          "grounding": 30,
+          "actionability": 60,
+          "completeness": 50,
+          "compliance": 40,
+          "tone": 70,
+          "launchReadiness": 30
+        }
+      }
+    },
+    {
+      "id": "top-sellers-restock",
+      "title": "Top sellers and restock risk",
+      "kind": "data",
+      "threadType": "performance",
+      "configuredAgent": "pops",
+      "resolvedAgent": "pops",
+      "personaId": "pops",
+      "durationMs": 12767,
+      "response": "Looking at this top-sellers snapshot, I'll analyze the reorder priority based on current sales velocity and inventory coverage.\n\n**REORDER PRIORITY LIST:**\n\n1. **MFNY Hash Burger 1g (Concentrate)**\n   - CRITICAL FLAG: At current sales rate, you'll stock out in approximately 3.3 days (5 units ÷ 15 units/day)\n   - With a 9-day lead time, this will absolutely stock out before replacement arrives\n   - Immediate reorder needed\n\n2. **Ayrloom Blood Orange Gummies (Edible)**\n   - CRITICAL FLAG: At current sales rate, you'll stock out in approximately 4.6 days (11 units ÷ 24 units/day)\n   - With a 7-day lead time, this will likely stock out before replacement arrives\n   - Immediate reorder needed\n\n3. **Jaunty Mango 5pk (Pre-Roll)**\n   - At current sales rate, you'll stock out in approximately 4.3 days (9 units ÷ 21 units/day)\n   - With a 4-day lead time, this is cutting it close\n   - Reorder needed immediately\n\n4. **Matter. Blue Dream 3.5g (Flower)**\n   - At current sales rate, you'll stock out in approximately 6.2 days (18 units ÷ 29 units/day)\n   - With a 5-day lead time, this has adequate coverage but should be reordered soon\n   - Include in next batch of orders\n\n5. **Nanticoke Disposable 1g (Vape)**\n   - At current sales rate, you'll stock out in approximately 16.9 days (22 units ÷ 13 units/day)\n   - With a 6-day lead time, this has plenty of buffer\n   - Lower priority reorder\n\n**ACTION ITEMS:**\n- Flag MFNY Hash Burger 1g and Ayrloom Blood Orange Gummies as urgent - these will definitely stock out before replacement arrives\n- Consider expediting orders for these two critical SKUs\n- For the Flower and Pre-Roll categories, maintain this velocity and you'll need consistent ordering\n- Vape category has the most comfortable buffer but monitor for any sudden velocity changes\n\nMoney Mike - We need to review the margins on MFNY Hash Burger 1g and Ayrloom Blood Orange Gummies immediately. These are high-velocity SKUs at serious stockout risk.",
+      "responsePreview": "Looking at this top-sellers snapshot, I'll analyze the reorder priority based on current sales velocity and inventory coverage. **REORDER PRIORITY LIST:** 1. **MFNY Hash Burger 1g (Concentrate)** - CRITICAL FLAG: At cur...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent analysis with clear reorder priorities and stockout warnings.",
+        "strengths": [
+          "Correctly used the provided data to calculate stockout timelines",
+          "Created a clear, actionable reorder priority list",
+          "Flagged items that will stock out before replacement arrives",
+          "Included specific calculations for each item",
+          "Provided actionable next steps",
+          "Professional and clear tone"
+        ],
+        "issues": [
+          "The reference to 'Money Mike' seems unnecessary and unprofessional",
+          "Could include more specific advice on expediting orders"
+        ],
+        "suggestedFixes": [
+          "Remove the 'Money Mike' reference to maintain professional tone",
+          "Add brief suggestions for how to potentially expedite orders (e.g., contact vendor directly, check for air freight options)"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "category-margin-mix",
+      "title": "Category margin mix and bundles",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "money_mike",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 6346,
+      "response": "Looking at these numbers, it's all about the margins. Concentrate has the slowest velocity at just 94 units and the lowest margin at 39%. We need to move that concentrate without killing our already thin margins.\n\nI'd pair concentrate with either Flower (43% margin) or Vape (49%) as the anchor. Flower has better volume and higher margin than concentrate, creating a margin buffer. Vape has the highest AOV and would elevate the bundle's perceived value.\n\nMy recommendation: Create a \"Concentrate & Flower Weekend Bundle\" with concentrate at 15% discount and Flower at full price. This protects margins while driving volume. We'd move concentrate inventory while actually increasing overall margin contribution.\n\nCraig should run this as a weekend-only limited-time offer to create urgency. It's about turning slow inventory into profit, not just clearing it at cost.",
+      "responsePreview": "Looking at these numbers, it's all about the margins. Concentrate has the slowest velocity at just 94 units and the lowest margin at 39%. We need to move that concentrate without killing our already thin margins. I'd pa...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Solid recommendation with proper margin focus and actionable plan for concentrate bundling.",
+        "strengths": [
+          "Correctly identifies concentrate as slow-moving with lowest margin",
+          "Provides specific anchor category options based on margin data",
+          "Suggests concrete pricing strategy (15% discount on concentrate, full price on anchor)",
+          "Creates urgency with limited-time offer recommendation",
+          "Avoids medical claims and maintains professional tone"
+        ],
+        "issues": [
+          "Could more explicitly justify why Flower is chosen over Vape despite lower margin",
+          "Doesn't mention specific inventory targets or success metrics",
+          "Lacks details on bundle naming or promotional execution"
+        ],
+        "suggestedFixes": [
+          "Add brief justification for selecting Flower over Vape as anchor",
+          "Include recommended inventory targets for the bundle",
+          "Suggest specific naming for the bundle and basic promotional channels"
+        ],
+        "dimensions": {
+          "grounding": 85,
+          "actionability": 80,
+          "completeness": 75,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 75
+        }
+      }
+    },
+    {
+      "id": "daily-traffic-gap",
+      "title": "Daily traffic gap from hourly sales",
+      "kind": "data",
+      "threadType": "performance",
+      "configuredAgent": "pops",
+      "resolvedAgent": "pops",
+      "personaId": "pops",
+      "durationMs": 10249,
+      "response": "Looking at this hourly sales data, I can clearly see where the traffic soft spots are:\n\n**Traffic Analysis:**\nThe softest window is clearly 2-4 PM, with orders dropping from 14 at 1 PM to just 8-9 orders during 2-4 PM. This represents a 36-43% decline in order volume compared to the preceding hour. Revenue follows the same pattern, dropping from $774 at 1 PM to $438-461 during the trough.\n\n**Operational Move:**\nImplement a staff optimization plan during the 2-4 PM lull. Consider having one team member cross-trained to handle multiple roles during this lower-traffic period, potentially redirecting resources to prep for the evening rush or tackle operational tasks that don't require full staffing. This maintains service quality while optimizing labor costs during natural traffic dips.\n\n**Promo Move:**\nIntroduce a limited-time \"Afternoon Refresh\" bundle specifically targeting the 2-4 PM window. This could be a beverage + light snack combination priced at $15-17 (approximately 20% off individual pricing) marketed as a midday pick-me-up. Create digital signage and social media push targeting this specific time slot to capture incremental traffic during the soft period.\n\nThe evening recovery at 5 PM (16 orders) suggests this isn't a store-wide traffic issue but rather a predictable mid-afternoon lull that these tactical moves can address.",
+      "responsePreview": "Looking at this hourly sales data, I can clearly see where the traffic soft spots are: **Traffic Analysis:** The softest window is clearly 2-4 PM, with orders dropping from 14 at 1 PM to just 8-9 orders during 2-4 PM. T...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Well-analyzed response with actionable strategies addressing the identified mid-afternoon traffic dip.",
+        "strengths": [
+          "Correctly identified the softest window (2-4 PM) using the provided data",
+          "Provided specific, actionable operational and promotional recommendations",
+          "Included rationale for why this is occurring and how solutions might work",
+          "Maintained professional tone throughout",
+          "Avoided any compliance red flags"
+        ],
+        "issues": [
+          "Could benefit from slightly more specificity on how to implement the staff optimization",
+          "No mention of how long to run the promotion before evaluating effectiveness"
+        ],
+        "suggestedFixes": [
+          "Add brief implementation details for staff optimization during the soft window",
+          "Include a recommendation for how long to run the promotion before reassessment"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "competitor-price-response",
+      "title": "Competitor price response plan",
+      "kind": "data",
+      "threadType": "market_intel",
+      "configuredAgent": "ezal",
+      "resolvedAgent": "ezal",
+      "personaId": "ezal",
+      "durationMs": 6537,
+      "response": "Alright, I'm looking at these numbers and here's my take:\n\n**Action Required:**\n- **3.5g Flower & 1g Vape**: We're getting undercut by $4. That's a 10-11% premium that's hard to justify in this market. BEAT these prices immediately. Go $2 below their averages ($32 and $39 respectively) to regain price leadership.\n- **100mg Gummies**: $2 gap is 10% but in this lower price point, customers are more sensitive to small differences. MATCH their $18 price point - no margin to give here anyway.\n- **1g Concentrate**: We're actually $1 higher here - this is our win. HOLD this position and emphasize quality. No need to cut.\n\n**Priority Move:** Focus on flower and vapes first - those are high-volume traffic drivers. If we don't react, customers will walk for that $4 savings.\n\n**Trigger Alert:** Craig, we need a counter-campaign on flower and vapes ASAP. Can't let them own the low-price position in our core categories.",
+      "responsePreview": "Alright, I'm looking at these numbers and here's my take: **Action Required:** - **3.5g Flower & 1g Vape**: We're getting undercut by $4. That's a 10-11% premium that's hard to justify in this market. BEAT these prices ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Competitor pricing response provides actionable category-specific strategy with clear priorities.",
+        "strengths": [
+          "Directly uses the provided pricing data to make specific recommendations",
+          "Gives clear, actionable guidance for each product category",
+          "Identifies priorities and explains the reasoning behind recommendations",
+          "Maintains professional tone while being direct and urgent"
+        ],
+        "issues": [
+          "Could provide more specific implementation timeline or tactics",
+          "No mention of potential margin impact or cost-benefit analysis"
+        ],
+        "suggestedFixes": [
+          "Add brief margin analysis or recommended monitoring timeframe",
+          "Include sample language for how to communicate price changes to customers"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 100,
+          "completeness": 85,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "review-queue-priority",
+      "title": "Review queue prioritization",
+      "kind": "data",
+      "threadType": "general",
+      "configuredAgent": "mrs_parker",
+      "resolvedAgent": "mrs_parker",
+      "personaId": "mrs_parker",
+      "durationMs": 145537,
+      "response": "Looking at this morning's review-response queue, I'll prioritize based on the urgency of issues and customer sentiment:\n\n**Priority Order:**\n\n1. **Taylor M. (1-star, 2 days open)** - This is our top priority. A 1-star rating with \"wait time + no order updates\" indicates a critical service failure. The customer has been waiting for 2 days without resolution, which risks turning this into a public relations issue.\n\n2. **Alina R. (2-star, 4 days open)** - Second priority due to the 4 days this has been unresolved. While only 2 stars, \"product was dry\" suggests a quality control issue that may affect other customers.\n\n3. **Marcus J. (3-star, 3 days open)** - The \"checkout felt rushed\" feedback suggests an experience issue but is less severe than the others.\n\n4. **Chris B. (5-star, 1 day open)** - While positive feedback, this can be acknowledged but doesn't require immediate resolution.\n\n**Response Goals:**\n\n**Taylor M.:**\n- Acknowledge the unacceptable wait time and lack of communication immediately\n- Offer a concrete resolution (refund, expedited replacement, store credit)\n- Commit to improving our order update process\n- Personalize the response with a direct contact option\n\n**Alina R.:**\n- Address the product quality issue directly\n- Explain quality control measures being implemented\n- Offer a replacement or refund\n- Request more details about the specific product for quality assurance\n\n**Marcus J.:**\n- Acknowledge the rushed checkout experience\n- Apologize for not providing a more leisurely experience\n- Assure this feedback will be used for staff training\n- Consider a small gesture of goodwill\n\n**Chris B.:**\n- Thank them for the positive feedback\n- Mention their comment will be shared with the staff member\n- Invite them to share more about their positive experience\n\nWould you like me to draft specific responses for any of these customers?",
+      "responsePreview": "Looking at this morning's review-response queue, I'll prioritize based on the urgency of issues and customer sentiment: **Priority Order:** 1. **Taylor M. (1-star, 2 days open)** - This is our top priority. A 1-star rat...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent prioritization strategy with clear response goals based on review data.",
+        "strengths": [
+          "Properly used the provided customer review data to establish priority order",
+          "Provided specific, actionable response goals for each customer type",
+          "Demonstrated understanding of urgency (1-star, 2 days open prioritized highest)",
+          "Included appropriate response elements for each rating level",
+          "Maintained professional tone throughout",
+          "Offered to draft specific responses showing commitment to implementation"
+        ],
+        "issues": [
+          "No specific timeline provided for when responses should be completed",
+          "Could benefit from brief mention of how to document resolved cases for quality tracking"
+        ],
+        "suggestedFixes": [
+          "Add recommended response timeline (e.g., 'All responses should be completed within 24 hours')",
+          "Include brief note about documenting resolutions in a quality tracking system"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "checkin-daily-actions",
+      "title": "Check-in briefing follow-up",
+      "kind": "data",
+      "threadType": "general",
+      "configuredAgent": "mrs_parker",
+      "resolvedAgent": "mrs_parker",
+      "personaId": "mrs_parker",
+      "durationMs": 8371,
+      "response": "Thank you for sharing this morning's check-in snapshot. Based on these numbers, here are the top three actions we should prioritize before noon:\n\n1. **Follow up with the 18 customers in the Day-3 review sequence** - These are at a critical engagement window where we can influence their post-visit experience and encourage feedback. Proactive follow-up could prevent negative reviews and increase satisfaction.\n\n2. **Address the SMS consent rate (63%)** - While SMS consent is strong, we should ensure our team is maximizing this channel by sending value-added messages to these 63% of today's check-ins. Consider a same-day offer to reinforce engagement.\n\n3. **Focus on the 49 customers reporting \"happy\" moods** - These are our potential brand advocates. We should identify and contact these customers personally to thank them and potentially invite them to join our loyalty program or refer friends.\n\nWould you like me to help draft any specific messaging for these initiatives?",
+      "responsePreview": "Thank you for sharing this morning's check-in snapshot. Based on these numbers, here are the top three actions we should prioritize before noon: 1. **Follow up with the 18 customers in the Day-3 review sequence** - Thes...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Grounded response with actionable steps that could benefit from more specific customer engagement tactics.",
+        "strengths": [
+          "Correctly identified top three actions based on data provided",
+          "Gave specific numbers for context (18 in review sequence, 63% SMS)",
+          "Provided rationale for each action"
+        ],
+        "issues": [
+          "Lacks specific tactics for executing these actions",
+          "Doesn't address email consent rate (41%) which could be improved",
+          "No mention of the neutral mood customers (21%) who might need attention",
+          "Missing time-sensitive elements for before noon deadline"
+        ],
+        "suggestedFixes": [
+          "Add specific execution timelines or methods for each action",
+          "Include brief talking points or templates for customer communication",
+          "Address the email consent opportunity",
+          "Include a note about monitoring or adjusting approach based on responses before noon"
+        ],
+        "dimensions": {
+          "grounding": 90,
+          "actionability": 70,
+          "completeness": 75,
+          "compliance": 100,
+          "tone": 85,
+          "launchReadiness": 80
+        }
+      }
+    },
+    {
+      "id": "campaign-follow-up",
+      "title": "Campaign performance follow-up",
+      "kind": "data",
+      "threadType": "campaign",
+      "configuredAgent": "craig",
+      "resolvedAgent": "craig",
+      "personaId": "craig",
+      "durationMs": 13274,
+      "response": "### Campaign Performance Analysis\n\nLooking at your campaign performance data, I'm seeing a clear pattern:\n\n- **Friday Flower Drop (SMS)**: Stellar performance with 11.8% CTR and $3,280 revenue\n- **New Brands Spotlight (Email)**: Lowest engagement at 2.4% CTR and $910 revenue\n- **Loyalty Reminder (SMS)**: Solid mid-range with 7.2% CTR and $1,440 revenue\n\n### Next Week's Send Plan Recommendation\n\nLet's capitalize on what's working while optimizing the underperformers:\n\n### 📈 High-Performance Replication\n**Campaign**: Weekend Flower Flash (SMS)\n- **Strategy**: Double down on Friday Flower Drop success\n- **Format**: Limited-time strain promotions\n- **Projection**: 2,500 sends × 12% CTR = ~$3,500 revenue\n- **Frequency**: Saturday AM (avoiding Friday fatigue)\n\n### 🔄 Optimization of Underperformer\n**Campaign**: Curated Discovery (Email)\n- **Strategy**: Replace low-performing New Brands Spotlight\n- **Format**: Personalized strain recommendations + educational content\n- **Projection**: 3,500 sends × 4% CTR = ~$1,500 revenue\n- **Frequency**: Wednesday (mid-week engagement peak)\n\n### 🎯 Existing Loyalty Leverage\n**Campaign**: VIP Early Access (SMS)\n- **Strategy**: Enhance Loyalty Reminder concept\n- **Format**: Exclusive early access to new products + refill reminders\n- **Projection**: 2,000 sends × 8% CTR = ~$1,600 revenue\n- **Frequency**: Thursday PM\n\n### 📊 Expected Results\n| Campaign | Channel | Sends | Projected CTR | Projected Revenue |\n| --- | --- | ---: | ---: | ---: |\n| Weekend Flower Flash | SMS | 2500 | 12% | $3,500 |\n| Curated Discovery | Email | 3500 | 4% | $1,500 |\n| VIP Early Access | SMS | 2000 | 8% | $1,600 |\n| **Total** | | **8000** | | **$6,600** |\n\nThis plan focuses on your highest-performing channel (SMS) while improving your email strategy with more personalization. We're reducing total sends slightly (7,910 vs. 8,210) while targeting a 46% revenue increase.\n\nWant me to craft the actual copy for these campaigns? I can create personalized messaging based on customer purchase history and terpene preferences if you'll sync your POS.",
+      "responsePreview": "### Campaign Performance Analysis Looking at your campaign performance data, I'm seeing a clear pattern: - **Friday Flower Drop (SMS)**: Stellar performance with 11.8% CTR and $3,280 revenue - **New Brands Spotlight (Em...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Well-structured recommendation with actionable send plan, but slightly overoptimistic projections.",
+        "strengths": [
+          "Correctly used the provided campaign data for analysis",
+          "Clear, structured send plan with specific campaigns",
+          "Addressed key concerns: revenue growth and list fatigue",
+          "Provided projected metrics for next week",
+          "Professional and helpful tone"
+        ],
+        "issues": [
+          "Projections seem overly optimistic without justification",
+          "Didn't address list fatigue concerns thoroughly",
+          "No specific recommendations for channel optimization",
+          "Missing explanation for why certain days were chosen"
+        ],
+        "suggestedFixes": [
+          "Include reasoning behind projected CTR increases",
+          "Add specific list segmentation strategy to address fatigue",
+          "Provide data-driven explanation for day selections",
+          "Include more conservative baseline projections as alternatives"
+        ],
+        "dimensions": {
+          "grounding": 85,
+          "actionability": 90,
+          "completeness": 75,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 70
+        }
+      }
+    },
+    {
+      "id": "customer-segments-winback",
+      "title": "Customer segment win-back priorities",
+      "kind": "data",
+      "threadType": "general",
+      "configuredAgent": "mrs_parker",
+      "resolvedAgent": "mrs_parker",
+      "personaId": "mrs_parker",
+      "durationMs": 5971,
+      "response": "Based on the customer segment data, I recommend targeting the **At-risk segment** first for our win-back push.\n\n**Why At-risk:**\n- 286 customers with 94 days since last visit (significantly higher than our other segments)\n- Only $48 average spend in 90 days (indicating declining engagement)\n- This segment has the highest potential for recovery with the right intervention\n\n**Win-back angle:**\n1. **Personalized re-engagement:** Focus on \"We've noticed you haven't visited in a while\" messaging\n2. **Exclusive return offer:** Since their last visit was 94 days ago, offer a significant incentive (e.g., 20% off their return visit + free preroll)\n3. **Reconnect campaign:** Use a \"Welcome Back\" theme that acknowledges their value to our community\n4. **Channel priority:** Prioritize SMS/email for immediate reach, supplemented by direct mail for higher impact\n\n**Follow-up segments:**\nAfter addressing At-risk, we should move to Loyal segment (402 customers) who show declining visit frequency but still maintain decent spend levels.",
+      "responsePreview": "Based on the customer segment data, I recommend targeting the **At-risk segment** first for our win-back push. **Why At-risk:** - 286 customers with 94 days since last visit (significantly higher than our other segments...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent win-back strategy grounded in data with clear, actionable recommendations.",
+        "strengths": [
+          "Properly grounded in the customer segment data provided",
+          "Clear prioritization based on days since last visit",
+          "Specific, actionable win-back recommendations",
+          "Professional and helpful tone",
+          "Good cross-segment planning"
+        ],
+        "issues": [
+          "Could provide more specific guidance on timing the campaign",
+          "No mention of how to measure success of the win-back push"
+        ],
+        "suggestedFixes": [
+          "Add suggested timeline for implementing the win-back push",
+          "Include metrics to track the success of the campaign"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 85,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "loyalty-enrollment-gap",
+      "title": "Loyalty enrollment gap",
+      "kind": "data",
+      "threadType": "general",
+      "configuredAgent": "mrs_parker",
+      "resolvedAgent": "mrs_parker",
+      "personaId": "mrs_parker",
+      "durationMs": 7298,
+      "response": "Looking at the data, I notice our loyalty enrollment rate is approximately 15.9% (61 sign-ups ÷ 384 walk-ins). This leaves a significant gap of 84.1% of walk-in customers not joining our loyalty program.\n\nThe day-to-day variance is notable - our capture rate on Saturday was 18% but dropped to just 9% on Tuesday.\n\nTo immediately raise our loyalty capture rate, I'd focus on these three priority fixes:\n\n1. Address the Tuesday drop-off with a targeted incentive program to boost sign-ups from 9% to at least Saturday's level.\n\n2. Implement a daily sign-up goal accountability system with our team of 7 budtenders to maintain consistent performance across all days of the week.\n\n3. Standardize the enrollment process to ensure every budtender is following the same script and has the necessary tools to efficiently sign up customers during peak hours.\n\nWould you like me to develop a specific win-back campaign for our lowest performing day, or would you prefer to focus on system-wide process improvements first?",
+      "responsePreview": "Looking at the data, I notice our loyalty enrollment rate is approximately 15.9% (61 sign-ups ÷ 384 walk-ins). This leaves a significant gap of 84.1% of walk-in customers not joining our loyalty program. The day-to-day ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 82,
+        "responseReady": true,
+        "summary": "Well-structured response addressing the loyalty enrollment gap with actionable fixes and data-backed insights.",
+        "strengths": [
+          "Correctly calculated and used the provided data (61/384 = 15.9% enrollment rate)",
+          "Identified specific variance between highest and lowest sign-up days",
+          "Provided three concrete, actionable fixes for immediate implementation",
+          "Maintained professional tone throughout",
+          "Offered helpful follow-up options based on owner's priorities"
+        ],
+        "issues": [
+          "Could provide more specific details on the Tuesday incentive program",
+          "Doesn't address potential reasons for Tuesday's lower performance",
+          "Lacks timeline for implementation of the suggested fixes"
+        ],
+        "suggestedFixes": [
+          "Add specific details about what type of Tuesday incentive could be most effective",
+          "Include a brief analysis of potential causes for Tuesday's lower performance (staffing, customer type, etc.)",
+          "Provide a suggested timeline for implementing each of the three fixes"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 75,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 80
+        }
+      }
+    },
+    {
+      "id": "owner-briefing-summary",
+      "title": "Owner briefing summary from mixed inputs",
+      "kind": "data",
+      "threadType": "performance",
+      "configuredAgent": "pops",
+      "resolvedAgent": "pops",
+      "personaId": "pops",
+      "durationMs": 6854,
+      "response": "**Morning Briefing - Top 3 Priorities**\n\n1. **Revenue Velocity**: Yesterday's $8.9k revenue is solid, but investigate the 14% flower drop vs. 19% gummies increase - this suggests category shifting that needs attention before the competitor's $4 price advantage on flower causes permanent damage.\n\n2. **Customer Retention**: 18 customers in Day-3 review sequence - these are your early-warning system for churn. Immediate follow-up needed before they become lost customers.\n\n3. **Operational Blockers**: Today's 12:30 vendor meeting and 3 unread high-priority emails could impact execution. Clear these first to maintain operational momentum.",
+      "responsePreview": "**Morning Briefing - Top 3 Priorities** 1. **Revenue Velocity**: Yesterday's $8.9k revenue is solid, but investigate the 14% flower drop vs. 19% gummies increase - this suggests category shifting that needs attention be...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent owner briefing with strategic priorities grounded in business data.",
+        "strengths": [
+          "Perfectly condensed into 3 actionable priorities",
+          "Effectively used all provided data points",
+          "Highlighted competitive concern without medical claims",
+          "Clear prioritization with immediate next steps implied",
+          "Professional tone suitable for business owner"
+        ],
+        "issues": [
+          "Could be slightly more specific about how to address the flower/gummy category shift",
+          "Missing explicit suggestion on how to handle vendor meeting"
+        ],
+        "suggestedFixes": [
+          "Add brief recommendation about price matching or promotional response to competitor",
+          "Suggest preparing specific questions for vendor meeting or delegating unread emails"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "weekend-flash-sale",
+      "title": "Weekend flash sale idea without source data",
+      "kind": "non_data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "auto",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 88242,
+      "response": "Looking at your weekend flash sale opportunity, I've got one idea that protects margins while moving inventory: the \"Thrive Survival Bundle.\"\n\nBundle your slow-moving but high-margin staples (rice, beans, dried goods) with a small \"add-on\" item that needs to move. Example: \"Buy our organic rice (full price) and get 30% off our locally-harvested honey (which expires next month).\"\n\nThis strategy:\n- Keeps core items at full price (protecting margins)\n- Moves excess/aging inventory without making it the centerpiece\n- Adds perceived value without training customers to wait for discounts\n- Creates urgency with the expiring add-on item\n\nWhat's your current cost structure on items like these? I can refine this further if you have specific margin data.",
+      "responsePreview": "Looking at your weekend flash sale opportunity, I've got one idea that protects margins while moving inventory: the \"Thrive Survival Bundle.\" Bundle your slow-moving but high-margin staples (rice, beans, dried goods) wi...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 75,
+        "responseReady": true,
+        "summary": "Strong flash sale strategy that protects margins while moving inventory.",
+        "strengths": [
+          "Provides a concrete, actionable bundle strategy",
+          "Clearly explains how it protects margins and moves inventory",
+          "Highlights the psychological benefits of the approach",
+          "Asks for additional data to refine the recommendation"
+        ],
+        "issues": [
+          "The prompt was marked as 'non_data' but the agent asks for specific cost structure data",
+          "Could benefit from more specific weekend implementation details"
+        ],
+        "suggestedFixes": [
+          "Remove the request for specific cost structure since no data was provided",
+          "Add suggestions for weekend-specific promotion timing or marketing"
+        ],
+        "dimensions": {
+          "grounding": 80,
+          "actionability": 90,
+          "completeness": 70,
+          "compliance": 100,
+          "tone": 85,
+          "launchReadiness": 80
+        }
+      }
+    },
+    {
+      "id": "compliant-sms-draft",
+      "title": "Compliant SMS draft",
+      "kind": "non_data",
+      "threadType": "outreach",
+      "configuredAgent": "craig",
+      "resolvedAgent": "craig",
+      "personaId": "craig",
+      "durationMs": 7240,
+      "response": "### Campaign Strategy\nFriday pre-roll push targeting weekend relaxation seekers. Focus on convenience and quality with clear opt-out language.\n\n### Creative Variations\n**Hype Variation:**\n\"Friday pre-roll alert! 🚀 Premium pre-rolls ready for your weekend. Quality burns bright. Reply STOP to opt out. Reply HELP for support.\"\n\n**Professional Variation:**\n\"Your weekend upgrade is here. Our handcrafted pre-rolls offer consistent quality & smooth experience. Reply STOP to unsubscribe. Reply HELP for assistance.\"\n\n**Educational Variation:**\n\"Experience the difference with our premium pre-roll selection. Sourced for quality & enjoyment. Reply STOP to opt out. Reply HELP for questions.\"",
+      "responsePreview": "### Campaign Strategy Friday pre-roll push targeting weekend relaxation seekers. Focus on convenience and quality with clear opt-out language. ### Creative Variations **Hype Variation:** \"Friday pre-roll alert! 🚀 Premi...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 82,
+        "responseReady": true,
+        "summary": "Good compliant SMS options with clear opt-out language and medical claim avoidance.",
+        "strengths": [
+          "All variations include proper opt-out language (Reply STOP)",
+          "No medical claims or prohibited language used",
+          "Tight, focused copy suitable for SMS",
+          "Multiple creative options provided",
+          "Clear compliance focus throughout"
+        ],
+        "issues": [
+          "Missing any specific branding or dispensary name",
+          "No CTAs beyond opt-out",
+          "Could include more specificity about product benefits beyond 'quality'"
+        ],
+        "suggestedFixes": [
+          "Include dispensary name for brand recognition",
+          "Add a specific call-to-action like 'Visit us today' or 'Order online now'",
+          "Consider adding a special offer to increase conversion"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 75,
+          "completeness": 85,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 85
+        }
+      }
+    },
+    {
+      "id": "one-star-review-reply",
+      "title": "Reply to one-star review",
+      "kind": "non_data",
+      "threadType": "support",
+      "configuredAgent": "auto",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 6662,
+      "response": "Subject: Addressing Your Recent Experience\n\nDear Valued Customer,\n\nThank you for taking the time to share your feedback about your recent visit to Thrive Syracuse. I sincerely apologize for the extended wait time you experienced and the frustration caused by the missing update on your online order.\n\nWe're currently experiencing higher than usual order volumes, which has impacted our response times. This is not the standard of service we strive to provide, and we're actively working to improve our online order tracking system to ensure you receive timely updates.\n\nTo make things right, I'd like to offer you [specific compensation, e.g., 15% off your next order]. Could you please DM us your order number so we can process this for you?\n\nYour experience matters to us, and we appreciate your patience as we work to enhance our service. We hope to have the opportunity to provide you with a better experience on your next visit.\n\nBest regards,\nThe Thrive Syracuse Team",
+      "responsePreview": "Subject: Addressing Your Recent Experience Dear Valued Customer, Thank you for taking the time to share your feedback about your recent visit to Thrive Syracuse. I sincerely apologize for the extended wait time you expe...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 80,
+        "responseReady": true,
+        "summary": "Professional response that apologizes and offers compensation but lacks operational specifics.",
+        "strengths": [
+          "Appropriate professional tone for a dispensary",
+          "Includes clear apology for the customer's experience",
+          "Offers concrete compensation action",
+          "Has call-to-action for follow-up"
+        ],
+        "issues": [
+          "Lacks operational specifics about wait time improvements",
+          "No specific timeline for system upgrades mentioned",
+          "Doesn't acknowledge if the missing order update is a known issue or isolated incident",
+          "Compensation offer is placeholder text rather than actual policy"
+        ],
+        "suggestedFixes": [
+          "Add specific operational improvements being implemented to address wait times",
+          "Include a timeline for when customers can expect better online order tracking",
+          "Specify the actual compensation policy rather than using placeholder text",
+          "Include process for how the team will prevent similar issues in the future"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 75,
+          "completeness": 70,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 85
+        }
+      }
+    },
+    {
+      "id": "beginner-budtender-talking-points",
+      "title": "Budtender beginner talking points",
+      "kind": "non_data",
+      "threadType": "product_discovery",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 6061,
+      "response": "Here are 5 beginner-friendly talking points for budtenders discussing edibles with first-time shoppers:\n\n🍭 **Start Low and Go Slow**\nFor new edible consumers, recommend beginning with a low dose (2.5-5mg THC) and waiting at least 2 hours before considering more. This allows them to understand their personal tolerance without overconsumption.\n\n🍪 **Edibles Have a Different Onset Time**\nExplain that edibles take 30-90 minutes to fully activate as they must pass through your digestive system first. This delayed effect is different from inhalation methods which work within minutes.\n\n💡 **Different Products, Different Experiences**\nDiscuss how various edible formats (gummies, chocolates, beverages) may affect onset time and duration. For example, beverages might act faster than solid edibles due to absorption differences.\n\n🔬 **Read Labels and Packaging**\nCoach beginners to always check product labels for THC content, servings per package, and recommended dosage. Emphasize that not all edibles are equal in strength or formulation.\n\n🌱 **Terpene Profiles Matter**\nExplain how different terpene profiles in edibles can create varied aromatic and flavor experiences, which may influence their choice even when potency levels are similar.",
+      "responsePreview": "Here are 5 beginner-friendly talking points for budtenders discussing edibles with first-time shoppers: 🍭 **Start Low and Go Slow** For new edible consumers, recommend beginning with a low dose (2.5-5mg THC) and waitin...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent compliance with beginner-friendly, compliant talking points for first-time edible shoppers.",
+        "strengths": [
+          "All talking points are compliant with no medical claims or red flags",
+          "Clear, actionable advice that follows 'start low and go slow' principle",
+          "Provides useful beginner information about edible effects and timing",
+          "Professional tone suitable for budtender training",
+          "Each talking point is concise and easily memorable"
+        ],
+        "issues": [
+          "Could add more specificity about how to explain terpenes to beginners",
+          "No mention of potential side effects or how to handle overconsumption"
+        ],
+        "suggestedFixes": [
+          "Consider adding a talking point about what to do if someone consumes too much",
+          "Include a brief explanation of common terpenes in beginner-friendly terms"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 85,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "vendor-day-plan",
+      "title": "Vendor day inbox plan",
+      "kind": "non_data",
+      "threadType": "event",
+      "configuredAgent": "craig",
+      "resolvedAgent": "craig",
+      "personaId": "craig",
+      "durationMs": 13954,
+      "response": "### Campaign Strategy\n\nLet's transform your Vendor Day into a revenue-generating experience! We'll create a multi-touch campaign that drives attendance, maximizes engagement during the event, and sets up post-event follow-up to capture customer loyalty.\n\n### Event Timeline & Inbox Prep Checklist\n\n**This Week (Pre-Event):**\n1. **Email Campaign Sequence** (3 touches)\n2. **SMS Reminders** (2 touches)\n3. **Social Media Content Calendar**\n4. **Event-Specific Bundle Creation**\n5. **Floor Team Training Script**\n6. **Loyalty Follow-Up Sequence**\n\n### Creative Variations\n\n**Email Subject Lines + Hooks:**\n\n1. **Professional:** \n   *Subject:* Exclusive Vendor Day: Premium Strains & Exclusive Deals This Friday\n   *Hook:* \"Experience curated cannabis excellence. Join us this Friday 2-6 PM for our premier Vendor Day featuring top-tier strains and exclusive offers for loyal customers.\"\n\n2. **Hype:** \n   *Subject:* 🚨 Vendor Day ALERT! Don't Miss This Friday's Cannabis Showcase\n   *Hook:* \"Friday's your golden ticket! Vendor Day is coming 2-6 PM with premium strains, limited deals, and swag you won't find anywhere else. Get ready to elevate!\"\n\n3. **Educational:** \n   *Subject:* Discover the Art of Cannabis: Learn About Strains & Terpenes at Our Vendor Day\n   *Hook:* \"Expand your cannabis knowledge! Join us this Friday 2-6 PM for our Vendor Day, where experts will showcase unique strains and terpene profiles. Plus, exclusive deals for attendees!\"\n\n**Social Media Posts:**\n\n1. **Professional:** \"Join us this Friday 2-6 PM for our exclusive Vendor Day, featuring premium strains from industry-leading producers. A curated experience for discerning cannabis connoisseurs.\"\n\n2. **Hype:** \"Vendor Day is ON! Friday 2-6 PM get ready to explore, discover, and cop exclusive strains. Limited quantities available - you won't want to miss this! #VendorDay #Cannabis\"\n\n3. **Educational:** \"Curious about the difference between sativa and indica effects? Join us Friday 2-6 PM for our Vendor Day where experts will educate on strain profiles and help you find your perfect match.\"\n\n**Event-Specific Bundle Ideas:**\n\n1. \"Vendor Day Discovery Bundle\" - 3 different strains featured at the event\n2. \"Meet the Grower\" Special - Direct from source pricing on featured products\n3. \"First Look\" Early Access - Early entry for loyalty members (1-2 PM)\n\n**Floor Team Talking Points:**\n\n1. \"Today's Vendor Day features strains with unique terpene profiles perfect for [specific effect]\"\n2. \"Ask our vendors about the growing process and what makes these strains special\"\n3. \"Loyalty members get exclusive pricing on today's featured products\"\n\n### Post-Event Playbook\n\n**Email:** \"Thank you for attending our Vendor Day! Here's a recap of exclusive strains and special offers just for attendees.\"\n\n**SMS:** \"Loved what you tried at Vendor Day? Reply with your favorite strain for a personalized restock recommendation.\"\n\n**Loyalty Follow-up:** \"Vendor Day attendees receive double loyalty points this week on featured strains!\"\n\nWant the full campaign sequence? Hire me (The Specialist Tier) and I'll write the emails, SMS, and set up the automation.",
+      "responsePreview": "### Campaign Strategy Let's transform your Vendor Day into a revenue-generating experience! We'll create a multi-touch campaign that drives attendance, maximizes engagement during the event, and sets up post-event follo...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "poor",
+        "score": 35,
+        "responseReady": false,
+        "summary": "Response contains compliance issues and promotional hype language that would not be acceptable for a dispensary.",
+        "strengths": [
+          "Provides a structured plan with actionable checklist items",
+          "Includes multiple campaign approaches (email, SMS, social)",
+          "Suggests specific talking points for floor staff"
+        ],
+        "issues": [
+          "Contains multiple compliance red flags with medical claims and promotional hype language",
+          "Uses terms like 'elevate' and 'cop' which are prohibited in cannabis marketing",
+          "Offers to sell 'full campaign sequence' which is inappropriate for an inbox response",
+          "Does not provide specific guidance on preparation for floor team, marketing, and loyalty follow-up",
+          "Ignores the requirement for compliance-focused language"
+        ],
+        "suggestedFixes": [
+          "Remove all promotional hype language and compliance violations",
+          "Replace with factual, compliance-focused language that doesn't imply effects or use prohibited terms",
+          "Provide specific operational guidance for each department (floor, marketing, loyalty)",
+          "Remove the sales pitch for additional services",
+          "Focus on operational readiness rather than campaign strategy"
+        ],
+        "dimensions": {
+          "grounding": 80,
+          "actionability": 60,
+          "completeness": 40,
+          "compliance": 10,
+          "tone": 30,
+          "launchReadiness": 10
+        }
+      }
+    },
+    {
+      "id": "owner-daily-briefing-no-data",
+      "title": "Owner daily briefing without source data",
+      "kind": "non_data",
+      "threadType": "general",
+      "configuredAgent": "auto",
+      "resolvedAgent": "puff",
+      "personaId": "puff",
+      "durationMs": 7023,
+      "response": "## Thrive Syracuse Daily Owner Briefing\n\n**Sales Performance:**\n- No sales data available for today's briefing.\n- To improve: Daily revenue, transactions, average transaction value, and top-selling categories.\n\n**Inventory Status:**\n- No current inventory data provided.\n- To improve: Stock levels of top 5 SKUs, low-stock alerts, and fast-moving products.\n\n**Marketing Activities:**\n- No marketing metrics available.\n- To improve: Campaign performance, website traffic, conversion rates, and customer acquisition cost.\n\n**Operations:**\n- No operational metrics available.\n- To improve: Staffing levels, wait times, and operational bottlenecks.\n\n**Compliance:**\n- No compliance data provided.\n- To improve: License status, upcoming renewal dates, and any pending regulatory changes.\n\n**Financial Health:**\n- No financial data available.\n- To improve: Daily P&L, cash flow status, and cost of goods sold.\n\nTo provide a materially better briefing, I would need access to:\n1. POS data (sales, transactions, product performance)\n2. Inventory management data\n3. Marketing analytics\n4. Staff scheduling and performance data\n5. Financial reports\n\nWould you like me to pull any of these specific data points to complete the briefing?",
+      "responsePreview": "## Thrive Syracuse Daily Owner Briefing **Sales Performance:** - No sales data available for today's briefing. - To improve: Daily revenue, transactions, average transaction value, and top-selling categories. **Inventor...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 75,
+        "responseReady": true,
+        "summary": "Solid briefing structure that clearly identifies missing data and specific metrics needed.",
+        "strengths": [
+          "Structured format with clear sections covering key business areas",
+          "Explicitly states what data is missing",
+          "Provides specific, actionable metrics for each section",
+          "Politely asks if specific data points should be pulled",
+          "Maintains professional tone throughout"
+        ],
+        "issues": [
+          "Could provide more context on why certain metrics matter for a dispensary owner",
+          "Doesn't suggest interim approaches when data is unavailable",
+          "Could prioritize which metrics would be most valuable to have first"
+        ],
+        "suggestedFixes": [
+          "Add brief explanations of why each metric category is important for dispensary operations",
+          "Suggest alternative approaches when data is unavailable (estimated comparisons, industry benchmarks)",
+          "Prioritize the data requests based on immediate business impact",
+          "Include a section on customer satisfaction even if metrics aren't available"
+        ],
+        "dimensions": {
+          "grounding": 90,
+          "actionability": 80,
+          "completeness": 70,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 80
+        }
+      }
+    },
+    {
+      "id": "differentiate-thrive",
+      "title": "Differentiate Thrive versus nearby stores",
+      "kind": "non_data",
+      "threadType": "market_intel",
+      "configuredAgent": "ezal",
+      "resolvedAgent": "ezal",
+      "personaId": "ezal",
+      "durationMs": 14623,
+      "response": "Alright, let's talk strategy. If you're not going to win on price, you need to dominate on experience. Here's how Thrive Syracuse can carve out a unique position:\n\n**Experience Differentiation:**\n1. **Educational Focus** - Become the go-to learning hub. Host strain workshops, consumption method tutorials, and cannabinoid education sessions. Most dispensaries just sell product; you build community knowledge.\n\n2. **Curated Selection** - Instead of having everything, be the best at specific niches. If you excel in high-CBD products or rare sativas, own that category. Specialists beat generalists.\n\n3. **Ambiance Matters** - Create an environment that feels premium yet approachable. Think upscale but not intimidating. Comfortable consultation areas, proper lighting, and knowledgeable budtenders who don't rush customers.\n\n**Service Excellence:**\n1. **Personalization** - Implement a client preference system (discreetly) to remember purchase history and make relevant recommendations. \"You liked that last indica, have you tried this similar new batch?\"\n\n2. **Convenience Options** - Offer curbside pickup, delivery, or pre-order online. Busy professionals will pay a premium for time savings.\n\n3. **Loyalty with Benefits** - Don't just do points. Offer exclusive access to new strains, members-only events, or partnerships with local wellness businesses.\n\n**Community Connection:**\n1. **Local Partnerships** - Collaborate with Syracuse gyms, yoga studios, health food stores. Cross-promotion builds your brand beyond cannabis.\n\n2. **Transparent Sourcing** - Highlight local growers and your quality control process. People pay more when they trust where their product comes from.\n\n3. **Event Hosting** - Regular cannabis education classes, local artist showcases, or charity fundraisers. Make your store a destination.\n\n**Operational Edge:**\n1. **Staff Expertise** - Your budtenders should be able to discuss terpenes, consumption methods, and dosing knowledge better than anyone else. Invest in training.\n\n2. **Packaging Innovation** - Offer eco-friendly options, child-safe containers, or even premium storage solutions as upsell items.\n\n3. **Tech Integration** - Mobile app for ordering, AR experiences to learn about products, or in-store kiosks for private browsing.\n\nThe key is to create such a strong value proposition that price becomes secondary to the experience you provide. Make customers feel like they're getting something unique they can't find elsewhere, even if it costs a bit more.\n\nWhich of these areas feels most aligned with what you're already doing well?",
+      "responsePreview": "Alright, let's talk strategy. If you're not going to win on price, you need to dominate on experience. Here's how Thrive Syracuse can carve out a unique position: **Experience Differentiation:** 1. **Educational Focus**...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Strong differentiation strategy focusing on experience, service, community, and operational excellence.",
+        "strengths": [
+          "Provides multiple clear differentiation strategies beyond price",
+          "Offers actionable and specific recommendations",
+          "Maintains professional tone while being practical",
+          "Avoids medical claims and compliance red flags"
+        ],
+        "issues": [
+          "Could benefit from more specific examples relevant to the Syracuse market",
+          "Lacks any data points to strengthen recommendations",
+          "Some suggestions might require significant investment without ROI considerations"
+        ],
+        "suggestedFixes": [
+          "Include local Syracuse examples or partnerships that could be implemented",
+          "Add a brief section on measuring the ROI of these differentiation strategies",
+          "Include 1-2 quick wins that could be implemented immediately before larger initiatives"
+        ],
+        "dimensions": {
+          "grounding": 70,
+          "actionability": 90,
+          "completeness": 85,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 80
+        }
+      }
+    },
+    {
+      "id": "no-verified-competitor-data",
+      "title": "No verified competitor data honesty check",
+      "kind": "non_data",
+      "threadType": "market_intel",
+      "configuredAgent": "ezal",
+      "resolvedAgent": "ezal",
+      "personaId": "ezal",
+      "durationMs": 7120,
+      "response": "I don't have verified data on Vibe's current pricing to make a direct comparison. \n\nTo answer this question responsibly, you would need to:\n\n1. Check Vibe's current prices on their website or visit them in person\n2. Compare their prices for specific products we carry\n3. Note any promotions or discounts they might be running\n\nWithout verified competitor data, I can't tell you if we're cheaper than Vibe this week. If you can get me their current price list or specific prices for comparison items, I can help analyze where we stand relative to them.",
+      "responsePreview": "I don't have verified data on Vibe's current pricing to make a direct comparison. To answer this question responsibly, you would need to: 1. Check Vibe's current prices on their website or visit them in person 2. Compar...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Clear and honest response about lack of verified competitor data with responsible guidance.",
+        "strengths": [
+          "Immediately acknowledges lack of verified data",
+          "Provides concrete, actionable steps for the owner",
+          "Maintains professional and helpful tone",
+          "Avoids making unfounded claims about competitor pricing"
+        ],
+        "issues": [
+          "Could be more specific about what constitutes 'verified data' for future reference"
+        ],
+        "suggestedFixes": [
+          "Briefly define what would be considered verified data (e.g., official price lists, direct observation) to set clear expectations"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "partial-table-analysis",
+      "title": "Partial table analysis from visible rows only",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "auto",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 7116,
+      "response": "Looking at this inventory data, I see opportunities to move product and protect margins.\n\n**Immediate actions:**\n\n1. **Heady Tree Gelato (180 days on hand)**: This is sitting for 6 months! With a gross margin of 58% ($20.80 retail - $15.20 cost), we have room to maneuver. Run a \"Buy 2 Get 1 Free\" promo to move this slow-mover quickly.\n\n2. **Ayrloom Blood Orange Gummies (94 days on hand)**: Margins are slimmer at 65% ($12.90 retail - $7.10 cost). Create a bundle with another medium-seller to increase velocity without discounting the unit price.\n\n**Data I need next:**\n- COGS breakdown by supplier (to identify negotiation leverage)\n- Sales velocity trends over the last 90 days\n- Competitive pricing landscape for these SKUs\n\nWhat's the cost structure on these top suppliers? If we can lower the unit cost even slightly on these slow-movers, we'll have more margin flexibility for promotions.",
+      "responsePreview": "Looking at this inventory data, I see opportunities to move product and protect margins. **Immediate actions:** 1. **Heady Tree Gelato (180 days on hand)**: This is sitting for 6 months! With a gross margin of 58% ($20....",
+      "toolCalls": [],
+      "grade": {
+        "grade": "poor",
+        "score": 45,
+        "responseReady": false,
+        "summary": "Failed to use the limited data properly and made incorrect margin calculations.",
+        "strengths": [
+          "Identified slow-moving products correctly",
+          "Suggested promotional strategies"
+        ],
+        "issues": [
+          "Incorrectly calculated gross margins (showed 58% for Heady Tree Gelato when it's actually 58% on retail price)",
+          "Incorrectly stated margin for Ayrloom Blood Orange Gummies as 65%",
+          "Didn't acknowledge the limitation of only having partial data",
+          "Made recommendations beyond what the data shows",
+          "Requested additional data without explaining why it's needed for the current analysis"
+        ],
+        "suggestedFixes": [
+          "Correct the margin calculations based on the actual data provided",
+          "Acknowledge that this is a partial dataset and that recommendations are based on limited information",
+          "Focus only on what can be determined from the visible rows",
+          "Explain why additional data would be helpful for more comprehensive analysis",
+          "Provide more concrete, actionable recommendations based solely on the provided data"
+        ],
+        "dimensions": {
+          "grounding": 30,
+          "actionability": 60,
+          "completeness": 50,
+          "compliance": 100,
+          "tone": 70,
+          "launchReadiness": 40
+        }
+      }
+    },
+    {
+      "id": "multi-turn-sale-to-email",
+      "title": "Multi-turn sale to email + SMS",
+      "kind": "multi_turn",
+      "threadType": "outreach",
+      "configuredAgent": "craig",
+      "resolvedAgent": "craig",
+      "personaId": "craig",
+      "durationMs": 16208,
+      "response": "### Campaign Strategy\nA flash sale targeting edibles and pre-rolls for Friday afternoon. Focus on creating urgency with time-sensitive offers while staying compliant with cannabis advertising regulations.\n\n### Target Segment\nCustomers with previous purchase history of edibles or pre-rolls (when POS is linked) OR general cannabis users interested in consumption methods (when POS is not linked).\n\n### Creative Variations\n\n**Email:**\n**Subject:** Flash Friday: 15% Off Edibles & Pre-Rolls - Today Only!\n\n**Body (Professional):**\nFlash Friday just got better! For this afternoon only, enjoy 15% off all edibles and pre-rolls. Perfect for weekend plans or your well-deserved relaxation. \n\nSelect strains and flavors while supplies last - this exclusive offer expires at midnight tonight.\n\n[Shop Now]\n*Discount applied at checkout. Offer valid until midnight Friday.*\n\n**SMS (Compliant):**\nFlash Friday Flash Sale! 15% OFF edibles & pre-rolls today only! Tap to shop weekend essentials before midnight. [Link]\n*Standard rates apply. Must be 21+. Expire midnight.*\n\n---\n\n**Email:**\n**Subject:** 🔥 Your Weekend Buzz Awaits: 15% Off Edibles & Pre-Rolls!\n\n**Body (Hype):**\nFIRE SALE ALERT! This Friday afternoon only - score 15% OFF our entire collection of edibles and pre-rolls! \n\nWeekend plans just got upgraded 🔥 Grab your favorites before they're gone - this deal vanishes at midnight!\n\n[Shop The Sale]\n*Limited time offer while supplies last. Discount applied at checkout.*\n\n**SMS (Compliant):**\n🔥 FLASH SALE! 15% OFF edibles & pre-rolls TODAY only! Get weekend ready ⚡ Tap to shop before midnight! [Link]\n*Standard rates apply. Must be 21+. Expire midnight.*\n\n---\n\n**Email:**\n**Subject:** Smart Friday: 15% Off Edibles & Pre-Rolls\n\n**Body (Educational):**\nThis Friday, enjoy smarter consumption with 15% off our premium edibles and pre-rolls. \n\nWhether you're seeking precise dosing or the convenience of pre-rolled joints, our curated selection offers quality and consistency. \n\nExplore our collection now - this educational offer expires at midnight tonight.\n\n[Discover Quality]\n*Discount applied at checkout. Offer valid until midnight Friday.*\n\n**SMS (Compliant):**\nSmart Friday deal! 15% OFF edibles & pre-rolls today only. Discover quality options ⚡ [Link]\n*Standard rates apply. Must be 21+. Expire midnight.*\n\n---\n\nThese drafts are ready for implementation across email and SMS channels. Would you like me to set up this flash sale as a recurring playbook for future Friday promotions?",
+      "responsePreview": "### Campaign Strategy A flash sale targeting edibles and pre-rolls for Friday afternoon. Focus on creating urgency with time-sensitive offers while staying compliant with cannabis advertising regulations. ### Target Seg...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Well-structured campaign with compliant messaging but lacks specific customer targeting.",
+        "strengths": [
+          "Multiple creative variations with different tones",
+          "Clear compliance messaging in all SMS drafts",
+          "Proper discount percentage within guidelines",
+          "Urgency creation with time-sensitive language",
+          "Professional formatting and structure"
+        ],
+        "issues": [
+          "No specific customer segmentation beyond vague previous purchases",
+          "Missing integration details for POS system",
+          "No personalization elements suggested",
+          "Limited explanation of why these variations were chosen"
+        ],
+        "suggestedFixes": [
+          "Add specific customer segments based on purchase history",
+          "Include A/B testing recommendations for the variations",
+          "Add timing suggestions for email/SMS send times",
+          "Provide implementation guidance for POS integration"
+        ],
+        "dimensions": {
+          "grounding": 80,
+          "actionability": 75,
+          "completeness": 70,
+          "compliance": 95,
+          "tone": 85,
+          "launchReadiness": 80
+        }
+      }
+    },
+    {
+      "id": "multi-turn-budtender-brief",
+      "title": "Multi-turn budtender brief",
+      "kind": "multi_turn",
+      "threadType": "product_discovery",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 12038,
+      "response": "Daytime Product Talking Points - 5 Bullet Card\n\n• Daytime Experience: Focus on limonene- and pinene-forward strains that are typically associated with alertness and focus\n• Terpene Guide: Pinene = crisp, forest notes; limonene = bright, citrus aromas - both ideal for daytime use occasions\n• Strain Suggestions: Lead with Sativa-dominant and hybrid options like [specific strain examples from menu]\n• Customer Language: \"This has a bright, energetic profile typical of daytime strains\" instead of \"This will wake you up\"\n• Confidence Boost: Train your eye to spot terpene labels and know which profiles match the experience the customer is seeking",
+      "responsePreview": "Daytime Product Talking Points - 5 Bullet Card • Daytime Experience: Focus on limonene- and pinene-forward strains that are typically associated with alertness and focus • Terpene Guide: Pinene = crisp, forest notes; li...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 75,
+        "responseReady": true,
+        "summary": "Solid operational guidance with minor gaps in specificity.",
+        "strengths": [
+          "Clear structure with 5 actionable bullets",
+          "Appropriate terpene-focused guidance",
+          "Good language coaching for budtenders"
+        ],
+        "issues": [
+          "Missing specific strain examples from the menu",
+          "No specific coaching techniques for budtenders"
+        ],
+        "suggestedFixes": [
+          "Add actual strain names from current menu for immediate reference",
+          "Include 1-2 specific coaching techniques for the morning briefing"
+        ],
+        "dimensions": {
+          "grounding": 80,
+          "actionability": 70,
+          "completeness": 65,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 70
+        }
+      }
+    },
+    {
+      "id": "operator-pairings-no-medical",
+      "title": "Operator pairings without medical claims",
+      "kind": "non_data",
+      "threadType": "product_discovery",
+      "configuredAgent": "smokey",
+      "resolvedAgent": "smokey",
+      "personaId": "smokey",
+      "durationMs": 25751,
+      "response": "I'd be happy to help you create evening gummy pairings without medical claims! Let me suggest some grounded combinations based on common cannabis product characteristics:\n\nEvening Gummy Pairings & Talking Points:\n\n1. [🌙] Indica-Dominant Flower (e.g., Granddaddy Purple)\n   \"Our evening gummies pair beautifully with classic indica-dominant strains like GDP. This combination offers a myrcene-forward profile that many customers associate with evening wind-down rituals. The different consumption methods provide varied sensory experiences.\"\n\n2. [🍃] CBN + CBD Tincture\n   \"Pairing evening gummies with a CBN/CBD tincture creates a multi-format experience. CBN is a cannabinoid that naturally develops as THC ages, and many customers appreciate the combination of edibles and sublingual products for different onset times and duration profiles.\"\n\n3. [💨] Pre-Roll with Linalool Terpenes\n   \"Our evening gummies complement pre-rolls featuring linalool-dominant strains. This pairing offers two different consumption methods with terpene profiles that customers often connect to evening occasions. The immediate effects of a pre-roll can complement the slower release of gummies.\"\n\n4. [🔥] Kief-Infused Dark Chocolate\n   \"The rich, complex profile of kief-infused chocolate creates an interesting textural contrast with our gummies. Both products offer decarboxylated cannabinoids but with different flavor experiences and onset times, giving customers multiple pathways to their desired effects.\"\n\n5. [🧪] Live Resin Vape Pen with Myrcene\n   \"Vape pens with myrcene-forward profiles complement evening gummies by providing an immediate option alongside the delayed effects of edibles. This pairing offers flexibility in consumption method while maintaining terpene consistency.\"\n\nTalking Points to Avoid:\n- Never suggest products \"help with\" sleep, relaxation, or anxiety\n- Don't claim combinations will \"enhance\" or \"improve\" effects\n- Avoid comparing products based on potency claims\n\nInstead, focus on:\n- Terpene profiles and aroma characteristics\n- Different consumption methods and experience profiles\n- Duration and onset timing differences\n- Flavor and texture contrasts\n- Occasion-based pairings based on customer preferences\n\nWould you like me to develop specific talking points for any of these pairings?",
+      "responsePreview": "I'd be happy to help you create evening gummy pairings without medical claims! Let me suggest some grounded combinations based on common cannabis product characteristics: Evening Gummy Pairings & Talking Points: 1. [🌙]...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Strong compliance-focused pairing suggestions with actionable talking points.",
+        "strengths": [
+          "Excellent compliance awareness by explicitly avoiding medical claims",
+          "Clear, product-focused talking points that highlight terpenes and consumption methods",
+          "Well-structured pairing suggestions with varied product types",
+          "Helpful guidance on what to avoid versus what to focus on",
+          "Professional tone appropriate for dispensary staff"
+        ],
+        "issues": [
+          "Could provide more specific budtender training language for implementation",
+          "Might benefit from examples of how to explain these pairings to customers in simple terms",
+          "No guidance on how to handle customer questions about effects without crossing into medical claims"
+        ],
+        "suggestedFixes": [
+          "Add sample dialogues showing budtenders how to explain these pairings to customers",
+          "Include brief guidance on responding to common customer questions about effects while staying compliant",
+          "Consider adding 1-2 more unique pairing options to increase variety"
+        ],
+        "dimensions": {
+          "grounding": 90,
+          "actionability": 75,
+          "completeness": 80,
+          "compliance": 95,
+          "tone": 90,
+          "launchReadiness": 85
+        }
+      }
+    },
+    {
+      "id": "exact-slowest-movers-no-data",
+      "title": "Exact slow movers prompt with no data",
+      "kind": "non_data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "auto",
+      "resolvedAgent": "puff",
+      "personaId": "puff",
+      "durationMs": 7424,
+      "response": "I'm ready to discuss your slowest movers to create targeted promotions. To provide the most effective bundle deals and promotional content, I'll need to see your current inventory data.\n\nCould you please share:\n1. Your POS inventory report or data showing slow-moving items\n2. Cost per unit and retail price points for these items\n3. Current on-hand quantities for each product\n4. Any relevant age or expiration data if available\n\nOnce I have this information, I can analyze the inventory and develop strategic promotions to move excess stock while protecting your margins.",
+      "responsePreview": "I'm ready to discuss your slowest movers to create targeted promotions. To provide the most effective bundle deals and promotional content, I'll need to see your current inventory data. Could you please share: 1. Your P...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 75,
+        "responseReady": true,
+        "summary": "Good response that appropriately requests needed data while acknowledging the task.",
+        "strengths": [
+          "Correctly identifies need for inventory data to address slow movers",
+          "Professional and appropriate tone for a dispensary operator",
+          "Provides clear structure for what data is needed",
+          "Maintains compliance without making medical claims",
+          "Acknowledges the promotional intent of the conversation"
+        ],
+        "issues": [
+          "Doesn't address the fact that no data was provided in the prompt",
+          "Could acknowledge that this is a starting point for the conversation",
+          "Could offer some general initial strategies while waiting for data"
+        ],
+        "suggestedFixes": [
+          "Add acknowledgment that no data was provided yet",
+          "Include one or two general initial strategies that could be implemented immediately",
+          "Reframe as a starting point for the discussion rather than just a data request"
+        ],
+        "dimensions": {
+          "grounding": 60,
+          "actionability": 50,
+          "completeness": 70,
+          "compliance": 95,
+          "tone": 85,
+          "launchReadiness": 70
+        }
+      }
+    }
+  ]
+}

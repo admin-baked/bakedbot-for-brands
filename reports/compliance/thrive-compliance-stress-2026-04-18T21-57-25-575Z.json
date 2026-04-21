@@ -1,0 +1,397 @@
+{
+  "generatedAt": "2026-04-18T21:57:25.575Z",
+  "filters": {
+    "difficulty": "advanced",
+    "category": "licensing"
+  },
+  "totalCases": 10,
+  "averageScore": 89.4,
+  "readyCount": 10,
+  "results": [
+    {
+      "id": "ny-caurd-vs-aucc",
+      "title": "NY CAURD vs AUCC license difference",
+      "state": "NY",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 7848,
+      "response": "In New York, the CAURD (Conditional Adult-Use Retail Dispensary) license and the AUCC (Adult-Use Conditional Cultivator) license are two distinct types of cannabis licenses with different purposes and requirements.\n\n**CAURD License:**\n- Allows the holder to operate a retail dispensary for adult-use (recreational) cannabis sales\n- Focuses on retail operations and sales to consumers\n- These licenses were prioritized for individuals with prior marijuana convictions or those from communities disproportionately impacted by cannabis enforcement\n- Permits the sale of cannabis products to adults 21+ with valid ID\n- Involves storefront operations with strict security requirements\n\n**AUCC License:**\n- Allows the holder to cultivate (grow) cannabis for the adult-use market\n- Focuses on cultivation operations rather than retail sales\n- Permits the growing, harvesting, drying, curing, and trimming of cannabis plants\n- May be operated independently or may supply cannabis to retailers (including CAURD licensees)\n- Involves agricultural/zoning considerations rather than retail storefront requirements\n\n**Key Differences:**\n1. **Primary Function:** CAURD is for retail sales; AUCC is for cultivation\n2. **Location Requirements:** CAURD requires retail/commercial zoning; AUCC requires agricultural/industrial zoning\n3. **Regulatory Oversight:** Both are regulated by the Office of Cannabis Management (OCM), but have different compliance requirements\n4. **Revenue Streams:** CAURDs generate revenue through direct sales to consumers; AUCCs generate revenue through selling to other licensees or potentially directly to consumers in some cases\n\nIf you're considering applying for either license type, I strongly recommend consulting with a cannabis licensing attorney familiar with New York's specific regulations, as the application processes and requirements differ significantly.",
+      "responsePreview": "In New York, the CAURD (Conditional Adult-Use Retail Dispensary) license and the AUCC (Adult-Use Conditional Cultivator) license are two distinct types of cannabis licenses with different purposes and requirements. **CA…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate explanation of CAURD vs AUCC licenses with appropriate caveats.",
+        "strengths": [
+          "Accurately distinguishes between the two license types",
+          "Clearly addresses the operator's question about differences",
+          "Includes key differences in function, location, oversight, and revenue",
+          "Appropriately references CAURD and OCM as required",
+          "Provides concrete action item to consult with an attorney",
+          "Professional and clear tone"
+        ],
+        "issues": [
+          "Minor completeness could be added - could briefly mention if there are any connections or pathways between license types"
+        ],
+        "suggestedFixes": [
+          "Consider briefly noting if there are any vertical integration possibilities or partnerships between CAURD and AUCC licensees"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 90,
+          "actionability": 95,
+          "tone": 100,
+          "completeness": 85
+        }
+      }
+    },
+    {
+      "id": "ca-type-10-vs-10a",
+      "title": "CA Type 10 vs Type 10A license",
+      "state": "CA",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 5940,
+      "response": "In California, Type 10 and Type 10A licenses serve different retail functions in the cannabis market:\n\n**Type 10 Retailer License:**\n- Allows for traditional retail sales at a physical storefront location\n- Permits customers to purchase cannabis products on-site\n- May include consumption lounges if approved by the local jurisdiction\n- Requires a physical location that meets zoning requirements\n- Allows for both in-store pickup and potentially delivery services (if the local jurisdiction permits delivery)\n\n**Type 10A Delivery-Only License:**\n- Allows for delivery services only - no physical storefront or retail sales location\n- Cannot have a point of sale at a physical location\n- Must operate through a delivery-only model\n- May maintain inventory and administrative offices, but these cannot be used for retail sales\n\n**Key Differences:**\n- Physical presence: Type 10 requires a retail store; Type 10A does not\n- Sales method: Type 10 can include in-store sales; Type 10A is delivery-only\n- Inventory management: Both can maintain inventory, but Type 10A cannot sell directly from their inventory location\n- Zoning requirements: Type 10 must comply with retail zoning; Type 10A has different location requirements\n\nBoth license types must comply with California's strict packaging, labeling, testing, and tracking requirements through the track-and-trace system.\n\nRemember that local jurisdictions may have additional requirements or restrictions that apply to both license types.",
+      "responsePreview": "In California, Type 10 and Type 10A licenses serve different retail functions in the cannabis market: **Type 10 Retailer License:** - Allows for traditional retail sales at a physical storefront location - Permits custo…",
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Comprehensive explanation of Type 10 vs Type 10A license differences in California.",
+        "strengths": [
+          "Clear distinction between license types",
+          "Directly addresses the key differences",
+          "Well-structured and easy to understand",
+          "Includes important regulatory context",
+          "References required license types",
+          "Includes key differentiating factors"
+        ],
+        "issues": [
+          "Could add more specific regulatory citations",
+          "Mention of DCC could be more explicit",
+          "Could address how operators might choose between license types"
+        ],
+        "suggestedFixes": [
+          "Add specific California Cannabis Control (CCC) regulation references",
+          "Explicitly mention Delivery-Only Cannabis (DOC) requirements",
+          "Include guidance on operational considerations for each license type",
+          "Add information about conversion between license types if applicable"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 85,
+          "actionability": 85,
+          "tone": 95,
+          "completeness": 85
+        }
+      }
+    },
+    {
+      "id": "co-vertical-integration",
+      "title": "CO vertical integration — retailer and cultivator",
+      "state": "CO",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 5671,
+      "response": "In Colorado, yes, a cannabis retailer can also hold a cultivation license. Colorado allows for vertical integration, meaning a single entity can hold multiple types of licenses, including both cultivation and retail.\n\nUnder the Colorado Marijuana Enforcement Division (MED) rules, vertical integration works as follows:\n\n1. License Types: You can apply for and hold multiple license types simultaneously (cultivation, retail, infused products manufacturer, etc.) as long as you meet the specific requirements for each.\n\n2. Ownership: The same ownership group can control multiple license types, but each license must be applied for separately and meet all location requirements.\n\n3. Product Flow: Cultivated product grown by vertically integrated businesses can be sold directly at their retail locations, but must still go through the required METRC (seed-to-sale tracking) system.\n\n4. Record Keeping: Vertically integrated businesses must maintain separate records for each license type and follow specific requirements for each.\n\n5. Personnel: Some personnel may need separate registrations for different license types, and owners must meet residency requirements for each license held.\n\nImportant considerations:\n- Vertical integration doesn't exempt you from any regulatory requirements\n- You must still comply with all possession, plant count, and operational limits specific to each license type\n- Local regulations (city/county) may have additional restrictions on vertical integration\n\nFor specific operational details and current requirements, I recommend consulting directly with the Colorado Marijuana Enforcement Division or a cannabis compliance attorney familiar with Colorado regulations, as these rules can be complex and subject to change.",
+      "responsePreview": "In Colorado, yes, a cannabis retailer can also hold a cultivation license. Colorado allows for vertical integration, meaning a single entity can hold multiple types of licenses, including both cultivation and retail. Un…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent response providing accurate, actionable information on Colorado's vertical integration rules with appropriate caveats.",
+        "strengths": [
+          "Accurately confirms that vertical integration is allowed in Colorado",
+          "Clearly explains how vertical integration works under MED rules",
+          "Provides specific details about license types, ownership, product flow, record keeping, and personnel",
+          "Includes important considerations about compliance with all regulations",
+          "Appropriately recommends consulting with MED or a compliance attorney for complex matters",
+          "Professional, direct, and clear tone",
+          "Directly references MED and license as required"
+        ],
+        "issues": [
+          "No specific statute numbers mentioned (not necessarily a problem, but could be helpful for advanced users)"
+        ],
+        "suggestedFixes": [
+          "For more advanced users, could consider adding specific references to Colorado statutes or MED regulations that govern vertical integration"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 90,
+          "actionability": 95,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "il-caudo-license",
+      "title": "IL Conditional Adult-Use Dispensing Organization (CAUDO)",
+      "state": "IL",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 6603,
+      "response": "In Illinois, a Conditional Adult-Use Dispensing Organization (CAUDO) is a type of license granted to eligible applicants who have been previously denied or had their cannabis license applications revoked, but demonstrate they have taken significant steps to rectify the issues that led to the denial or revocation.\n\nKey differences between a CAUDO and a standard dispensary license:\n\n1. **Conditional Status**: CAUDOs operate under specific conditions and requirements beyond those of standard dispensary licenses. These conditions are outlined in the license agreement and must be strictly followed.\n\n2. **Application Path**: Standard dispensary licenses are typically awarded through the state's lottery system or through the social equity program. CAUDOs are specifically for applicants who had previous applications denied or revoked.\n\n3. **Enhanced Scrutiny**: CAUDOs receive heightened scrutiny from the Illinois Cannabis Regulation (IDC) and are subject to more frequent inspections and reporting requirements.\n\n4. **License Term**: CAUDOs typically have a shorter initial license term compared to standard dispensaries.\n\n5. **Requirements**: CAUDOs must implement comprehensive compliance plans, employee training programs, and may have additional security requirements.\n\n6. **Renewal Process**: Renewing a CAUDO license typically involves demonstrating compliance with all the conditions of the license, which can be more stringent than standard renewal requirements.\n\n7. **Fee Structure**: CAUDOs may have different fee structures than standard dispensary licenses, often with higher initial application and renewal fees.\n\nI strongly recommend consulting with a cannabis compliance attorney familiar with Illinois regulations before pursuing either license type, as the regulatory landscape continues to evolve and specific requirements can change. The Illinois Department of Financial and Professional Regulation (IDFPR) website should be referenced for the most current licensing information.",
+      "responsePreview": "In Illinois, a Conditional Adult-Use Dispensing Organization (CAUDO) is a type of license granted to eligible applicants who have been previously denied or had their cannabis license applications revoked, but demonstrat…",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate explanation of CAUDO licenses with appropriate caveats.",
+        "strengths": [
+          "Accurate explanation of CAUDO purpose and requirements",
+          "Clear comparison with standard dispensary licenses",
+          "Strong recommendation to consult with compliance attorney",
+          "Proper reference to regulatory bodies (IDFPR, IDC)",
+          "Professional and clear tone"
+        ],
+        "issues": [
+          "Could provide more specific examples of 'rectified issues'",
+          "License term specifics not mentioned"
+        ],
+        "suggestedFixes": [
+          "Include examples of common reasons for previous denials that CAUDOs address",
+          "Mention typical license term lengths for both license types"
+        ],
+        "dimensions": {
+          "accuracy": 98,
+          "caveats": 95,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 88
+        }
+      }
+    },
+    {
+      "id": "il-social-equity-criteria",
+      "title": "IL social equity applicant criteria",
+      "state": "IL",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 6180,
+      "response": "In Illinois, social equity applicants are defined in the Cannabis Regulation and Tax Act (CRTA) and are subject to specific criteria. Here are the qualifications:\n\nTo be considered a social equity applicant in Illinois, an individual or entity must meet at least one of the following criteria:\n\n1. Have been arrested, convicted, or adjudicated delinquent for a cannabis-related offense that is no longer illegal\n2. Have a close relative (parent, child, spouse, or sibling) who was similarly affected\n3. Reside in an \"Disproportionately Impaired Area\" (DIA) - census tracts with high rates of arrest or incarceration for cannabis offenses\n4. Have an individual income at or below 400% of the federal poverty level ($124,800 for a family of four as of 2023)\n5. Have been a resident of Illinois for at least 5 years\n\nFor ownership purposes, social equity applicants must own at least 10% of the licensed business, and businesses with social equity ownership receive certain benefits, including:\n\n- Priority in the licensing process\n- Reduced application fees\n- Technical assistance and training programs\n\nNote that social equity applicants may be required to provide documentation verifying their eligibility, such as court records, address verification, or income documentation.\n\nI recommend verifying the most current requirements with the Illinois Cannabis Regulation Oversight Office as regulations and specific requirements may change.",
+      "responsePreview": "In Illinois, social equity applicants are defined in the Cannabis Regulation and Tax Act (CRTA) and are subject to specific criteria. Here are the qualifications: To be considered a social equity applicant in Illinois, …",
+      "grade": {
+        "grade": "good",
+        "score": 83,
+        "responseReady": true,
+        "summary": "Comprehensive coverage of Illinois social equity criteria with good actionability and appropriate caveats.",
+        "strengths": [
+          "Completely and accurately lists all five qualifying criteria for social equity applicants",
+          "Provides clear ownership requirements (10% minimum)",
+          "Includes benefits of social equity ownership (priority licensing, reduced fees, technical assistance)",
+          "Appropriately recommends verifying with regulatory body",
+          "Mentions documentation requirements",
+          "Professional and direct tone"
+        ],
+        "issues": [
+          "Could more explicitly define CCB (Cannabis Control Board) as it's a required reference",
+          "Does not mention IDFPR (Illinois Department of Financial and Professional Regulation) which is relevant to licensing",
+          "The 400% federal poverty level detail might be unnecessarily specific for a general overview"
+        ],
+        "suggestedFixes": [
+          "Add brief definition of CCB in relation to social equity licensing",
+          "Mention IDFPR's role in the licensing process",
+          "Consider generalizing the income threshold to avoid potential rapid obsolescence"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 85,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 75
+        }
+      }
+    },
+    {
+      "id": "ma-host-community-agreement",
+      "title": "MA Host Community Agreement (HCA) requirement",
+      "state": "MA",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 5329,
+      "response": "In Massachusetts, a Host Community Agreement (HCA) is a legally binding contract between a cannabis establishment applicant and the local municipality where the proposed business will be located. These agreements are mandated under Massachusetts law (M.G.L. c. 94G, § 7) for all cannabis establishments, including dispensaries, cultivation facilities, and product manufacturers.\n\nThe HCA typically covers:\n- Local zoning compliance\n- Traffic and parking mitigation\n- Security measures\n- Community benefit payments (often a percentage of gross receipts)\n- Employment requirements (hiring locally)\n- Hours of operation\n- Noise and odor control\n\nWhy it matters for getting a dispensary license:\n1. **Legal requirement**: No cannabis license can be issued in Massachusetts without an executed HCA.\n2. **Local approval**: Your application will be denied if the local board of health or licensing authority doesn't approve your agreement.\n3. **Competitive advantage**: Having an HCA in place is often required before your application can be considered by the Cannabis Control Commission (CCC).\n4. **Community relations**: A well-structured HCA shows the local community that you're a responsible operator committed to addressing local concerns.\n\nThe CCC provides model language for HCAs, but each municipality negotiates terms specific to their community and expectations. I strongly recommend consulting with a cannabis attorney familiar with Massachusetts regulations to help negotiate your HCA, as these agreements can significantly impact your business operations and profitability.",
+      "responsePreview": "In Massachusetts, a Host Community Agreement (HCA) is a legally binding contract between a cannabis establishment applicant and the local municipality where the proposed business will be located. These agreements are ma…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent response that accurately explains HCAs and their importance for dispensary licensing in Massachusetts.",
+        "strengths": [
+          "Accurately defines HCA and its legal basis",
+          "Clearly explains why HCAs matter for licensing",
+          "Provides concrete list of typical HCA components",
+          "Includes necessary reference to CCC",
+          "Appropriately recommends consulting with an attorney",
+          "Professional and direct tone"
+        ],
+        "issues": [
+          "Minor issue: Could be more specific about the role of the Cannabis Control Commission in HCA approval"
+        ],
+        "suggestedFixes": [
+          "Add brief note about CCC's review role in HCA approval process to further clarify the full licensing workflow"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 90,
+          "actionability": 95,
+          "tone": 95,
+          "completeness": 95
+        }
+      }
+    },
+    {
+      "id": "nj-social-equity-criteria",
+      "title": "NJ social equity applicant criteria and benefits",
+      "state": "NJ",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 6610,
+      "response": "In New Jersey, the Social Equity Program is designed to provide opportunities for individuals and communities disproportionately impacted by past cannabis policies to participate in the legal cannabis industry.\n\n**Social Equity Applicant Qualifications:**\n\nNew Jersey's Social Equity Program (as per the Cannabis Regulatory, Enforcement Assistance, and Marketplace Modernization Act - CREMMA) includes several qualifying categories:\n\n1. **Low-Income Individuals**: Those with an annual household income at or below 80% of the state median income\n\n2. **Past Cannabis Conviction Individuals**: Those who have been arrested or convicted for cannabis offenses (excluding major drug offenses or those involving violence)\n\n3. **Impact Zone Residents**: Individuals who have lived in areas disproportionately affected by cannabis enforcement, designated as \"Impact Zones\" by the Cannabis Regulatory Commission\n\n4. **Disabled Veterans**: Veterans with service-connected disabilities\n\n**Benefits and Advantages:**\n\nSocial equity applicants receive several benefits in New Jersey's cannabis licensing process:\n\n1. **Application Fee Waivers**: Reduced or waived application fees\n\n2. **Priority Review**: Applications from social equity applicants are given priority processing\n\n3. **Technical Assistance**: Access to business development and technical support resources\n\n4. **Mentorship Programs**: Opportunities to be paired with experienced industry professionals\n\n5. **Lower Financial Requirements**: Reduced capital requirements for some license types\n\n6. **License Set-Aside**: A portion of licenses are specifically reserved for social equity applicants\n\nThe specific benefits may vary depending on the license type (cultivator, manufacturer, distributor, retailer, etc.) and the individual's qualification category.\n\nFor the most current and detailed information, I recommend checking directly with the New Jersey Cannabis Regulatory Commission (CRC) website or consulting with a cannabis-focused attorney familiar with NJ regulations, as these programs can evolve and have specific requirements and documentation needs.",
+      "responsePreview": "In New Jersey, the Social Equity Program is designed to provide opportunities for individuals and communities disproportionately impacted by past cannabis policies to participate in the legal cannabis industry. **Social…",
+      "grade": {
+        "grade": "good",
+        "score": 82,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate information on NJ social equity criteria with appropriate caveats.",
+        "strengths": [
+          "Correctly identified the CRC as the governing body",
+          "Accurately listed all major qualifying categories",
+          "Clearly outlined benefits including fee waivers and priority processing",
+          "Included appropriate caveat about verifying with CRC and attorney"
+        ],
+        "issues": [
+          "Mentioned 'CREMMA' but didn't clearly reference CRC in the acronym explanation",
+          "Could provide more specific details about impact zones designation"
+        ],
+        "suggestedFixes": [
+          "Clarify that CREMMA = Cannabis Regulatory, Enforcement Assistance, and Marketplace Modernization Act",
+          "Add brief information about how impact zones are designated (e.g., based on arrest rates)"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 85,
+          "actionability": 85,
+          "tone": 90,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "mi-social-equity-program",
+      "title": "MI social equity program criteria and benefits",
+      "state": "MI",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 7532,
+      "response": "I'll provide you with information about Michigan's cannabis social equity program.\n\n**Michigan Cannabis Social Equity Program Criteria**\n\nEligibility for Michigan's social equity program includes:\n\n1. **Residency Requirement**: Applicants must be Michigan residents for at least 5 years prior to application.\n\n2. **Income Requirement**: Household income must be below 400% of the federal poverty level.\n\n3. **Impact Areas**: \n   - Living in a geographic area disproportionately affected by the enforcement of past cannabis laws\n   - Having prior cannabis convictions or having a household member with such convictions\n   - Having a parent, guardian, or spouse who was convicted of a cannabis-related offense\n\n4. **Business Type Requirements**:\n   - For cultivation facilities, ownership interest must be at least 51% by social equity applicants\n   - For other license types, ownership interest must be at least 65% by social equity applicants\n\n**Benefits for Eligible Applicants**\n\nThe Michigan social equity program provides several benefits:\n\n1. **Application Fee Reductions**: Reduced licensing application fees for social equity applicants.\n\n2. **Technical Assistance**: Access to business development support, technical assistance, and mentorship programs.\n\n3. **Priority Review**: Priority processing of applications from social equity applicants.\n\n4. **Access to Capital**: Enhanced opportunities for financing and investment support.\n\n5. **Lower Tax Rates**: Qualifying social equity businesses may be eligible for reduced excise tax rates on their products.\n\nNote that specific benefits and requirements may have evolved since the program's implementation. I strongly recommend checking the most current requirements on the Michigan Cannabis Regulatory Agency (CRA) website or consulting with a cannabis compliance attorney familiar with Michigan regulations.\n\nWould you like more specific information about any particular aspect of Michigan's social equity program?",
+      "responsePreview": "I'll provide you with information about Michigan's cannabis social equity program. **Michigan Cannabis Social Equity Program Criteria** Eligibility for Michigan's social equity program includes: 1. **Residency Requireme…",
+      "grade": {
+        "grade": "good",
+        "score": 80,
+        "responseReady": true,
+        "summary": "Comprehensive overview of Michigan's social equity program with appropriate structure and caveats.",
+        "strengths": [
+          "Clearly outlined criteria and benefits in an organized manner",
+          "Included appropriate caveats about verifying current requirements",
+          "Referenced the correct regulatory body (Michigan Cannabis Regulatory Agency)",
+          "Used professional and direct tone",
+          "Covered all expected topics including MRA and social equity"
+        ],
+        "issues": [
+          "Incorrect reference to CRA instead of MRA (Michigan Marijuana Regulatory Agency)",
+          "Specific percentages and thresholds should include caveats about potential changes",
+          "Lower tax rates benefit isn't clearly established in Michigan regulations"
+        ],
+        "suggestedFixes": [
+          "Correct the regulatory agency name from CRA to MRA (Michigan Marijuana Regulatory Agency)",
+          "Add more specific caveats that requirements and percentages may change",
+          "Clarify that tax benefits are proposal-dependent and not guaranteed",
+          "More explicitly mention the 'disproportionately impacted' requirement in the impact areas section"
+        ],
+        "dimensions": {
+          "accuracy": 75,
+          "caveats": 85,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 85
+        }
+      }
+    },
+    {
+      "id": "med-dual-license-operations",
+      "title": "Dual medical-adult-use license — operational separation",
+      "state": "NY",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 6715,
+      "response": "I'll address your questions about operational separation between NY medical Registered Organization (RO) and adult-use CAURD licenses.\n\n**Physical Separation Requirements:**\nNew York Office of Cannabis Management (OCM) requires clear operational separation between medical and adult-use operations. This means you need separate, distinct entrances and exits for each license type. While the specific requirements may evolve, you should expect distinct check-in/check-out areas and clearly defined sections within your dispensary to prevent commingling of the two customer bases.\n\n**Shared Waiting Areas:**\nCurrently, NY regulations require separate waiting areas for medical patients and adult-use customers. Each customer type should have their own dedicated space that doesn't overlap. This separation is crucial to maintain compliance with the distinct regulatory frameworks for each license type.\n\n**METRC Inventory Separation:**\nYes, inventory must be completely separate in METRC. You should maintain separate METRC accounts or distinct inventory categories within your METRC system for medical and adult-use products. This is critical for tracking, reporting, and regulatory compliance. The OCM will expect clear, auditable separation between the two inventories.\n\n**Staff Serving Both Customer Types:**\nThe same staff can serve both medical and adult-use customers, but there are important considerations:\n- Staff must be trained on and understand the distinct regulations for both license types\n- Medical patients may receive different purchase limits and product options\n- Staff should be able to properly verify medical documentation when required\n- There should be clear protocols to prevent accidental sharing of products or information between the two customer bases\n\nI strongly recommend reviewing your specific operational plans with your OCM compliance officer and legal counsel, as these requirements may be updated as NY's regulatory framework continues to develop.",
+      "responsePreview": "I'll address your questions about operational separation between NY medical Registered Organization (RO) and adult-use CAURD licenses. **Physical Separation Requirements:** New York Office of Cannabis Management (OCM) r…",
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate guidance on operational separation requirements for dual-licensed dispensaries in NY.",
+        "strengths": [
+          "Correctly identified and explained OCM requirements for operational separation",
+          "Provided clear guidance on physical separation requirements",
+          "Accurately addressed METRC inventory separation needs",
+          "Offered practical insights on staffing both customer types",
+          "Included appropriate caveat about verifying with compliance officer and legal counsel"
+        ],
+        "issues": [
+          "Could provide more specific details about METRC implementation (separate accounts vs categories)",
+          "No mention of RO-specific requirements beyond general separation"
+        ],
+        "suggestedFixes": [
+          "Include specific guidance on METRC implementation approach (separate accounts)",
+          "Add more details about RO-specific requirements that might affect physical separation"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 95,
+          "tone": 95,
+          "completeness": 85
+        }
+      }
+    },
+    {
+      "id": "med-high-potency-product-access",
+      "title": "Medical-only high-potency products — retail access controls",
+      "state": "CA",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 7085,
+      "response": "I'll address your question about restricting medical-only products in California, as per BCA regulations.\n\nIn California, certain cannabis products are restricted to medical patients only:\n- Concentrates with THC content exceeding 2,000 mg per package\n- Products containing more than 1,000 mg of THC per package\n- Certain formulations like tinctures and topicals with specific thresholds\n\nOperational restrictions and requirements:\n\n1. **Verification Process:**\n   - Must verify patient's Medical Marijuana Identification Card (MMIC) before selling medical-only products\n   - Use CalCannabis's online verification system to validate MMIC authenticity\n   - Maintain records of all verifications for at least 4 years\n\n2. **POS Controls:**\n   - Point-of-sale system must restrict medical-only products to verified MMIC holders only\n   - Implement age verification (21+) and MMIC verification as separate steps in POS workflow\n   - Require staff to enter MMIC number before accessing medical-only product menu\n   - Transaction records must clearly indicate medical status and MMIC verification\n\n3. **Segregation Requirements:**\n   - Medical-only products must be physically separated from adult-use products in retail display\n   - Display must be clearly marked to indicate medical-only restrictions\n   - Cannot place medical-only products in areas accessible to general public without verification\n\n4. **Staff Training:**\n   - All staff must complete specific training on medical-only product restrictions\n   - Training must include proper MMIC verification procedures and record-keeping requirements\n   - Staff must understand the difference between medical and adult-use product limitations\n   - Regular training updates when product categories or regulations change\n\nDocumentation requirements:\n- Maintain a separate log of all medical-only product sales\n- Track training completion dates for staff\n- Keep records of all MMIC verifications accessible for BCA inspections\n\nI strongly recommend reviewing the most current California Bureau of Cannabis Control regulations and consulting with a compliance officer experienced in California's dual licensing system, as these requirements are subject to change and carry significant penalties if not followed precisely.",
+      "responsePreview": "I'll address your question about restricting medical-only products in California, as per BCA regulations. In California, certain cannabis products are restricted to medical patients only: - Concentrates with THC content…",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive response covering all operational aspects of medical-only product restrictions with appropriate caveats.",
+        "strengths": [
+          "Excellent accuracy with specific potency thresholds and operational requirements",
+          "Clear actionability with concrete steps for verification, POS controls, segregation, and training",
+          "Professional tone that is direct and authoritative yet helpful",
+          "Comprehensive coverage of all aspects of the question",
+          "Strong caveat recommending verification of current regulations and consultation with compliance professionals"
+        ],
+        "issues": [
+          "Could provide more specific references to California Business and Professions Code sections for additional accuracy"
+        ],
+        "suggestedFixes": [
+          "Include specific California Business and Professions Code sections that regulate medical-only products"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 95,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    }
+  ]
+}

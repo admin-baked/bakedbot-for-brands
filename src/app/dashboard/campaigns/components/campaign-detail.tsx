@@ -409,6 +409,7 @@ function PerformanceSection({ campaign }: { campaign: Campaign }) {
                         <StatTile label="Opens" value={opened} rate={perf.openRate} color="text-blue-600" />
                         <StatTile label="Clicks" value={clicked} rate={perf.clickRate} color="text-emerald-600" />
                         <StatTile label="Bounced" value={bounced} rate={perf.bounceRate} color="text-red-500" />
+                        <StatTile label="Conversions" value={perf.conversions ?? 0} rate={sent > 0 ? ((perf.conversions ?? 0) / sent) * 100 : 0} color="text-amber-600" />
                         <StatTile label="Revenue" value={`$${(perf.revenue ?? 0).toLocaleString()}`} color="text-green-600" />
                     </div>
                 </CardContent>

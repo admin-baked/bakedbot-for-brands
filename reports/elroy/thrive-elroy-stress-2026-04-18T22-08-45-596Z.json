@@ -1,0 +1,86 @@
+{
+  "orgId": "org_thrive_syracuse",
+  "generatedAt": "2026-04-18T22:08:45.596Z",
+  "totalCases": 2,
+  "averageScore": 90,
+  "readyCount": 2,
+  "results": [
+    {
+      "id": "elroy-inspector-on-floor-now",
+      "title": "Compliance officer on floor right now",
+      "category": "regulatory-crisis",
+      "source": "channel",
+      "durationMs": 8696,
+      "response": "Hey there! I can definitely help with this. When an OCM compliance officer shows up unannounced, here's what you need to know:\n\nWhat you MUST provide:\n- Current license and registration documents\n- Sales logs (last 30 days minimum)\n- Inventory records (should match your Metrc data)\n- Employee records and training documentation\n- Any previously cited violations and their status\n\nWhat you can decline without a warrant:\n- Access to areas not open to the public (back rooms, storage not accessible to customers)\n- Records that are not specifically required by regulation\n- Personal employee information beyond what's required for compliance\n\nYour rights:\n- You have the right to have a manager or supervisor present during the inspection\n- You can ask to see their credentials and the specific reason for the inspection\n- You can request a warrant if they want access to non-public areas\n\nBest practice right now:\n- Politely greet the officer, ask for their credentials\n- Inform them you're getting your manager\n- Have your compliance binder handy with all required docs\n- Take notes during the inspection - who, what, when, any comments made\n\nThe manager should remain professional but firm. No need to be confrontational, but know your rights. Any violations they cite should be documented and you have the right to appeal.\n\nIs this something that's happening right now, or were they just asking in advance?",
+      "responsePreview": "Hey there! I can definitely help with this. When an OCM compliance officer shows up unannounced, here's what you need to know: What you MUST provide: - Current license and registration documents - Sales logs (last 30 da…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent response with clear guidance on OCM inspection procedures, compliance, and rights.",
+        "strengths": [
+          "Properly addresses the OCM inspection scenario with accurate information",
+          "Clearly differentiates between required records and what can be declined without warrant",
+          "Provides actionable next steps for the manager",
+          "Maintains professional tone while advising on rights",
+          "Ends with a relevant question to continue the conversation"
+        ],
+        "issues": [
+          "Could more explicitly mention that while you can decline access to non-public areas without a warrant, doing so may trigger a warrant request"
+        ],
+        "suggestedFixes": [
+          "Add a brief note about potential consequences of declining access to non-public areas"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 100,
+          "slackFormat": 100,
+          "compliance": 100,
+          "conversationContinuity": 100,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "elroy-notice-noncompliance-received",
+      "title": "OCM Notice of Non-Compliance this morning",
+      "category": "regulatory-crisis",
+      "source": "channel",
+      "durationMs": 8484,
+      "response": "Got it, a compliance notice from OCM about that Instagram post with prices - that's a serious one. NY's pretty strict about price advertising, so we need to move fast on this.\n\nFirst things first: Yes, pull that Instagram post down immediately. Craig might need help with that if he's not sure how to delete posts. The faster it's gone, the better - we don't want any further issues while we prepare our response.\n\nFor the 15-day response window, here's what we need to do:\n1. Document everything: Save screenshots of the post (before and after deletion), when it was posted, who created it, and any internal approval process that may have been followed (or missed).\n2. Review our social media guidelines with the team - make sure everyone knows we can't show prices on public posts.\n3. Prepare a formal response to OCM. We should acknowledge the violation, explain what we've done to correct it, and outline steps we're taking to prevent future occurrences.\n4. Consider if any additional staff training is needed - this seems like a knowledge gap rather than intentional non-compliance.\n\nI don't have the actual notice text, so I'd need to see the exact wording to craft the most effective response. Can you share a copy of the notice? Also, do we have a compliance officer or legal counsel who should review this before we submit our response?\n\nWe should also check if there are any similar posts we might have missed - a quick audit of our social media accounts from the past few weeks might be in order.\n\nHow would you like to approach this?",
+      "responsePreview": "Got it, a compliance notice from OCM about that Instagram post with prices - that's a serious one. NY's pretty strict about price advertising, so we need to move fast on this. First things first: Yes, pull that Instagra…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "The response correctly advises immediate post removal and outlines the response window requirements, but could more strongly reference OCM advertising rules.",
+        "strengths": [
+          "Clearly advises immediate removal of the Instagram post",
+          "Outlines the 15-day response window and necessary preparation steps",
+          "Provides actionable documentation and response preparation steps",
+          "Maintains appropriate compliance language without medical claims",
+          "Ends with a question to continue the conversation"
+        ],
+        "issues": [
+          "Could more explicitly reference the specific OCM advertising rules",
+          "Could be more direct about the urgency of removing the post",
+          "The formatting doesn't consistently use *bold* for emphasis"
+        ],
+        "suggestedFixes": [
+          "More explicitly reference NY OCM Section 100.5 advertising rules regarding price promotions",
+          "Strengthen the urgency language around post removal",
+          "Ensure consistent *bold* formatting throughout",
+          "Consider adding a specific timeline for when the response should be drafted"
+        ],
+        "dimensions": {
+          "grounding": 90,
+          "actionability": 95,
+          "slackFormat": 80,
+          "compliance": 100,
+          "conversationContinuity": 100,
+          "launchReadiness": 85
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,216 @@
+{
+  "generatedAt": "2026-04-18T21:52:17.727Z",
+  "filters": {
+    "category": "federal"
+  },
+  "totalCases": 5,
+  "averageScore": 86,
+  "readyCount": 5,
+  "results": [
+    {
+      "id": "federal-280e-cogs-allocation",
+      "title": "280E — maximizing legitimate COGS deductions",
+      "state": "CA",
+      "category": "federal",
+      "difficulty": "advanced",
+      "durationMs": 8694,
+      "response": "California Dispensary COGS Under IRC Section 280E\n\nAs a California cannabis dispensary operator, you're correct that IRC Section 280E prohibits deduction of ordinary and necessary business expenses. You can only deduct Cost of Goods Sold (COGS), which includes expenses directly related to the purchase, production, and sale of cannabis inventory.\n\n**Expenses that typically qualify as COGS for cannabis retailers:**\n- Cost of cannabis flower, concentrates, edibles, and other inventory\n- Direct labor costs for cultivation and production (trimmers, extractors, etc.)\n- Direct costs of packaging and labeling compliant products\n- Transportation costs directly related to moving inventory\n- Direct costs of testing and analysis\n- Storage costs directly related to inventory\n- Point of sale system costs (if directly attributable to sales)\n\n**Expenses that generally do NOT qualify as COGS:**\n- Rent (for general retail space)\n- Utilities\n- Marketing and advertising\n- Employee salaries (except directly tied to production)\n- Professional services (legal, accounting, etc.)\n- Losses from destroyed or confiscated inventory\n\n**Allocation Methods Under IRS Scrutiny:**\n1. **Cost of Sales Method:** The most defensible approach - allocating direct costs directly to the products sold.\n2. **Percentage of Sales Method:** Less defensible - allocating costs based on revenue percentages.\n3. **Physical Inventory Method:** Calculating ending inventory value based on physical counts.\n\nThe IRS typically scrutinizes allocation methods that seem designed to maximize COGS deductions. The more direct and specific your cost attribution, the better.\n\n**Documentation for Audit Defense:**\n- Detailed inventory tracking systems (seed-to-sale like METRC)\n- Purchase invoices and records for all inventory\n- Production cost tracking (labor, supplies, etc.)\n- Detailed point-of-sale data linking specific products to sales\n- Allocation methodologies and calculations\n- Internal controls documentation\n- Regular physical inventory counts with documentation\n\n**Critical Recommendations:**\n1. Maintain separate accounting systems for COGS and non-COGS expenses\n2. Document your allocation methodology consistently and apply it uniformly\n3. Consider working with a cannabis-specialized CPA who understands both California regulations and federal 280E implications\n4. Document your inventory valuation method (FIFO, LIFO, weighted average, etc.)\n5. Keep all supporting documentation for at least 7 years\n\nGiven the complexity and the significant tax implications, I strongly recommend consulting with a cannabis tax attorney or CPA who specializes in 280E compliance to review your specific situation and accounting methods before an audit occurs.",
+      "responsePreview": "California Dispensary COGS Under IRC Section 280E As a California cannabis dispensary operator, you're correct that IRC Section 280E prohibits deduction of ordinary and necessary business expenses. You can only deduct C…",
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate response on 280E COGS allocation with appropriate caveats.",
+        "strengths": [
+          "Accurately explains 280E limitations on deductions for cannabis businesses",
+          "Provides clear distinction between qualifying and non-qualifying COGS expenses",
+          "Identifies allocation methods and notes IRS scrutiny appropriately",
+          "Offers detailed documentation requirements for audit defense",
+          "Includes practical recommendations for compliance",
+          "Effectively references required topics (280E, COGS, IRS, deduction, audit, allocation, documentation)",
+          "Maintains professional and clear tone",
+          "Concludes with appropriate recommendation to consult specialists"
+        ],
+        "issues": [
+          "Could provide more specific guidance on allocation methodologies (formulas, examples)",
+          "Might benefit from mentioning California-specific regulations regarding COGS"
+        ],
+        "suggestedFixes": [
+          "Include brief examples of COGS allocation calculations",
+          "Add a sentence about California-specific requirements that might impact COGS calculation"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 85
+        }
+      }
+    },
+    {
+      "id": "federal-banking-restrictions",
+      "title": "Banking restrictions — cash management compliance",
+      "state": "CO",
+      "category": "federal",
+      "difficulty": "advanced",
+      "durationMs": 6037,
+      "response": "I'm addressing your Colorado cannabis banking compliance questions.\n\n**Currency Transaction Report (CTR) Requirements:**\nUnder federal law (Bank Secrecy Act), financial institutions must file a CTR for cash transactions over $10,000. However, since cannabis remains illegal federally, most banks won't service cannabis businesses, creating this cash-only dilemma.\n\nIf you're handling cash transactions:\n- Single transactions over $10,000 require a CTR\n- Multiple transactions that total $10,000 or more in one business day require a CTR\n- Structuring transactions to avoid the $10,000 threshold (smashing) is illegal and considered money laundering\n\n**Banking Options for Colorado Cannabis Businesses:**\n1. **State-chartered credit unions** that specialize in cannabis banking\n2. **Cannabis-focused banks** with federal oversight through the \"marijuana banking\" provisions\n3. **Payment processors** designed for cash-intensive businesses\n4. **Digital asset management services** for handling large cash volumes\n\n**Compliance Recommendations:**\n1. Maintain meticulous transaction records and documentation\n2. Implement robust internal controls for cash handling\n3. Consider consulting with a cannabis banking specialist attorney\n4. Check Colorado's Marijuana Enforcement Division (MED) website for updated banking guidance\n\n**Important Note:** The federal landscape remains uncertain. While some banking options exist, they face regulatory challenges. Always verify current banking options with a compliance officer familiar with cannabis banking in Colorado.\n\nWould you like more specific information about any of these banking options or transaction reporting requirements?",
+      "responsePreview": "I'm addressing your Colorado cannabis banking compliance questions. **Currency Transaction Report (CTR) Requirements:** Under federal law (Bank Secrecy Act), financial institutions must file a CTR for cash transactions …",
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Strong response covering key federal banking requirements for cannabis businesses with appropriate caveats.",
+        "strengths": [
+          "Accurately explains CTR requirements under the Bank Secrecy Act",
+          "Correctly identifies structuring as illegal",
+          "Provides multiple legitimate banking options for cannabis businesses",
+          "Includes appropriate compliance recommendations",
+          "Maintains professional and clear tone",
+          "Correctly references both federal law and state-specific resources",
+          "Includes a caveat about the uncertain regulatory landscape"
+        ],
+        "issues": [
+          "Could provide more specific information about the current state of cannabis banking in Colorado",
+          "Mention of digital asset management for cash handling is somewhat confusing given the cash-only context",
+          "Could be more explicit about the specific reporting requirements beyond the $10,000 threshold"
+        ],
+        "suggestedFixes": [
+          "Add more details about Colorado-specific banking options",
+          "Clarify the difference between digital assets and cash management",
+          "Provide more specific information about the reporting timeline and process for CTRs"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 85,
+          "actionability": 75,
+          "tone": 85,
+          "completeness": 70
+        }
+      }
+    },
+    {
+      "id": "federal-irs-audit-response",
+      "title": "IRS audit targeting cannabis COGS allocation",
+      "state": "WA",
+      "category": "federal",
+      "difficulty": "advanced",
+      "durationMs": 8899,
+      "response": "# IRS Audit Response for Washington Cannabis Retailer\n\n## Common IRS COGS Challenges\n\nThe IRS typically challenges cannabis retailers' COGS allocations in several key areas:\n\n1. **Administrative Expense Allocation**: IRS commonly disputes allocations of salaries for executives, bookkeepers, and compliance staff to COGS rather than treating them as operating expenses.\n\n2. **Overhead Allocation**: They question allocations for rent, utilities, and insurance that exceed industry standards or aren't properly documented.\n\n3. **Inventory Valuation**: Disputes over how inventory is valued, particularly between cost and market value.\n\n4. **Related Party Transactions**: Issues with costs charged to COGS from affiliated entities without proper arm's-length pricing.\n\n## Documentation You Should Have Ready\n\nTo respond to this audit, prepare:\n\n1. **Detailed Chart of Accounts**: Showing how expenses were categorized between COGS and operating expenses.\n\n2. **Time Allocation Records**: For employees whose salaries were partially allocated to COGS, showing exactly what percentage of their time was spent on inventory-related functions versus administrative functions.\n\n3. **Industry Standards Documentation**: Evidence of how comparable cannabis businesses allocate similar expenses.\n\n4. **Professional Valuation Reports**: For inventory valuation methods used.\n\n5. **Expense Allocation Methodology**: Documentation explaining your methodology for allocating shared costs between COGS and operating expenses.\n\n## Penalty Exposure\n\nIf your allocation is found improper:\n\n1. **Accuracy-Related Penalties**: Typically 20% of the underpayment attributable to negligence.\n\n2. **Interest**: Will accrue from the original due date.\n\n3. **Back Taxes**: The additional tax liability on the improperly allocated expenses.\n\n4. **Potential Criminal Exposure**: While rare, intentional tax evasion could potentially lead to criminal charges, though this would require proving willful intent.\n\n## Recommendations\n\n1. **Engage a Cannabis Tax Specialist**: This isn't a routine tax matter. You need someone with specific cannabis industry 280E experience.\n\n2. **Review All Allocation Methods**: Before the audit, verify your current allocation methods align with industry best practices.\n\n3. **Document Everything**: Ensure you have contemporaneous documentation justifying each allocation decision.\n\nRemember, Washington state doesn't have specific guidance that overrides federal 280E treatment, so the federal audit standards apply here. This is a complex area where professional representation is strongly recommended.",
+      "responsePreview": "# IRS Audit Response for Washington Cannabis Retailer ## Common IRS COGS Challenges The IRS typically challenges cannabis retailers' COGS allocations in several key areas: 1. **Administrative Expense Allocation**: IRS c…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Comprehensive response addressing IRS audit challenges for COGS allocation under 280E.",
+        "strengths": [
+          "Accurately addresses key IRS challenges to COGS allocation",
+          "Provides clear documentation requirements",
+          "Explains penalty exposure appropriately",
+          "Includes strong recommendation to engage a cannabis tax specialist",
+          "Correctly references 280E and IRS compliance requirements",
+          "Maintains professional tone throughout"
+        ],
+        "issues": [
+          "Could provide more specific examples of industry standards for expense allocation",
+          "Mention of criminal exposure might be alarmist without necessary context",
+          "Could more strongly emphasize the need for specialized legal counsel"
+        ],
+        "suggestedFixes": [
+          "Add specific examples or benchmarks for reasonable expense allocation percentages",
+          "Clarify that criminal exposure is extremely rare and requires willful intent",
+          "Strengthen the recommendation to include 'immediately consult with a cannabis tax attorney specializing in 280E compliance'"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 80,
+          "actionability": 85,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "federal-dea-rescheduling-impact",
+      "title": "DEA rescheduling to Schedule III — operational impact",
+      "state": "NY",
+      "category": "federal",
+      "difficulty": "advanced",
+      "durationMs": 11044,
+      "response": "# New York Federal Rescheduling Impact Analysis\n\nIf cannabis reschedules from Schedule I to Schedule III, here's what would change for your New York dispensary:\n\n## Federal Law Changes\n\n**280E Tax Provision**: \n- 280E would likely still apply to some degree, though possibly modified. Schedule III substances are still federally controlled substances, meaning cannabis businesses would likely remain ineligible for standard business deductions. However, there might be carve-outs for certain operational expenses, particularly if rescheduling includes specific provisions for cannabis businesses.\n\n**Banking Access**: \n- Banking restrictions would significantly improve. With Schedule III status, financial institutions would be more willing to service cannabis businesses, potentially ending the current \"cash-only\" operations. The SAFE Banking Act provisions might be implemented more readily, though federal banking regulations would still need to catch up to fully normalize banking services.\n\n## State Requirements\n\n**State License Requirements**: \n- YES - Your New York state license would absolutely still be required. Federal rescheduling doesn't override state regulatory frameworks. New York's cannabis regulatory structure (OMMA - Office of Cannabis Management) would remain in place with its own licensing, testing, packaging, and operational requirements.\n\n## Transition Compliance Issues to Prepare For\n\n1. **Regulatory Alignment**: Monitor for any changes in NY state regulations that might adjust to the new federal status\n2. **Tax Planning**: Consult with tax professionals about potential changes to 280E application and how to structure your business expenses\n3. **Banking Transition**: Develop a plan to transition to traditional banking services while maintaining compliance during the changeover\n4. **Federal Licensing**: Be prepared for potential new federal licensing requirements that might emerge with Schedule III status\n5. **Supply Chain Adjustments**: If federal hemp regulations change, this could affect your supply chain\n\n## Critical Recommendations\n\n- This is a complex legal landscape with multiple moving parts\n- Engage with cannabis-specific legal counsel immediately if rescheduling occurs\n- Monitor both federal and New York state regulatory announcements daily\n- Maintain compliance with current NY regulations regardless of federal changes\n- Prepare for potential business model adjustments while maintaining continuous operations\n\nRemember that federal rescheduling would be a significant development but wouldn't automatically resolve all cannabis industry challenges, particularly at the state level. The regulatory environment would remain complex for the foreseeable future.",
+      "responsePreview": "# New York Federal Rescheduling Impact Analysis If cannabis reschedules from Schedule I to Schedule III, here's what would change for your New York dispensary: ## Federal Law Changes **280E Tax Provision**: - 280E would…",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate analysis of federal rescheduling impacts for NY dispensaries with appropriate caveats.",
+        "strengths": [
+          "Accurately explains that 280E would likely still apply even after rescheduling",
+          "Correctly notes state licenses would remain required",
+          "Provides clear banking implications with nuance",
+          "Gives concrete compliance steps and transition considerations",
+          "Includes appropriate caveats about consulting professionals"
+        ],
+        "issues": [
+          "Slight overconfidence on specific banking implementation without more explicit caveats",
+          "Could be more explicit about the tentative nature of these changes"
+        ],
+        "suggestedFixes": [
+          "Add slightly stronger language about the uncertainty of banking implementation timelines",
+          "More explicitly emphasize that these are best-effort predictions subject to regulatory interpretation"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 95,
+          "tone": 100,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "federal-currency-transaction-report",
+      "title": "Currency Transaction Report — $10k cash purchase",
+      "state": "NV",
+      "category": "federal",
+      "difficulty": "advanced",
+      "durationMs": 10351,
+      "response": "Under Nevada cannabis regulations, here's what you need to know about handling large cash purchases:\n\nCTR FILING OBLIGATIONS:\n- As a cannabis business in Nevada, you are subject to federal banking regulations including the Bank Secrecy Act\n- You must file a Currency Transaction Report (CTR) with FinCEN for any single cash transaction over $10,000\n- This applies even if the customer is attempting to structure the transaction to avoid the threshold\n- CTRs must be filed within 15 days of the transaction\n\nINFORMATION COLLECTION REQUIREMENTS:\nFor a CTR, you must collect:\n- Customer's full name, address, and social security number (or taxpayer identification number)\n- Customer's date of birth\n- Driver's license number or other government-issued ID\n- Information about the transaction (date, amount, nature of business)\n- Your business information as the reporting entity\n\nSTRUCTURING AND LIABILITY:\n- Structuring occurs when someone intentionally breaks down a single transaction into multiple smaller transactions to avoid the $10,000 reporting threshold\n- This is illegal under both federal and state law\n- To avoid liability:\n  * Train staff to recognize potential structuring attempts\n  * Implement policies requiring identification for all cash transactions over $3,000\n  * Consider establishing a policy of refusing transactions that appear to be structured\n  * Document your refusal and the customer's response\n\nCUSTOMER RIGHTS:\n- Customers cannot legally refuse to provide required identification for CTR reporting\n- Refusal to provide information may result in you refusing the transaction\n- Customers can ask for a copy of the CTR you file, but they cannot prevent you from filing it\n\nCOMPLIANCE RECOMMENDATION:\nGiven the complexity of these requirements and the severe penalties for non-compliance, I strongly recommend:\n1. Consulting with a cannabis compliance attorney familiar with both Nevada and federal regulations\n2. Implementing detailed AML (Anti-Money Laundering) policies specific to your business\n3. Training all employees on proper CTR procedures and structuring detection\n4. Consider working with a financial institution experienced with cannabis businesses to ensure proper reporting\n\nRemember that federal banking laws still create challenges for cannabis businesses despite state legality, so maintaining strict compliance is critical.",
+      "responsePreview": "Under Nevada cannabis regulations, here's what you need to know about handling large cash purchases: CTR FILING OBLIGATIONS: - As a cannabis business in Nevada, you are subject to federal banking regulations including t…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "The response provides comprehensive guidance on CTR obligations but could be more precise about federal requirements for cannabis businesses.",
+        "strengths": [
+          "Clearly explains CTR filing obligations under the Bank Secrecy Act",
+          "Details required customer information for CTR filing",
+          "Effectively explains structuring and how to avoid liability",
+          "Addresses customer rights regarding identification and CTR access",
+          "Provides concrete compliance recommendations",
+          "Maintains professional and direct tone"
+        ],
+        "issues": [
+          "Does not sufficiently address the unique challenges cannabis businesses face with federal banking laws",
+          "Does not specify that financial institutions may refuse to serve cannabis businesses",
+          "Could provide more detail on FinCEN reporting requirements beyond the 15-day timeframe",
+          "Does not mention specific penalties for non-compliance"
+        ],
+        "suggestedFixes": [
+          "Add information about how federal banking restrictions impact cannabis businesses' ability to file CTRs",
+          "Clarify that while businesses must file CTRs, financial institutions may refuse to process them for cannabis businesses",
+          "Include specific information about FinCEN reporting requirements and electronic filing",
+          "Add details about potential penalties for non-compliance with the Bank Secrecy Act"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 85,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 80
+        }
+      }
+    }
+  ]
+}

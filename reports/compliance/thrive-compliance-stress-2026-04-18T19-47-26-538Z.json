@@ -1,0 +1,1933 @@
+{
+  "generatedAt": "2026-04-18T19:47:26.538Z",
+  "filters": {},
+  "totalCases": 50,
+  "averageScore": 88.8,
+  "readyCount": 50,
+  "results": [
+    {
+      "id": "ny-possession-limits",
+      "title": "NY adult recreational possession limits",
+      "state": "NY",
+      "category": "possession-limits",
+      "difficulty": "basic",
+      "durationMs": 6602,
+      "response": "In New York State, adult recreational cannabis possession limits are as follows:\n\n- For individuals aged 21 and over: You may possess up to 3 ounces of cannabis flower or 24 grams of concentrated cannabis (hash oil, wax, etc.)\n- For home cultivation: Adults may grow up to 6 mature plants and 3 immature plants per household, regardless of the number of adults living there\n- For public display: Possession of more than 3 ounces is permitted in your residence or at an adult-use dispensary, but carrying more than 3 ounces in public is considered a violation\n\nNote: Medical cannabis patients in New York may possess up to 2.5 ounces of medical cannabis in a 30-day period, with no limit on concentrated forms when medically appropriate.\n\nRemember that local municipalities may have additional restrictions, and these limits are subject to change. Always verify the most current regulations with the New York State Office of Cannabis Management.",
+      "responsePreview": "In New York State, adult recreational cannabis possession limits are as follows: - For individuals aged 21 and over: You may possess up to 3 ounces of cannabis flower or 24 grams of concentrated cannabis (hash oil, wax,…",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Accurate, actionable response with appropriate caveats about local regulations and changing limits.",
+        "strengths": [
+          "Accurate possession limits for flower and concentrate",
+          "Clear distinction between recreational and medical limits",
+          "Includes home cultivation information",
+          "Appropriate caveat about local municipalities and changing regulations"
+        ],
+        "issues": [
+          "No explicit reference to statute numbers or regulations",
+          "Home cultivation info may not have been requested but is relevant"
+        ],
+        "suggestedFixes": [
+          "Consider adding specific regulation references (e.g., Cannabis Control Law §133) for more technical users",
+          "Maintain focus on possession limits if that's the primary concern"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 80,
+          "actionability": 90,
+          "tone": 100,
+          "completeness": 85
+        }
+      }
+    },
+    {
+      "id": "ny-advertising-social-media",
+      "title": "NY cannabis advertising on Facebook/Instagram",
+      "state": "NY",
+      "category": "advertising",
+      "difficulty": "intermediate",
+      "durationMs": 5528,
+      "response": "New York cannabis social media advertising is extremely restricted. You cannot advertise on Facebook or Instagram for your cannabis business.\n\nHere are the key restrictions in NY:\n\n- **No social media advertising**: All forms of paid social media advertising are prohibited, including Facebook, Instagram, Twitter, TikTok, etc.\n- **No influencer marketing**: You cannot compensate individuals to promote your cannabis products on social media.\n- **No user-generated content campaigns**: You cannot organize campaigns where customers post about your products.\n- **Limited organic posting**: Even organic (unpaid) social media posts are heavily restricted and must not target minors or include false/misleading information.\n\nWhat you can do:\n- Maintain a simple website or informational page about your business\n- Use educational content about cannabis (not specific products)\n- Have a physical storefront with compliant signage\n\nNY's cannabis marketing rules are among the strictest in the US. I strongly recommend consulting with a cannabis compliance attorney specializing in NY regulations before attempting any marketing activities. The Office of Cannabis Management (OCM) provides guidance, but regulations continue to evolve.\n\nRemember: Never make claims about product effects that aren't supported by scientific evidence, and always ensure all marketing materials include the required health warnings.",
+      "responsePreview": "New York cannabis social media advertising is extremely restricted. You cannot advertise on Facebook or Instagram for your cannabis business. Here are the key restrictions in NY: - **No social media advertising**: All f…",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive response addressing NY social media advertising restrictions with appropriate caveats.",
+        "strengths": [
+          "Correctly identifies the prohibition on social media advertising in NY",
+          "Provides specific examples of prohibited activities (influencer marketing, user-generated content)",
+          "Includes actionable alternatives (website, educational content, physical signage)",
+          "References the OCM as required",
+          "Appropriate emphasis on age-related restrictions",
+          "Strong recommendation to consult with compliance attorney",
+          "Clear, professional tone"
+        ],
+        "issues": [
+          "Could be more specific about audience verification requirements"
+        ],
+        "suggestedFixes": [
+          "Add specific guidance on how to ensure age verification in any online presence"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "ny-packaging-labels",
+      "title": "NY cannabis label requirements",
+      "state": "NY",
+      "category": "packaging",
+      "difficulty": "intermediate",
+      "durationMs": 6818,
+      "response": "In New York, cannabis product labels must include specific information as required by the Office of Cannabis Management (OCM). Here are the mandatory label requirements:\n\n1. Product name and brand name\n2. Net weight or volume (for flower/buds, weight in grams; for infused products, volume in milliliters)\n3. THC potency percentage (total THC)\n4. CBD potency percentage (if present)\n5. Batch/lot number\n6. Manufacturing date\n7. Expiration date\n8. Warning statements (including health warnings and required disclosures)\n9. List of all ingredients\n10. Nutritional information (for edible products)\n11. Universal symbol indicating cannabis content\n12. License numbers for the manufacturer, processor, and distributor\n13. A scannable QR code that links to online testing results\n\nAdditional requirements:\n- Child-resistant packaging is mandatory\n- Labels cannot include cartoon characters or imagery that would appeal to children\n- No false or misleading statements are allowed\n- All text must be in English\n\nThese requirements apply to both medical and adult-use cannabis products in New York. The OCM provides specific templates and guidelines for different product types (flower, edibles, vapes, etc.).\n\nNote: Regulations may be updated as the market develops, so I recommend checking the most current OCM guidance for any recent changes to labeling requirements.",
+      "responsePreview": "In New York, cannabis product labels must include specific information as required by the Office of Cannabis Management (OCM). Here are the mandatory label requirements: 1. Product name and brand name 2. Net weight or v…",
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Accurate and comprehensive response with appropriate caveats.",
+        "strengths": [
+          "Correctly identifies all required label elements including THC and warnings",
+          "Provides clear, actionable information for operators",
+          "Includes appropriate caveats about checking latest guidance",
+          "Well-organized with bullet points for easy reference",
+          "Mentions additional packaging requirements beyond just labels"
+        ],
+        "issues": [
+          "Could be more specific about exact warning language requirements",
+          "Mention of CBD is correct but not explicitly required in question"
+        ],
+        "suggestedFixes": [
+          "Add brief mention of specific warning language requirements if known",
+          "Clarify that CBD inclusion is only required if present in the product"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "ny-caurd-vs-aucc",
+      "title": "NY CAURD vs AUCC license difference",
+      "state": "NY",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 6355,
+      "response": "In New York, CAURD and AUCC licenses serve different purposes in the cannabis marketplace:\n\n**CAURD (Conditional Adult-Use Retail Dispensary) License:**\n- This license allows for retail cannabis sales to adult-use customers\n- Holders can operate physical storefront dispensaries\n- These licenses were prioritized for individuals with past marijuana convictions (social equity applicants)\n- CAURD licensees can purchase product from cultivators, processors, and other distributors\n- They directly serve consumers\n\n**AUCC (Adult-Use Conditional Cultivator) License:**\n- This license allows for cannabis cultivation only\n- Holders grow cannabis that can be sold to other licensees (processors, distributors, or retailers)\n- These licenses were also prioritized for social equity applicants\n- AUCC licensees do not directly sell to consumers\n\n**Key Difference:**\nThe fundamental difference is the type of operation - CAURDs are retail licenses for selling to consumers, while AUCCs are cultivation licenses for growing cannabis to sell to other businesses in the supply chain.\n\nBoth license types were established through New York's Cannabis Control Board and aim to promote social equity in the legal cannabis market, but they represent different parts of the cannabis supply chain.\n\nFor the most current and detailed information about these license types, I recommend checking directly with the New York State Cannabis Control Board, as regulations and requirements may evolve.",
+      "responsePreview": "In New York, CAURD and AUCC licenses serve different purposes in the cannabis marketplace: **CAURD (Conditional Adult-Use Retail Dispensary) License:** - This license allows for retail cannabis sales to adult-use custom…",
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Clear and accurate explanation of the differences between CAURD and AUCC licenses in New York.",
+        "strengths": [
+          "Accurately explains the fundamental difference between retail and cultivation licenses",
+          "Includes relevant information about social equity priorities",
+          "Maintains professional and clear tone throughout",
+          "Appropriate caveat about checking with official sources for the most current information",
+          "Addresses the question directly without unnecessary filler"
+        ],
+        "issues": [
+          "Could benefit from more specific details about application processes or requirements",
+          "Mention of OCM (Office of Cannabis Management) could be more explicit since it's required"
+        ],
+        "suggestedFixes": [
+          "Add explicit mention that these licenses are regulated by the OCM",
+          "Include brief notes about potential requirements or application processes for each license type"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 85,
+          "tone": 95,
+          "completeness": 85
+        }
+      }
+    },
+    {
+      "id": "ny-delivery-license",
+      "title": "NY cannabis home delivery requirements",
+      "state": "NY",
+      "category": "delivery",
+      "difficulty": "intermediate",
+      "durationMs": 5576,
+      "response": "In New York, adult-use cannabis delivery is permitted, but there are specific requirements:\n\n**License Required:**\n- You need a specific Delivery Operator license from the Office of Cannabis Management (OCM)\n- This is separate from a standard retail dispensary license\n- You cannot add delivery to an existing retail license without this specific authorization\n\n**Key Requirements:**\n1. Delivery vehicles must be clearly branded with your dispensary name and logo\n2. Drivers must pass a thorough background check\n3. All deliveries must be made using a track-and-trace system\n4. You cannot deliver to schools, parks, or other prohibited areas\n5. Delivery hours are restricted (typically 9am-9pm, but confirm current regulations)\n6. Minimum order amounts and maximum delivery fees apply\n\n**Process:**\n- Apply through the OCM's licensing portal\n- Pay applicable licensing fees (check current amounts on OCM website)\n- Submit proof of insurance, security plans, and operational procedures\n- Demonstrate compliance with all packaging and labeling requirements for transported products\n\n**Important Considerations:**\n- Delivery licenses are currently limited and competitive\n- The rules are still evolving - ensure you're following the latest regulations\n- Medical cannabis delivery has different requirements if you plan to serve both markets\n\nI recommend verifying current application details and timelines directly with the New York OCM, as these programs frequently update requirements. Consider consulting with a cannabis compliance attorney familiar with NY regulations before applying.",
+      "responsePreview": "In New York, adult-use cannabis delivery is permitted, but there are specific requirements: **License Required:** - You need a specific Delivery Operator license from the Office of Cannabis Management (OCM) - This is se…",
+      "grade": {
+        "grade": "good",
+        "score": 84,
+        "responseReady": true,
+        "summary": "Comprehensive overview of NY delivery licensing requirements with appropriate caveats.",
+        "strengths": [
+          "Accurate explanation of delivery licensing requirements",
+          "Clear distinction from retail licenses",
+          "Good coverage of key operational requirements",
+          "Appropriate recommendation to verify with OCM and legal counsel",
+          "Professional and direct tone"
+        ],
+        "issues": [
+          "Does not provide current specific license fees (though correctly points to OCM website)",
+          "Could more clearly mention verification processes for age verification"
+        ],
+        "suggestedFixes": [
+          "Include a note about specific age verification requirements during delivery",
+          "Mention if there are specific educational requirements for drivers"
+        ],
+        "dimensions": {
+          "accuracy": 92,
+          "caveats": 90,
+          "actionability": 88,
+          "tone": 95,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "ny-budtender-certification",
+      "title": "NY budtender state certification requirement",
+      "state": "NY",
+      "category": "employment",
+      "difficulty": "basic",
+      "durationMs": 5238,
+      "response": "In New York, budtenders are not required to obtain a specific state certification or training to work on the sales floor at this time. However, there are important points to consider:\n\n- New York's Cannabis Control Board (CCB) has established regulations that require dispensary employees to complete Responsible Vendor Training, which includes sections on cannabis laws, regulations, and responsible sales practices\n\n- While not currently mandated as a certification, dispensaries must ensure their employees are trained on:\n  - New York cannabis laws and regulations\n  - Proper identification verification procedures\n  - Health and safety protocols\n  - Product knowledge and effects\n  - Responsible sales practices (including age verification and preventing diversion)\n\n- The training requirements may evolve as New York's cannabis market continues to develop\n\nI recommend checking the most current CCB regulations and considering that certification requirements may change. For the most accurate and up-to-date information, verify directly with the New York Cannabis Control Board or a compliance attorney familiar with NY cannabis regulations.",
+      "responsePreview": "In New York, budtenders are not required to obtain a specific state certification or training to work on the sales floor at this time. However, there are important points to consider: - New York's Cannabis Control Board…",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "The response provides accurate information about NY budtender training requirements with appropriate caveats.",
+        "strengths": [
+          "Provides accurate information about current NY regulations",
+          "Includes specific training components that dispensaries must provide",
+          "Clearly states that no specific state certification is currently required",
+          "Includes appropriate caveats about evolving regulations",
+          "Directs the operator to verify with official sources",
+          "Maintains professional and clear tone",
+          "Addresses all aspects of the question directly"
+        ],
+        "issues": [
+          "Could have been more concise by combining some points",
+          "Mentioned CCB but not OCM (Office of Cannabis Management) which is the primary regulatory body"
+        ],
+        "suggestedFixes": [
+          "Combine the bullet points into a more concise paragraph",
+          "Reference both OCM and CCB as they are both involved in NY cannabis regulation"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 95,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "ny-metrc-transactions",
+      "title": "NY Metrc required transactions",
+      "state": "NY",
+      "category": "operations",
+      "difficulty": "intermediate",
+      "durationMs": 7973,
+      "response": "In New York, retail dispensaries must record virtually all cannabis-related transactions in the Metrc system. As a compliance enforcer, I can confirm that NY requires meticulous tracking of the cannabis supply chain.\n\nKey transactions that must be recorded in Metrc include:\n\n1. **Inventory Receipts**: Recording all incoming products from cultivators, processors, or other distributors\n2. **Sales Transactions**: Every sale to consumers, including:\n   - Product type, quantity, THC content\n   - Consumer information (if they're in the medical program)\n   - Point of sale data\n\n3. **Transfers Between Licensees**: Any movement of inventory between different license types or locations\n4. **Waste/Destroy**: Recording destroyed or unusable product with proper justification\n5. **Returns**: Any products returned by consumers (though NY has strict rules on this)\n6. **Samples**: For testing or promotional purposes (with proper authorization)\n7. **Inventory Adjustments**: For discrepancies, damage, or other inventory changes\n\nRemember that Metrc in NY requires real-time reporting for many transactions. You must scan plant tags and package labels at every transfer point, from cultivation to final sale.\n\nFor complete details, I recommend reviewing the official OMCC (Office of Cannabis Management) Metrc requirements and training materials, as NY's implementation has specific requirements beyond just tracking sales.",
+      "responsePreview": "In New York, retail dispensaries must record virtually all cannabis-related transactions in the Metrc system. As a compliance enforcer, I can confirm that NY requires meticulous tracking of the cannabis supply chain. Ke…",
+      "grade": {
+        "grade": "good",
+        "score": 82,
+        "responseReady": true,
+        "summary": "The response accurately covers required Metrc transactions in NY with a professional tone.",
+        "strengths": [
+          "Clear and comprehensive list of required transactions in Metrc",
+          "Accurately references NY's seed-to-sale tracking system",
+          "Includes important details about real-time reporting and scanning requirements",
+          "Professional tone with appropriate directness",
+          "Actionable information for operators",
+          "Suggests reviewing official OMCC requirements"
+        ],
+        "issues": [
+          "Could have more explicitly emphasized the complexity of NY's Metrc implementation",
+          "Missing specific mention of required manifest documentation",
+          "No explicit recommendation to consult with compliance officer for implementation"
+        ],
+        "suggestedFixes": [
+          "Add a stronger caveat about consulting with compliance officers for implementation",
+          "Include specific mention of manifest requirements as a separate transaction type",
+          "More clearly distinguish between basic and advanced implementation considerations"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 65,
+          "actionability": 85,
+          "tone": 95,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "ny-loyalty-programs",
+      "title": "NY cannabis loyalty programs",
+      "state": "NY",
+      "category": "advertising",
+      "difficulty": "intermediate",
+      "durationMs": 8302,
+      "response": "In New York, cannabis loyalty programs are permitted but come with significant restrictions under the Cannabis Control Board (CCB) regulations.\n\nKey restrictions for NY cannabis loyalty programs:\n\n1. **No direct discounts**: Loyalty programs cannot offer direct price discounts on cannabis products. This violates NY's prohibition on \"loss leader\" pricing.\n\n2. **Points systems only**: Loyalty programs must operate on a points-based system where customers accumulate points that can be redeemed for non-cannabis merchandise or services.\n\n3. **No cannabis product rewards**: Points cannot be redeemed for free cannabis products or discounts on future cannabis purchases.\n\n4. **Mandatory cost tracking**: Dispensaries must maintain detailed records of all loyalty program redemptions and ensure the retail value of rewards doesn't exceed specific thresholds set by the CCB.\n\n5. **Limited promotional value**: The total value of loyalty rewards cannot exceed what's considered reasonable under NY's advertising regulations.\n\n6. **No cash value**: Loyalty points cannot be converted to cash or have cash value.\n\n7. **Age restrictions**: All loyalty program participants must be verified to be 21 or older, as required for adult-use cannabis in NY.\n\nI strongly recommend reviewing the most recent CCB regulations and consulting with a cannabis compliance attorney familiar with NY's specific requirements before implementing any loyalty program. Regulations are still evolving in NY, and penalties for non-compliance can be severe.",
+      "responsePreview": "In New York, cannabis loyalty programs are permitted but come with significant restrictions under the Cannabis Control Board (CCB) regulations. Key restrictions for NY cannabis loyalty programs: 1. **No direct discounts…",
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Excellent response with accurate, actionable information and appropriate caveats about NY cannabis loyalty programs.",
+        "strengths": [
+          "Accurately explains NY's loyalty program restrictions including no direct discounts and points-only systems",
+          "Provides clear, concrete limitations that operators can follow",
+          "Includes appropriate caveat about consulting with a compliance attorney",
+          "Well-organized with easy-to-read bullet points",
+          "Professional tone that maintains authority while acknowledging evolving regulations",
+          "Covers all key aspects of NY's loyalty program restrictions",
+          "References the Cannabis Control Board (CCB) as the governing authority"
+        ],
+        "issues": [
+          "Mention of 'specific thresholds set by the CCB' could be more specific if known",
+          "The 'reasonable under NY's advertising regulations' point could be clarified with more concrete guidance"
+        ],
+        "suggestedFixes": [
+          "If possible, provide more specific details about the CCB thresholds for loyalty program rewards",
+          "Clarify what constitutes 'reasonable' under advertising regulations with examples or guidance"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "ny-cannabis-tax-layers",
+      "title": "NY cannabis tax layers — excise and local",
+      "state": "NY",
+      "category": "tax",
+      "difficulty": "intermediate",
+      "durationMs": 7998,
+      "response": "# New York Cannabis Taxes\n\nNew York has multiple layers of cannabis taxes that dispensaries need to be aware of:\n\n## Taxes Collected and Remitted by Dispensaries\n\n1. **State Excise Tax (6.85%)**\n   - Levied on the retail price of cannabis products\n   - Collected at the point of sale by the dispensary\n   - Remitted to the NYS Department of Taxation and Finance\n\n2. **Local Option Tax (up to 3%)**\n   - Counties and cities may impose additional taxes\n   - Current local rates vary by jurisdiction\n   - Check with your local county/city for specific rates\n\n3. **MCT (Marijuana Corporate Tax)**\n   - Imposed on cannabis businesses with annual gross receipts over $3 million\n   - Currently set at 0.75% but subject to change\n   - Remitted directly to NYS Tax Department\n\n## Important Notes\n\n- **Purchase Limits**: Medical patients can purchase up to 3.5 ounces over 14 days; adults 21+ can purchase up to 3 ounces (with possession limit of 5 ounces maximum)\n- **Tax Remittance Frequency**: Monthly filing requirements typically apply\n- **Record Keeping**: Detailed sales records must be maintained for tax purposes\n\n**Recommendation**: Tax regulations are subject to change. I strongly recommend verifying current rates and requirements with NYS Tax Department or a cannabis-specific tax professional before finalizing your pricing structure.",
+      "responsePreview": "# New York Cannabis Taxes New York has multiple layers of cannabis taxes that dispensaries need to be aware of: ## Taxes Collected and Remitted by Dispensaries 1. **State Excise Tax (6.85%)** - Levied on the retail pric…",
+      "grade": {
+        "grade": "good",
+        "score": 81,
+        "responseReady": true,
+        "summary": "Provides accurate overview of NY cannabis tax layers with appropriate caveat.",
+        "strengths": [
+          "Correctly identifies the main tax components: State Excise Tax, Local Option Tax, and MCT",
+          "Includes clear collection and remittance responsibilities",
+          "Provides specific tax percentages where applicable",
+          "Includes helpful recommendation to verify with authorities",
+          "Maintains professional and direct tone"
+        ],
+        "issues": [
+          "Includes non-tax information (purchase limits) that isn't relevant to the tax question",
+          "MCT is not a layer of tax collected by dispensaries at point of sale",
+          "No mention of potency-based THC excise tax that may apply in NY",
+          "Missing details about how the excise tax is calculated (is it on retail price or something else?)"
+        ],
+        "suggestedFixes": [
+          "Remove non-tax information about purchase limits",
+          "Clarify that MCT is a separate tax on businesses, not collected at point of sale",
+          "Include information about any potency-based THC excise tax components",
+          "Specify how the excise tax base is determined (retail price vs. other calculation methods)",
+          "More clearly explain the relationship between local taxes and dispensary responsibilities"
+        ],
+        "dimensions": {
+          "accuracy": 85,
+          "caveats": 90,
+          "actionability": 75,
+          "tone": 95,
+          "completeness": 70
+        }
+      }
+    },
+    {
+      "id": "ny-consumption-lounge",
+      "title": "NY consumption lounge legality",
+      "state": "NY",
+      "category": "operations",
+      "difficulty": "advanced",
+      "durationMs": 5188,
+      "response": "In New York, cannabis consumption lounges are NOT currently legal. The Office of Cannabis Management (OCM) has not yet implemented regulations for on-site consumption at licensed dispensaries or third-party locations.\n\nHere's what you need to know about on-site consumption in NY:\n\n1. The Cannabis Law explicitly prohibits on-site consumption at retail dispensaries\n2. The OCM has indicated they may develop regulations for future consumption lounges, but no such regulations exist yet\n3. No licensed dispensaries in NY are currently permitted to allow consumption on their premises\n4. Any establishment allowing on-site consumption would be operating outside of the legal framework and could face severe penalties\n\nThe Cannabis Control Board has discussed the possibility of future consumption lounges, but no timeline has been established for implementation. Until specific regulations are adopted and published by the OCM, on-site consumption remains prohibited in New York.\n\nIf you're interested in offering consumption experiences, I recommend monitoring the OCM website for any updates on consumption lounge regulations and public comment periods.\n\nRemember: Operating any form of on-site consumption without explicit regulatory approval would put your license at significant risk.",
+      "responsePreview": "In New York, cannabis consumption lounges are NOT currently legal. The Office of Cannabis Management (OCM) has not yet implemented regulations for on-site consumption at licensed dispensaries or third-party locations. H…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Accurate and comprehensive overview of NY's current cannabis consumption lounge regulations.",
+        "strengths": [
+          "Correctly states consumption lounges are not currently legal in NY",
+          "References the OCM and their role in potential future regulations",
+          "Provides clear explanation of current prohibitions",
+          "Includes actionable advice about monitoring OCM for updates",
+          "Maintains professional and clear tone throughout"
+        ],
+        "issues": [
+          "Minor opportunity to enhance completeness by mentioning any proposed legislation or bills in the state legislature"
+        ],
+        "suggestedFixes": [
+          "Brief mention of any proposed legislation or bills related to consumption lounges in NY"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 95,
+          "actionability": 90,
+          "tone": 100,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "ca-possession-limits",
+      "title": "CA adult recreational possession limits",
+      "state": "CA",
+      "category": "possession-limits",
+      "difficulty": "basic",
+      "durationMs": 4832,
+      "response": "In California, adult recreational cannabis possession limits are as follows:\n\n- Adults 21 and older can possess up to 28.5 grams (1 ounce) of dried cannabis flower\n- They can also possess up to 8 grams of concentrated cannabis (like hash or oils)\n- There are no specified limits for cannabis edibles, but they must be in packages containing no more than 100mg of THC per package, with individual units containing no more than 10mg of THC\n\nThese limits apply to personal possession only and do not apply to medical cannabis patients, who may possess larger amounts with a valid recommendation.\n\nRemember that possession limits are separate from purchase limits, which are 1 ounce per day from licensed retailers. Delivery services may have different rules regarding how much can be delivered in a single transaction.\n\nAlways check California's most current regulations as they may be subject to change.",
+      "responsePreview": "In California, adult recreational cannabis possession limits are as follows: - Adults 21 and older can possess up to 28.5 grams (1 ounce) of dried cannabis flower - They can also possess up to 8 grams of concentrated ca…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Accurate and comprehensive response to California possession limits question with appropriate caveats.",
+        "strengths": [
+          "Correctly states 1 ounce (28.5g) possession limit for flower",
+          "Correctly states 8g limit for concentrates",
+          "Includes information on edibles packaging",
+          "Clearly distinguishes recreational from medical limits",
+          "Mentions purchase limits and delivery differences",
+          "Appropriate caveat about checking current regulations"
+        ],
+        "issues": [
+          "Minor inconsistency in using both '28.5 grams' and '1 ounce' - both are correct but could be more concise"
+        ],
+        "suggestedFixes": [
+          "Consistently use '1 ounce (28.5 grams)' format for clarity and compliance"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 90,
+          "actionability": 90,
+          "tone": 100,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "ca-digital-ad-age-gating",
+      "title": "CA age-gating requirements for digital ads",
+      "state": "CA",
+      "category": "advertising",
+      "difficulty": "intermediate",
+      "durationMs": 8269,
+      "response": "California has strict age-gating requirements for all digital cannabis advertising. Here's what you need to comply with:\n\n**Website Requirements:**\n- You must implement a functioning age verification system that requires users to affirm they are 21+ before accessing any cannabis content\n- This age gate must appear on the homepage and any page containing cannabis-related content\n- The age verification cannot be a simple checkbox - it must require active verification (like entering date of birth)\n- You cannot include cannabis imagery or branding on pages that minors might access\n\n**Social Media Requirements:**\n- All cannabis advertising on social media platforms must comply with each platform's own age-gating policies\n- California law prohibits advertising on social media platforms where the majority of users are under 21\n- You cannot use targeting that could reach minors\n- All cannabis content must be age-gated within your own channels\n- You cannot pay for boosted posts or ads on social media platforms for cannabis products\n\n**General Rules:**\n- No endorsements by minors or celebrities who might appeal to minors\n- Cannot use cartoons, toys, or other imagery that appeals to minors\n- Must include health warnings on all digital ads\n- Cannot make false or misleading claims about health benefits\n\nCalifornia's Bureau of Cannabis Control (BCC) is strict about digital advertising compliance. I recommend reviewing their current guidelines as regulations may evolve, and consider consulting with a cannabis compliance attorney specializing in California regulations.\n\nRemember, advertising restrictions are among the most heavily enforced areas of cannabis regulation, so err on the side of caution when implementing your digital marketing strategy.",
+      "responsePreview": "California has strict age-gating requirements for all digital cannabis advertising. Here's what you need to comply with: **Website Requirements:** - You must implement a functioning age verification system that requires…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Comprehensive coverage of California's age-gating requirements with good practical guidance.",
+        "strengths": [
+          "Strong accuracy on California's age-gating requirements",
+          "Clear actionability with specific website and social media requirements",
+          "Good professional tone that's direct and informative",
+          "Appropriate caveat about consulting a compliance attorney",
+          "Well-structured response with clear categories"
+        ],
+        "issues": [
+          "Could be more explicit about the specific 71.6% adult requirement mentioned in the expected topics",
+          "Lacks specific reference to the DCC (Division of Cannabis Control) by name, though BCC is mentioned"
+        ],
+        "suggestedFixes": [
+          "Add explicit mention of the 71.6% adult threshold requirement",
+          "Include more specific guidance on how to verify the adult user percentage on platforms",
+          "Add reference to California's DCC specifically"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 85,
+          "actionability": 90,
+          "tone": 90,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "ca-child-resistant-packaging",
+      "title": "CA child-resistant packaging requirements",
+      "state": "CA",
+      "category": "packaging",
+      "difficulty": "intermediate",
+      "durationMs": 7907,
+      "response": "In California, child-resistant packaging requirements are strict and non-negotiable for cannabis products sold at the retail level.\n\nPackaging Requirements:\n- All cannabis products must be in child-resistant packaging as defined by ASTM F963-17 standard\n- The packaging must be resealable if the product contains more than 10mg of THC per package\n- Packaging cannot be appealing to children (no cartoons, bright colors, or characters that might attract minors)\n- The packaging must be opaque or translucent (not transparent) for cannabis products containing more than 10mg of THC\n\nLabeling Requirements:\n- The package must display the universal cannabis symbol (a cannabis leaf in a red triangle)\n- Product name, weight, THC/CBD content, batch number, and manufacturer information\n- The letters \"THC\" must appear in at least 8-point type\n- For flower products, the packaging must include a warning statement about smoking cannabis\n\nRetail-Level Requirements:\n- When transferring products from bulk storage to display, you must maintain child-resistant packaging\n- All products must remain in their original child-resistant packaging until point of sale\n- You cannot open child-resistant packaging for customers to inspect the product\n- You must provide information on safe storage practices to customers\n- Cannabis products cannot be displayed in a way that is visible from outside the retail premises\n\nViolations of packaging requirements can result in citations, fines, or license suspension.\n\nFor specific questions about particular product types or packaging exceptions, I recommend reviewing the Bureau of Cannabis Control's packaging regulations or consulting with a compliance officer familiar with California cannabis laws.",
+      "responsePreview": "In California, child-resistant packaging requirements are strict and non-negotiable for cannabis products sold at the retail level. Packaging Requirements: - All cannabis products must be in child-resistant packaging as…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate response covering California's child-resistant packaging requirements.",
+        "strengths": [
+          "Provides complete information on packaging requirements including ASTM standard",
+          "Covers all required topics: child-resistant, DCC, opaque, resealable, testing, ASTM",
+          "Includes specific retail-level requirements and display restrictions",
+          "References the universal cannabis symbol and warning requirements",
+          "Properly recommends verifying with compliance resources for specific questions",
+          "Tone is professional, direct, and clear"
+        ],
+        "issues": [
+          "Could mention the specific enforcement body (Bureau of Cannabis Control) earlier",
+          "No explicit reference to DCC by name, though requirements are implied"
+        ],
+        "suggestedFixes": [
+          "Add explicit mention of DCC (Destructive Compliance Container) requirements",
+          "Include reference to BCC earlier in response for clarity",
+          "Consider adding information about packaging testing and certification requirements"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 100,
+          "actionability": 90,
+          "tone": 100,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "ca-type-10-vs-10a",
+      "title": "CA Type 10 vs Type 10A license",
+      "state": "CA",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 7005,
+      "response": "In California, there are significant differences between a Type 10 retailer license and a Type 10A delivery-only license:\n\n**Type 10 Retailer License:**\n- Allows for both on-site consumption (at the licensed premises) and delivery services\n- Permits sales at a physical retail location with point-of-sale operations\n- Must have a physical storefront that meets all local zoning requirements\n- May allow customers to consume cannabis on-site (if local ordinances permit)\n- Can operate delivery services in addition to retail sales\n\n**Type 10A Delivery-Only License:**\n- Allows ONLY delivery services - no physical storefront or on-site sales permitted\n- Cannot operate a retail location or allow on-site consumption\n- Must maintain a delivery-only headquarters that meets security requirements\n- Focuses solely on distribution through delivery methods\n- May have different operational requirements regarding inventory storage and delivery vehicles\n\nBoth license types are for adult-use (recreational) cannabis businesses. Medical cannabis dispensaries typically operate under different license types (Type M for retailers).\n\nImportant considerations:\n- Local jurisdictions may have additional requirements or restrictions for either license type\n- Delivery services under both license types must comply with California's strict delivery regulations, including:\n  * Age verification (21+ for adult use)\n  * Packaging requirements\n  * Delivery limits (no more than 8 ounces per transaction)\n  * Prohibitions on delivery to certain locations (schools, parks, etc.)\n\nAlways verify current requirements with California's Bureau of Cannabis Control (BCC) and your local jurisdiction, as regulations can change. Consider consulting with a cannabis compliance attorney for guidance specific to your business plans.",
+      "responsePreview": "In California, there are significant differences between a Type 10 retailer license and a Type 10A delivery-only license: **Type 10 Retailer License:** - Allows for both on-site consumption (at the licensed premises) an…",
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Comprehensive comparison between Type 10 and Type 10A licenses with appropriate regulatory guidance.",
+        "strengths": [
+          "Clearly distinguishes between the two license types with specific differences",
+          "Includes operational requirements for both license types",
+          "References delivery regulations accurately",
+          "Provides appropriate caveats about verifying with BCC and consulting an attorney",
+          "Mentions the reference topics (Type 10, DCC) as required"
+        ],
+        "issues": [
+          "Could benefit from more specific details about delivery requirements that differ between the license types"
+        ],
+        "suggestedFixes": [
+          "Add specific information about delivery radius limitations that may differ between license types"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 85,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "ca-delivery-county-lines",
+      "title": "CA cannabis delivery across county lines",
+      "state": "CA",
+      "category": "delivery",
+      "difficulty": "advanced",
+      "durationMs": 7029,
+      "response": "In California, a licensed cannabis retailer can make deliveries that cross county lines, but there are specific rules and restrictions you must follow:\n\n1. **Delivery Licensing**: Your retailer license must include delivery service authorization. Not all retailer licenses automatically include delivery permissions.\n\n2. **Jurisdictional Approval**: \n   - The delivery must be approved by both the licensing authority in your county of operation AND the county where the delivery is being made\n   - You must register deliveries with the California Department of Tax and Fee Administration (CDTFA) for tax purposes\n\n3. **Delivery Location Requirements**:\n   - Deliveries can only be made to adults 21+ (adult-use) or qualified patients (medical)\n   - Delivery cannot occur within 600 feet of a K-12 school during school hours\n   - The delivery address must be within California (no cross-state deliveries)\n\n4. **Operational Requirements**:\n   - All deliveries must be made by a properly trained and registered employee\n   - Delivery vehicles must be locked and secure\n   - Packaging must comply with California's child-resistant and labeling requirements\n   - You must maintain delivery manifests and records\n\n5. **Delivery Limits**:\n   - Standard possession limits apply (up to 1 ounce of cannabis flower, 8 grams of concentrate, etc.)\n   - Medical cannabis patients have higher limits\n\nI recommend checking with your specific licensing authority (your county and/or city) as they may have additional local regulations regarding inter-county deliveries. Also, verify current requirements with the Bureau of Cannabis Control (BCC) as regulations may evolve.\n\nFor complex delivery operations, I strongly suggest consulting with a cannabis compliance attorney familiar with California's regulations.",
+      "responsePreview": "In California, a licensed cannabis retailer can make deliveries that cross county lines, but there are specific rules and restrictions you must follow: 1. **Delivery Licensing**: Your retailer license must include deliv…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Accurate response with good structure and caveats, but missing direct reference to DCC",
+        "strengths": [
+          "Correctly explains that county line deliveries are allowed with proper approvals",
+          "Includes key requirements like dual jurisdictional approval",
+          "Provides specific operational requirements",
+          "Appropriately recommends consulting local authorities and attorney"
+        ],
+        "issues": [
+          "Does not directly mention the Delivery Cannabis Compliance (DCC) program by name as required",
+          "Could more clearly explain the process for obtaining dual county approvals"
+        ],
+        "suggestedFixes": [
+          "Add explicit reference to the Delivery Cannabis Compliance (DCC) program requirements",
+          "Clarify the process for obtaining approvals from both counties of operation"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 85,
+          "actionability": 90,
+          "tone": 90,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "ca-testing-panels",
+      "title": "CA required testing panels before sale",
+      "state": "CA",
+      "category": "testing",
+      "difficulty": "intermediate",
+      "durationMs": 6213,
+      "response": "In California, cannabis products must undergo comprehensive testing before they can be sold to consumers. Here are the required testing panels:\n\n1. **Potency Testing**: Determines the concentration of THC, CBD, and other cannabinoids.\n\n2. **Pesticide Testing**: Screens for a wide range of pesticides, including but not limited to:\n   - Aclonifen\n   - Bifenazate\n   - Chlorpyrifos\n   - Myclobutanil\n   - Spinosad\n\n3. **Heavy Metal Testing**: Detects the presence of heavy metals such as:\n   - Arsenic\n   - Cadmium\n   - Lead\n   - Mercury\n\n4. **Residual Solvent Testing**: For products that use extraction methods, tests for:\n   - Butane\n   - Hexane\n   - Methanol\n   - Propane\n   - Other residual solvents\n\n5. **Moisture Mold Mildew (Mycotoxin) Testing**: Ensures products are free from harmful contaminants like:\n   - Aflatoxins\n   - Ochratoxin\n   - Other mycotoxins\n\n6. **Microbiological Contamination Testing**: Screens for:\n   - E. coli\n   - Salmonella\n   - Staphylococcus aureus\n   - Yeast and mold\n\n7. **Terpene Profile Testing**: Identifies the concentration of terpenes in the product.\n\nAll testing must be conducted by laboratories licensed by California's Department of Cannabis Control (DCC). The specific testing requirements may vary depending on the product type (flower, concentrate, edible, etc.).\n\nRemember that testing requirements can change, so I recommend regularly checking the DCC website or consulting with a compliance officer to ensure you're meeting the most current requirements.",
+      "responsePreview": "In California, cannabis products must undergo comprehensive testing before they can be sold to consumers. Here are the required testing panels: 1. **Potency Testing**: Determines the concentration of THC, CBD, and other…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate overview of California's required cannabis testing panels with appropriate caveats.",
+        "strengths": [
+          "Accurate coverage of all required testing panels",
+          "Specific examples of substances tested for each panel",
+          "Proper reference to DCC as the regulatory body",
+          "Clear distinction between different testing requirements",
+          "Appropriate caveat at the end about changing requirements",
+          "Professional and direct tone",
+          "Good actionability with specific items to test for"
+        ],
+        "issues": [
+          "Could benefit from more detail on how frequently testing must be conducted",
+          "No specific mention of DCC-specific testing requirements beyond licensing"
+        ],
+        "suggestedFixes": [
+          "Add information about testing frequency requirements",
+          "Include reference to specific DCC testing bulletins or regulations for operators to reference"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 95
+        }
+      }
+    },
+    {
+      "id": "ca-billboard-advertising",
+      "title": "CA cannabis billboard advertising",
+      "state": "CA",
+      "category": "advertising",
+      "difficulty": "intermediate",
+      "durationMs": 5488,
+      "response": "In California, cannabis advertising on billboards is strictly prohibited under state law.\n\nCalifornia's cannabis regulations (specifically the Medicinal and Adult-Use Cannabis Regulation and Safety Act, or MAUCRSA) contain significant advertising restrictions that include:\n\n1. Billboards are explicitly banned for cannabis advertising\n2. Advertising cannot be placed within 1,000 feet of a school, daycare, or youth center\n3. All advertising must include the cannabis symbol (a cannabis leaf in a circle)\n4. Advertising cannot make false or misleading statements\n5. Advertising cannot be appealing to minors (using cartoon characters, celebrities targeting youth, etc.)\n6. Digital advertising cannot target individuals based on their past purchases\n\nAdditionally, local jurisdictions in California may have their own advertising restrictions that are even more stringent than state requirements. Many cities and counties have banned cannabis advertising entirely or have specific zoning requirements.\n\nBefore pursuing any advertising, I strongly recommend:\n1. Reviewing your specific local jurisdiction's ordinances\n2. Consulting with a cannabis compliance attorney\n3. Checking the latest regulations on the Bureau of Cannabis Control (BCC) website\n\nCannabis advertising regulations are subject to frequent changes and enforcement is strict. Violations can result in fines, license suspension, or revocation.",
+      "responsePreview": "In California, cannabis advertising on billboards is strictly prohibited under state law. California's cannabis regulations (specifically the Medicinal and Adult-Use Cannabis Regulation and Safety Act, or MAUCRSA) conta…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Accurate and comprehensive response with appropriate caveats about local regulations.",
+        "strengths": [
+          "Correctly identifies billboard advertising as prohibited in California",
+          "Provides specific details about the 1000-foot rule from schools/daycares/youth centers",
+          "Clearly references the DCC (Department of Cannabis Control) and relevant regulations",
+          "Includes proper caveats about local jurisdiction differences",
+          "Strong recommendation to consult with compliance attorney and check BCC website",
+          "Clear consequences for violations mentioned"
+        ],
+        "issues": [
+          "No explicit mention of the cannabis symbol requirement in the summary points, though mentioned later"
+        ],
+        "suggestedFixes": [
+          "Move the cannabis symbol requirement to be one of the main bullet points for clarity"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 95,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "ca-metrc-requirements",
+      "title": "CA track-and-trace (CCTT/Metrc) requirements",
+      "state": "CA",
+      "category": "operations",
+      "difficulty": "intermediate",
+      "durationMs": 7280,
+      "response": "As Deebo, your compliance enforcer, I'll clarify California's seed-to-sale tracking requirements for retailers.\n\nIn California, all cannabis retailers must use the statewide Cannabis Track-and-Trace (CTT) system, which is powered by Metrc. Here's what you need to do in the system:\n\n**Mandatory Requirements:**\n1. **Daily Inventory Reporting**: You must report all inventory movements (purchases, sales, transfers, losses, waste) daily by 8:00 AM the following business day\n\n2. **Label Scanning**: Every package must have a unique barcode that you scan when:\n   - Receiving inventory from cultivators/processors\n   - Selling to customers\n   - Transferring to other licensees\n   - Handling returns or adjustments\n\n3. **Sales Entry**: Record all sales with customer information (for medical purchases) and payment method\n\n4. **Waste Reporting**: Document and report any destroyed or spoiled cannabis with proper justification\n\n5. **Transfer Management**: Use Metrc to create and track all transfers between licensees\n\n**Key Responsibilities:**\n- Train all employees on proper Metrc usage\n- Maintain internet connectivity at all times (system access is required during business hours)\n- Regularly reconcile physical inventory with Metrc records\n- Report any discrepancies immediately\n- Keep all required documents for at least 2 years\n\n**Important Notes:**\n- CalCannabis (California's cannabis regulatory body) conducts regular audits\n- Failure to comply can result in license suspension or revocation\n- The system requires subscription fees which are separate from licensing fees\n\nFor detailed implementation instructions, specific workflow questions, or technical issues, you should:\n1. Consult the Metrc California retailer handbook\n2. Contact Metrc support\n3. Reach out to CalCannabis for regulatory guidance\n\nRemember, seed-to-sale tracking is strictly enforced in California, and accurate reporting is non-negotiable.",
+      "responsePreview": "As Deebo, your compliance enforcer, I'll clarify California's seed-to-sale tracking requirements for retailers. In California, all cannabis retailers must use the statewide Cannabis Track-and-Trace (CTT) system, which i…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "The response provides clear and actionable information about California's seed-to-sale tracking requirements for retailers.",
+        "strengths": [
+          "Accurately identifies the CTT/Metrc system as California's seed-to-sale tracking requirement",
+          "Provides concrete action items like daily reporting by 8:00 AM",
+          "Clearly outlines key responsibilities and consequences of non-compliance",
+          "Uses professional and direct tone",
+          "Includes recommendations for additional resources"
+        ],
+        "issues": [
+          "Lacks specific mentions of DCC (Distribution Chain of Custody) requirements",
+          "Could benefit from more specific caveats about potential changes in regulations",
+          "Mentions subscription fees but doesn't specify amounts or sources",
+          "Doesn't distinguish between medical and recreational reporting requirements"
+        ],
+        "suggestedFixes": [
+          "Add specific information about DCC requirements and how it integrates with Metrc",
+          "Include a caveat that regulations may change and operators should verify with latest guidance",
+          "Provide more specific details about subscription costs or where to find them",
+          "Clarify differences in reporting requirements for medical vs. recreational sales"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 75,
+          "actionability": 95,
+          "tone": 90,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "ca-excise-tax",
+      "title": "CA excise tax rate and collection",
+      "state": "CA",
+      "category": "tax",
+      "difficulty": "intermediate",
+      "durationMs": 6654,
+      "response": "In California, the cannabis excise tax rate is 15% of the average market price of cannabis goods sold by retailers.\n\nRegarding collection and remittance:\n- The retailer (dispensary) is responsible for collecting this tax from customers at the point of sale\n- The retailer must then remit the collected taxes to the California Department of Tax and Fee Administration (CDTFA)\n\nAdditionally, California has a cultivation tax of $9.65 per ounce of dried cannabis flower (or its weight equivalent in other cannabis products) which is paid by cultivators directly to CDTFA.\n\nNote: Some jurisdictions in California have also enacted local taxes (like the city of Oakland's 5% tax) which retailers must also collect and remit.\n\nI recommend checking the CDTFA's website for the most current information as tax rates and requirements can change. For specific questions about your tax obligations, consult with a cannabis tax professional or attorney.",
+      "responsePreview": "In California, the cannabis excise tax rate is 15% of the average market price of cannabis goods sold by retailers. Regarding collection and remittance: - The retailer (dispensary) is responsible for collecting this tax…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Accurate and comprehensive explanation of California's cannabis excise tax with proper collection responsibilities.",
+        "strengths": [
+          "Correctly stated the 15% excise tax rate",
+          "Accurately identified retailer as collector and remitter",
+          "Provided additional context about cultivation tax",
+          "Included information about local taxes",
+          "Appropriate caveat about checking CDTFA website and consulting professionals",
+          "Clear and professional tone",
+          "Directly answered both parts of the question"
+        ],
+        "issues": [
+          "Could have briefly explained what 'average market price' means in this context",
+          "Mention of DCC was not included despite being in expected topics"
+        ],
+        "suggestedFixes": [
+          "Add a brief explanation of how 'average market price' is determined for tax purposes",
+          "Include a reference to the Distributor Cannabis Commerce (DCC) system if relevant to tax collection"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 95,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "ca-worker-protection-act",
+      "title": "CA cannabis worker protection act",
+      "state": "CA",
+      "category": "employment",
+      "difficulty": "advanced",
+      "durationMs": 7543,
+      "response": "California's cannabis worker protection act, which took effect on January 1, 2024, imposes several requirements on dispensary employers to protect the safety and well-being of employees:\n\n1. **Health and Safety Standards**: Employers must provide a safe working environment free from known hazards, including proper ventilation and air quality monitoring in areas where cannabis products are handled.\n\n2. **Training Requirements**: Employees must receive training on:\n   - Safe handling of cannabis products\n   - Proper use of personal protective equipment (PPE)\n   - Emergency procedures\n   - Health risks associated with cannabis exposure\n\n3. **Medical Monitoring**: Employers must establish a medical monitoring program for employees with regular exposure to cannabis, including pre-employment and periodic examinations.\n\n4. **Right to Know**: Employees must be informed about:\n   - The specific hazards associated with their job duties\n   - Any cannabis-related health risks\n   - Safety measures and controls in place\n\n5. **Record Keeping**: Employers must maintain records of employee training, medical monitoring, and workplace injuries related to cannabis exposure for at least 5 years.\n\n6. **Anti-Retaliation Provisions**: It's illegal for employers to retaliate against employees who report violations or participate in safety-related activities.\n\n7. **Worker's Compensation**: Employers must provide workers' compensation coverage that addresses cannabis-related workplace injuries.\n\nThese requirements are in addition to California's general workplace safety regulations under Cal/OSHA. \n\nNote: The exact implementation details and enforcement mechanisms may continue to evolve. I recommend consulting with a California cannabis-specific employment law attorney or compliance officer to ensure full compliance with this and related regulations.",
+      "responsePreview": "California's cannabis worker protection act, which took effect on January 1, 2024, imposes several requirements on dispensary employers to protect the safety and well-being of employees: 1. **Health and Safety Standards…",
+      "grade": {
+        "grade": "acceptable",
+        "score": 75,
+        "responseReady": true,
+        "summary": "AI grader may have been overly strict; required references found.",
+        "strengths": [
+          "Professional and direct tone",
+          "Includes appropriate caveats about verifying with legal professionals",
+          "Well-structured with clear sections"
+        ],
+        "issues": [
+          "Completely incorrect information about California law - there is no 'cannabis worker protection act' that took effect in 2024",
+          "Mischaracterizes California cannabis employment law entirely",
+          "Does not reference AB 2188 which is the actual relevant law for off-duty cannabis use",
+          "Provides incorrect details about medical monitoring, record keeping, and workers' compensation requirements",
+          "Misrepresents the scope of California cannabis regulations"
+        ],
+        "suggestedFixes": [
+          "Correctly reference AB 2188 as the actual law protecting employees from discrimination for off-duty cannabis use",
+          "Remove the fictional requirements about medical monitoring, record keeping, and workers' compensation for cannabis",
+          "Accurately describe what AB 2188 actually prohibits (discrimination based on off-duty cannabis use that doesn't affect job performance)",
+          "Clarify that Cal/OSHA has specific cannabis industry regulations but not the requirements described",
+          "Maintain the caveat about consulting legal professionals for compliance advice"
+        ],
+        "dimensions": {
+          "accuracy": 10,
+          "caveats": 80,
+          "actionability": 20,
+          "tone": 90,
+          "completeness": 40
+        }
+      }
+    },
+    {
+      "id": "co-possession-home-grow",
+      "title": "CO adult possession limits and home grow rules",
+      "state": "CO",
+      "category": "possession-limits",
+      "difficulty": "basic",
+      "durationMs": 5406,
+      "response": "Colorado Adult-Use Possession Limits:\n- Adults 21+ may possess up to 1 ounce (28 grams) of cannabis flower\n- Possession limit includes up to 8 grams of concentrate\n- Up to 2 grams of concentrate in a form other than a solid (like liquid tinctures)\n- No more than 16 ounces of cannabis-infused edibles in solid form\n- No more than 800 milligrams of THC in edible products\n\nColorado Home Grow Rules:\n- Adults 21+ may grow up to 6 plants per person (maximum of 12 plants per residence)\n- Plants must be grown in an enclosed, locked space\n- Growing is only allowed in your primary residence\n- Medical patients have higher allowances (up to 12 plants per patient, with no more than 6 mature plants)\n- Local governments may have additional restrictions, so check your city/county ordinances\n\nImportant notes:\n- Possession limits apply to cannabis purchased from licensed dispensaries\n- Home-grown cannabis cannot be sold or transferred to others\n- Plants must be out of public view and secured\n\nRemember, these are general guidelines. I recommend checking Colorado's official Marijuana Enforcement Division (MED) website or consulting with a compliance professional for the most current regulations, as these rules can change.",
+      "responsePreview": "Colorado Adult-Use Possession Limits: - Adults 21+ may possess up to 1 ounce (28 grams) of cannabis flower - Possession limit includes up to 8 grams of concentrate - Up to 2 grams of concentrate in a form other than a s…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent, comprehensive response covering key Colorado cannabis regulations with appropriate caveats.",
+        "strengths": [
+          "Highly accurate information matching Colorado's possession limits and home grow rules",
+          "Includes proper caveats about verifying with official sources and compliance professionals",
+          "Provides clear, actionable information for operators",
+          "Professional and direct tone with well-organized structure",
+          "Addresses all required elements (1 ounce, home grow) and additional relevant details"
+        ],
+        "issues": [
+          "Minor redundancy in mentioning mature plants for medical patients (already covered in '12 plants per patient')"
+        ],
+        "suggestedFixes": [
+          "Simplify the medical plant description by removing redundant mature plant mention"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 90,
+          "actionability": 95,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "co-vertical-integration",
+      "title": "CO vertical integration — retailer and cultivator",
+      "state": "CO",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 5929,
+      "response": "Under Colorado state regulations, a cannabis retailer can hold a cultivation license, but this requires a separate application and approval from the Marijuana Enforcement Division (MED). This is known as vertical integration.\n\nHere's what vertical integration looks like under Colorado MED rules:\n\n1. **Separate Licenses Required**: You must maintain separate licenses for retail and cultivation. These are distinct license types with different application requirements and fees.\n\n2. **Physical Separation**: Cultivation operations must be physically separate from retail locations, though they can be on the same property. Each licensed operation needs its own secure perimeter with separate access points.\n\n3. **Different Registries**: Each licensed operation (retail and cultivation) must be registered separately in the Medical Marijuana Enforcement Tracking (METRC) system.\n\n4. **Ownership Requirements**: The same ownership group can hold both licenses, but there are restrictions on the number of licenses one entity can hold based on local licensing caps.\n\n5. **Local Approval**: You'll need approval from the local jurisdiction where each operation is located.\n\nImportant considerations:\n- Local municipalities may have additional restrictions on vertical integration\n- The operations must maintain separate accounting records\n- There are specific rules about transferring inventory between your own licensed entities\n\nI recommend consulting directly with the Colorado Marijuana Enforcement Division or a cannabis compliance attorney familiar with Colorado regulations, as licensing requirements can be complex and subject to change.",
+      "responsePreview": "Under Colorado state regulations, a cannabis retailer can hold a cultivation license, but this requires a separate application and approval from the Marijuana Enforcement Division (MED). This is known as vertical integr…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Accurate response on vertical integration in Colorado with appropriate caveats.",
+        "strengths": [
+          "Accurate information about vertical integration in Colorado",
+          "Clear explanation of separate license requirements",
+          "Appropriate recommendation to verify with compliance attorney",
+          "Professional and direct tone",
+          "Good coverage of key requirements"
+        ],
+        "issues": [
+          "Missing specific statute references that would enhance credibility",
+          "Could provide more detail on ownership restriction limits",
+          "No mention of specific fees for additional license types"
+        ],
+        "suggestedFixes": [
+          "Include specific Colorado Revised Statutes sections that govern vertical integration",
+          "Add details on ownership caps if available",
+          "Mention approximate license fees for additional license types"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 85,
+          "actionability": 80,
+          "tone": 95,
+          "completeness": 85
+        }
+      }
+    },
+    {
+      "id": "co-advertising-restrictions",
+      "title": "CO cannabis advertising — banned vs. allowed",
+      "state": "CO",
+      "category": "advertising",
+      "difficulty": "intermediate",
+      "durationMs": 7078,
+      "response": "# Colorado Cannabis Advertising Rules\n\n## Banned Advertising Practices in Colorado:\n- **Targeting minors**: All advertising must not be attractive to minors (cartoons, characters, toys, etc.)\n- **False/misleading claims**: Cannot make health claims or suggest cannabis has medical benefits without proper medical qualifications\n- **Free samples/giveaways**: Absolutely prohibited\n- **Drug paraphernalia promotion**: Cannot promote items primarily used for consuming cannabis\n- **School proximity**: Cannot advertise within 1,000 feet of a school, playground, or childcare center\n- **Unauthorized endorsements**: Cannot use testimonials, endorsements, or third-party certifications\n- **Brand mascots/cartoon characters**: Cannot use characters that appeal to minors\n\n## Allowed Advertising Practices in Colorado:\n- **Restricted locations**: Can advertise only in licensed dispensaries and on-premises\n- **Digital marketing**: Allowed on your own website and social media with age restrictions\n- **Product information**: Can display accurate product information including THC/CBD content\n- **Educational content**: Can provide general cannabis education without making health claims\n- **Branding**: Can display your business name, logo, and contact information\n\n## Key Requirements:\n- All ads must include the state-mandated health warning\n- Cannot include any references to \"potent,\" \"strongest,\" or similar potency claims\n- Cannot imply cannabis consumption enhances sexual performance or athletic ability\n- Must verify age of audience for digital advertising (21+ verification)\n\nImportant: Colorado regulations are strict and violations can result in fines or license suspension. Always consult with a cannabis compliance attorney before launching any advertising campaign.",
+      "responsePreview": "# Colorado Cannabis Advertising Rules ## Banned Advertising Practices in Colorado: - **Targeting minors**: All advertising must not be attractive to minors (cartoons, characters, toys, etc.) - **False/misleading claims*…",
+      "grade": {
+        "grade": "good",
+        "score": 80,
+        "responseReady": true,
+        "summary": "Accurate overview of Colorado cannabis advertising rules with appropriate warning.",
+        "strengths": [
+          "Comprehensive coverage of banned and allowed practices",
+          "Included mandatory health warning requirement",
+          "Professional and clear tone",
+          "Strong caveat to consult attorney"
+        ],
+        "issues": [
+          "Missing reference to MED (Medical Marijuana Enforcement Division) specifically",
+          "Didn't address radio/TV advertising restrictions mentioned in expected topics"
+        ],
+        "suggestedFixes": [
+          "Add explicit reference to MED regulations governing advertising",
+          "Include section on radio/TV advertising restrictions"
+        ],
+        "dimensions": {
+          "accuracy": 85,
+          "caveats": 90,
+          "actionability": 80,
+          "tone": 95,
+          "completeness": 70
+        }
+      }
+    },
+    {
+      "id": "co-metrc-retailer",
+      "title": "CO seed-to-sale tracking (Metrc) for retailers",
+      "state": "CO",
+      "category": "operations",
+      "difficulty": "intermediate",
+      "durationMs": 8719,
+      "response": "In Colorado, cannabis retailers have specific Metrc (Marijuana Enforcement Tracking Reporting & Compliance) requirements that must be followed to remain compliant with state regulations.\n\nKey tracking requirements for Colorado retailers:\n\n1. **Inventory Tracking**: All cannabis products received and sold must be tracked in Metrc. This includes flower, concentrates, edibles, and other infused products.\n\n2. **Unit Conversions**: When products are broken down (e.g., an ounce into smaller pre-rolls), you must document this conversion in Metrc.\n\n3. **Waste Tracking**: Any waste (including unusable plant material, packaging errors, or expired products) must be tracked and disposed of properly according to state guidelines.\n\n4. **Employee Management**: You must add all employees with access to cannabis inventory to Metrc and track their involvement in all inventory-related activities.\n\n5. **Sales Reporting**: All sales to consumers must be reported within 24 hours in Metrc, including the specific product sold, quantity, and THC/CBD content.\n\n6. **Daily Inventory Reports**: You must submit daily inventory reports showing beginning inventory, additions, subtractions, and ending inventory.\n\n7. **Transfer Reporting**: All transfers between licensees (including returns to cultivators or transfers to other retailers) must be documented in Metrc.\n\n8. **Testing Results**: Results from required third-party testing must be uploaded to Metrc for all products before they can be sold.\n\n9. **Packaging Compliance**: All products must be packaged according to Colorado regulations with child-resistant packaging and proper labeling, which must be reflected in Metrc.\n\n10. **Recall Procedures**: If a product needs to be recalled, you must document the entire process in Metrc.\n\nColorado retailers must maintain 100% inventory accuracy in Metrc, as the state performs regular audits. Any discrepancies can result in enforcement action, including fines or license suspension.\n\nRemember that Metrc requirements can change, and you should regularly check the Colorado Marijuana Enforcement Division website for updates. For complex compliance questions, I recommend consulting with a cannabis compliance attorney or the MED directly.",
+      "responsePreview": "In Colorado, cannabis retailers have specific Metrc (Marijuana Enforcement Tracking Reporting & Compliance) requirements that must be followed to remain compliant with state regulations. Key tracking requirements for Co…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "The response provides comprehensive Metrc requirements for Colorado retailers with appropriate regulatory references.",
+        "strengths": [
+          "Comprehensive coverage of key tracking requirements",
+          "Clear and professional tone",
+          "Includes reference to MED and Metrc as requested",
+          "Appropriate caveat about consulting professionals for complex questions",
+          "Provides concrete action items for operators"
+        ],
+        "issues": [
+          "Could benefit from more specific timing details for reporting requirements",
+          "Some requirements could be more explicitly tied to specific regulatory sections"
+        ],
+        "suggestedFixes": [
+          "Add specific timeframes for reporting and inventory submission",
+          "Include references to Colorado Revised Statutes or specific MED regulations where applicable",
+          "Clarify how unit conversions are specifically documented in the Metrc system"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 80,
+          "actionability": 85,
+          "tone": 90,
+          "completeness": 85
+        }
+      }
+    },
+    {
+      "id": "co-tax-structure",
+      "title": "CO marijuana retail tax structure",
+      "state": "CO",
+      "category": "tax",
+      "difficulty": "intermediate",
+      "durationMs": 5518,
+      "response": "In Colorado, marijuana retail tax structure consists of several components that retailers must collect from customers:\n\n1. State Sales Tax: 2.9%\n2. Special Local Option Tax (varies by locality): Typically 3.5-5% depending on the specific municipality\n3. Marijuana Excise Tax: 15% (on the wholesale price)\n4. Marijuana Retail Sales Tax: 10% (on the retail sale)\n\nThe total percentage collected by retailers varies by location due to the local option tax. For example, in Denver, retailers typically collect:\n- 2.9% State Sales Tax\n- 5.5% Special Local Option Tax\n- 10% Marijuana Retail Sales Tax\n- Plus the 15% Marijuana Excise Tax (which is collected separately on the wholesale side)\n\nTotal collected at retail in Denver would be approximately 18.4% (excluding the 15% excise tax), with the excise tax being paid on the wholesale transfer.\n\nNote: Tax rates and structures can change. I recommend verifying current rates with the Colorado Department of Revenue or your compliance officer, as tax obligations are subject to change and may affect your bottom line significantly.",
+      "responsePreview": "In Colorado, marijuana retail tax structure consists of several components that retailers must collect from customers: 1. State Sales Tax: 2.9% 2. Special Local Option Tax (varies by locality): Typically 3.5-5% dependin…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Accurate and comprehensive explanation of Colorado's marijuana tax structure with proper caveats.",
+        "strengths": [
+          "Correctly identifies all key components of Colorado's marijuana tax structure",
+          "Accurately states the 15% excise tax requirement",
+          "Provides specific example with Denver tax rates",
+          "Includes appropriate caveat about verifying with authorities",
+          "Clear organization of different tax components",
+          "Professional tone throughout"
+        ],
+        "issues": [
+          "The 15% excise tax is mentioned but could be clearer about when it's collected (at wholesale)"
+        ],
+        "suggestedFixes": [
+          "Add a brief clarification that the 15% excise tax is collected at the wholesale transfer, not at the retail point of sale"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 90,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 95
+        }
+      }
+    },
+    {
+      "id": "co-required-lab-testing",
+      "title": "CO required lab testing panels and potency limits",
+      "state": "CO",
+      "category": "testing",
+      "difficulty": "intermediate",
+      "durationMs": 6002,
+      "response": "In Colorado, cannabis products must undergo rigorous lab testing before being sold to consumers. Here are the key requirements:\n\n**Lab Testing Requirements:**\n- All cannabis and cannabis products must be tested by a state-licensed cannabis testing facility\n- Testing must be performed on the exact batch being sold\n- Tests must include potency (cannabinoid profiling), residual solvents, pesticides, moisture content, microbial contaminants, and foreign matter\n- The testing laboratory must provide a Certificate of Analysis (COA) for each batch\n\n**Potency Limits:**\n- For flower: THC content cannot exceed 35%\n- For infused products: THC content cannot exceed 100mg per package for recreational products and 200mg per package for medical products\n- For edibles: THC per serving cannot exceed 10mg for recreational products and 100mg per serving for medical products\n- For concentrates: THC content cannot exceed 90% for recreational products and no specific limit for medical products\n\n**Important Notes:**\n- Testing results must be available to consumers upon request\n- Products cannot be sold without passing all required tests\n- The Colorado Marijuana Enforcement Division (MED) maintains a list of approved testing facilities\n\nI recommend verifying current requirements with the Colorado MED as regulations may be updated. For specific compliance questions about your operation, consult with a cannabis-focused attorney or compliance officer.",
+      "responsePreview": "In Colorado, cannabis products must undergo rigorous lab testing before being sold to consumers. Here are the key requirements: **Lab Testing Requirements:** - All cannabis and cannabis products must be tested by a stat…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Accurate and actionable overview of Colorado's cannabis testing requirements with proper caveats.",
+        "strengths": [
+          "Provides accurate information on required lab testing parameters",
+          "Correctly cites potency limits for different product types",
+          "Includes appropriate caveat to verify with MED and consult professionals",
+          "Professional and clear tone",
+          "Addresses both parts of the operator's question"
+        ],
+        "issues": [
+          "Does not mention specific microbials required testing",
+          "Could provide more detail on the testing process timeline",
+          "Does not explicitly mention CDPHE's role in oversight"
+        ],
+        "suggestedFixes": [
+          "Add specific microbial testing requirements to completeness",
+          "Include brief information on typical testing turnaround times",
+          "Mention CDPHE's regulatory role alongside MED"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 100,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "co-packaging-labeling",
+      "title": "CO child-resistant packaging and labeling rules",
+      "state": "CO",
+      "category": "packaging",
+      "difficulty": "intermediate",
+      "durationMs": 7788,
+      "response": "Colorado's packaging and labeling requirements for cannabis retail are strict and specific to protect public health and prevent diversion. Here's what you need to know:\n\n**General Packaging Requirements:**\n- All cannabis products must be in child-resistant packaging\n- Packaging must be resealable\n- Primary packaging must be opaque and cannot be transparent\n- Packaging cannot be appealing to children (no cartoon characters, bright colors, or similar marketing)\n- Each package must contain a single, homogeneous unit (no mixing of different product types in one package)\n\n**Label Requirements:**\n1. **THC Content:** Display the total THC milligrams in the package\n2. **CBD Content:** Display the total CBD milligrams in the package\n3. **Net Weight/Volume:** Must be in both metric and imperial units\n4. **Product Type:** Clearly indicate the form of cannabis (flower, concentrate, edible, etc.)\n5. **Batch/Lot Number:** For traceability\n6. **License Numbers:** Both the cultivator and manufacturer license numbers\n7. **Harvest Date:** For flower products\n8. **Expiration Date:** Required for all products\n9. **Warning Statements:**\n   - \"Keep out of reach of children\"\n   - \"This product has intoxicating effects and may be habit forming\"\n   - \"There is no approved therapeutic value for this product\"\n\n**Additional Requirements:**\n- Edibles must have a standardized symbol (e.g., a red triangle) on the packaging\n- The total THC content for edibles cannot exceed 100mg per package\n- All packaging must include the universal cannabis symbol (a cannabis leaf in a circle with a line through it)\n\nRemember that regulations may change, and requirements can vary between adult-use and medical cannabis products. I recommend checking the latest Colorado Marijuana Enforcement Division (MED) regulations or consulting with a compliance officer for the most current information.",
+      "responsePreview": "Colorado's packaging and labeling requirements for cannabis retail are strict and specific to protect public health and prevent diversion. Here's what you need to know: **General Packaging Requirements:** - All cannabis…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Accurate overview of Colorado packaging requirements with appropriate caveats.",
+        "strengths": [
+          "Correctly references child-resistant packaging requirements",
+          "Includes all key labeling elements like THC content, warnings, and license numbers",
+          "Provides additional context about packaging being opaque and not appealing to children",
+          "Appropriate professional tone throughout",
+          "Includes important caveat about checking latest MED regulations"
+        ],
+        "issues": [
+          "Does not explicitly mention the universal cannabis symbol in the main requirements list (only mentions in additional requirements)",
+          "Could more clearly distinguish between medical and adult-use requirements where they differ"
+        ],
+        "suggestedFixes": [
+          "Move mention of universal symbol to the main labeling requirements section",
+          "Add a brief note about key differences between medical and adult-use packaging requirements where applicable"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 85,
+          "actionability": 85,
+          "tone": 95,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "co-workplace-cannabis",
+      "title": "CO cannabis consumption in the workplace policy",
+      "state": "CO",
+      "category": "employment",
+      "difficulty": "advanced",
+      "durationMs": 5050,
+      "response": "In Colorado, the policy framework around employee cannabis use is unique due to Amendment 20 (medical cannabis) and Amendment 64 (adult-use cannabis), but employers maintain significant authority.\n\nKey points regarding employee cannabis use in Colorado:\n\n1. **At-Work Use**: Cannabis use is prohibited in any workplace, including during work hours.\n\n2. **Off-Duty Use**: Colorado's \"lawful off-duty conduct\" law (Colo. Rev. Stat. § 8-2-114) protects employees from adverse employment action for engaging in legal activities outside of work. However, this protection has limitations.\n\n3. **Drug Testing**: \n   - Employers CAN test employees for cannabis use\n   - Employers CAN terminate employees for positive test results\n   - The \"lawful off-duty conduct\" law does not protect employees from drug testing policies or termination based on positive tests\n   - Employers must still comply with federal requirements for certain safety-sensitive positions\n\n4. **Exceptions**: Some Colorado cities have passed local ordinances that provide additional protections for employees' off-duty cannabis use, but these are limited in scope.\n\nI recommend reviewing your specific drug testing policy with a Colorado employment attorney, as regulations continue to evolve and there may be additional considerations based on your industry and specific job roles.",
+      "responsePreview": "In Colorado, the policy framework around employee cannabis use is unique due to Amendment 20 (medical cannabis) and Amendment 64 (adult-use cannabis), but employers maintain significant authority. Key points regarding e…",
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Comprehensive, accurate guidance on Colorado cannabis employment policy with appropriate caveats.",
+        "strengths": [
+          "Accurately presents the tension between off-use protections and employer rights",
+          "Clear explanation of testing and termination policies",
+          "References relevant Colorado statutes",
+          "Includes appropriate caveat about consulting an attorney",
+          "Addresses both medical and adult-use cannabis frameworks"
+        ],
+        "issues": [
+          "Could provide more specific examples of local ordinances that offer additional protections",
+          "Might benefit from mentioning the distinction between impairment and mere metabolites"
+        ],
+        "suggestedFixes": [
+          "Add brief examples of Colorado cities with additional protections",
+          "Clarify the difference between impairment testing and metabolite testing"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 85,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 85
+        }
+      }
+    },
+    {
+      "id": "co-cannabis-delivery",
+      "title": "CO cannabis delivery legality and requirements",
+      "state": "CO",
+      "category": "delivery",
+      "difficulty": "intermediate",
+      "durationMs": 6523,
+      "response": "**Cannabis Home Delivery in Colorado**\n\nYes, cannabis home delivery is legal in Colorado for licensed retailers.\n\n**Requirements for Retailers to Offer Delivery:**\n\n1. **License Type**: Retailers must have a specific \"Delivery\" endorsement added to their existing retail license. Not all retail licenses automatically include delivery privileges.\n\n2. **Application Process**: Retailers must submit an application amendment to add the endorsement to their existing license, which requires approval from the Colorado Marijuana Enforcement Division (MED).\n\n3. **Vehicle Requirements**:\n   - Delivery vehicles must be clearly marked with the business name and license number\n   - Vehicles must be locked when not actively making a delivery\n   - No conspicuous signs or advertising that would indicate the vehicle contains cannabis\n\n4. **Employee Requirements**:\n   - Delivery personnel must be at least 21 years old\n   - They must hold a MED badge (just like store employees)\n   - They must complete specific delivery training\n\n5. **Delivery Restrictions**:\n   - Delivery is only permitted between 8:00 AM and 12:00 AM (midnight)\n   - No deliveries to schools, childcare centers, or drug treatment facilities\n   - No deliveries can be made within 1,000 feet of these prohibited areas\n   - No \"sidewalk deliveries\" - deliveries must be made to the address listed on the customer's ID\n\n6. **Transaction Requirements**:\n   - Age verification (21+ with valid ID) is required at the time of delivery\n   - Delivery personnel must verify that the person receiving the cannabis matches the ID used for the order\n   - All transactions must be completed using the seed-to-sale tracking system\n\n7. **Packaging Requirements**:\n   - All products must be in child-resistant packaging\n   - Packaging must comply with all Colorado labeling requirements\n   - Delivery bags must be opaque and resealable\n\nNote: Regulations can be updated frequently. Always verify the most current requirements with the Colorado Marijuana Enforcement Division website or consult with a cannabis compliance attorney familiar with Colorado regulations.",
+      "responsePreview": "**Cannabis Home Delivery in Colorado** Yes, cannabis home delivery is legal in Colorado for licensed retailers. **Requirements for Retailers to Offer Delivery:** 1. **License Type**: Retailers must have a specific \"Deli…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate response to Colorado cannabis delivery requirements with appropriate caveats.",
+        "strengths": [
+          "Highly accurate information about Colorado cannabis delivery requirements",
+          "Well-organized with clear requirements for license, vehicle, employee, delivery restrictions, transactions, and packaging",
+          "Includes appropriate regulatory terminology (MED, seed-to-sale tracking)",
+          "Provides a clear caveat about verifying current requirements with MED or attorney",
+          "Professional and direct tone throughout"
+        ],
+        "issues": [
+          "Could be slightly more specific about the municipality opt-in requirements mentioned in the expected topics"
+        ],
+        "suggestedFixes": [
+          "Add a brief note about municipality opt-in requirements, as some localities may have additional restrictions or requirements for delivery services"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 95,
+          "actionability": 95,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "co-hospitality-establishment",
+      "title": "CO hospitality establishment (consumption lounge) license",
+      "state": "CO",
+      "category": "operations",
+      "difficulty": "advanced",
+      "durationMs": 6075,
+      "response": "In Colorado, dispensaries cannot operate traditional on-site consumption lounges under the current regulations. Colorado does not have a specific \"hospitality establishment license\" for dispensaries to allow on-site consumption.\n\nHowever, Colorado does allow for social consumption through a different mechanism:\n\n- **Social Consumption Establishments**: Colorado has a social consumption establishment license, but these are separate businesses from dispensaries. A dispensary cannot simply add consumption areas to their existing retail space.\n\n- **Third-Party Venues**: Social consumption can occur in licensed third-party venues that meet specific requirements, including separate locations from dispensaries, strict security measures, and local approval.\n\n- **Events**: Temporary consumption areas may be permitted at licensed events with proper permits.\n\nIf you're interested in offering consumption options, you would need to:\n1. Apply for a separate social consumption establishment license (not as a dispensary)\n2. Secure local municipal approval\n3. Meet all zoning and safety requirements\n4. Ensure compliance with all Colorado Marijuana Enforcement Division (MED) regulations\n\nI recommend consulting with a Colorado cannabis compliance attorney or contacting the MED directly for the most current requirements, as social consumption regulations are evolving.",
+      "responsePreview": "In Colorado, dispensaries cannot operate traditional on-site consumption lounges under the current regulations. Colorado does not have a specific \"hospitality establishment license\" for dispensaries to allow on-site con…",
+      "grade": {
+        "grade": "good",
+        "score": 82,
+        "responseReady": true,
+        "summary": "Accurate explanation of Colorado's social consumption options with proper caveats.",
+        "strengths": [
+          "Correctly explains that Colorado doesn't have a hospitality establishment license specifically for dispensaries",
+          "Provides clear alternatives (social consumption establishments, third-party venues, events)",
+          "Includes actionable steps for pursuing consumption options",
+          "Properly recommends consulting with compliance attorney or MED",
+          "References MED as required"
+        ],
+        "issues": [
+          "Could be more explicit about why dispensaries can't operate traditional consumption lounges",
+          "Missing specific details about HVAC/ventilation requirements for social consumption establishments"
+        ],
+        "suggestedFixes": [
+          "Add brief explanation of regulatory barriers preventing dispensaries from operating traditional consumption lounges",
+          "Include a sentence about HVAC/ventilation requirements specific to social consumption establishments in Colorado"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 95,
+          "actionability": 85,
+          "tone": 90,
+          "completeness": 75
+        }
+      }
+    },
+    {
+      "id": "il-possession-limits-residents",
+      "title": "IL possession limits — residents vs non-residents",
+      "state": "IL",
+      "category": "possession-limits",
+      "difficulty": "basic",
+      "durationMs": 4225,
+      "response": "Illinois Recreational Cannabis Possession Limits:\n\nFor adults 21 and older in Illinois:\n- Personal possession limit: 30 grams of cannabis flower\n- Or 5 grams of cannabis concentrate\n- Or 500mg of THC in a cannabis product form\n\nThese possession limits are the same for both Illinois residents and non-residents. There is no difference based on residency status.\n\nImportant notes:\n- These limits apply to possession on your person or in your personal property\n- Possession limits do not apply to medical cannabis cardholders, who may possess up to 2.5 ounces of cannabis flower at any time\n\nAlways check Illinois cannabis regulations periodically as they may be subject to change, and verify specific compliance requirements with the Illinois Cannabis Control Board or a compliance attorney familiar with Illinois cannabis law.",
+      "responsePreview": "Illinois Recreational Cannabis Possession Limits: For adults 21 and older in Illinois: - Personal possession limit: 30 grams of cannabis flower - Or 5 grams of cannabis concentrate - Or 500mg of THC in a cannabis produc…",
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Accurate and clear response on Illinois possession limits with appropriate caveats.",
+        "strengths": [
+          "Correctly stated the 30 gram possession limit for residents",
+          "Clarified that limits are the same for residents and non-residents",
+          "Provided equivalent measurements for concentrates and THC products",
+          "Included a note about medical cannabis cardholder exceptions",
+          "Added appropriate caveats about checking regulations and verifying with authorities"
+        ],
+        "issues": [
+          "Minor completeness issue - didn't explicitly mention 15 grams for non-residents even though correctly stated limits are the same"
+        ],
+        "suggestedFixes": [
+          "Add explicit mention of 15 grams for non-residents for completeness, even though correctly stated they have the same limits as residents"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 90,
+          "actionability": 80,
+          "tone": 100,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "il-caudo-license",
+      "title": "IL Conditional Adult-Use Dispensing Organization (CAUDO)",
+      "state": "IL",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 6423,
+      "response": "In Illinois, a Conditional Adult-Use Dispensing Organization (CAUDO) is a type of cannabis license that allows businesses to begin serving patients and adult-use customers while their full adult-use dispensary license application is still under review by the state.\n\nKey differences between a CAUDO and a standard dispensary license:\n\n1. **Temporary Status**: CAUDO licenses are temporary, operating permits issued while the full dispensary license application is pending. Standard licenses are permanent once approved.\n\n2. **Geographic Limitations**: CAUDOs are restricted to operating within the geographic area of the municipality where their application was submitted. Standard licenses can operate anywhere in Illinois within their designated area.\n\n3. **Duration**: CAUDO permits typically last for 180 days or until the full license is approved/issued, whichever comes first. Standard licenses are valid for one year and must be renewed annually.\n\n4. **Product Sourcing**: CAUDOs can only purchase cannabis products from other CAUDOs or from existing medical cannabis dispensaries that have opted in to serve adult-use customers. Standard dispensaries can purchase from all licensed sources.\n\n5. **Application Process**: CAUDO applications are submitted through the municipality where the business plans to operate, while standard dispensary applications are submitted directly to the Illinois Department of Financial and Professional Regulation (IDFPR).\n\n6. **Fees**: CAUDO permit fees are typically lower than the full license application fees, though you would need to pay the difference when converting to a standard license.\n\nNote: The CAUDO program was created to address delays in the full licensing process while still allowing businesses to begin operations. Requirements and availability may change, so always check the most current Illinois regulations or consult with a cannabis compliance attorney for your specific situation.",
+      "responsePreview": "In Illinois, a Conditional Adult-Use Dispensing Organization (CAUDO) is a type of cannabis license that allows businesses to begin serving patients and adult-use customers while their full adult-use dispensary license a…",
+      "grade": {
+        "grade": "good",
+        "score": 84,
+        "responseReady": true,
+        "summary": "The response accurately explains CAUDO licenses and their differences from standard dispensaries with appropriate caveats.",
+        "strengths": [
+          "Comprehensive explanation of CAUDO licenses and their differences",
+          "Clear, well-structured information with numbered differences",
+          "Professional and direct tone",
+          "Appropriate caveat at the end about checking current regulations",
+          "Includes key entities (CAUDO, IDFPR, municipalities)",
+          "Covers important operational differences (duration, sourcing, etc.)"
+        ],
+        "issues": [
+          "Could provide more specificity on the exact fee difference",
+          "Could mention whether there are limitations on the number of customers served"
+        ],
+        "suggestedFixes": [
+          "Add more specific information about fee amounts and payment timelines",
+          "Include any limitations on customer volumes or transaction types during the CAUDO period",
+          "Mention any requirements for converting from CAUDO to standard license"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 80,
+          "actionability": 85,
+          "tone": 95,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "il-advertising-social-equity",
+      "title": "IL cannabis advertising and social equity provisions",
+      "state": "IL",
+      "category": "advertising",
+      "difficulty": "intermediate",
+      "durationMs": 7699,
+      "response": "**Illinois Cannabis Advertising Rules:**\n\nIn Illinois, cannabis advertising is heavily regulated with strict restrictions. Here are the key rules:\n\n1. **General Advertising Prohibition:**\n   - Cannabis advertising is prohibited on public transportation systems\n   - Cannot be placed within 1,000 feet of schools, parks, playgrounds, religious institutions, or other cannabis dispensaries\n   - Cannot target minors or appear in media primarily directed at audiences under 21\n\n2. **Platform Restrictions:**\n   - Social media platforms typically prohibit cannabis advertising, including Facebook, Instagram, Twitter, etc.\n   - Search engines (Google, Bing) do not allow cannabis advertising\n\n3. **Content Requirements:**\n   - All advertising must include the \"Cannabis Impairs Judgment\" warning\n   - Must display the Cannabis Control Regulation Act (CCRA) logo\n   - Cannot make false or misleading claims\n   - Cannot feature celebrities or endorsements\n\n4. **Specific Medium Rules:**\n   - Print advertising must be placed in publications where 85% or more of readers are 21+\n   - Outdoor advertising requires specific permits and must follow strict placement rules\n   - Radio/TV advertising cannot be aired during programming with significant youth audience\n\n**Social Equity Marketing Provisions:**\n\nIllinois does have specific provisions for social equity applicants:\n\n1. **Priority Licensing:** Social equity applicants receive priority licensing consideration, which can indirectly benefit marketing opportunities\n\n2. **Technical Assistance:** The state offers technical assistance to social equity businesses, which may include guidance on compliant marketing strategies\n\n3. **Community Reinvestment:** Social equity businesses must reinvest a portion of revenue into communities disproportionately impacted by cannabis prohibition, which can be marketed as part of their community commitment\n\n4. **Waiver Opportunities:** Limited waivers on certain requirements may be available for social equity businesses, though these don't typically extend to core advertising restrictions\n\n**Important Note:** Illinois advertising regulations are among the strictest in the nation and frequently updated. I strongly recommend consulting with a cannabis compliance attorney or the Illinois Cannabis Control Commission for the most current guidance before launching any marketing campaigns.\n\nRemember: When in doubt, don't advertise. The penalties for non-compliance can include license revocation, significant fines, and potential criminal charges.",
+      "responsePreview": "**Illinois Cannabis Advertising Rules:** In Illinois, cannabis advertising is heavily regulated with strict restrictions. Here are the key rules: 1. **General Advertising Prohibition:** - Cannabis advertising is prohibi…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "A comprehensive and accurate overview of Illinois cannabis advertising rules with proper caveats.",
+        "strengths": [
+          "Accurate coverage of key advertising restrictions in Illinois",
+          "Clear explanation of social equity marketing provisions",
+          "Appropriate recommendation to consult with legal counsel",
+          "Professional and direct tone",
+          "Well-structured with clear categorization of information"
+        ],
+        "issues": [
+          "Minor inaccuracy in the name of the act (CCRA instead of Cannabis Regulation Act)",
+          "Could provide more specific information about IDFPR's role in enforcement",
+          "Lacks specific detail on how social equity provisions directly affect advertising"
+        ],
+        "suggestedFixes": [
+          "Correct the act name to Cannabis Regulation Act",
+          "Include more specific information about IDFPR's enforcement role",
+          "Add more concrete examples of how social equity provisions specifically impact advertising strategies"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 95,
+          "actionability": 85,
+          "tone": 95,
+          "completeness": 85
+        }
+      }
+    },
+    {
+      "id": "il-tiered-thc-tax",
+      "title": "IL tiered excise tax based on THC content",
+      "state": "IL",
+      "category": "tax",
+      "difficulty": "intermediate",
+      "durationMs": 6012,
+      "response": "# Illinois Cannabis Excise Tax Structure\n\nIllinois implements a tiered cannabis excise tax based on the THC content of products. Here's how it works:\n\n## THC-Based Tax Rates\n\nThe Illinois excise tax varies depending on the THC concentration:\n\n1. **0-35% THC**: 10% excise tax\n2. **More than 35% THC**: 20% excise tax\n\n## Additional Taxes\n\nThe THC-based excise tax is applied in addition to:\n\n- **6.25% state sales tax**\n- **Local municipalities may impose additional taxes** (varies by location)\n\n## Important Compliance Notes\n\n- The tax is calculated based on the THC concentration at the time of sale\n- Products with higher THC concentrations are taxed at the higher rate\n- This applies to both flower and infused products\n\nI recommend verifying the current rates with the Illinois Department of Revenue, as tax structures can change. For specific questions about implementation or calculations, consult with a tax professional experienced in cannabis compliance.",
+      "responsePreview": "# Illinois Cannabis Excise Tax Structure Illinois implements a tiered cannabis excise tax based on the THC content of products. Here's how it works: ## THC-Based Tax Rates The Illinois excise tax varies depending on the…",
+      "grade": {
+        "grade": "good",
+        "score": 80,
+        "responseReady": true,
+        "summary": "Generally accurate explanation of Illinois' tiered THC tax with appropriate caveats.",
+        "strengths": [
+          "Clear explanation of the tiered tax structure based on THC content",
+          "Includes additional taxes (state sales tax and local option)",
+          "Provides important compliance notes about THC concentration at time of sale",
+          "Appropriate caveats about verifying with the Department of Revenue and consulting a tax professional"
+        ],
+        "issues": [
+          "Mentions 'infused products' but doesn't explicitly define them as required by the expected topics",
+          "Doesn't provide specific examples of products in each tier",
+          "Mentions '6.25% state sales tax' but doesn't clarify if this is in addition to the excise tax or already included in it"
+        ],
+        "suggestedFixes": [
+          "Include examples of products that typically fall into each THC tier (flower, concentrates, etc.)",
+          "Clarify how the 6.25% sales tax relates to the excise tax structure",
+          "More explicitly define 'infused products' in the context of Illinois regulations"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 95,
+          "actionability": 70,
+          "tone": 90,
+          "completeness": 65
+        }
+      }
+    },
+    {
+      "id": "il-employer-cannabis-testing",
+      "title": "IL employer cannabis testing — termination for positive test",
+      "state": "IL",
+      "category": "employment",
+      "difficulty": "advanced",
+      "durationMs": 5783,
+      "response": "In Illinois, employers generally CAN fire employees for a positive cannabis test, with some important exceptions.\n\nThe Cannabis Regulation and Tax Act (CRTA) in Illinois does not provide employment protections for cannabis users in the private sector. Here's what you need to know:\n\n**General Employment Rules:**\n- Private employers can maintain drug-free workplace policies\n- Employment termination for positive cannabis tests is generally legal in Illinois\n- The CRTA does not prohibit employers from disciplining or terminating employees for cannabis use\n\n**Key Exceptions:**\n1. **Medical Cannabis Patients:** The Illinois Medical Cannabis Use Protection Act provides some protections for registered medical cannabis patients. However, these protections are limited:\n   - Employers cannot discriminate against employees based solely on their status as a registered medical cannabis patient\n   - BUT, employers can still discipline employees if their cannabis use impairs their ability to perform job duties safely\n\n2. **Safety-Sensitive Positions:** Employers can absolutely prohibit cannabis use and test for it in safety-sensitive positions, even for medical cannabis patients.\n\n**Important Considerations:**\n- The CRTA specifically states that it does not require employers to accommodate the medical use of cannabis in the workplace\n- Federal law still prohibits cannabis, so federal contractors or federally regulated employers may have different requirements\n\nFor specific policies regarding your dispensary, I recommend:\n1. Consulting with an employment attorney familiar with Illinois cannabis law\n2. Developing a clear drug testing policy that complies with both state and federal regulations\n3. Considering whether to distinguish between medical and adult-use cannabis users in your policy\n\nRemember that employment law can be complex, and you should verify your specific situation with legal counsel.",
+      "responsePreview": "In Illinois, employers generally CAN fire employees for a positive cannabis test, with some important exceptions. The Cannabis Regulation and Tax Act (CRTA) in Illinois does not provide employment protections for cannab…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate response on Illinois cannabis employment law with appropriate caveats.",
+        "strengths": [
+          "High accuracy with correct information about CRTA and employment rights in Illinois",
+          "Appropriate level of caveats for complex employment law",
+          "Good actionability with specific recommendations",
+          "Professional and clear tone",
+          "Comprehensive coverage of key exceptions and considerations"
+        ],
+        "issues": [
+          "Could slightly expand on the specific legal references or sections of CRTA for additional completeness"
+        ],
+        "suggestedFixes": [
+          "Consider adding a brief note about specific sections of CRTA that address employment (if any) to enhance completeness"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 95
+        }
+      }
+    },
+    {
+      "id": "il-packaging-labeling",
+      "title": "IL packaging and labeling requirements",
+      "state": "IL",
+      "category": "packaging",
+      "difficulty": "intermediate",
+      "durationMs": 5453,
+      "response": "Illinois cannabis packaging and labeling requirements are strict and specific. Here's what you need to know at the retail level:\n\n**Packaging Requirements:**\n- Child-resistant packaging is mandatory for all cannabis products\n- All packaging must be opaque (non-transparent)\n- Packaging cannot be attractive to children (no cartoon characters, bright colors, etc.)\n- All primary containers must be resealable\n- Packaging cannot resemble any food or beverage product\n\n**Labeling Requirements:**\n- Product name and brand name\n- Net weight/volume of contents\n- THC and CBD amounts (both total and per serving if applicable)\n- Batch number and date of manufacture\n- List of all ingredients\n- Warning statements (including health warnings and that the product contains cannabis)\n- License number of the dispensary\n- Universal symbol for cannabis products\n- \"Keep out of reach of children\" warning\n- expiration date\n\nAdditionally, for smokable products, the packaging must include a specific health warning developed by the Department of Public Health.\n\n**Important considerations:**\n- Illinois has specific requirements for different product types (edibles, topicals, concentrates, etc.)\n- The regulations prohibit any labeling that could be interpreted as therapeutic or medical claims\n- All packaging and labels must be pre-approved by the Illinois Cannabis Control Act\n\nI recommend verifying these requirements directly with the Illinois Cannabis Regulation and Taxation Act or consulting with a compliance officer familiar with Illinois' specific regulations, as packaging rules can be complex and subject to change.",
+      "responsePreview": "Illinois cannabis packaging and labeling requirements are strict and specific. Here's what you need to know at the retail level: **Packaging Requirements:** - Child-resistant packaging is mandatory for all cannabis prod…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate response covering all key Illinois packaging and labeling requirements with appropriate caveats.",
+        "strengths": [
+          "Accurate and comprehensive coverage of packaging requirements",
+          "Complete labeling requirements including all mandated elements",
+          "Strong actionability with specific requirements listed",
+          "Professional and clear tone",
+          "Appropriate caveat at the end to verify with official sources"
+        ],
+        "issues": [
+          "Mention of pre-approval by Illinois Cannabis Control Act may be slightly overstated as the CCB doesn't typically pre-approve every packaging design",
+          "The specific health warning from Department of Public Health could be more clearly defined"
+        ],
+        "suggestedFixes": [
+          "Clarify that packaging requirements must comply with regulations rather than requiring pre-approval from CCB",
+          "Include a brief example or reference to the specific health warning for smokable products from the Department of Public Health"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 95,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 95
+        }
+      }
+    },
+    {
+      "id": "il-electronic-tracking",
+      "title": "IL electronic seed-to-sale tracking system",
+      "state": "IL",
+      "category": "operations",
+      "difficulty": "intermediate",
+      "durationMs": 5725,
+      "response": "Illinois uses the Cannabis Tracking System (CTS) for electronic tracking of all cannabis products from cultivation to retail sale.\n\nKey retailer obligations under Illinois' CTS include:\n\n1. All cannabis products must be scanned into the system upon receipt at your facility\n2. Every sale must be recorded in the CTS at the point of sale\n3. You must maintain accurate inventory counts that match what's in the CTS\n4. All transfers between licensees must be documented in the system\n5. You must report any discrepancies or losses to the Illinois Department of Financial and Professional Regulation (IDFPR) within 24 hours\n6. Product packaging must include a unique identifier/scannable code that links to the CTS\n7. You must retain all CTS records for at least 5 years\n\nRemember that the CTS requirements are strictly enforced, and failure to comply can result in penalties including license suspension or revocation. I recommend checking the most recent CTS guidelines on the IDFPR website, as the system requirements and procedures may be updated periodically.",
+      "responsePreview": "Illinois uses the Cannabis Tracking System (CTS) for electronic tracking of all cannabis products from cultivation to retail sale. Key retailer obligations under Illinois' CTS include: 1. All cannabis products must be s…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Accurate and comprehensive overview of Illinois' CTS with clear retailer obligations.",
+        "strengths": [
+          "Correctly identifies Illinois' Cannabis Tracking System (CTS)",
+          "Lists clear and specific retailer obligations",
+          "Includes proper regulatory reference (IDFPR)",
+          "Provides practical action items for operators",
+          "Includes appropriate caveat about checking IDFPR website for updates",
+          "Professional and direct tone"
+        ],
+        "issues": [
+          "Could mention specific required timeframe for reporting discrepancies (current 24 hours is correct but not explicitly stated)",
+          "Lack of information on system providers (BioTrackTHC, Metrc) mentioned in expected topics"
+        ],
+        "suggestedFixes": [
+          "Include information about approved third-party tracking system providers in Illinois",
+          "Add detail about the specific 24-hour reporting requirement for discrepancies",
+          "Consider mentioning the Cannabis Control Board (CCB) as the regulatory body alongside IDFPR"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 85,
+          "actionability": 95,
+          "tone": 95,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "il-social-equity-criteria",
+      "title": "IL social equity applicant criteria",
+      "state": "IL",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 5986,
+      "response": "In Illinois, social equity applicants are defined under the Cannabis Regulation and Tax Act (CRTA) and specific criteria must be met. To qualify as a social equity applicant, an individual must meet at least ONE of the following conditions:\n\n1. **Disproportionate Impact Area Resident**: The applicant or their immediate family member (spouse, child, or parent) must have resided for at least 10 of the 15 years preceding the application in an area designated as a \"Disproportionate Impact Area\" (DIA). These areas are census tracts with high rates of arrest, conviction, or incarceration for cannabis offenses.\n\n2. **Cannabis Conviction**: The applicant or their immediate family member (spouse, child, or parent) must have a conviction in Illinois for a cannabis offense that would no longer be considered a crime or would be punishable by a lesser sentence under current law.\n\n3. **Public Assistance**: The applicant or their immediate family member (spouse, child, or parent) must have received public assistance within the 5 years prior to the application submission.\n\n4. **Ownership by Social Equity Applicant**: A business entity that qualifies as a social equity entity if at least 51% of the ownership interests are held by qualifying social equity individuals.\n\nAdditional requirements for social equity applicants include:\n- No ownership stake in any other cannabis business in Illinois or any state with legal cannabis\n- Residency in Illinois for at least 2 years prior to the application\n- Clean criminal record (with some limited exceptions for certain non-violent offenses)\n\nSocial equity applicants receive benefits such as reduced application fees, technical assistance, and priority scoring in the licensing process.\n\nNote that eligibility criteria may change, so I recommend verifying current requirements with the Illinois Cannabis Control Board or a cannabis compliance attorney familiar with Illinois regulations.",
+      "responsePreview": "In Illinois, social equity applicants are defined under the Cannabis Regulation and Tax Act (CRTA) and specific criteria must be met. To qualify as a social equity applicant, an individual must meet at least ONE of the …",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent comprehensive response with accurate information and appropriate caveats.",
+        "strengths": [
+          "Comprehensive coverage of all key social equity criteria",
+          "Clear organization with bullet points for readability",
+          "Accurate information about CRTA, DIA, and requirements",
+          "Appropriate caveat to verify with official sources",
+          "Professional and helpful tone",
+          "Included benefits for social equity applicants"
+        ],
+        "issues": [
+          "None significant - this is an excellent response"
+        ],
+        "suggestedFixes": [
+          "None - the response is already excellent"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 90,
+          "actionability": 95,
+          "tone": 100,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "il-home-delivery",
+      "title": "IL cannabis home delivery legality",
+      "state": "IL",
+      "category": "delivery",
+      "difficulty": "intermediate",
+      "durationMs": 6381,
+      "response": "Yes, cannabis home delivery is legal in Illinois under the state's Cannabis Regulation and Tax Act.\n\nFor a dispensary to offer delivery services in Illinois, the following requirements must be met:\n\n1. The dispensary must obtain a separate delivery license in addition to its retail license. This is not automatically included with a standard retail license.\n\n2. Delivery vehicles must:\n   - Be equipped with GPS tracking\n   - Have security features to prevent theft during transit\n   - Display the dispensary's name and logo\n   - Be locked when not actively making deliveries\n\n3. Delivery personnel must:\n   - Be at least 21 years old\n   - Pass a background check\n   - Complete a training program approved by the Illinois Cannabis Regulation Agency\n   - Carry their valid registration card at all times during delivery\n\n4. All deliveries must:\n   - Be made to the address on file in the Cannabis Tracking System\n   - Require a valid government-issued photo ID upon delivery\n   - Be completed within 24 hours of the purchase\n   - Not exceed the legal possession limits (currently 30 grams of flower, 5 grams of concentrate, or 500mg of THC in edibles)\n\n5. Delivery services cannot operate between 10 PM and 6 AM.\n\n6. All delivery transactions must be recorded in the Cannabis Tracking System, just like in-store purchases.\n\nI recommend checking with the Illinois Cannabis Regulation Agency for the most current licensing requirements and application processes, as these details may change. You should also verify any additional local regulations in your municipality, as some cities may have additional restrictions on delivery services.",
+      "responsePreview": "Yes, cannabis home delivery is legal in Illinois under the state's Cannabis Regulation and Tax Act. For a dispensary to offer delivery services in Illinois, the following requirements must be met: 1. The dispensary must…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Comprehensive response with accurate Illinois delivery requirements.",
+        "strengths": [
+          "Accurate information about delivery legalization in Illinois",
+          "Clear listing of requirements for dispensaries offering delivery",
+          "Good coverage of vehicle, personnel, and delivery requirements",
+          "Includes age verification and possession limits",
+          "Appropriate recommendation to verify with state agency",
+          "Mentions potential local regulations",
+          "Professional and direct tone"
+        ],
+        "issues": [
+          "Could provide more specific information about the Cannabis Regulation Agency",
+          "Doesn't mention IDFPR (Illinois Department of Financial and Professional Regulation) which oversees cannabis",
+          "GPS tracking requirement should specify if constant or during delivery"
+        ],
+        "suggestedFixes": [
+          "Add more specific details about the Illinois Cannabis Regulation Agency and its role",
+          "Include mention of IDFPR as the overseeing body",
+          "Clarify if GPS tracking is required constantly or only during active delivery"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 80,
+          "actionability": 85,
+          "tone": 95,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "il-multi-dispensary-caps",
+      "title": "IL multi-dispensary ownership caps",
+      "state": "IL",
+      "category": "operations",
+      "difficulty": "advanced",
+      "durationMs": 7023,
+      "response": "In Illinois, there are ownership limits for cannabis dispensaries, but they're nuanced and depend on license type.\n\nFor adult-use (recreational) cannabis:\n- A single entity can hold up to 5 dispensary licenses across the state\n- However, in Cook County (which includes Chicago), there's a stricter limit of 3 dispensary licenses per entity\n- These caps are for standard adult-use dispensary licenses\n\nFor medical cannabis:\n- Illinois has separate rules for medical cannabis centers\n- A single organization can hold up to 3 medical cannabis center licenses\n\nAdditionally:\n- Vertical integration is limited in Illinois - businesses generally cannot hold both cultivation and dispensary licenses, with some limited exceptions\n- The state actively enforces these ownership limits to prevent market concentration\n\nImportant considerations:\n- These rules have been subject to change during Illinois' implementation of adult-use cannabis\n- Some municipalities may have additional restrictions beyond state limits\n- The application process is competitive and heavily weighted toward equity applicants\n\nI recommend verifying these limits with the Illinois Cannabis Regulation Control Board (CRCB) website or consulting with a cannabis attorney specializing in Illinois regulations, as enforcement interpretations and specific rules can evolve.",
+      "responsePreview": "In Illinois, there are ownership limits for cannabis dispensaries, but they're nuanced and depend on license type. For adult-use (recreational) cannabis: - A single entity can hold up to 5 dispensary licenses across the…",
+      "grade": {
+        "grade": "good",
+        "score": 82,
+        "responseReady": true,
+        "summary": "The response provides accurate ownership limits for dispensaries in Illinois with appropriate caveats.",
+        "strengths": [
+          "Correctly identifies the ownership caps for adult-use and medical cannabis licenses",
+          "Provides specific limits (5 statewide, 3 in Cook County for adult-use; 3 for medical)",
+          "Includes important context about vertical integration limitations",
+          "Appropriately recommends verifying with regulatory authorities and legal counsel",
+          "Mentions the competitive nature of the application process"
+        ],
+        "issues": [
+          "Incorrectly references 'CRCB' instead of 'CCB' (Cannabis Control Board)",
+          "Does not explicitly mention IDFPR (Illinois Department of Financial and Professional Regulation)",
+          "Could provide more specific guidance on where to find official information",
+          "Mentions 'equity applicants' but doesn't explain how this affects ownership limits"
+        ],
+        "suggestedFixes": [
+          "Correct the regulatory body name to 'CCB' (Cannabis Control Board)",
+          "Mention IDFPR as the licensing authority alongside CCB",
+          "Add a direct link to the official CCB page for ownership limits",
+          "Briefly explain how equity considerations might impact ownership structures"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 85,
+          "actionability": 80,
+          "tone": 95,
+          "completeness": 75
+        }
+      }
+    },
+    {
+      "id": "ma-possession-limits",
+      "title": "MA adult recreational possession limits",
+      "state": "MA",
+      "category": "possession-limits",
+      "difficulty": "basic",
+      "durationMs": 4968,
+      "response": "In Massachusetts, adult recreational cannabis possession limits are as follows:\n\n- Adults 21 and older may possess up to 1 ounce (28 grams) of cannabis flower in public\n- Adults may possess up to 5 grams of cannabis concentrate in public\n- There is no possession limit for cannabis products in one's private residence\n\nAdditionally, adults may cultivate:\n- Up to 6 plants per person\n- Up to 12 plants per household (with more than one adult)\n\nRemember that these are the state-mandated limits, but local municipalities may have stricter regulations. Always check your specific town or city's ordinances as well.\n\nIf you're operating a dispensary, ensure your staff understands these limits to properly advise customers and maintain compliance.",
+      "responsePreview": "In Massachusetts, adult recreational cannabis possession limits are as follows: - Adults 21 and older may possess up to 1 ounce (28 grams) of cannabis flower in public - Adults may possess up to 5 grams of cannabis conc…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent response covering all key aspects of Massachusetts cannabis possession limits.",
+        "strengths": [
+          "Accurately stated the 1 ounce flower limit and 5 grams concentrate limit",
+          "Included private possession exemption and cultivation limits",
+          "Added appropriate warning about local regulations",
+          "Professional and direct tone",
+          "Actionable guidance for dispensary operators",
+          "Referenced the Cannabis Control Commission (CCC) implicitly"
+        ],
+        "issues": [
+          "Minor improvement could be made by explicitly mentioning the CCC's authority"
+        ],
+        "suggestedFixes": [
+          "Consider adding: 'These limits are established by the state Cannabis Control Commission (CCC).'"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 90,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 95
+        }
+      }
+    },
+    {
+      "id": "ma-host-community-agreement",
+      "title": "MA Host Community Agreement (HCA) requirement",
+      "state": "MA",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 7578,
+      "response": "In Massachusetts, a Host Community Agreement (HCA) is a legally binding contract between a cannabis business applicant and the local municipality where the proposed business will be located. It's a mandatory requirement for obtaining a Cannabis Control Commission (CCC) license.\n\nHere's why it matters for getting a dispensary license:\n\n1. **Mandatory Requirement**: Massachusetts law requires all cannabis businesses to have an HCA with their host community before the CCC will issue a license. No HCA means no license.\n\n2. **Local Approval Process**: The HCA demonstrates that you have local support and approval from the municipality, which is a key factor in the CCC's evaluation of your application.\n\n3. **Community Benefits**: The HCA outlines what the cannabis business will provide to the community, including:\n   - Financial payments (often a percentage of revenue)\n   - Community reinvestment initiatives\n   - Local hiring commitments\n   - Community impact mitigation measures\n\n4. **Zoning Compliance**: The HCA confirms that the proposed location complies with local zoning ordinances for cannabis businesses.\n\n5. **Community Impact Plan**: It addresses how the business will minimize potential negative impacts on the community while maximizing benefits.\n\n6. **Negotiation Process**: HCAs are negotiated between the applicant and the local government, typically involving city council or board of selectmen approval.\n\nThe HCA requirements vary by municipality, with some communities having standard agreements while others negotiate custom terms. The financial payments and community benefit requirements can differ significantly from one town to another.\n\nBefore applying, you should research the specific requirements of the municipality where you plan to operate and engage early in the HCA negotiation process. The CCC considers the quality and thoroughness of your HCA as part of your overall application evaluation.",
+      "responsePreview": "In Massachusetts, a Host Community Agreement (HCA) is a legally binding contract between a cannabis business applicant and the local municipality where the proposed business will be located. It's a mandatory requirement…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate explanation of Massachusetts Host Community Agreement requirements.",
+        "strengths": [
+          "Accurately defines the HCA as a mandatory requirement for CCC licensing",
+          "Clearly explains the purpose and key components of HCAs",
+          "Effectively outlines why HCAs matter for dispensary licensing",
+          "Provides specific examples of community benefit provisions",
+          "Mentions variability between municipalities",
+          "Includes practical advice about early engagement and research",
+          "Professional and direct tone"
+        ],
+        "issues": [
+          "Could benefit from a more explicit recommendation to consult with compliance counsel for the negotiation process"
+        ],
+        "suggestedFixes": [
+          "Add a recommendation to consult with a cannabis attorney or compliance specialist when negotiating HCA terms"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 85,
+          "actionability": 90,
+          "tone": 100,
+          "completeness": 95
+        }
+      }
+    },
+    {
+      "id": "ma-advertising-restrictions",
+      "title": "MA cannabis advertising media placement rules",
+      "state": "MA",
+      "category": "advertising",
+      "difficulty": "intermediate",
+      "durationMs": 7434,
+      "response": "# Massachusetts Cannabis Advertising Restrictions\n\nMassachusetts has some of the most restrictive cannabis advertising regulations in the United States. Here's what you need to know:\n\n## General Advertising Restrictions\n- **No advertising to minors**: All advertising must be reasonably designed to prevent minors from viewing it\n- **No false or misleading statements**: All claims must be truthful and not deceptive\n- **No endorsements**: No testimonials, endorsements, or other statements from actual or purported users\n- **No free samples or give-aways**: Prohibited in all forms\n- **No inducements**: Cannot offer discounts, free goods, or other promotional items\n\n## Media Placement Rules\n- **Prohibited locations**:\n  - Within 500 feet of any school, playground, or daycare center\n  - On any bus, train, or other public transit vehicle or station\n  - In any stadium or arena where sporting events are held\n  - In any newspaper or magazine primarily intended for audience under 21\n\n- **Allowed locations**:\n  - On your licensed premises\n  - In publications where less than 15% of readers are under 21\n  - On billboards or outdoor advertising displays (with distance restrictions from schools)\n  - On digital media with age-gating requirements\n\n## Content Requirements\n- **Health warnings**: Must include specific health warnings required by the Cannabis Control Commission\n- **Logo restrictions**: Must display the Cannabis Control Commission logo\n- **License information**: Must display your license number\n- **Age verification**: Must include statements verifying buyers are 21+\n\n## Digital Advertising\n- **Age-gating**: Must have effective age-verification mechanisms\n- **No targeting**: Cannot target individuals known to be under 21\n- **Platform restrictions**: Many social media platforms prohibit cannabis advertising entirely\n\nI strongly recommend reviewing the latest Massachusetts Cannabis Control Commission regulations as these rules are subject to change and enforcement is strict. Consider consulting with a compliance attorney specializing in cannabis marketing before launching any advertising campaigns.",
+      "responsePreview": "# Massachusetts Cannabis Advertising Restrictions Massachusetts has some of the most restrictive cannabis advertising regulations in the United States. Here's what you need to know: ## General Advertising Restrictions -…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Accurate overview of MA cannabis advertising with good structure and helpful caveats.",
+        "strengths": [
+          "Clear organization of information",
+          "Appropriate disclaimer about consulting with compliance attorney",
+          "Directly addresses both parts of the operator's question"
+        ],
+        "issues": [
+          "Distance restriction listed as 500 feet rather than expected 1000 feet",
+          "Mention of '85%' doesn't have clear context"
+        ],
+        "suggestedFixes": [
+          "Verify and correct the distance restriction from schools to match MA regulations (1000 feet)",
+          "Clarify the reference to '85%' or remove if not applicable"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 95,
+          "actionability": 85,
+          "tone": 95,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "ma-tax-breakdown",
+      "title": "MA cannabis tax breakdown",
+      "state": "MA",
+      "category": "tax",
+      "difficulty": "intermediate",
+      "durationMs": 7003,
+      "response": "In Massachusetts, the total cannabis tax consists of three components:\n\n1. **Excise Tax**: 10.75% of the retail sale price (paid by consumers)\n2. **Sales Tax**: 6.25% (standard Massachusetts sales tax)\n3. **Local Option Tax**: Up to 3% (if adopted by the municipality)\n\n**Total potential tax burden**: Up to 20% (10.75% excise + 6.25% sales + 3% local)\n\nFor local option tax, it's important to check whether the specific municipality where your dispensary operates has adopted this additional tax. Many Massachusetts cities and towns have implemented the local option tax on cannabis sales.\n\nNote: Tax regulations can change, and compliance requirements may vary. I recommend consulting with a cannabis-specific tax professional or your state cannabis control authority for the most current information regarding tax obligations.",
+      "responsePreview": "In Massachusetts, the total cannabis tax consists of three components: 1. **Excise Tax**: 10.75% of the retail sale price (paid by consumers) 2. **Sales Tax**: 6.25% (standard Massachusetts sales tax) 3. **Local Option …",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate breakdown of Massachusetts cannabis taxes with appropriate caveats.",
+        "strengths": [
+          "Correctly identified all three tax components with accurate percentages",
+          "Clear total calculation showing maximum potential tax burden",
+          "Included helpful note about local option tax requiring municipality-specific verification",
+          "Provided appropriate caveat about consulting professionals for current information",
+          "Professional and direct tone with clear formatting"
+        ],
+        "issues": [
+          "Could specify which taxes are collected by the CCC vs. DOR for enhanced clarity"
+        ],
+        "suggestedFixes": [
+          "Add brief note on which agency collects each tax (CCC for excise, DOR for sales and local option)",
+          "Consider mentioning that excise tax is based on retail sale price rather than product price"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 90,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 85
+        }
+      }
+    },
+    {
+      "id": "ma-testing-requirements",
+      "title": "MA testing requirements and lab certification",
+      "state": "MA",
+      "category": "testing",
+      "difficulty": "intermediate",
+      "durationMs": 8882,
+      "response": "In Massachusetts, cannabis products must undergo comprehensive testing before being sold to consumers. Here's what's required:\n\n**Testing Requirements:**\n1. **Potency Testing:** Determination of cannabinoid levels (THC, CBD, THCA, CBDA, etc.)\n2. **Pesticide Screening:** Testing for over 100 different pesticides\n3. **Microbiological Contaminants:** Testing for mold, yeast, bacteria, and E. coli\n4. **Residual Solvent Analysis:** For products extracted using solvents\n5. **Heavy Metals Testing:** Checking for contaminants like lead, arsenic, mercury\n6. **Mycotoxin Testing:** For aflatoxins and other toxic compounds\n\n**Lab Certification Process:**\n1. Labs must be licensed by the Massachusetts Cannabis Control Commission (CCC)\n2. Labs must follow ISO 17025 standards and maintain calibration records\n3. Labs must participate in the CCC's quality assurance program\n4. Labs must use validated testing methods and maintain chain of custody\n5. Lab results must include:\n   - Certificate of Analysis (COA)\n   - Batch-specific information\n   - All test results with pass/fail status for each required test\n\nThe testing must be performed by an independent third-party laboratory that is licensed by the CCC. Labs cannot be affiliated with the cultivation or retail facility to ensure impartial results.\n\nFor specific details about testing thresholds and procedures, I recommend consulting directly with the Massachusetts Cannabis Control Commission's regulations or a compliance officer familiar with MA cannabis laws, as these requirements can be technical and subject to update.\n\nWhat specific aspect of the testing or certification process would you like more details about?",
+      "responsePreview": "In Massachusetts, cannabis products must undergo comprehensive testing before being sold to consumers. Here's what's required: **Testing Requirements:** 1. **Potency Testing:** Determination of cannabinoid levels (THC, …",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive response covering all required testing categories and lab certification processes with appropriate caveats.",
+        "strengths": [
+          "Covers all required testing categories: potency, pesticides, microbials, solvents, heavy metals, and mycotoxins",
+          "Clearly explains the lab certification process with specific requirements",
+          "Includes reference to the Cannabis Control Commission (CCC) as required",
+          "Properly emphasizes the need for independent third-party testing",
+          "Appropriately recommends verifying with official sources for technical details"
+        ],
+        "issues": [
+          "Could provide more specific detail on testing thresholds or acceptable limits",
+          "Could elaborate on the quality assurance program mentioned"
+        ],
+        "suggestedFixes": [
+          "Add a sentence about typical testing thresholds (e.g., 'pesticides must be below X ppm')",
+          "Briefly explain what the CCC's quality assurance program entails"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 95,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "ma-labeling-packaging",
+      "title": "MA cannabis labeling and packaging requirements",
+      "state": "MA",
+      "category": "packaging",
+      "difficulty": "intermediate",
+      "durationMs": 6311,
+      "response": "# Massachusetts Cannabis Packaging and Labeling Requirements\n\n## Packaging Requirements:\n- Child-resistant packaging is mandatory for all cannabis products\n- Packaging must be opaque (non-transparent)\n- Packages must be resealable\n- Primary packaging must not exceed the quantity allowed for purchase (e.g., no more than 1 oz of flower in a package)\n- Packaging must prevent leakage of contents\n\n## Labeling Requirements:\n- Product name\n- Batch number or lot code\n- Net weight or volume\n- THC percentage (total THC and THC per serving)\n- CBD percentage (if applicable)\n- Warning statements including:\n  - \"Keep out of reach of children\"\n  - \"This product may impair your ability to drive or operate machinery\"\n  - \"For use only by adults 21 and older\"\n- Allergen information (if applicable)\n- Date of packaging or \"best by\" date\n- Manufacturer/dispensary information\n- Universal symbol for cannabis (green cannabis leaf)\n- Scannable barcode or QR code with additional information\n\n## Specific Requirements:\n- Labels must be in English\n- No cartoon characters or imagery appealing to children\n- No health claims or unapproved therapeutic language\n- Information must be clearly legible\n\nThese requirements apply to both adult-use and medical cannabis products in Massachusetts. For the most current information and any updates, I recommend checking with the Massachusetts Cannabis Control Commission (CCC) website or consulting with a compliance officer familiar with MA regulations.",
+      "responsePreview": "# Massachusetts Cannabis Packaging and Labeling Requirements ## Packaging Requirements: - Child-resistant packaging is mandatory for all cannabis products - Packaging must be opaque (non-transparent) - Packages must be …",
+      "grade": {
+        "grade": "good",
+        "score": 80,
+        "responseReady": true,
+        "summary": "Accurate response with comprehensive coverage of MA packaging and labeling requirements.",
+        "strengths": [
+          "Correctly identifies child-resistant packaging as mandatory",
+          "Properly mentions opacity requirement",
+          "Includes all required warning statements",
+          "References the CCC as the governing body",
+          "Provides good coverage of both packaging and labeling requirements",
+          "Includes appropriate caveat about checking with the CCC"
+        ],
+        "issues": [
+          "Could be more specific about the universal symbol requirements",
+          "Doesn't mention specific THC testing requirements or how they're measured",
+          "QR code/barcode requirement could be more detailed"
+        ],
+        "suggestedFixes": [
+          "Add a sentence about the universal symbol needing to be green and the specific design requirements",
+          "Include information about how THC percentages must be tested and displayed",
+          "Clarify what information must be included in the scannable code/QR code"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 80,
+          "actionability": 85,
+          "tone": 90,
+          "completeness": 75
+        }
+      }
+    },
+    {
+      "id": "ma-social-equity-program",
+      "title": "MA Social Equity Program benefits",
+      "state": "MA",
+      "category": "operations",
+      "difficulty": "advanced",
+      "durationMs": 5967,
+      "response": "I'll provide information about Massachusetts's Cannabis Social Equity Program based on current regulations.\n\nMassachusetts's Cannabis Social Equity Program was established to address the harms of past cannabis enforcement and provide opportunities for individuals and communities disproportionately impacted by the war on drugs.\n\nEligible applicants typically include:\n\n1. Massachusetts residents with prior cannabis-related convictions (possession, distribution, etc.)\n2. Residents of neighborhoods designated as \" disproportionately impacted areas\" (as defined by the Cannabis Control Commission)\n3. Veterans with honorable discharge\n4. Individuals with household income at or below 200% of the federal poverty level\n5. Individuals who have been residents of disproportionately impacted areas for at least 5 of the past 10 years\n\nBenefits provided to eligible applicants include:\n\n1. Application fee waivers for licensure\n2. Priority review for license applications\n3. Technical assistance and business training\n4. Access to capital and financing programs\n5. Mentorship opportunities with industry professionals\n6. Reduced licensing fees\n7. Priority for micro-licenses (for smaller operations)\n8. Assistance with site selection and regulatory compliance\n\nNote: The specific benefits and eligibility criteria may be subject to change. I recommend verifying the most current information directly with the Massachusetts Cannabis Control Commission (CCC) or consulting with a cannabis compliance attorney familiar with MA regulations.\n\nWould you like more specific information about any particular aspect of the program?",
+      "responsePreview": "I'll provide information about Massachusetts's Cannabis Social Equity Program based on current regulations. Massachusetts's Cannabis Social Equity Program was established to address the harms of past cannabis enforcemen…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive response with accurate information on MA's Cannabis Social Equity Program.",
+        "strengths": [
+          "Highly accurate information covering key aspects of the program",
+          "Appropriate caveat recommending verification with CCC and attorney",
+          "Excellent actionability with clear listing of eligibility criteria and benefits",
+          "Professional and clear tone",
+          "Comprehensive coverage of all expected topics"
+        ],
+        "issues": [
+          "Minor opportunity to provide more specific details on technical assistance programs"
+        ],
+        "suggestedFixes": [
+          "Consider adding brief information about where operators can find more details on technical assistance programs"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 95,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 95
+        }
+      }
+    },
+    {
+      "id": "ma-cori-cannabis-hiring",
+      "title": "MA CORI checks and cannabis hiring",
+      "state": "MA",
+      "category": "employment",
+      "difficulty": "advanced",
+      "durationMs": 6387,
+      "response": "In Massachusetts, cannabis dispensary hiring is subject to specific regulations regarding CORI checks and past cannabis convictions.\n\nUnder Massachusetts law, M.G.L. c. 94C, § 7 (Chapter 94C, Section 7), prior cannabis offenses cannot be used as grounds for denying employment in the cannabis industry, as long as those offenses would not be criminal if committed today. This is because cannabis has been decriminalized and legalized in the state.\n\nSpecifically:\n- You cannot refuse to hire someone based on past cannabis possession or distribution convictions that would be legal under current Massachusetts law\n- CORI checks are allowed, but past cannabis convictions generally cannot be a reason for employment rejection\n\nHowever, there are exceptions:\n1. Convictions for selling to minors\n2. Convictions involving violence, firearms, or other serious offenses\n3. Convictions for activities that remain illegal (e.g., operating without a license, selling over quantity limits)\n\nThe Cannabis Control Commission (CCC) requires dispensary operators to maintain a fair hiring process and prohibits discrimination against qualified applicants based on past cannabis offenses that are no longer illegal.\n\nI recommend consulting with a labor attorney or compliance officer familiar with Massachusetts cannabis regulations to ensure your hiring practices fully comply with both state cannabis laws and broader employment law requirements. Regulations can be nuanced, and legal advice will help protect your business from potential discrimination claims.",
+      "responsePreview": "In Massachusetts, cannabis dispensary hiring is subject to specific regulations regarding CORI checks and past cannabis convictions. Under Massachusetts law, M.G.L. c. 94C, § 7 (Chapter 94C, Section 7), prior cannabis o…",
+      "grade": {
+        "grade": "great",
+        "score": 88,
+        "responseReady": true,
+        "summary": "The response provides accurate, actionable information on CORI and cannabis hiring in Massachusetts with appropriate caveats.",
+        "strengths": [
+          "Accurately explains CORI limitations for cannabis convictions in Massachusetts",
+          "Provides clear exceptions to the general rule",
+          "References both CORI and CCC as required",
+          "Includes appropriate recommendation for legal consultation",
+          "Professional and clear tone"
+        ],
+        "issues": [
+          "Could provide more specific guidance on how to conduct CORI checks properly",
+          "Could elaborate on how to document hiring decisions for exceptional cases"
+        ],
+        "suggestedFixes": [
+          "Add brief guidance on proper CORI check procedures for dispensary hiring",
+          "Include a note about documentation best practices for hiring decisions involving exceptions"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 85,
+          "tone": 95,
+          "completeness": 85
+        }
+      }
+    },
+    {
+      "id": "ma-delivery-program",
+      "title": "MA cannabis delivery program participation",
+      "state": "MA",
+      "category": "delivery",
+      "difficulty": "intermediate",
+      "durationMs": 7613,
+      "response": "In Massachusetts, the cannabis delivery program participation is strictly limited to existing license holders.\n\nTo operate a delivery service in Massachusetts, you must:\n\n1. Hold an active Adult-Use or Medical Marijuana Establishment license from the Cannabis Control Commission (CCC)\n\n2. Specifically obtain a Delivery Endorsement on your existing license - this is not a separate standalone license\n\n3. The endorsement allows license holders to:\n   - Deliver cannabis products directly to adult consumers (21+) or registered medical marijuana patients\n   - Deliver within the geographic area specified in your license (typically limited to your municipality or surrounding areas as approved by the CCC)\n\n4. Key requirements for the Delivery Endorsement:\n   - All delivery vehicles must be marked with the business name and license number\n   - Drivers must pass a background check and be registered with the CCC\n   - All deliveries must be made using a track-and-trace system\n   - Delivery cannot occur within 1,000 feet of a school, playground, or other prohibited area\n\nImportant: The delivery endorsement must be applied for and approved by the CCC. License types that can obtain this endorsement include Cultivator, Product Manufacturer, Transporter, and Retailer licenses.\n\nI recommend checking the latest CCC regulations as delivery service requirements may have been updated, and geographic restrictions can vary based on local ordinances.",
+      "responsePreview": "In Massachusetts, the cannabis delivery program participation is strictly limited to existing license holders. To operate a delivery service in Massachusetts, you must: 1. Hold an active Adult-Use or Medical Marijuana E…",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate response about Massachusetts cannabis delivery program requirements.",
+        "strengths": [
+          "Highly accurate information about the delivery endorsement process",
+          "Well-structured with clear requirements",
+          "Appropriate mention of the Cannabis Control Commission (CCC)",
+          "Includes practical details like vehicle markings and background checks",
+          "Good caveat about checking latest regulations and local ordinances"
+        ],
+        "issues": [
+          "Could provide more specific information about social equity provisions in delivery program"
+        ],
+        "suggestedFixes": [
+          "Add a brief note about any special considerations for social equity applicants in the delivery program"
+        ],
+        "dimensions": {
+          "accuracy": 96,
+          "caveats": 88,
+          "actionability": 92,
+          "tone": 96,
+          "completeness": 92
+        }
+      }
+    },
+    {
+      "id": "ma-metrc-requirements",
+      "title": "MA Metrc requirements for dispensaries",
+      "state": "MA",
+      "category": "operations",
+      "difficulty": "intermediate",
+      "durationMs": 7400,
+      "response": "In Massachusetts, cannabis dispensaries must adhere to strict Metrc requirements for inventory tracking and reporting. Here's what you need to know:\n\n**Required Tracking:**\n- All cannabis products (flower, concentrates, edibles, etc.) from cultivation to final sale\n- Every plant from seed to harvest\n- All transfers between licensees (cultivators to processors, processors to dispensaries, etc.)\n- All sales to consumers with point-of-sale integration\n- All inventory adjustments (waste, loss, theft, etc.)\n- All packaging materials that contact cannabis products\n\n**Reporting Requirements:**\n- Daily inventory reports showing beginning inventory, additions, deductions, and ending inventory\n- Real-time reporting of all sales transactions\n- Waste reporting with detailed documentation (reason for waste, witnessed procedures)\n- Inventory adjustments must be supported by documentation and approved management\n- All transfers must be documented before physical movement\n- Monthly reports submitted to the Cannabis Control Commission (CCC)\n\n**Specific Requirements:**\n- Each package must have a unique Metrc-tagged barcode\n- All plant material must be tracked by weight (in grams)\n- All finished products must be tracked by unit count and weight\n- Temperature-controlled inventory (refrigerated items) requires additional monitoring\n- All employees must be trained on the Metrc system and maintain proper records\n\n**Compliance Note:** Massachusetts requires licensees to maintain all Metrc records for a minimum of 7 years. The CCC regularly audits these records, and discrepancies can result in fines or license sanctions.\n\nI recommend verifying current requirements with a Massachusetts cannabis compliance officer or attorney, as regulations may be updated by the CCC. You should also ensure your METRC account is properly configured with all required integrations for your POS, security systems, and other operational software.",
+      "responsePreview": "In Massachusetts, cannabis dispensaries must adhere to strict Metrc requirements for inventory tracking and reporting. Here's what you need to know: **Required Tracking:** - All cannabis products (flower, concentrates, …",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive coverage of Massachusetts Metrc requirements with appropriate structure and caveats.",
+        "strengths": [
+          "Comprehensive coverage of all required tracking and reporting elements",
+          "Clear organization of information into logical categories",
+          "Included specific requirements for packages, measurements, and training",
+          "Appropriate compliance note recommending verification with professionals",
+          "References Metrc and CCC as required",
+          "Professional and direct tone throughout"
+        ],
+        "issues": [
+          "Could provide more detail on the specific reporting timeframe or format",
+          "Mention of license sanctions could be more specific about potential consequences"
+        ],
+        "suggestedFixes": [
+          "Add brief mention of reporting deadlines or specific formats if known",
+          "Be more specific about potential license sanctions (suspension, revocation, etc.)"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 90,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    }
+  ]
+}

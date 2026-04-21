@@ -1,0 +1,205 @@
+{
+  "generatedAt": "2026-04-18T22:04:20.039Z",
+  "filters": {
+    "difficulty": "advanced",
+    "category": "licensing"
+  },
+  "totalCases": 5,
+  "averageScore": 86.8,
+  "readyCount": 5,
+  "results": [
+    {
+      "id": "ny-caurd-vs-aucc",
+      "title": "NY CAURD vs AUCC license difference",
+      "state": "NY",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 6683,
+      "response": "In New York, CAURD and AUCC licenses serve different purposes in the cannabis supply chain:\n\n**CAURD (Conditional Adult-Use Retail Dispensary) License:**\n- Allows retail sales of adult-use cannabis directly to consumers\n- Permits operation of a physical dispensary storefront\n- Holders can purchase product from cultivators, processors, and other dispensaries\n- The first round of CAURD licenses were primarily issued to individuals with past cannabis convictions or their immediate family members\n- These licensees can sell both adult-use and medical cannabis products\n\n**AUCC (Adult-Use Conditional Cultivator) License:**\n- Allows for the cultivation of cannabis plants\n- Permits growing operations to supply cannabis to retailers and other licensees\n- Licensees can cultivate cannabis for the adult-use market\n- These licenses were also prioritized for individuals with past cannabis convictions or their immediate family members in the initial allocation\n\n**Key Differences:**\n- **Function**: CAURD focuses on retail sales, AUCC focuses on cultivation\n- **Supply Chain Position**: AUCC supplies product to CAURDs and other licensees; CAURDs sell directly to consumers\n- **Regulations**: Each license type has specific regulatory requirements related to their operations (security, inventory tracking, quality control, etc.)\n\nBoth license types were established with social equity provisions in New York's cannabis program. The Office of Cannabis Management (OCM) oversees both license types and has specific regulations for each.\n\nFor the most current information on licensing requirements and any recent changes, I recommend checking directly with the New York Office of Cannabis Management website or consulting with a cannabis licensing attorney familiar with NY regulations.",
+      "responsePreview": "In New York, CAURD and AUCC licenses serve different purposes in the cannabis supply chain: **CAURD (Conditional Adult-Use Retail Dispensary) License:** - Allows retail sales of adult-use cannabis directly to consumers …",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate explanation of CAURD and AUCC licenses with appropriate caveats.",
+        "strengths": [
+          "Accurate distinction between CAURD and AUCC license types",
+          "Clearly explains the different functions in the supply chain",
+          "Properly mentions social equity provisions and OCM oversight",
+          "Includes appropriate caveat about verifying with OCM or attorney",
+          "Professional and clear tone with well-structured information"
+        ],
+        "issues": [
+          "Could provide more specific regulatory requirements for each license type",
+          "Mention of social equity could be more detailed about implementation"
+        ],
+        "suggestedFixes": [
+          "Add brief note about application processes for each license type",
+          "Include information about any recent developments in the NY cannabis program"
+        ],
+        "dimensions": {
+          "accuracy": 95,
+          "caveats": 90,
+          "actionability": 85,
+          "tone": 95,
+          "completeness": 90
+        }
+      }
+    },
+    {
+      "id": "ca-type-10-vs-10a",
+      "title": "CA Type 10 vs Type 10A license",
+      "state": "CA",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 6902,
+      "response": "In California, Type 10 and Type 10A licenses serve different purposes in the cannabis retail market:\n\n**Type 10 Retail License** (General Retailer):\n- Allows for both storefront sales AND delivery services\n- Must operate from a physical, brick-and-mortar retail location\n- Customers can visit the store to purchase products\n- Can offer delivery to customers within its service area\n- Subject to all local zoning requirements for retail locations\n\n**Type 10A Delivery-Only License**:\n- Allows for delivery services ONLY - no physical storefront\n- Cannot have a retail location where customers can visit\n- Must have a delivery-only \"storefront\" (a secure location where inventory is stored but no sales occur on-site)\n- Can deliver to customers within its service area\n- May have lower local zoning requirements since there's no customer-facing retail location\n\nBoth license types must comply with California's packaging, labeling, testing, and track-and-trace requirements. The delivery services under both types must follow California's delivery-specific regulations, including delivery hours, distance limits, and requirements for age verification at the point of delivery.\n\nThe choice between these license types depends on your business model - whether you want a physical retail presence, delivery-only, or both.",
+      "responsePreview": "In California, Type 10 and Type 10A licenses serve different purposes in the cannabis retail market: **Type 10 Retail License** (General Retailer): - Allows for both storefront sales AND delivery services - Must operate…",
+      "grade": {
+        "grade": "good",
+        "score": 80,
+        "responseReady": true,
+        "summary": "Accurate comparison of license types but lacks required DCC mention and caveats.",
+        "strengths": [
+          "Clear, direct comparison of Type 10 and 10A licenses",
+          "Good breakdown of operational differences",
+          "Professional and informative tone"
+        ],
+        "issues": [
+          "Missing required reference to DCC",
+          "No compliance caveats for complex regulatory requirements",
+          "Doesn't mention proximity requirements or licensing limitations"
+        ],
+        "suggestedFixes": [
+          "Add information about DCC (Distributor-Collective Cooperative) requirements",
+          "Include a caveat about verifying with compliance officer due to complex and evolving regulations",
+          "Mention proximity requirements between licensed entities",
+          "Discuss any specific fees or application processes differences"
+        ],
+        "dimensions": {
+          "accuracy": 85,
+          "caveats": 40,
+          "actionability": 75,
+          "tone": 90,
+          "completeness": 70
+        }
+      }
+    },
+    {
+      "id": "co-vertical-integration",
+      "title": "CO vertical integration — retailer and cultivator",
+      "state": "CO",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 6118,
+      "response": "Under Colorado's Medical Enforcement Division (MED) regulations, cannabis retailers can hold cultivation licenses, which is a form of vertical integration. However, there are specific rules and limitations:\n\n1. License types: A business can hold both an optional premises cultivation (OPC) license and a retail (storefront) license, provided they meet all requirements for each license type.\n\n2. Physical separation: Cultivation areas must be physically separated from retail areas unless specifically approved by the MED.\n\n3. Different locations: Vertically integrated businesses can operate cultivation at one location and retail at another location, but both must be properly licensed.\n\n4. Application requirements: You must apply for and receive approval for each license type separately, meeting all the specific requirements for each.\n\n5. Track-and-trace requirements: All inventory between your cultivation and retail operations must be tracked through the state's track-and-trace system (METRC).\n\nImportant considerations:\n- All employees must have badges specific to each license type they work under\n- Security requirements differ between cultivation and retail facilities\n- You'll need separate operational plans for each license type\n\nI strongly recommend consulting with a cannabis compliance attorney or Colorado MED licensing specialist before pursuing vertical integration, as the regulations are complex and subject to change. You can also refer to Colorado's official MED website for the most current regulations on vertically licensed businesses.",
+      "responsePreview": "Under Colorado's Medical Enforcement Division (MED) regulations, cannabis retailers can hold cultivation licenses, which is a form of vertical integration. However, there are specific rules and limitations: 1. License t…",
+      "grade": {
+        "grade": "good",
+        "score": 82,
+        "responseReady": true,
+        "summary": "Accurate response on Colorado's vertical integration rules with appropriate caveats.",
+        "strengths": [
+          "Correctly identifies that retailers can hold cultivation licenses in Colorado",
+          "Clearly explains the concept of vertical integration",
+          "Provides specific rules for physical separation, locations, and tracking",
+          "Includes appropriate caveat about consulting with legal counsel",
+          "Mentions METRC requirements specific to Colorado"
+        ],
+        "issues": [
+          "Could benefit from more specific details about license application processes",
+          "Could elaborate on the physical separation requirements and approval process",
+          "Mentions employee badges but could explain the badge system more thoroughly"
+        ],
+        "suggestedFixes": [
+          "Add more detail about the application process for dual licenses",
+          "Include specific information about the physical separation requirements",
+          "Elaborate on the employee badge system and what it entails"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 85,
+          "actionability": 80,
+          "tone": 90,
+          "completeness": 75
+        }
+      }
+    },
+    {
+      "id": "il-caudo-license",
+      "title": "IL Conditional Adult-Use Dispensing Organization (CAUDO)",
+      "state": "IL",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 8522,
+      "response": "In Illinois, a Conditional Adult-Use Dispensing Organization (CAUDO) license is a special type of cannabis dispensary license with specific requirements and restrictions that differ from standard adult-use dispensary licenses.\n\nHere are the key differences between a CAUDO and a standard dispensary license in Illinois:\n\n1. **Application Process**: CAUDO licenses were issued through a specific application process focused on social equity and equity applicants, while standard dispensary licenses have a separate application pathway.\n\n2. **Ownership Requirements**: CAUDO licenses have more stringent requirements regarding ownership by individuals from disproportionately impacted areas or those with past cannabis convictions. These licenses are designed to provide opportunities for communities disproportionately affected by cannabis prohibition.\n\n3. **Location Restrictions**: CAUDOs may have different location restrictions compared to standard dispensaries, particularly regarding where they can operate in relation to schools, parks, and other sensitive areas.\n\n4. **Priority for Communities**: CAUDOs are intended to serve communities that have been disproportionately impacted by cannabis enforcement, with priority given to these areas in the licensing process.\n\n5. **Mandated Community Benefits**: CAUDOs typically have specific requirements to reinvest a portion of their profits back into the communities they serve.\n\n6. **Cap on Ownership Interests**: There are restrictions on how much of the business can be owned by non-equity persons in a CAUDO, whereas standard dispensaries may have different ownership structures.\n\n7. **Operational Restrictions**: Some CAUDOs may have additional operational requirements or restrictions beyond standard dispensaries, particularly regarding community engagement and local impact.\n\nIt's important to note that Illinois cannabis regulations are subject to change, and the specific requirements for CAUDOs may be updated by the Illinois Cannabis Regulation and Taxation Act and the Illinois Cannabis Control Board.\n\nFor the most current and accurate information about CAUDO licenses, I recommend consulting with a cannabis compliance officer or attorney specializing in Illinois cannabis law, as licensing requirements and restrictions can be complex and subject to regulatory interpretation.",
+      "responsePreview": "In Illinois, a Conditional Adult-Use Dispensing Organization (CAUDO) license is a special type of cannabis dispensary license with specific requirements and restrictions that differ from standard adult-use dispensary li…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Comprehensive explanation of CAUDO licenses with appropriate caveats.",
+        "strengths": [
+          "Correctly identifies CAUDO as a special dispensary license in Illinois",
+          "Provides clear, structured differences between CAUDO and standard licenses",
+          "Includes appropriate caveats about regulatory changes and recommends professional consultation",
+          "Uses professional and clear tone throughout",
+          "Directly addresses all aspects of the operator's question"
+        ],
+        "issues": [
+          "Mentions IDFPR and CCB but doesn't explain their specific roles in CAUDO licensing",
+          "Could provide more specifics about the conditional aspects of CAUDO licenses"
+        ],
+        "suggestedFixes": [
+          "Add brief explanation of IDFPR's and CCB's specific roles in CAUDO licensing",
+          "Include more details about the conditional nature of these licenses and any time-limited provisions"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 95,
+          "actionability": 85,
+          "tone": 90,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "il-social-equity-criteria",
+      "title": "IL social equity applicant criteria",
+      "state": "IL",
+      "category": "licensing",
+      "difficulty": "advanced",
+      "durationMs": 6405,
+      "response": "In Illinois, social equity applicants are defined under the Cannabis Regulation and Tax Act (CRTA) and must meet specific criteria to qualify for certain licensing advantages.\n\nTo qualify as a social equity applicant in Illinois, you must meet ONE of the following criteria:\n\n1. **Low-Income Requirement**: You must have an individual income of less than $250,000 in the most recent tax year or a household income at or below 200% of the federal poverty level.\n\n2. **Residency Requirement**: You must have resided in an \"impact area\" (a disproportionately impacted area) for at least 5 of the 10 years immediately prior to applying.\n\n3. **Conviction History**: You or an immediate family member must have a conviction for a cannabis-related offense that would no longer be considered a crime under current Illinois law.\n\n4. **Public System Impact**: You or an immediate family member must have been a client of the child welfare system or an involuntary client of the mental health system.\n\nAdditional requirements for social equity applicants include:\n- Not having a felony conviction in the past 5 years (with certain exceptions)\n- Residency in Illinois for at least 10 years (for adult-use cannabis dispensary licenses)\n\nSocial equity applicants receive benefits such as reduced application fees, priority review, and access to technical assistance. The specific benefits and requirements may vary by license type.\n\nI recommend consulting with a compliance officer or licensed attorney familiar with Illinois cannabis regulations, as these criteria are subject to change and have specific documentation requirements.",
+      "responsePreview": "In Illinois, social equity applicants are defined under the Cannabis Regulation and Tax Act (CRTA) and must meet specific criteria to qualify for certain licensing advantages. To qualify as a social equity applicant in …",
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "The response provides comprehensive and accurate information on Illinois social equity criteria with appropriate caveats.",
+        "strengths": [
+          "Accurately outlines all four main qualifying criteria for social equity applicants",
+          "Includes additional requirements and benefits",
+          "Professional and clear tone",
+          "Provides appropriate recommendation to consult with compliance officer/attorney",
+          "References relevant state agency (CCB) implicitly through context"
+        ],
+        "issues": [
+          "Could more specifically mention the Cannabis Control Board (CCB) rather than just referencing it implicitly",
+          "Mention of federal poverty level could be more precise with current year figures"
+        ],
+        "suggestedFixes": [
+          "Add explicit mention of the Illinois Cannabis Control Board (CCB) as the regulatory body overseeing social equity programs",
+          "Consider adding current year federal poverty level figures for the 200% threshold reference"
+        ],
+        "dimensions": {
+          "accuracy": 100,
+          "caveats": 90,
+          "actionability": 95,
+          "tone": 95,
+          "completeness": 85
+        }
+      }
+    }
+  ]
+}

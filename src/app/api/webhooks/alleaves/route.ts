@@ -22,6 +22,7 @@ import { revalidatePath } from 'next/cache';
 import { mapAlleavesStatus } from '@/app/dashboard/orders/order-utils';
 import { dispatchPlaybookEvent } from '@/server/services/playbook-event-dispatcher';
 import { syncCustomerSignupProactiveGap } from '@/server/services/customer-signup-proactive';
+import { attributeOrderToCampaigns } from '@/server/services/campaign-attribution';
 import * as crypto from 'crypto';
 
 export const maxDuration = 30;
@@ -388,8 +389,26 @@ async function handleOrderEvent(
         updatedAt: Timestamp.fromDate(orderDate),
     }, { merge: true }).then(() => {
         logger.info('[WEBHOOK] Order upserted to Firestore', { orgId, orderId, eventName });
+
+        // Campaign attribution — fire-and-forget after order is persisted
+        if (customerEmail && !customerEmail.includes('@alleaves.local')) {
+            attributeOrderToCampaigns({
+                id: `alleaves_${orderId}`,
+                customerEmail,
+                customerPhone,
+                total: parseFloat(orderData.total || orderData.amount || 0),
+                createdAt: orderDate,
+                orgId,
+                items: (orderData.items || []).map((item: Record<string, unknown>) => ({
+                    name: String(item.item ?? item.product_name ?? ''),
+                    qty: Number(item.quantity ?? 1),
+                    price: Number(item.price ?? 0),
+                })),
+            }).catch((err) =>
+                logger.error('[CampaignAttribution] Failed', { orgId, orderId, error: String(err) })
+            );
+        }
     }).catch((error) => {
-        // Non-fatal — cache invalidation still ensures live dashboard freshness
         logger.error('[WEBHOOK] Failed to persist order to Firestore', {
             orgId, orderId, error: String(error),
         });

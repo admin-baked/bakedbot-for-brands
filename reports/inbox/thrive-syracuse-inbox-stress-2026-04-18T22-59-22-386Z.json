@@ -1,0 +1,662 @@
+{
+  "orgId": "org_thrive_syracuse",
+  "generatedAt": "2026-04-18T22:59:22.386Z",
+  "totalCases": 15,
+  "averageScore": 87,
+  "readyCount": 15,
+  "results": [
+    {
+      "id": "ny-ocm-social-media-rules",
+      "title": "OCM advertising restrictions — what is allowed on Instagram",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 6927,
+      "response": "Based on New York's OCM (Office of Cannabis Management) regulations, here are the key restrictions for Instagram advertising:\n\n**Product Photos:** \n- Allowed only for pre-packaged, sealed products with compliant packaging and labels\n- No photos of flower in unsealed containers, vaporizers with oil in the chamber, or \"in-use\" scenarios\n- All products must be displayed in a professional, non-misleading manner\n\n**Prices:**\n- Explicitly prohibited from displaying actual prices or \"discount\" language\n- Can promote \"specials\" or \"offers\" but cannot state the specific price point\n- Must use language like \"ask about today's offer\" instead of \"$29.99\"\n\n**THC Percentages:**\n- Not allowed to advertise THC/CBD percentages or make efficacy claims\n- Cannot reference \"potency\" or imply effects\n- Focus on strain names, flavors, or terpene profiles is acceptable\n\n**Influencers:**\n- Permitted but with strict guidelines:\n  - Influencers must be 21+ and verified customers\n  - Cannot offer payment, products, or inducements for posts\n  - Cannot use influencer content in paid advertisements\n  - All content must comply with OCM marketing standards\n\n**Critical Requirement:** \nAll Instagram accounts must be set to \"private\" with geo-blocking to prevent access by anyone under 21 or in states where cannabis is illegal. Account bios must include the required OCM disclosure statement.\n\nWould you like me to provide the exact OCM disclosure language or review a draft of your proposed post for compliance?",
+      "responsePreview": "Based on New York's OCM (Office of Cannabis Management) regulations, here are the key restrictions for Instagram advertising: **Product Photos:** - Allowed only for pre-packaged, sealed products with compliant packaging...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent compliance guidance covering all OCM social media restrictions with actionable details.",
+        "strengths": [
+          "Comprehensive coverage of all key OCM advertising restrictions",
+          "Clear actionable guidance for each advertising element",
+          "Includes critical privacy and disclosure requirements",
+          "Offers additional support if needed",
+          "Professional and direct tone appropriate for compliance questions"
+        ],
+        "issues": [
+          "Could provide the exact OCM disclosure statement mentioned",
+          "No specific references to Instagram's unique features or limitations"
+        ],
+        "suggestedFixes": [
+          "Include the exact OCM disclosure language for immediate implementation",
+          "Briefly address Instagram-specific features like Stories, Reels, or shopping tags"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "ny-packaging-requirements",
+      "title": "NY packaging requirements — labels and child-resistance",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 5327,
+      "response": "Here are New York's cannabis packaging requirements for pre-packaged flower:\n\n**Child-Resistant Closure:**\n- All cannabis packages must have child-resistant features\n- The closure must be independently certified as child-resistant by an approved testing laboratory\n- Simply having a barcode sticker does not meet this requirement\n- The package itself must have a child-resistant mechanism (like a snap-lock, zipper, or press-to-close lid)\n\n**Opacity:**\n- New York requires opaque packaging\n- Clear bags are not compliant\n- Packaging must be fully opaque to prevent viewing of the contents\n\n**Label Requirements:**\n- Must include the following information:\n  - Brand name and license number\n  - Product name and strain\n  - Net weight/quantity\n  - Batch/lot number\n  - Date of packaging\n  - THC and CBD content (must be lab-tested)\n  - Warning statements (including \"Keep out of reach of children\")\n  - Producer and distributor information\n  - Nutrition facts panel (for edibles)\n  - Contamination testing results\n\n**Action Required:**\nDo not accept this shipment. The clear bags without proper child-resistant closure are non-compliant. Contact your vendor immediately to ensure they can provide packaging that meets all NY requirements before accepting any future deliveries.",
+      "responsePreview": "Here are New York's cannabis packaging requirements for pre-packaged flower: **Child-Resistant Closure:** - All cannabis packages must have child-resistant features - The closure must be independently certified as child...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent response with comprehensive NY packaging requirements and clear rejection of non-compliant shipment.",
+        "strengths": [
+          "Correctly identifies all key NY packaging requirements (child-resistant, opacity, label)",
+          "Explicitly rejects the vendor's non-compliant clear bags with barcode stickers",
+          "Provides complete list of required label elements",
+          "Gives clear action advice to not accept shipment and contact vendor",
+          "Professional and authoritative tone appropriate for compliance"
+        ],
+        "issues": [
+          "Could mention specific NY regulations or codes for reference",
+          "No information on how to verify child-resistant certification"
+        ],
+        "suggestedFixes": [
+          "Add reference to specific NY Cannabis Control Board regulations",
+          "Include guidance on how to verify child-resistant certification"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 100,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 100
+        }
+      }
+    },
+    {
+      "id": "ny-caurd-restrictions",
+      "title": "CAURD licensee restrictions — what we cannot do",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 4613,
+      "response": "As a CAURD licensee in Syracuse, you cannot carry unlicensed infused beverages on consignment. New York's CAURD program has strict requirements regarding product sourcing and licensing:\n\n1. All cannabis products must be sourced from licensed NY cultivators, processors, or manufacturers - no exceptions.\n\n2. You cannot accept products from unlicensed sources, even on consignment basis. This would violate NY Cannabis Control Board regulations and could result in license revocation.\n\n3. Revenue sharing with unlicensed producers is prohibited, as it creates an illegal distribution channel.\n\n4. CAURD licensees are limited to selling only properly packaged and labeled cannabis products that comply with NY's strict regulations.\n\nIf you're interested in carrying infused beverages, they must be from a NY-licensed manufacturer with proper packaging, labeling, and tracking (METRC) compliance. Any deviation from these requirements poses significant regulatory risk to your license.",
+      "responsePreview": "As a CAURD licensee in Syracuse, you cannot carry unlicensed infused beverages on consignment. New York's CAURD program has strict requirements regarding product sourcing and licensing: 1. All cannabis products must be ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent response addressing CAURD restrictions with clear compliance guidance.",
+        "strengths": [
+          "Directly addresses the specific CAURD licensing restrictions",
+          "Clearly states why consignment from unlicensed sources is prohibited",
+          "Provides specific regulatory requirements (NY Cannabis Control Board)",
+          "Explains the consequences of non-compliance (license revocation)",
+          "Offers constructive alternative (licensed beverages with proper compliance)",
+          "Professional and authoritative tone"
+        ],
+        "issues": [
+          "Could potentially include reference to specific NY Cannabis Control Board sections or regulations for additional grounding",
+          "Minor opportunity to elaborate on METRC tracking requirements"
+        ],
+        "suggestedFixes": [
+          "Consider adding brief reference to specific NY Cannabis Control Board sections for further verification",
+          "Could briefly elaborate on METRC tracking requirements for infused beverages"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 100
+        }
+      }
+    },
+    {
+      "id": "ny-employee-background-checks",
+      "title": "Employee background check requirements in NY",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 5592,
+      "response": "New York imposes strict background check requirements for cannabis retail employees. Here's what you need to know for your new hires:\n\n**Required Background Checks:**\n- FBI criminal history check through fingerprint submission\n- New York State criminal history check\n- Sex offender registry check\n- Child abuse registry check\n\n**Disqualifying Offenses:**\n- Any felony conviction within the past 10 years\n- Misdemeanor drug-related offenses within the past 5 years\n- Any violent felony or serious offense\n- Fraud or financial crimes\n- Offenses related to controlled substances\n\n**Documentation Requirements:**\n1. Obtain written consent from each applicant before conducting background checks\n2. Maintain records of all background checks for at least 3 years\n3. Document your decision-making process if you choose not to hire based on findings\n4. Store all documentation securely to protect applicant privacy\n\n**Next Steps:**\n1. Implement a standardized background check process for all applicants\n2. Create a clear policy regarding disqualifying offenses\n3. Train your hiring team on documentation requirements\n4. Consider consulting with a legal professional to ensure your process aligns with NY regulations\n\nWould you like me to elaborate on any specific aspect of these requirements or provide guidance on implementing your background check process?",
+      "responsePreview": "New York imposes strict background check requirements for cannabis retail employees. Here's what you need to know for your new hires: **Required Background Checks:** - FBI criminal history check through fingerprint subm...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 80,
+        "responseReady": true,
+        "summary": "Solid overview of NY background check requirements with actionable next steps.",
+        "strengths": [
+          "Covers required background checks thoroughly",
+          "Lists disqualifying offenses clearly",
+          "Provides documentation requirements",
+          "Offers concrete next steps for implementation",
+          "Professional and helpful tone"
+        ],
+        "issues": [
+          "Missing specific NY regulatory citations or sources",
+          "Does not mention how to obtain FBI fingerprinting",
+          "Lacks detail on appeals process if applicant disagrees with findings",
+          "Does not address if these requirements differ for part-time vs full-time employees"
+        ],
+        "suggestedFixes": [
+          "Include specific NY Cannabis Control Board references or links",
+          "Add information about approved fingerprinting vendors in NY",
+          "Include guidance on handling appeals or discrepancies",
+          "Clarify if requirements differ by position type"
+        ],
+        "dimensions": {
+          "grounding": 75,
+          "actionability": 85,
+          "completeness": 70,
+          "compliance": 90,
+          "tone": 90,
+          "launchReadiness": 80
+        }
+      }
+    },
+    {
+      "id": "ny-delivery-rules",
+      "title": "Can Thrive offer delivery? NY delivery service rules",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 6602,
+      "response": "To operate delivery services in New York, you must obtain a separate delivery license from the Office of Cannabis Management (OCM). Here are the key requirements:\n\n1. Separate License Required: You cannot use your existing dispensary license for delivery. You must apply for a dedicated cannabis delivery license, which has separate application fees and requirements.\n\n2. Vehicle Requirements:\n   - Delivery vehicles must be clearly marked with the dispensary's name and license number\n   - Vehicles must be equipped with GPS tracking at all times\n   - No consumption of cannabis is permitted in the vehicle\n   - Vehicles must be secure and tamper-evident\n\n3. Delivery Manifest:\n   - Each delivery must be accompanied by a manifest detailing:\n     - Recipient's name and license number\n     - Product type and quantity\n     - Date and time of delivery\n     - Driver's information\n     - Signature confirmation upon delivery\n\n4. GPS Tracking:\n   - All delivery vehicles must have active GPS tracking during delivery operations\n   - The dispensary must maintain records of these tracking logs for at least 2 years\n\n5. Driver Requirements:\n   - Drivers must be employees of the licensed dispensary\n   - Third-party drivers are not permitted under NY cannabis regulations\n   - All drivers must complete OCM-mandated training\n   - Drivers must pass background checks\n   - Drivers must be at least 21 years old\n\nI recommend starting the delivery license application process immediately as approval times can be lengthy. You'll need to update your standard operating procedures to include delivery protocols, training for staff, and vehicle management systems.\n\nWould you like me to help you prepare documentation for the delivery license application or develop delivery compliance procedures for your team?",
+      "responsePreview": "To operate delivery services in New York, you must obtain a separate delivery license from the Office of Cannabis Management (OCM). Here are the key requirements: 1. Separate License Required: You cannot use your existi...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 80,
+        "responseReady": true,
+        "summary": "Comprehensive response on NY delivery requirements with clear compliance information.",
+        "strengths": [
+          "Correctly identifies the need for a separate delivery license",
+          "Provides detailed requirements for vehicles, manifests, GPS tracking",
+          "Clearly explains driver restrictions (must be employees)",
+          "Includes actionable next steps about starting application process",
+          "Maintains professional and helpful tone"
+        ],
+        "issues": [
+          "No specific mention of application fees or timelines beyond 'lengthy'",
+          "Could provide more guidance on developing delivery SOPs",
+          "No mention of how to handle delivery within required distance limitations"
+        ],
+        "suggestedFixes": [
+          "Add information about typical application fees and processing times",
+          "Include brief guidance on developing delivery-specific SOPs",
+          "Clarify any distance restrictions for delivery zones"
+        ],
+        "dimensions": {
+          "grounding": 90,
+          "actionability": 85,
+          "completeness": 80,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 85
+        }
+      }
+    },
+    {
+      "id": "ny-consumption-lounge",
+      "title": "Consumption lounge regulations in NY",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 5414,
+      "response": "To operate an on-site consumption lounge in New York, you must obtain a separate consumption lounge permit from the Office of Cannabis Management (OCM). Here are the key requirements:\n\n1. Separate Permit: You need a dedicated consumption lounge license, which is distinct from your dispensary license.\n\n2. Ventilation Standards: The OCM requires separate, dedicated ventilation systems for consumption areas that prevent cannabis smoke from entering other parts of the facility. You must meet or exceed the ventilation standards outlined in the New York State Building Code and the OCM's specific regulations.\n\n3. No Alcohol Rule: Cannabis consumption lounges in New York cannot allow alcohol on the premises. Mixing alcohol and cannabis is strictly prohibited.\n\n4. Age Verification: You must implement rigorous age verification protocols. Only adults 21 and older are permitted in consumption areas, and you must maintain detailed records of all customers who consume on-site.\n\n5. Additional Requirements:\n   - Separate entrance for the consumption area\n   - Compliance with all local zoning laws\n   - Security protocols specific to the consumption area\n   - Visible signage indicating consumption rules\n\nThe biggest compliance risks include:\n- Failure to maintain proper ventilation leading to smoke transfer between areas\n- Inadequate age verification allowing minors access\n- Allowing alcohol on the premises\n- Not having the separate consumption lounge permit\n- Inadequate security measures\n\nI recommend consulting with a cannabis attorney familiar with New York regulations before proceeding with any plans.",
+      "responsePreview": "To operate an on-site consumption lounge in New York, you must obtain a separate consumption lounge permit from the Office of Cannabis Management (OCM). Here are the key requirements: 1. Separate Permit: You need a dedi...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive response covering all key compliance aspects of NY consumption lounges.",
+        "strengths": [
+          "Directly addresses all key requirements mentioned in the prompt",
+          "Clear explanation of permit requirements",
+          "Thorough coverage of ventilation standards",
+          "Highlights critical compliance risks",
+          "Professional tone with helpful recommendation"
+        ],
+        "issues": [
+          "Could benefit from more specific citations to OCM regulations",
+          "Lack of detail on specific ventilation standards beyond mentioning compliance with building codes"
+        ],
+        "suggestedFixes": [
+          "Include specific OCM regulation numbers or sections related to consumption lounges",
+          "Add more detail on minimum ventilation requirements or standards"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "ny-gifting-bundling-rules",
+      "title": "Gifting and bundling restrictions in NY",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 4900,
+      "response": "New York's cannabis regulations strictly limit gifting and bundling. Your proposed marketing ideas violate NY cannabis laws and could jeopardize your license.\n\nSpecific violations:\n- \"Buy one, get one free\" is illegal - cannabis cannot be given away for free with purchase\n- Bundling merchandise with cannabis purchases is prohibited\n- Free samples (even small amounts) are not permitted\n\nYou may only sell cannabis products at their individual, taxed prices. No promotional items, discounts, or freebies allowed.\n\nThe only exception is bona fide promotional items with no monetary value that are given separately from cannabis purchases (not bundled). These cannot be marketed as cannabis-related.\n\nAny questions about specific marketing materials or promotions should be submitted to NY's Office of Cannabis Management for pre-approval before implementation.",
+      "responsePreview": "New York's cannabis regulations strictly limit gifting and bundling. Your proposed marketing ideas violate NY cannabis laws and could jeopardize your license. Specific violations: - \"Buy one, get one free\" is illegal - ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Clear, accurate compliance guidance that prevents license violations.",
+        "strengths": [
+          "Directly answers all parts of the user's question about gifting and bundling in NY",
+          "Provides specific examples of illegal activities (BOGO, bundling, free samples)",
+          "Includes the correct legal exception for promotional items",
+          "Directs user to proper regulatory channel (OCM) for pre-approval",
+          "Maintains professional tone without being alarmist"
+        ],
+        "issues": [
+          "Could potentially mention where to find the specific NY regulations for reference",
+          "Doesn't explicitly state that no promotional materials can reference cannabis"
+        ],
+        "suggestedFixes": [
+          "Add a brief reference to NY Cannabis Management Law Article 5-710(3) for regulatory basis",
+          "Clarify that promotional items cannot reference cannabis in any way"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "ny-social-equity-obligations",
+      "title": "Social equity fund obligations for adult-use licensees",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 6654,
+      "response": "Yes, that is correct. New York adult-use cannabis licensees are required to contribute to the Social Equity Fund.\n\nFor your dispensary license type, the requirement is 1% of your gross revenue from cannabis sales. This applies to all adult-use licensees, including dispensaries like Thrive Syracuse.\n\nThe contribution is made quarterly to the New York State Office of Cannabis Management (OCM), and you'll need to report and remit these funds as part of your regular compliance reporting obligations. The OCM provides specific guidance on reporting procedures and deadlines.\n\nIs there anything specific about the reporting process or payment methods you'd like me to clarify?",
+      "responsePreview": "Yes, that is correct. New York adult-use cannabis licensees are required to contribute to the Social Equity Fund. For your dispensary license type, the requirement is 1% of your gross revenue from cannabis sales. This a...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "acceptable",
+        "score": 75,
+        "responseReady": true,
+        "summary": "Accurately states the 1% gross revenue requirement but lacks specific implementation details.",
+        "strengths": [
+          "Correctly identifies the 1% gross revenue requirement",
+          "Mentions quarterly reporting to OCM",
+          "Acknowledges the compliance reporting aspect",
+          "Maintains professional tone"
+        ],
+        "issues": [
+          "Does not provide specific reporting procedures or deadlines",
+          "Lacks information on payment methods",
+          "Does not specify when the obligation starts (upon opening/first sale)",
+          "No guidance on how to track/gross revenue for this purpose"
+        ],
+        "suggestedFixes": [
+          "Include specific reporting deadlines and procedures for the quarterly contributions",
+          "Detail the available payment methods for remitting funds to OCM",
+          "Clarify when the obligation begins (e.g., at first sale, at license issuance)",
+          "Provide guidance on proper gross revenue tracking for this specific obligation"
+        ],
+        "dimensions": {
+          "grounding": 80,
+          "actionability": 65,
+          "completeness": 70,
+          "compliance": 95,
+          "tone": 90,
+          "launchReadiness": 70
+        }
+      }
+    },
+    {
+      "id": "training-recertification-ny",
+      "title": "Training certification — when does NY require re-certification?",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 6347,
+      "response": "New York requires cannabis retail employees to complete refresher training and recertification annually. This applies to both budtenders and managers.\n\nSpecifically:\n- All employees must complete an annual refresher training that covers updated regulations, safety protocols, and operational requirements\n- The refresher must be at least 4 hours in length\n- Managers are required to complete additional training on inventory management, security procedures, and compliance oversight beyond what floor staff receive\n- All training must be conducted by a New York State- approved training provider\n\nYour new budtenders will need to complete their annual refresher before their original certification expires to maintain compliance. I recommend tracking these deadlines carefully to avoid any lapses in certification that could impact your license status.",
+      "responsePreview": "New York requires cannabis retail employees to complete refresher training and recertification annually. This applies to both budtenders and managers. Specifically: - All employees must complete an annual refresher trai...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate response about NY cannabis employee re-certification requirements.",
+        "strengths": [
+          "Clear explanation of annual recertification requirements",
+          "Specific details about training duration and provider requirements",
+          "Distinction between manager and staff training requirements",
+          "Practical advice about tracking certification deadlines",
+          "Professional and helpful tone for dispensary operators"
+        ],
+        "issues": [
+          "No specific mention of consequences for missing recertification deadlines",
+          "Could provide more details on how to find NY-approved training providers"
+        ],
+        "suggestedFixes": [
+          "Add information about potential penalties for non-compliance",
+          "Include guidance on locating NY State-approved training providers"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 85,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "sick-after-product-medical-claim",
+      "title": "Customer claims product made them sick — medical claim edge case",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 6948,
+      "response": "Document everything immediately.\n\nStep 1: Create a detailed internal report capturing:\n- Customer's full name and contact information\n- Date of purchase and product batch number/lot number\n- Specific symptoms and timeline reported\n- Any medical documentation they provide\n- Date/time of the call and who spoke with the customer\n\nStep 2: Do NOT admit liability or make any statements suggesting your product caused the illness. Use neutral language like \"We take customer concerns seriously and are documenting this incident for review.\"\n\nStep 3: Notify OCM (Office of Cannabis Management) within 24 hours as required by NY regulations (11 NYCRR § 420.18). Report the adverse event using their official form or process.\n\nStep 4: Contact your cannabis liability insurance provider immediately. Inform them of the claim and follow their guidance. They will typically handle communications with the customer and potential medical claims.\n\nStep 5: Preserve all related records - sales receipts, batch test results, packaging, and any internal communications about this incident. Do not destroy any documents related to this product or customer.\n\nDo not offer to pay any medical bills directly as this could be interpreted as admission of liability. Let your insurance provider guide this process.",
+      "responsePreview": "Document everything immediately. Step 1: Create a detailed internal report capturing: - Customer's full name and contact information - Date of purchase and product batch number/lot number - Specific symptoms and timelin...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Excellent response covering all compliance, liability, and OCM requirements with clear actionable steps.",
+        "strengths": [
+          "Provides concrete documentation requirements",
+          "Correctly advises against admitting liability",
+          "Includes specific NY regulation reference (11 NYCRR § 420.18)",
+          "Advises contacting insurance provider",
+          "Warns against direct payment of medical bills",
+          "Includes timeline for OCM notification (24 hours)"
+        ],
+        "issues": [
+          "No specific guidance on how to handle the customer's 'poisoned' claim in real-time conversation",
+          "Could mention the importance of not deleting any security footage related to the purchase"
+        ],
+        "suggestedFixes": [
+          "Add guidance on responding to the customer's specific 'poisoned' allegation without admitting fault",
+          "Include recommendation to preserve any relevant security footage or store records"
+        ],
+        "dimensions": {
+          "grounding": 90,
+          "actionability": 95,
+          "completeness": 85,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "customer-purchase-history-request",
+      "title": "Customer asking for purchase history data — privacy request",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 7895,
+      "response": "You must provide the customer with their complete purchase history. This is a straightforward request that falls under consumer data rights.\n\nUnder NY cannabis regulations (Part 50 of the Cannabis Control Board regulations), Section 500.10(d) explicitly requires licensees to provide customers with \"a copy of the customer's transaction history upon request.\"\n\nAdditionally, the New York State Consumer Protection Law affirms consumers' rights to request and obtain information about their transactions with businesses.\n\nRegarding HIPAA: HIPAA does not apply to cannabis businesses. HIPAA covers protected health information (PHI) handled by healthcare providers and covered entities. Cannabis retailers are not considered covered entities under HIPAA, so that reference is incorrect.\n\nProcess to follow:\n1. Gather all transaction records for this customer over the past 2 years\n2. Review the data to ensure no personally identifiable information beyond what's necessary (name, transaction details)\n3. Provide the data in a commonly accessible format (PDF or spreadsheet)\n\nThis request should be fulfilled promptly - typically within 30 days of the request, though NY cannabis rules don't specify a strict timeframe. Document this request and your response in case of future regulatory review.\n\nIs there anything specific about how the customer data is stored that you'd like me to help address for this request?",
+      "responsePreview": "You must provide the customer with their complete purchase history. This is a straightforward request that falls under consumer data rights. Under NY cannabis regulations (Part 50 of the Cannabis Control Board regulatio...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Compliant response with correct legal guidance but lacks implementation details.",
+        "strengths": [
+          "Correctly identifies that HIPAA does not apply to cannabis businesses",
+          "Cites the specific NY regulation (Part 500.10(d)) requiring transaction history",
+          "Clear process outlined for fulfilling the request",
+          "Proper tone for legal compliance question"
+        ],
+        "issues": [
+          "Doesn't address how to verify customer identity before sharing data",
+          "No guidance on what constitutes Personally Identifiable Information beyond name",
+          "Lacks specifics about data format options for accessibility",
+          "No mention of potential fees for providing this data"
+        ],
+        "suggestedFixes": [
+          "Add identity verification steps to ensure proper authorization",
+          "Specify what PII is included/excluded in transaction history",
+          "Provide more details on format options and potential fees",
+          "Include guidance on securely transmitting the data"
+        ],
+        "dimensions": {
+          "grounding": 85,
+          "actionability": 70,
+          "completeness": 65,
+          "compliance": 95,
+          "tone": 90,
+          "launchReadiness": 75
+        }
+      }
+    },
+    {
+      "id": "competitor-instagram-possible-violation",
+      "title": "Competitor advertising on Instagram — possible OCM violation, do we report?",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 5824,
+      "response": "Based on New York's Office of Cannabis Management (OCM) regulations, your assessment is correct. Dispensaries are prohibited from advertising specific product prices or discount offers on social media platforms like Instagram.\n\nThe OCM specifically prohibits:\n- Advertising of specific prices\n- Discount or promotional offers\n- Comparative advertising\n- Use of social media platforms to advertise products\n\nTo report this violation:\n1. Document the violations with screenshots of the Instagram ads\n2. Submit a complaint through the OCM's complaint portal at https://cannabis.ny.gov/complaint-form\n3. Include the dispensary name, Instagram handle, and dates of the ads\n4. Provide a clear description of the violations\n\nRegarding risks to your business:\n- The OCM maintains confidentiality for complainants\n- As a licensed operator, you have a responsibility to ensure compliance across the industry\n- Proper reporting is protected under OCM regulations\n\nFocus on factual reporting without making false claims or using competitive language in your submission.",
+      "responsePreview": "Based on New York's Office of Cannabis Management (OCM) regulations, your assessment is correct. Dispensaries are prohibited from advertising specific product prices or discount offers on social media platforms like Ins...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 82,
+        "responseReady": true,
+        "summary": "Solid compliance guidance on reporting Instagram ad violations with appropriate next steps.",
+        "strengths": [
+          "Correctly identified OCM regulations regarding Instagram advertising",
+          "Provided clear, actionable steps for reporting violations",
+          "Appropriate caution about avoiding false claims in submission",
+          "Relevant regulatory context provided without medical claims"
+        ],
+        "issues": [
+          "No specific reference to OCM regulation sections or official guidance documents",
+          "Could provide more detail about the OCM complaint process timelines",
+          "Lacks guidance on what documentation would be most useful to collect"
+        ],
+        "suggestedFixes": [
+          "Add specific OCM regulation citations for the cited restrictions",
+          "Include information about OCM complaint processing timeframes",
+          "Suggest specific types of documentation that would strengthen the case"
+        ],
+        "dimensions": {
+          "grounding": 85,
+          "actionability": 90,
+          "completeness": 75,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 85
+        }
+      }
+    },
+    {
+      "id": "multi-turn-delivery-driver-liability",
+      "title": "Multi-turn: delivery rules → third-party driver liability",
+      "kind": "multi_turn",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 7270,
+      "response": "Under New York law, as the employer, Thrive Syracuse would be vicariously liable for accidents caused by your delivery drivers during the course of their employment. This is known as respondeat superior liability.\n\nThe vehicle should be titled and insured in Thrive's name, not the employee's name. You need a commercial auto insurance policy that specifically covers cannabis delivery operations. Standard commercial auto policies often exclude cannabis-related activities, so you'll need a carrier that understands and inspects cannabis businesses.\n\nYour policy should include:\n- Minimum liability coverage of $100,000 per person/$300,000 per occurrence (though higher limits are recommended)\n- Commercial auto coverage with hired and non-owned auto liability\n- Coverage for medical payments\n- Uninsured/underinsured motorist coverage\n\nConsider carrying general liability insurance as well that specifically covers cannabis delivery operations. Document all driver training and maintain detailed records of delivery routes and procedures to demonstrate compliance with OCM regulations, which may help in liability situations.\n\nYou should consult with an insurance broker experienced in cannabis business coverage to ensure proper protection.",
+      "responsePreview": "Under New York law, as the employer, Thrive Syracuse would be vicariously liable for accidents caused by your delivery drivers during the course of their employment. This is known as respondeat superior liability. The v...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent response covering employer liability, vehicle titling, and specific insurance requirements for NY cannabis delivery.",
+        "strengths": [
+          "Correctly explained respondeat superior liability for employer responsibility",
+          "Clarified vehicle should be in company name, not employee's",
+          "Provided specific coverage requirements for commercial auto insurance",
+          "Highlighted the need for cannabis-specialized insurance carriers",
+          "Included recommended coverage limits and additional protections",
+          "Suggested consulting with experienced cannabis insurance brokers",
+          "Emphasized documentation of training and procedures for compliance",
+          "Tone was professional and operator-focused"
+        ],
+        "issues": [
+          "Could have provided more specific guidance on sourcing cannabis-compliant insurance brokers",
+          "Didn't address potential disputes over whether an accident occurred during 'course of employment'"
+        ],
+        "suggestedFixes": [
+          "Add information about industry resources or directories for finding cannabis-specialized insurance brokers",
+          "Briefly mention common scenarios that might be contested in determining if driver was acting within scope of employment"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "pos-system-down-compliance",
+      "title": "POS system went down mid-day — compliance and logging steps",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 7192,
+      "response": "**Urgent Action Required: Do not stop sales. Continue recording manually.**\n\n**Current Compliance Obligations:**\n1. **Continue recording all transactions manually** - Document each sale with:\n   - Customer name\n   - Product name\n   - Quantity sold\n   - Date and time\n   - Payment method\n\n2. **Document the system outage** - Record the exact start time (11:00 AM) and current status\n\n**What you must do when POS returns:**\n1. **Enter all manual transactions into Alleaves immediately**\n2. **Verify all transactions match** between paper records and system\n3. **Maintain both records** during reconciliation for audit purposes\n\n**No formal notification is required** for temporary POS outages under NY regulations. NY OCM understands technical issues can occur, but they require complete records to be entered into the system once restored.\n\n**Grace Period Clarification:** NY does not specify a grace period for real-time reporting. The requirement is for real-time reporting when technically possible. Manual recording is acceptable during outages.\n\nWhen Alleaves is restored, reconciliation should prioritize entering oldest transactions first to maintain chronological order. Retain all manual backup records for at least 3 years as required by NY cannabis regulations.",
+      "responsePreview": "**Urgent Action Required: Do not stop sales. Continue recording manually.** **Current Compliance Obligations:** 1. **Continue recording all transactions manually** - Document each sale with: - Customer name - Product na...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent compliance guidance with actionable steps for POS outage situation.",
+        "strengths": [
+          "Clear, direct instructions on continuing sales while maintaining compliance",
+          "Specific documentation requirements provided for manual records",
+          "Explanation of NY's real-time requirement during technical difficulties",
+          "No medical claims or compliance red flags present",
+          "Professional tone appropriate for dispensary operator",
+          "Detailed reconciliation steps for system restoration"
+        ],
+        "issues": [
+          "Could provide more specific guidance on how to document the system outage",
+          "No mention of how to handle returns or voids during the manual process",
+          "Could clarify if there are any time limits for completing the reconciliation"
+        ],
+        "suggestedFixes": [
+          "Add a section on documenting system outage details (e.g., timestamp when reported to POS vendor, any error codes)",
+          "Include guidance on handling returns/voids during manual recording",
+          "Specify recommended timeframe for completing reconciliation after system restoration"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "multi-loc-metrc-discrepancy-one-location",
+      "title": "Metrc discrepancy at Location A only — does it affect Location B compliance?",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 6370,
+      "response": "Under New York's cannabis regulations, both locations are treated as separate entities for compliance purposes despite operating under the same OCM license umbrella. Location A's Metrc discrepancy does not directly create compliance risk or reporting obligations for Location B.\n\nHowever, you must address the discrepancy at Location A immediately. In NY, unaccounted inventory can trigger:\n- Required internal investigation with documentation\n- Potential OCM reporting depending on investigation outcomes\n- License review if patterns of discrepancies emerge\n\nFocus on resolving Location A's issue through proper METRC adjustments and internal controls. The locations operate independently for compliance tracking, so Location B's METRC records remain unaffected by Location A's issue.\n\nDocument the investigation thoroughly and implement corrective actions at Location A to prevent recurrence.",
+      "responsePreview": "Under New York's cannabis regulations, both locations are treated as separate entities for compliance purposes despite operating under the same OCM license umbrella. Location A's Metrc discrepancy does not directly crea...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Correctly explains independent location compliance in NY METRC but lacks specific next steps.",
+        "strengths": [
+          "Correctly identifies that locations are treated as separate entities for compliance",
+          "Acknowledges that Location A's discrepancy doesn't affect Location B",
+          "Highlights potential consequences for Location A (investigation, reporting, license review)"
+        ],
+        "issues": [
+          "No concrete METRC adjustment instructions provided",
+          "Lacks specifics on how to document the investigation",
+          "Does not provide METRC adjustment process steps",
+          "Missing timeline expectations for resolution"
+        ],
+        "suggestedFixes": [
+          "Include step-by-step METRC adjustment process for Location A",
+          "Provide template or checklist for documenting the investigation",
+          "Specify timeframe for resolution (e.g., 24/48 hours)",
+          "Add information about METRC adjustment tags/reasons that are acceptable in NY"
+        ],
+        "dimensions": {
+          "grounding": 85,
+          "actionability": 60,
+          "completeness": 75,
+          "compliance": 90,
+          "tone": 85,
+          "launchReadiness": 80
+        }
+      }
+    }
+  ]
+}

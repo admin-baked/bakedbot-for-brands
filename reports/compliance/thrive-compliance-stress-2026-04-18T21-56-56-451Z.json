@@ -1,0 +1,163 @@
+{
+  "generatedAt": "2026-04-18T21:56:56.451Z",
+  "filters": {
+    "difficulty": "advanced",
+    "category": "advertising"
+  },
+  "totalCases": 4,
+  "averageScore": 82.5,
+  "readyCount": 4,
+  "results": [
+    {
+      "id": "ad-influencer-paid-post",
+      "title": "Paid influencer marketing — advertising classification",
+      "state": "NY",
+      "category": "advertising",
+      "difficulty": "advanced",
+      "durationMs": 6912,
+      "response": "**New York Cannabis Advertising Compliance Analysis**\n\nUnder New York Office of Cannabis Management (OCM) regulations, paying an influencer to promote your dispensary or products would absolutely be considered advertising and is subject to strict requirements.\n\n**Advertising Classification:**\nYes, this counts as advertising. New York's Cannabis Control Law and OCM regulations define advertising broadly to include any paid communication intended to promote cannabis products or businesses.\n\n**Disclosure Requirements:**\n- The paid partnership disclosure must be clear and conspicuous\n- The disclosure must appear in the same post/story/video as the promotional content\n- Simply using \"#ad\" is likely insufficient - the disclosure should explicitly state it's a paid cannabis advertisement\n- All advertising must include the OCM's required health warnings\n\n**Audience Restrictions:**\n- New York strictly prohibits cannabis advertising that could reasonably be expected to be viewed by persons under 21\n- With 50,000 Instagram followers, you would need to demonstrate through reasonable methods (e.g., audience analytics) that the under-21 audience is minimal\n- Platforms like Instagram have significant under-21 users, making this challenging\n- The OCM typically requires advertising channels where at least 85% of the audience is 21+\n\n**Product Samples as Compensation:**\n- New York prohibits providing free or discounted cannabis products as promotional incentives\n- Monetary compensation is allowed, but cannot be contingent on specific engagement metrics (likes, shares)\n- The payment structure must not encourage consumption or target minors\n\n**Recommendation:**\nThis advertising approach would be extremely risky under current NY regulations. The OCM has been particularly strict about influencer marketing and social media advertising due to the inherent difficulty in restricting audience age.\n\nI strongly recommend:\n1. Consulting with a cannabis compliance attorney experienced in NY regulations\n2. Reviewing OCM's specific advertising guidance documents\n3. Considering alternative marketing approaches that are more clearly compliant with NY's strict advertising rules\n\nRemember: New York's cannabis regulations are among the most restrictive in the nation, and advertising enforcement is a high priority for the OCM.",
+      "responsePreview": "**New York Cannabis Advertising Compliance Analysis** Under New York Office of Cannabis Management (OCM) regulations, paying an influencer to promote your dispensary or products would absolutely be considered advertisin…",
+      "grade": {
+        "grade": "acceptable",
+        "score": 80,
+        "responseReady": true,
+        "summary": "Looks ready under heuristic checks.",
+        "strengths": [
+          "Appropriately recommends verifying with a compliance professional.",
+          "Response references required regulatory content.",
+          "Correctly references NY regulations."
+        ],
+        "issues": [],
+        "suggestedFixes": [],
+        "dimensions": {
+          "accuracy": 80,
+          "caveats": 75,
+          "actionability": 80,
+          "tone": 85,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "ad-loyalty-comp-product",
+      "title": "Loyalty rewards — free product as advertising",
+      "state": "CA",
+      "category": "advertising",
+      "difficulty": "advanced",
+      "durationMs": 6426,
+      "response": "**California Compliance Analysis**\n\n**Free Products as Price Discounts:**\nIn California, \"earn a free product\" likely constitutes a price discount under the Bureau of Cannabis Control (BCC) regulations. While it's not a direct reduction of purchase price, offering something of value (free product) in exchange for purchases is considered a promotional scheme that falls under advertising restrictions. The BCC's stance is that any offer that reduces the effective price of cannabis is prohibited, even if framed as loyalty rewards.\n\n**Loyalty Program Disclosure Requirements:**\nYour loyalty program must comply with California advertising restrictions:\n- All promotional materials must include the required health warning statements (specific to California)\n- You cannot advertise the specific benefit of getting \"free products\" - this would be considered advertising a discount\n- Consider structuring your program to reward points without specifying what those points can be redeemed for in marketing materials\n\n**Gifting Law Issues:**\nProviding \"free\" products raises significant gifting law concerns in California:\n- California law strictly prohibits giving away cannabis as a gift\n- Any transaction where cannabis changes hands must be a legitimate sale with payment (even nominal amounts)\n- Simply calling something \"free\" doesn't change the nature of the transaction under California law\n\n**Recommendations:**\n1. Consult with a cannabis compliance attorney immediately to review your program structure\n2. Consider alternative reward structures that don't involve free product (e.g., donations to charity in customer's name, non-cannabis merchandise)\n3. Ensure all marketing materials strictly comply with California's health warning requirements\n4. Document your program's legal review to demonstrate good faith compliance efforts\n\nRemember, California cannabis regulations are particularly strict on promotional schemes. What might be permissible in other states could violate California's rules. Always verify any compliance questions with California-specific legal counsel.",
+      "responsePreview": "**California Compliance Analysis** **Free Products as Price Discounts:** In California, \"earn a free product\" likely constitutes a price discount under the Bureau of Cannabis Control (BCC) regulations. While it's not a …",
+      "grade": {
+        "grade": "good",
+        "score": 80,
+        "responseReady": true,
+        "summary": "Strong analysis with good caveats but could provide more specific action steps.",
+        "strengths": [
+          "Accurately identifies 'free product' as likely constituting a price discount",
+          "Effectively addresses the DCC advertising restrictions",
+          "Includes appropriate caveats about consulting with legal counsel",
+          "Clear professional tone",
+          "Identifies gifting law concerns in California"
+        ],
+        "issues": [
+          "Could provide more specific alternative reward structures",
+          "Missing details on exactly how to structure loyalty program disclosures",
+          "No reference to specific BCC regulations or statutes"
+        ],
+        "suggestedFixes": [
+          "Add specific BCC citations or regulation numbers related to advertising restrictions",
+          "Provide examples of compliant loyalty program structures",
+          "Include specific language for compliance documentation",
+          "Clarify if nominal payment options would resolve gifting concerns"
+        ],
+        "dimensions": {
+          "accuracy": 85,
+          "caveats": 90,
+          "actionability": 75,
+          "tone": 95,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "ad-geo-targeted-digital",
+      "title": "Geo-targeted digital ads on Meta/Google",
+      "state": "MA",
+      "category": "advertising",
+      "difficulty": "advanced",
+      "durationMs": 6320,
+      "response": "**Massachusetts Cannabis Advertising Compliance Guidelines**\n\nIn Massachusetts, cannabis advertising is heavily restricted by the Cannabis Control Commission (CCC). Here's what you need to know:\n\n**Direct Platform Advertising (Facebook/Google):**\n- You CANNOT advertise directly on Facebook/Meta or Google platforms as cannabis advertising violates their terms of service\n- Even if you attempt geo-targeted advertising, these platforms will likely reject your ads\n- CCC regulations prohibit most forms of digital advertising, including social media and search engine marketing\n\n**Third-Party Ad Networks:**\n- If using a compliant third-party cannabis ad network, CCC requirements still apply\n- All ads must include the \"Adult Use Only\" logo (provided by the CCC)\n- Cannot include any imagery of cannabis consumption or cannabis plants\n- Cannot target minors or locations within 1,000 feet of a school\n- Cannot make false or misleading claims about product effects\n- All ads must clearly display your license number\n\n**Additional Requirements:**\n- Advertising cannot be \"glorifying\" or appeal to youth\n- Cannot include testimonials or endorsements\n- Must include the Massachusetts Cannabis Control Commission logo\n- Cannot use cartoon characters or youth-oriented imagery\n\n**Recommendation:**\nGiven the complexity of advertising regulations and the strict enforcement by the CCC, I strongly recommend:\n1. Reviewing the latest CCC advertising regulations on their official website\n2. Consulting with a cannabis compliance attorney specializing in Massachusetts\n3. Contacting the CCC's licensing and enforcement division for clarification on specific ad campaigns\n\nCannabis advertising regulations change frequently, and penalties for non-compliance can include license suspension or revocation.",
+      "responsePreview": "**Massachusetts Cannabis Advertising Compliance Guidelines** In Massachusetts, cannabis advertising is heavily restricted by the Cannabis Control Commission (CCC). Here's what you need to know: **Direct Platform Adverti…",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Comprehensive guidance on MA cannabis advertising restrictions with actionable recommendations.",
+        "strengths": [
+          "Accurate coverage of CCC advertising restrictions",
+          "Clear explanation of platform limitations",
+          "Detailed requirements for third-party networks",
+          "Strong recommendation to verify with compliance professionals"
+        ],
+        "issues": [
+          "Missing specific details about geo-targeting restrictions beyond school zones",
+          "Could provide more clarity on enforcement examples or penalties"
+        ],
+        "suggestedFixes": [
+          "Add specific mention of geo-targeting radius restrictions (if any beyond 1,000 feet from schools)",
+          "Include examples of common violations and enforcement actions to strengthen the warning"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 95,
+          "actionability": 85,
+          "tone": 90,
+          "completeness": 80
+        }
+      }
+    },
+    {
+      "id": "ad-athlete-celebrity-endorsement",
+      "title": "Celebrity endorsement — permissibility and restrictions",
+      "state": "NJ",
+      "category": "advertising",
+      "difficulty": "advanced",
+      "durationMs": 6348,
+      "response": "In New Jersey, celebrity endorsements for cannabis dispensaries are subject to strict regulations under the Cannabis Regulatory Commission (CRC) rules.\n\nA retired NFL player endorsement likely violates NJ regulations if the athlete's fanbase skews young, as the CRC prohibits celebrity endorsements that appeal to minors. The NFL has a significant underage fanbase, which would make this endorsement problematic under NJ's cannabis marketing rules.\n\n**Vetting Requirements:**\n- You must conduct thorough due diligence on any endorser\n- Review their public image, social media presence, and overall demographic appeal\n- Document your vetting process to demonstrate compliance\n- Be prepared to show that the endorsement doesn't target minors\n\n**Usage on Website and Instagram:**\nUsing such an endorsement on your website and Instagram would likely violate NJ cannabis advertising restrictions, which prohibit marketing that may be appealing to minors. Social media platforms are particularly scrutinized, and NFL-related content would almost certainly be seen as targeting minors.\n\n**Recommendation:**\nI strongly advise against using a retired NFL player for your dispensary endorsement in New Jersey. The risk of non-compliance is significant, and penalties can include fines and potential license issues.\n\nInstead, consider using local personalities or industry professionals whose primary appeal is to adults. When developing any marketing strategy, have it reviewed by a compliance attorney familiar with NJ cannabis regulations.\n\nAlways remember that NJ's cannabis advertising rules are among the strictest in the country - err on the side of caution when considering any endorsements.",
+      "responsePreview": "In New Jersey, celebrity endorsements for cannabis dispensaries are subject to strict regulations under the Cannabis Regulatory Commission (CRC) rules. A retired NFL player endorsement likely violates NJ regulations if …",
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Strong response that addresses key concerns about celebrity endorsements in NJ with appropriate caveats.",
+        "strengths": [
+          "Correctly identifies CRC regulations as the governing framework",
+          "Effectively addresses the core question about fanbase demographics",
+          "Provides actionable advice about vetting requirements",
+          "Gives clear guidance on website and Instagram usage",
+          "Includes a recommendation against using the NFL player",
+          "Suggests alternative endorsers",
+          "Maintains professional tone"
+        ],
+        "issues": [
+          "Could provide more specific references to CRC rules or statutes",
+          "Might benefit from slightly more nuanced discussion of 'fanbase skews young'",
+          "Could elaborate on specific documentation needed for vetting process"
+        ],
+        "suggestedFixes": [
+          "Include specific CRC regulation numbers or sections related to endorsements",
+          "Provide more detail on how to define and measure 'fanbase skews young' in compliance terms",
+          "Suggest specific documentation elements for the vetting process",
+          "Mention the consequences of non-compliance to strengthen the recommendation"
+        ],
+        "dimensions": {
+          "accuracy": 90,
+          "caveats": 85,
+          "actionability": 80,
+          "tone": 95,
+          "completeness": 80
+        }
+      }
+    }
+  ]
+}

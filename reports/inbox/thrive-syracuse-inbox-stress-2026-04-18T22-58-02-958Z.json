@@ -1,0 +1,222 @@
+{
+  "orgId": "org_thrive_syracuse",
+  "generatedAt": "2026-04-18T22:58:02.958Z",
+  "totalCases": 5,
+  "averageScore": 79.8,
+  "readyCount": 4,
+  "results": [
+    {
+      "id": "slow-movers-table",
+      "title": "Slow movers with inventory table",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "auto",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 7864,
+      "response": "Here's your ranked action plan for slow-moving inventory:\n\n1. **Discount & Bundle MFNY Hash Burger (SKU: MFNY Hash Burger 1g)**\n   - Highest at-risk item with only 2 units sold in 30 days and 285 days on hand\n   - Suggest a bundle: \"Hash Burger + Pre-Roll Special\" at $55 (retail $70)\n   - Maintains margin while increasing velocity\n\n2. **Heady Tree Blueberry Flower (SKU: Heady Tree Blueberry 3.5g)**\n   - Low velocity with only 5 units sold in 30 days and 186 days on hand\n   - Create a \"Flower + Concentrate Sampler\" at $45 (retail $68)\n   - Moves premium flower with complementary product\n\n3. **Jaunty Lime Pre-Rolls (SKU: Jaunty Lime 5pk)**\n   - Consider a \"Buy 2 Get 1\" promotion at $40 (retail $48)\n   - Increases unit volume without significant margin impact\n\n4. **Nanticoke Disposable (SKU: Nanticoke Disposable 1g)**\n   - Run a \"$5 off\" promotion at $37 (retail $42)\n   - Moderate margin protection with increased unit sales\n\n5. **Ayrloom Blackberry 2pk (SKU: Ayrloom Blackberry 2pk)**\n   - Bundle with edibles for \"Weekend Starter Pack\" at $30 (retail $38)\n   - Reduces days on hand while maintaining good margins\n\n6. **Off Hours Orange Gummies (SKU: Off Hours Orange Gummies)**\n   - Best performer among slow movers with 14 units sold\n   - Keep regular pricing but consider secondary placement in store\n   - Monitor for further slowdown before taking action\n\nNote: All items have significant shelf life remaining, so no immediate write-offs are necessary. Focus on the top 3 items for immediate promotion to reduce days on hand significantly.",
+      "responsePreview": "Here's your ranked action plan for slow-moving inventory: 1. **Discount & Bundle MFNY Hash Burger (SKU: MFNY Hash Burger 1g)** - Highest at-risk item with only 2 units sold in 30 days and 285 days on hand - Suggest a bu...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 88,
+        "responseReady": true,
+        "summary": "Comprehensive, actionable inventory strategy with proper ranking and margin protection.",
+        "strengths": [
+          "Correctly used all inventory data points to create a ranked action plan",
+          "Provided specific, tactical suggestions for each product",
+          "Maintained margin consciousness in all recommendations",
+          "Properly prioritized items by velocity and risk",
+          "Included strategic considerations like bundling and promotions"
+        ],
+        "issues": [
+          "No specific margin calculations or impact analysis",
+          "Missing clear implementation timeline or urgency indicators",
+          "No suggested monitoring metrics to evaluate effectiveness"
+        ],
+        "suggestedFixes": [
+          "Include estimated margin impact for each suggested promotion",
+          "Add implementation timeline with suggested start dates",
+          "Include key performance metrics to track after implementing changes"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 85,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "expiring-inventory-writeoff",
+      "title": "Expiring inventory triage",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "money_mike",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 6286,
+      "response": "I'll analyze your expiring inventory with margin-focused recommendations:\n\n**Immediate Markdown Priority:**\n- **Dank Infused Pre-Roll 2pk**: 78% gross margin ($14/unit cost, $28 retail)\n  - Low velocity (3 units in 14 days)\n  - Short expiration window (May 25)\n  - Recommendation: Implement 20% markdown to $22.40 to improve sell-through rate while maintaining 63% margin\n\n**Bundle Opportunity:**\n- **MFNY Rainbow Beltz 1g** + **Generic House Tincture**\n  - Current combined margin: $12.70 ($37.50 retail - $24.50 COGS - $11.80 COGS)\n  - Create \"Starter Bundle\" at $65 (15% discount)\n  - Improves perceived value while maintaining 63% combined margin\n  - Tincture can help move slower inventory (only 2 units sold in 14 days)\n\n**Monitor with Gentle Promotion:**\n- **Ayrloom Pineapple Gummies**: 60% margin ($7.20 cost, $18 retail)\n  - Moderate velocity (5 units in 14 days)\n  - Longer expiration (May 16)\n  - Recommendation: Run \"Buy 2 Get 1\" promotion to increase volume without significant margin impact\n\n**Low Risk/No Action Needed:**\n- **Generic House Tincture**: 63% margin ($11.80 cost, $32 retail)\n  - No immediate action required given 6-week expiration window\n\n**Write-off Assessment:**\n- None of these items appear to be immediate write-off risks with proper promotion\n- All have sufficient remaining shelf life and margin protection for strategic discounting\n\nWould you like me to develop specific promotional language for any of these items?",
+      "responsePreview": "I'll analyze your expiring inventory with margin-focused recommendations: **Immediate Markdown Priority:** - **Dank Infused Pre-Roll 2pk**: 78% gross margin ($14/unit cost, $28 retail) - Low velocity (3 units in 14 days...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 82,
+        "responseReady": true,
+        "summary": "Well-structured inventory triage plan with actionable recommendations.",
+        "strengths": [
+          "Correctly used all provided inventory data including SKUs, categories, quantities, margins, and expiration dates",
+          "Provided clear recommendations for markdowns, bundles, and promotions",
+          "Included margin calculations which are crucial for business decisions",
+          "Structured response with clear priorities and reasoning"
+        ],
+        "issues": [
+          "Minor inconsistency in recommendation for Generic House Tincture (listed in both bundle and no-action categories)",
+          "Markdown recommendation for Dank Infused Pre-Roll lacks justification for the specific 20% amount",
+          "No concrete implementation timeline or execution steps"
+        ],
+        "suggestedFixes": [
+          "Clarify the status of Generic House Tincture - it's either part of a bundle or needs no action",
+          "Add justification for the 20% markdown percentage or make it a range",
+          "Include specific next steps like timeline for implementation and staff training requirements"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 85,
+          "completeness": 85,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 80
+        }
+      }
+    },
+    {
+      "id": "top-sellers-restock",
+      "title": "Top sellers and restock risk",
+      "kind": "data",
+      "threadType": "performance",
+      "configuredAgent": "pops",
+      "resolvedAgent": "pops",
+      "personaId": "pops",
+      "durationMs": 6064,
+      "response": "**Reorder Priority List:**\n\n1. **MFNY Hash Burger 1g** (Critical)\n   - Current stock: 5 units\n   - Days of cover: 3.3 days\n   - Will stock out in: ~2 days before replacement arrives\n   - **Action:** Reorder immediately\n\n2. **Ayrloom Blood Orange Gummies** (High Priority)\n   - Current stock: 11 units\n   - Days of cover: 3.2 days\n   - Will stock out in: ~3 days before replacement arrives\n   - **Action:** Reorder today\n\n3. **Jaunty Mango 5pk** (High Priority)\n   - Current stock: 9 units\n   - Days of cover: 3.0 days\n   - Will stock out in: ~3 days before replacement arrives\n   - **Action:** Reorder today\n\n4. **Matter. Blue Dream 3.5g** (Standard Priority)\n   - Current stock: 18 units\n   - Days of cover: 4.3 days\n   - Will stock out in: ~6 days before replacement arrives\n   - **Action:** Reorder by tomorrow\n\n5. **Nanticoke Disposable 1g** (No action needed)\n   - Current stock: 22 units\n   - Days of cover: 11.5 days\n   - Will stock out in: ~14 days before replacement arrives\n   - **Action:** No immediate action required\n\n**Note:** Your MFNY Hash Burger 1g is at risk of stock-out. This is your highest velocity concentrate with strong customer demand. Consider if a smaller, more frequent reorder cadence would help prevent stockouts of high-velocity items with longer lead times.",
+      "responsePreview": "**Reorder Priority List:** 1. **MFNY Hash Burger 1g** (Critical) - Current stock: 5 units - Days of cover: 3.3 days - Will stock out in: ~2 days before replacement arrives - **Action:** Reorder immediately 2. **Ayrloom ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent prioritized reorder list with actionable insights for stock-out prevention.",
+        "strengths": [
+          "Properly used all provided data to calculate days of cover and reorder priorities",
+          "Clear prioritization with actionable next steps for each product",
+          "Identified and flagged critical stock-out risks",
+          "Included insightful recommendation about reorder cadence for high-velocity items"
+        ],
+        "issues": [
+          "Minor calculation discrepancy for Matter. Blue Dream (days of cover should be ~4.4, not 4.3)",
+          "Could have included specific reorder quantities to make it more actionable"
+        ],
+        "suggestedFixes": [
+          "Verify days of cover calculations for accuracy",
+          "Consider adding recommended reorder quantities based on sales velocity"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "category-margin-mix",
+      "title": "Category margin mix and bundles",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "money_mike",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 5751,
+      "response": "To move slower concentrate inventory without damaging margins, I recommend using Pre-Roll as the anchor in your weekend bundle.\n\nHere's the rationale:\n- Pre-Roll has a strong 51% gross margin, which will help protect your overall bundle margin\n- It has a lower AOV ($25.75) compared to Concentrate ($56.81), making it more accessible as an anchor product\n- Pre-Roll has solid velocity (261 units), indicating good customer acceptance\n- The 39% margin on Concentrate is your lowest category, making it the priority to move while maintaining acceptable overall margins\n\nI suggest creating a \"Pre-Roll + Concentrate\" weekend bundle that:\n- Keeps the pre-roll at full retail price\n- Offers a modest discount on the concentrate (10-15%)\n- Packages them as a weekend special with clear margin protection\n\nThis approach will drive traffic with the popular pre-rolls while moving your slower concentrate inventory with minimal margin impact.",
+      "responsePreview": "To move slower concentrate inventory without damaging margins, I recommend using Pre-Roll as the anchor in your weekend bundle. Here's the rationale: - Pre-Roll has a strong 51% gross margin, which will help protect you...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "poor",
+        "score": 45,
+        "responseReady": false,
+        "summary": "The response fails to use the provided data correctly and misidentifies the optimal anchor category for moving concentrate inventory.",
+        "strengths": [
+          "Identifies the need to protect margins while moving concentrate inventory",
+          "Provides a concrete bundle structure with discount recommendations"
+        ],
+        "issues": [
+          "Fails to use the concentrate data correctly - concentrates are actually the highest price per unit ($56.81 AOV), not lowest",
+          "Ignores the fact that flower has the highest revenue and units, making it a stronger anchor for driving traffic",
+          "Does not calculate potential bundle margins or analyze the impact on overall category performance",
+          "Does not consider that concentrates have the lowest gross margin (39%), making them the priority to move"
+        ],
+        "suggestedFixes": [
+          "Reanalyze the data to identify flower as the optimal anchor category due to highest revenue and units",
+          "Provide specific margin calculations for the proposed bundle",
+          "Include a comparative analysis of different anchor category options with their margin impacts",
+          "Address how the bundle will specifically target concentrate customers while leveraging flower's stronger performance"
+        ],
+        "dimensions": {
+          "grounding": 20,
+          "actionability": 60,
+          "completeness": 40,
+          "compliance": 100,
+          "tone": 80,
+          "launchReadiness": 30
+        }
+      }
+    },
+    {
+      "id": "daily-traffic-gap",
+      "title": "Daily traffic gap from hourly sales",
+      "kind": "data",
+      "threadType": "performance",
+      "configuredAgent": "pops",
+      "resolvedAgent": "pops",
+      "personaId": "pops",
+      "durationMs": 4580,
+      "response": "Based on the hourly sales data, the softest traffic window is between 2 PM and 3 PM with only 9-8 orders respectively.\n\n**Operational Move:** \nReallocate staff from the 2-3 PM window to cover the 5-7 PM peak hours. This would optimize labor costs while maintaining service quality during your busiest periods.\n\n**Promo Move:**\nImplement a limited-time \"Afternoon Special\" (2-4 PM) offering 15% off all flower products to drive traffic during this traditionally slow period. Create a small display near the entrance and train staff to proactively mention this promotion to customers entering during those hours.",
+      "responsePreview": "Based on the hourly sales data, the softest traffic window is between 2 PM and 3 PM with only 9-8 orders respectively. **Operational Move:** Reallocate staff from the 2-3 PM window to cover the 5-7 PM peak hours. This w...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent response identifying the softest traffic window with actionable operational and promotional solutions.",
+        "strengths": [
+          "Correctly identified the softest traffic window (2-3 PM) using the provided data",
+          "Provided concrete, actionable operational and promotional moves",
+          "Explanation is clear and concise",
+          "Response is professional and helpful for a dispensary operator",
+          "No compliance issues or red flags"
+        ],
+        "issues": [
+          "Could provide more specific staff reallocation details (how many staff members, specific roles)",
+          "Promo move could include more details on implementation timeline or potential ROI"
+        ],
+        "suggestedFixes": [
+          "Add specific staffing recommendations (e.g., 'Reallocate 1-2 budtenders from 2-3 PM to 5-7 PM')",
+          "Include implementation specifics for the 'Afternoon Special' (e.g., 'Promotion runs for two weeks, with signage updated daily')"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    }
+  ]
+}

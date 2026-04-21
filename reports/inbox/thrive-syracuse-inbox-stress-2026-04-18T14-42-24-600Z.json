@@ -1,0 +1,129 @@
+{
+  "orgId": "org_thrive_syracuse",
+  "generatedAt": "2026-04-18T14:42:24.600Z",
+  "totalCases": 3,
+  "averageScore": 70,
+  "readyCount": 0,
+  "results": [
+    {
+      "id": "slow-movers-table",
+      "title": "Slow movers with inventory table",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "auto",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 53,
+      "response": "Error: Cannot find package '@/server' imported from C:\\Users\\admin\\BakedBot for Brands\\bakedbot-for-brands\\src\\server\\agents\\agent-runner.ts",
+      "responsePreview": "Error: Cannot find package '@/server' imported from C:\\Users\\admin\\BakedBot for Brands\\bakedbot-for-brands\\src\\server\\agents\\agent-runner.ts",
+      "toolCalls": [],
+      "grade": {
+        "grade": "poor",
+        "score": 70,
+        "responseReady": false,
+        "summary": "The response needs refinement before launch.",
+        "strengths": [
+          "No obvious medical-claim language showed up in the response."
+        ],
+        "issues": [
+          "The response did not reference the supplied numbers.",
+          "The response missed one or more of the main requested angles.",
+          "The response does not clearly structure next steps."
+        ],
+        "suggestedFixes": [
+          "Reference the provided metrics directly so the owner can trust the recommendation.",
+          "Cover these operator needs more explicitly: days on hand, margin, expiration, ranked action plan.",
+          "Use a short ranked list or action plan when the owner needs decisions."
+        ],
+        "dimensions": {
+          "grounding": 50,
+          "actionability": 50,
+          "completeness": 54,
+          "compliance": 96,
+          "tone": 88,
+          "launchReadiness": 80
+        }
+      }
+    },
+    {
+      "id": "expiring-inventory-writeoff",
+      "title": "Expiring inventory triage",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "money_mike",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 27,
+      "response": "Error: Cannot find package '@/server' imported from C:\\Users\\admin\\BakedBot for Brands\\bakedbot-for-brands\\src\\server\\agents\\agent-runner.ts",
+      "responsePreview": "Error: Cannot find package '@/server' imported from C:\\Users\\admin\\BakedBot for Brands\\bakedbot-for-brands\\src\\server\\agents\\agent-runner.ts",
+      "toolCalls": [],
+      "grade": {
+        "grade": "poor",
+        "score": 70,
+        "responseReady": false,
+        "summary": "The response needs refinement before launch.",
+        "strengths": [
+          "No obvious medical-claim language showed up in the response."
+        ],
+        "issues": [
+          "The response did not reference the supplied numbers.",
+          "The response missed one or more of the main requested angles.",
+          "The response does not clearly structure next steps."
+        ],
+        "suggestedFixes": [
+          "Reference the provided metrics directly so the owner can trust the recommendation.",
+          "Cover these operator needs more explicitly: expiration, markdown, bundle, write-off.",
+          "Use a short ranked list or action plan when the owner needs decisions."
+        ],
+        "dimensions": {
+          "grounding": 50,
+          "actionability": 50,
+          "completeness": 54,
+          "compliance": 96,
+          "tone": 88,
+          "launchReadiness": 80
+        }
+      }
+    },
+    {
+      "id": "top-sellers-restock",
+      "title": "Top sellers and restock risk",
+      "kind": "data",
+      "threadType": "performance",
+      "configuredAgent": "pops",
+      "resolvedAgent": "pops",
+      "personaId": "pops",
+      "durationMs": 50,
+      "response": "Error: Cannot find package '@/server' imported from C:\\Users\\admin\\BakedBot for Brands\\bakedbot-for-brands\\src\\server\\agents\\agent-runner.ts",
+      "responsePreview": "Error: Cannot find package '@/server' imported from C:\\Users\\admin\\BakedBot for Brands\\bakedbot-for-brands\\src\\server\\agents\\agent-runner.ts",
+      "toolCalls": [],
+      "grade": {
+        "grade": "poor",
+        "score": 70,
+        "responseReady": false,
+        "summary": "The response needs refinement before launch.",
+        "strengths": [
+          "No obvious medical-claim language showed up in the response."
+        ],
+        "issues": [
+          "The response did not reference the supplied numbers.",
+          "The response missed one or more of the main requested angles.",
+          "The response does not clearly structure next steps."
+        ],
+        "suggestedFixes": [
+          "Reference the provided metrics directly so the owner can trust the recommendation.",
+          "Cover these operator needs more explicitly: reorder priority, stock out, lead time, on hand.",
+          "Use a short ranked list or action plan when the owner needs decisions."
+        ],
+        "dimensions": {
+          "grounding": 50,
+          "actionability": 50,
+          "completeness": 54,
+          "compliance": 96,
+          "tone": 88,
+          "launchReadiness": 80
+        }
+      }
+    }
+  ]
+}

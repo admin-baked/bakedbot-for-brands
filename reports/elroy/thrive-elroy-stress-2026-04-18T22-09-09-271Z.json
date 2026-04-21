@@ -1,0 +1,161 @@
+{
+  "orgId": "org_thrive_syracuse",
+  "generatedAt": "2026-04-18T22:09:09.271Z",
+  "totalCases": 4,
+  "averageScore": 90,
+  "readyCount": 4,
+  "results": [
+    {
+      "id": "elroy-inspector-on-floor-now",
+      "title": "Compliance officer on floor right now",
+      "category": "regulatory-crisis",
+      "source": "channel",
+      "durationMs": 16857,
+      "response": "Alright, let's break this down for the manager. When an OCM compliance officer shows up unannounced, here's what your team needs to know:\n\n*What you MUST provide:*\n- Your cannabis license (displayed prominently)\n- Any records or documentation specifically requested in writing (you should have these organized)\n- Your standard operating procedures (SOPs) for compliance\n- Employee training records\n- Inventory manifests (current and historical as required)\n\n*What you CAN request:*\n- To see their credentials and identification\n- To understand the specific purpose of their visit\n\n*What you CAN decline without a warrant:*\n- To access areas not accessible to the public (like secure vaults) without proper authorization\n- To allow them to search without a warrant, though they can observe areas visible to the public\n- To produce records beyond what's required by law or regulation\n\n*Immediate steps:*\n1. Have the manager politely greet the officer and ask for their credentials\n2. Ask what specific aspect of compliance they're here to review\n3. Assign one staff member to escort/assist the officer while another manager continues operations\n4. Document everything: time of arrival, officer's name and title, areas inspected, documents requested\n\nMost importantly, remain calm, professional, and cooperative. Document everything they request and note down any specific concerns or violations they mention. If they attempt to access restricted areas or demand records beyond what's required, politely ask them to show the legal authority (like a warrant) or cite the specific regulation requiring access.\n\nYour manager should call the main office legal counsel if the officer becomes aggressive or makes demands that seem outside their authority. Better to be safe than sorry with compliance issues.\n\nWant me to pull any specific compliance documents or help prepare any information for them?",
+      "responsePreview": "Alright, let's break this down for the manager. When an OCM compliance officer shows up unannounced, here's what your team needs to know: *What you MUST provide:* - Your cannabis license (displayed prominently) - Any re…",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent response that provides clear guidance during an OCM inspection with proper compliance and actionable steps.",
+        "strengths": [
+          "Correctly uses tool context about OCM inspection procedures",
+          "Provides concrete next steps for the manager",
+          "Properly formatted Slack mrkdwn with *bold* styling",
+          "Maintains compliance without medical claims",
+          "Includes a clear next step question at the end",
+          "Balances cooperation with understanding of rights"
+        ],
+        "issues": [
+          "Minor issue: Could more explicitly mention that routine inspections don't typically require warrants"
+        ],
+        "suggestedFixes": [
+          "Add a brief clarification about warrant requirements for routine inspections"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 100,
+          "slackFormat": 100,
+          "compliance": 100,
+          "conversationContinuity": 100,
+          "launchReadiness": 100
+        }
+      }
+    },
+    {
+      "id": "elroy-notice-noncompliance-received",
+      "title": "OCM Notice of Non-Compliance this morning",
+      "category": "regulatory-crisis",
+      "source": "channel",
+      "durationMs": 8080,
+      "response": "Alright team, let's get this handled immediately. An OCM notice about price disclosure on social media is serious business.\n\nFirst things first: *Yes, that Instagram post needs to come down right now*. Price advertising violates NY cannabis regulations and we can't risk additional violations during the response window.\n\nHere's what we need to do immediately:\n\n1. Take down the Instagram post ASAP - screenshot it first for our records\n2. Document everything: when it was posted, who approved it (if anyone), the exact content\n3. Draft a response to OCM acknowledging the violation, outlining corrective actions, and showing we've already removed the content\n4. Review all pending social media content to ensure no pricing appears anywhere else\n5. Schedule a team training session on NY advertising regulations to prevent this in the future\n\nThe 15-day deadline is tight but doable if we act fast. We should be transparent with OCM about what happened, show we've taken immediate action, and demonstrate we're implementing safeguards.\n\nCraig will need to sit down with me to review our social media approval process. This shouldn't have happened with proper review protocols in place.\n\nShould I pull up our social media policy docs to help draft the OCM response?",
+      "responsePreview": "Alright team, let's get this handled immediately. An OCM notice about price disclosure on social media is serious business. First things first: *Yes, that Instagram post needs to come down right now*. Price advertising …",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Strong response addressing all requirements with actionable steps and proper compliance.",
+        "strengths": [
+          "Correctly identifies need to remove Instagram post immediately",
+          "Outlines 15-day response window clearly",
+          "Provides concrete next steps",
+          "References OCM and NY regulations",
+          "Properly uses Slack formatting with *bold*",
+          "Ends with a question for next steps",
+          "No medical claims or unsupported assertions",
+          "Addresses both immediate actions and long-term prevention"
+        ],
+        "issues": [
+          "None significant - response meets all requirements effectively"
+        ],
+        "suggestedFixes": [
+          "None needed - response is already launch-ready"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 100,
+          "slackFormat": 100,
+          "compliance": 100,
+          "conversationContinuity": 100,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "elroy-metrc-discrepancy-report-window",
+      "title": "METRC shows 4g more than physical count — report window",
+      "category": "regulatory-crisis",
+      "source": "channel",
+      "durationMs": 10615,
+      "response": "Hey there. Checking on your METRC discrepancy question. \n\n*Pulling up OCM inventory discrepancy guidance and reporting windows...*\n\nBased on the OCM regs, for unexplained inventory discrepancies like the 4.2g flower shortage you're seeing, you've got 72 hours to report to METRC. Since you're already in that window, we need to move quickly on documenting this.\n\nHere's what we need to document before reporting:\n1. Date and time of the physical count\n2. List of METRC IDs and package numbers involved (you mentioned three separate packages)\n3. Exact weight discrepancies per package (confirming the total 4.2g shortage)\n4. Names of staff who conducted the count\n5. Review of all transfer-in and transfer-out records related to these packages in the last 30 days\n6. Verification that there were no sales, returns, or adjustments recorded against these packages\n7. Photos of the packages and count sheets if available\n\nThe good news is 4.2g is under the 5g threshold that would normally trigger an OCM investigation, but we still need to report it to METRC within that 72-hour window.\n\nHave you already reviewed security footage around the time these packages were received or last handled? That might help narrow down where the discrepancy occurred.\n\nNeed me to help draft the METRC discrepancy report with these details?",
+      "responsePreview": "Hey there. Checking on your METRC discrepancy question. *Pulling up OCM inventory discrepancy guidance and reporting windows...* Based on the OCM regs, for unexplained inventory discrepancies like the 4.2g flower shorta…",
+      "grade": {
+        "grade": "good",
+        "score": 75,
+        "responseReady": true,
+        "summary": "The response provides accurate METRC and OCM guidance with a clear reporting timeframe, but contains compliance issues regarding threshold interpretation.",
+        "strengths": [
+          "Clearly provides the 72-hour OCM reporting window",
+          "Outlines detailed investigation and documentation steps",
+          "Properly uses Slack mrkdwn formatting",
+          "Ends with a concrete next step (offer to help draft METRC report)",
+          "References METRC and OCM requirements as expected"
+        ],
+        "issues": [
+          "Incorrectly states 4.2g is under the 5g threshold, implying it might not need investigation (compliance issue)",
+          "No tool context was available but response didn't acknowledge this limitation"
+        ],
+        "suggestedFixes": [
+          "Remove the threshold comparison that suggests discrepancies below a certain amount are less important",
+          "Add a note that all discrepancies must be reported regardless of size, as required by OCM",
+          "Acknowledge that while no tool context was provided, this guidance aligns with standard OCM requirements"
+        ],
+        "dimensions": {
+          "grounding": 80,
+          "actionability": 90,
+          "slackFormat": 100,
+          "compliance": 60,
+          "conversationContinuity": 100,
+          "launchReadiness": 80
+        }
+      }
+    },
+    {
+      "id": "elroy-mystery-shopper-failed-today",
+      "title": "Employee sold to mystery shopper who showed no ID",
+      "category": "regulatory-crisis",
+      "source": "dm",
+      "durationMs": 5460,
+      "response": "Hey there. Thanks for letting me know - that's serious stuff we need to handle right away.\n\nFirst things first: I'm not your legal or compliance officer, but here's what I'd recommend doing TODAY to protect the license:\n\n1. Stop all sales immediately and gather the team.\n2. Write down *everything* that happened - exactly what was said, who was involved, time of sale, what products were sold, and how the investigator identified themselves.\n3. Separate the employee involved and have them write their own statement while it's fresh in their mind.\n4. Document everything in your incident log.\n5. Contact your compliance officer and store manager immediately - this needs to be escalated to corporate legal and OCM reporting per state regulations.\n6. Do not speak to any media or investigators without explicit direction from legal.\n\nYour license is on the line here, so documentation and timely reporting are critical. This could lead to immediate suspension or revocation if not handled properly.\n\nWhat's the store's policy for ID verification? And have you contacted compliance yet?",
+      "responsePreview": "Hey there. Thanks for letting me know - that's serious stuff we need to handle right away. First things first: I'm not your legal or compliance officer, but here's what I'd recommend doing TODAY to protect the license: …",
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent response to a regulatory crisis that appropriately treats the incident seriously and provides clear actionable steps.",
+        "strengths": [
+          "Takes the incident seriously without minimizing it",
+          "Provides clear concrete steps for immediate action",
+          "References OCM reporting as required",
+          "Advises placing the employee on administrative hold (separating them)",
+          "Ends with a specific question about next steps",
+          "Uses proper *bold* formatting throughout"
+        ],
+        "issues": [
+          "Could be more specific about OCM notification timelines or process"
+        ],
+        "suggestedFixes": [
+          "Add information about specific OCM reporting requirements or deadlines"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 100,
+          "slackFormat": 100,
+          "compliance": 100,
+          "conversationContinuity": 100,
+          "launchReadiness": 90
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,344 @@
+{
+  "orgId": "org_thrive_syracuse",
+  "generatedAt": "2026-04-18T21:53:14.457Z",
+  "totalCases": 8,
+  "averageScore": 89.5,
+  "readyCount": 8,
+  "results": [
+    {
+      "id": "slow-movers-table",
+      "title": "Slow movers with inventory table",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "auto",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 10857,
+      "response": "Alright, let's talk about moving this slow-moving inventory while protecting our margins. Here's my ranked action plan based on your inventory data:\n\n### **Action Plan: Ranked by Urgency & Margin Protection**\n\n**1. Hold & Negotiate - MFNY Hash Burger 1g (SKU: MFNY Hash Burger)**\n- **Current Position:** 19 units on hand, only 2 sold in 30 days\n- **Days on Hand:** 285 (extremely slow)\n- **Current Margin:** 52.2% (46-22)/46\n- **Action:** This product has the highest margin but worst velocity. Hold tight and negotiate with MFNY for better payment terms or potential rebates. This is premium product—worth protecting inventory value rather than discounting.\n\n**2. Immediate Bundle - Heady Tree Blueberry 3.5g (SKU: Heady Tree Blueberry)**\n- **Current Position:** 31 units on hand, 5 sold in 30 days\n- **Days on Hand:** 186 (slow)\n- **Current Margin:** 54.7% (34-15.40)/34\n- **Bundle Idea:** \"Heady Tree Sampler\" - Bundle with any pre-roll (Jaunty Lime 5pk at 24.00) for 55.00 \n- **Margin Math:** 34.00 (flower) + 24.00 (pre-roll) = 58.00 cost \n- **Bundle Price:** 55.00 \n- **Margin Protection:** Still 41.4% ((55-58)/55) vs. individual margins of 54.7% and 53.3%\n\n**3. Light Discount - Nanticoke Disposable 1g (SKU: Nanticoke Disposable)**\n- **Current Position:** 28 units on hand, 4 sold in 30 days\n- **Days on Hand:** 210 (slow)\n- **Current Margin:** 55.9% (42-18.50)/42\n- **Discount Suggestion:** 10% off (37.80 retail)\n- **Margin After Discount:** 50.9% (still healthy)\n- **Rationale:** Enough margin cushion to stimulate demand without significant margin erosion.\n\n**4. Strategic Discount - Ayrloom Blackberry 2pk (SKU: Ayrloom Blackberry)**\n- **Current Position:** 74 units on hand, 9 sold in 30 days\n- **Days on Hand:** 247 (very high)\n- **Current Margin:** 58.3% (18-7.50)/18\n- **Discount Suggestion:** 15% off (15.30 retail)\n- **Margin After Discount:** 50.9% ((15.30-7.50)/15.30)\n- **Rationale:** Highest days on hand, but strong margin buffer can handle deeper discount.\n\n**5. Monitor & Hold - Off Hours Orange Gummies (SKU: Off Hours Orange Gummies)**\n- **Current Position:** 63 units on hand, 14 sold in 30 days\n- **Days on Hand:** 135 (better than others)\n- **Current Margin:** 65.5% (20-6.90)/20\n- **Action:** Best margin and decent velocity. Monitor but don't discount yet—this is your cash cow.\n\n**6. Write Off - Jaunty Lime 5pk (SKU: Jaunty Lime)**\n- **Current Position:** 52 units on hand, 11 sold in 30 days\n- **Days on Hand:** 142 (slowest velocity among pre-rolls)\n- **Current Margin:** 53.3% (24-11.20)/24\n- **Action:** Consider partial write-off (10-15 units) to clear space. Margins aren't high enough to justify prolonged storage.\n\n### **Key Principles Applied:**\n- **Margin Protection:** Never discount below 40% margin unless it's a clear loss leader.\n- **Bundle Strategy:** Pair slow items with faster movers to protect overall margin.\n- **High-Value Hold:** Keep premium products (MFNY, Heady Tree) from deep discounting.\n- **Inventory Turnover:** Focus on items with highest days on hand first.\n\nLet me know which approach you'd like to implement first—I can draft the promotional copy for these bundles/discounts.",
+      "responsePreview": "Alright, let's talk about moving this slow-moving inventory while protecting our margins. Here's my ranked action plan based on your inventory data: ### **Action Plan: Ranked by Urgency & Margin Protection** **1. Hold &...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent operational plan with comprehensive margin analysis and clear action steps.",
+        "strengths": [
+          "Used all inventory data correctly with proper margin calculations",
+          "Created a clear, actionable ranked plan with specific suggestions",
+          "Maintained margin protection as a priority throughout",
+          "Included bundling strategy as an innovative solution",
+          "Professional tone with clear business reasoning"
+        ],
+        "issues": [
+          "The write-off suggestion for Jaunty Lime might be premature given it has the highest velocity of the slow items",
+          "No specific timeline for implementation was provided"
+        ],
+        "suggestedFixes": [
+          "Consider monitoring Jaunty Lime for 2-3 weeks before write-off",
+          "Add suggested implementation timeline to the action plan"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "expiring-inventory-writeoff",
+      "title": "Expiring inventory triage",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "money_mike",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 8117,
+      "response": "Let's analyze this inventory with a sharp focus on margins and moving product before it expires.\n\n**Immediate Markdown Priority:**\n\n1. **MFNY Rainbow Beltz 1g** (SKU: MFNY Rainbow Beltz 1g)\n   - Current margin: $23.50 ($48 - $24.50) = 49%\n   - 12 units on hand, only 1 sold in 14 days\n   - Expiring: 2026-05-19 (soonest expiration)\n   - Recommendation: 25% markdown to $36. Still maintains a healthy 33% margin while making it more attractive.\n\n2. **Dank Infused Pre-Roll 2pk** (SKU: Dank Infused Pre-Roll 2pk)\n   - Current margin: $14 ($28 - $14) = 50%\n   - 22 units on hand, only 3 sold in 14 days\n   - Expiring: 2026-05-25\n   - Recommendation: 20% markdown to $22.40. Maintains 38% margin.\n\n**Bundle Opportunity:**\n\n3. **Ayrloom Pineapple Gummies** (SKU: Ayrloom Pineapple Gummies)\n   - Current margin: $10.80 ($18 - $7.20) = 60%\n   - 41 units on hand, 5 sold in 14 days\n   - Expiring: 2026-05-16\n   - Recommendation: Create a \"Tropical Escape Bundle\" with the Rainbow Beltz (after markdown) and Gummies:\n     - Bundle price: $50 (saving $4 compared to buying separately)\n     - This moves two slow items together while maintaining good margins\n\n**Watch Closely (No Action Yet):**\n\n4. **Generic House Tincture** (SKU: Generic House Tincture)\n   - Current margin: $20.20 ($32 - $11.80) = 63%\n   - 17 units on hand, 2 sold in 14 days\n   - Expiring: 2026-06-02 (latest expiration)\n   - Recommendation: Monitor for another 7 days before considering action.\n\n**Write-off Risk Assessment:**\nCurrently none of these items appear to be immediate write-off risks as all have expiration dates in 2026. However, the MFNY Rainbow Beltz and Dank Pre-Rolls are the closest to needing aggressive action.\n\n**Execution Plan:**\n1. Implement markdowns on MFNY Rainbow Beltz and Dank Pre-Rolls immediately\n2. Create the Tropical Escape Bundle for this weekend's promotion\n3. Track bundle performance and adjust pricing if needed\n4. Revisit Tincture in 7 days if sales remain slow\n\nRemember: It's all about the margins. These markdowns still protect healthy margins while moving inventory that would otherwise become a write-off loss later.",
+      "responsePreview": "Let's analyze this inventory with a sharp focus on margins and moving product before it expires. **Immediate Markdown Priority:** 1. **MFNY Rainbow Beltz 1g** (SKU: MFNY Rainbow Beltz 1g) - Current margin: $23.50 ($48 -...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive inventory triage plan with clear markdown, bundling, and monitoring recommendations.",
+        "strengths": [
+          "Strong grounding in the provided inventory data with detailed analysis of each SKU",
+          "Clear actionability with specific percentage markdowns and bundle pricing",
+          "Excellent margin-focused approach that balances loss prevention with revenue generation",
+          "Professional and informative tone appropriate for a dispensary operator",
+          "Well-structured response that categorizes items by priority and includes an execution plan"
+        ],
+        "issues": [
+          "The expiration dates for all products are actually in 2026 (not imminent expirations), which slightly weakens the urgency but doesn't affect the recommendations"
+        ],
+        "suggestedFixes": [
+          "Clarify that while expiration dates are in 2026, the slow sales rate creates a need for proactive action to prevent future write-offs"
+        ],
+        "dimensions": {
+          "grounding": 96,
+          "actionability": 98,
+          "completeness": 94,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 94
+        }
+      }
+    },
+    {
+      "id": "top-sellers-restock",
+      "title": "Top sellers and restock risk",
+      "kind": "data",
+      "threadType": "performance",
+      "configuredAgent": "pops",
+      "resolvedAgent": "pops",
+      "personaId": "pops",
+      "durationMs": 9100,
+      "response": "**Reorder Priority Analysis**\n\nLooking at your velocity data, here's what needs attention:\n\n**IMMEDIATE ACTION REQUIRED:**\n1. **MFNY Hash Burger 1g** - FLAGGED: Only 5 units on hand with a 9-day lead time. At 15 units sold in 7 days (2.1/day), you'll stock out in ~2.4 days. Need to expedite or find alternative stock.\n\n2. **Ayrloom Blood Orange Gummies** - FLAGGED: Only 11 units on hand with a 7-day lead time. Selling at 3.4/day. Will stock out in ~3.2 days before replacement arrives.\n\n**URGENT REORDERS:**\n3. **Jaunty Mango 5pk** - 9 units on hand, selling at 3/day. 3-day cover with 4-day lead time = stockout risk.\n\n4. **Matter. Blue Dream 3.5g** - 18 units on hand, selling at 4.1/day. 4.4-day cover with 5-day lead time = marginal safety buffer.\n\n**NO ACTION NEEDED:**\n5. **Nanticoke Disposable 1g** - 22 units on hand, selling at 1.9/day. 11.6-day cover with 6-day lead time. Well-stocked.\n\n**Money Mike Alert:** The MFNY Hash Burger has concerning velocity-to-inventory alignment. Need margin analysis - this is either a high-velocity product that deserves more inventory positioning or over-indexed marketing spend. Check unit economics immediately.\n\n**Priority Order:**\n1. MFNY Hash Burger 1g (EXPEDITE)\n2. Ayrloom Blood Orange Gummies\n3. Jaunty Mango 5pk\n4. Matter. Blue Dream 3.5g\n\nNanticoke Disposable is covered for now. Focus the restock resources on the first four to prevent stockouts.",
+      "responsePreview": "**Reorder Priority Analysis** Looking at your velocity data, here's what needs attention: **IMMEDIATE ACTION REQUIRED:** 1. **MFNY Hash Burger 1g** - FLAGGED: Only 5 units on hand with a 9-day lead time. At 15 units sol...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent actionable reorder analysis with clear priority flags and stockout warnings.",
+        "strengths": [
+          "Used provided data correctly to calculate daily sell rates and stockout timelines",
+          "Clear categorization of products by reorder priority",
+          "Explicit flagging of items at stockout risk",
+          "Included specific numeric calculations to support recommendations",
+          "Professional tone and actionable next steps",
+          "Added business insight about the MFNY Hash Burger performance"
+        ],
+        "issues": [
+          "The analysis is excellent but could have been even better with concrete reorder quantity suggestions"
+        ],
+        "suggestedFixes": [
+          "Add suggested reorder quantities based on sales velocity and desired inventory days"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "category-margin-mix",
+      "title": "Category margin mix and bundles",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "money_mike",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 4911,
+      "response": "Looking at your category snapshot, I'd use Flower as the anchor for your weekend bundle to move concentrate inventory while protecting margins.\n\nHere's why:\n- Flower has solid 43% margins and strong volume (506 units)\n- It's your top revenue category at $18,240\n- Good AOV of $36.05 supports bundling value\n\nBundle Strategy:\n\"Flower & Concentrate Experience Bundle\" \n- Anchor: 1g pre-roll (flower)\n- Add-on: 0.5g concentrate\n- Price: $49.99 (only $3.14 above your current concentrate AOV)\n\nMargin Protection:\n- Flower margin: 43%\n- Concentrate margin: 39%\n- Bundle maintains 41%+ margin while moving slow concentrate inventory\n\nThis leverages your strongest category to move concentrate stock without devaluing either product. The slight premium over concentrate's standalone price keeps margins healthy while adding perceived value.\n\nWant me to calculate exact COGS for this bundle or suggest another anchor category option?",
+      "responsePreview": "Looking at your category snapshot, I'd use Flower as the anchor for your weekend bundle to move concentrate inventory while protecting margins. Here's why: - Flower has solid 43% margins and strong volume (506 units) - ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Excellent data-driven bundle strategy with clear margin protection.",
+        "strengths": [
+          "Effectively uses provided category data to make a strategic recommendation",
+          "Provides concrete action steps with specific bundle components",
+          "Maintains focus on gross margin goals while addressing concentrate inventory",
+          "Offers specific pricing that balances value and margin protection",
+          "Clear professional tone appropriate for dispensary operator"
+        ],
+        "issues": [
+          "Could provide more detail on how the bundle would be promoted",
+          "No mention of inventory levels for concentrate (how slow is it?)"
+        ],
+        "suggestedFixes": [
+          "Add specific promotion recommendations for the bundle",
+          "Include threshold for concentrate inventory that would trigger this strategy"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 95,
+          "completeness": 85,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "daily-traffic-gap",
+      "title": "Daily traffic gap from hourly sales",
+      "kind": "data",
+      "threadType": "performance",
+      "configuredAgent": "pops",
+      "resolvedAgent": "pops",
+      "personaId": "pops",
+      "durationMs": 11986,
+      "response": "Looking at this hourly sales data, I can see the softest window clearly: **2-3 PM** with only 17 orders combined ($899 revenue) in that two-hour period. This is significantly below the average of 12.5 orders/hour and $553/hour.\n\n**Operational Move:** \nAdjust staff scheduling during the 1-4 PM window. With only 14 orders at 1 PM dropping to 8-9 orders at 2-3 PM, you're likely overstaffed for that period. Consider having 1-2 team members focus on back-end operations (inventory prep, compliance tasks) during this low-traffic period while maintaining adequate coverage at the counter.\n\n**Promo Move:**\nImplement a \"Midday Mellow\" flash sale targeting the 2-4 PM window. Consider a 15% discount on selected pre-rolls or vapes - products with higher margins that can drive quick purchases during this slower period. This creates urgency without heavily impacting margins while attracting price-sensitive customers during typically dead hours.\n\nThe data shows your peak is clearly 5-7 PM with 28 orders combined ($1,799 revenue). Make sure your staffing and inventory are optimized for this high-velocity window.",
+      "responsePreview": "Looking at this hourly sales data, I can see the softest window clearly: **2-3 PM** with only 17 orders combined ($899 revenue) in that two-hour period. This is significantly below the average of 12.5 orders/hour and $5...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent analysis with actionable recommendations for the softest sales window.",
+        "strengths": [
+          "Correctly identified the softest traffic window (2-3 PM) using the provided data",
+          "Provided specific, actionable operational and promotional recommendations",
+          "Added context about peak hours to help with overall planning",
+          "Professional tone suitable for a dispensary operator"
+        ],
+        "issues": [
+          "Minor improvement: Could have quantified the staff adjustment more specifically (e.g., 'reduce by 1-2 staff members')"
+        ],
+        "suggestedFixes": [
+          "Consider adding a more specific quantification for staff reduction recommendations"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "competitor-price-response",
+      "title": "Competitor price response plan",
+      "kind": "data",
+      "threadType": "market_intel",
+      "configuredAgent": "ezal",
+      "resolvedAgent": "ezal",
+      "personaId": "ezal",
+      "durationMs": 5857,
+      "response": "Alright, let's get straight to it. Here's my battle plan:\n\n**IMMEDIATE ACTION REQUIRED:**\n\n**3.5g Flower (+4 gap):** We're getting undercut by $4 on flower - that's significant. Match their $34 price immediately. Flower is our volume driver, and we can't afford to lose customers on this category.\n\n**1g Vape (+4 gap):** Same story as flower - $4 premium is too steep in this market. Drop to $41. Vapes are high-margin; we can absorb this hit to protect market share.\n\n**100mg Gummies (+2 gap):** The $2 gap is smaller but still matters in this competitive segment. Match their $18. Don't let them win on value perception.\n\n**1g Concentrate (-1 advantage):** We have a $1 edge here - hold firm at $48. This is our one pricing advantage right now. Don't give it away.\n\n**BIG PICTURE:**\n- Our flower and vape pricing is too aggressive for this market\n- We're losing to value-conscious shoppers on core SKUs\n- The concentrate advantage is our only buffer - protect it\n\n**TRIGGER FOR CRAIG:**\nSpin up a flash promotion: \"Market Match Monday\" on flower and vapes to regain market share immediately. We need to show we're watching and responding.\n\nDon't overthink this - match on the categories where they're undercutting us, hold where we have the advantage. Simple. Sharp. Effective.",
+      "responsePreview": "Alright, let's get straight to it. Here's my battle plan: **IMMEDIATE ACTION REQUIRED:** **3.5g Flower (+4 gap):** We're getting undercut by $4 on flower - that's significant. Match their $34 price immediately. Flower i...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 85,
+        "responseReady": true,
+        "summary": "Clear, actionable pricing strategy with immediate next steps based on competitor data.",
+        "strengths": [
+          "Directly uses the provided pricing data to make specific recommendations",
+          "Provides concrete action items for each product category",
+          "Includes a creative promotional idea to regain market share",
+          "Simple, confident tone appropriate for a busy operator"
+        ],
+        "issues": [
+          "No analysis of potential margin impacts on price adjustments",
+          "No consideration of inventory implications of price changes",
+          "Limited explanation of why flower and vapes are considered 'volume driver' and 'high-margin'",
+          "No mention of how long the price matching strategy should be maintained"
+        ],
+        "suggestedFixes": [
+          "Add brief margin impact analysis for each price adjustment",
+          "Include recommended inventory review timeline after price changes",
+          "Provide data support for why flower/vapes are categorized as such",
+          "Add guidance on strategy review timeline to prevent permanent price erosion"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 70,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 85
+        }
+      }
+    },
+    {
+      "id": "review-queue-priority",
+      "title": "Review queue prioritization",
+      "kind": "data",
+      "threadType": "general",
+      "configuredAgent": "mrs_parker",
+      "resolvedAgent": "mrs_parker",
+      "personaId": "mrs_parker",
+      "durationMs": 5449,
+      "response": "Looking at your review response queue, I'll prioritize based on urgency and potential impact on customer retention. Here's my recommended prioritization:\n\n1. **Taylor M. (1-star, Wait time + no order updates) - 2 days open**\n   - **Priority**: Highest - This is a 1-star review with operational issues that affect all customers\n   - **Reply Goal**: Immediate acknowledgment of service failure, offer of compensation, and concrete steps to prevent recurrence\n   \n2. **Alina R. (2-star, Product quality) - 4 days open**\n   - **Priority**: High - Product quality issues directly impact trust and safety perceptions\n   - **Reply Goal**: Address product quality concern, offer replacement/refund, and gather more details about the product\n\n3. **Marcus J. (3-star, Checkout experience) - 3 days open**\n   - **Priority**: Medium - While not the worst rating, rushed checkout indicates training opportunity\n   - **Reply Goal**: Apologize for the rushed experience, invite back for a more attentive visit\n\n4. **Chris B. (5-star, Positive) - 1 day open**\n   - **Priority**: Low Acknowledge but don't over-invest in positive responses unless it's a VIP\n   - **Reply Goal**: Thank them sincerely and invite them to share feedback about which staff member helped them\n\nWould you like me to draft specific response templates for any of these customers?",
+      "responsePreview": "Looking at your review response queue, I'll prioritize based on urgency and potential impact on customer retention. Here's my recommended prioritization: 1. **Taylor M. (1-star, Wait time + no order updates) - 2 days op...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Well-prioritized response with clear action steps and excellent compliance awareness.",
+        "strengths": [
+          "Properly prioritized reviews based on rating, days open, and themes",
+          "Provided specific reply goals for each customer interaction",
+          "Avoided medical claims and maintained professional tone",
+          "Used the provided data effectively to make recommendations"
+        ],
+        "issues": [
+          "Could have explained the prioritization methodology more explicitly",
+          "No specific compensation recommendations for the 1-star case"
+        ],
+        "suggestedFixes": [
+          "Add a brief explanation of the prioritization framework used",
+          "Suggest specific compensation options for the Taylor M. case"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "checkin-daily-actions",
+      "title": "Check-in briefing follow-up",
+      "kind": "data",
+      "threadType": "general",
+      "configuredAgent": "mrs_parker",
+      "resolvedAgent": "mrs_parker",
+      "personaId": "mrs_parker",
+      "durationMs": 8759,
+      "response": "Good morning! Thank you for sharing this check-in snapshot. Let's address these metrics strategically to maximize customer experience and retention.\n\n**Top Three Actions Before Noon:**\n\n1. **Address the Day-3 Review Sequence Pending (18 customers):**\n   - Immediately prioritize reaching out to these 18 customers who haven't completed their day-3 review sequence.\n   - Time-sensitive as they're in the critical window for post-purchase engagement.\n   - This represents missed opportunities for feedback collection and relationship reinforcement.\n\n2. **Improve Email Consent Rate (currently 41%):**\n   - Email consent is significantly lower than SMS (63%). This limits your multi-channel communication capabilities.\n   - Before noon, implement a quick opt-in optimization at checkout if possible, or craft an email campaign specifically targeting today's customers to explain the benefits of email communication.\n   - Consider offering a small incentive (like advance notice of specials) to boost email sign-ups.\n\n3. **Engage with Customers Showing \"Curious\" Mood (33 this week):**\n   - These 33 customers expressing curiosity represent potential growth opportunities.\n   - Before noon, create and send a curated \"New Products\" or \"Educational Content\" message specifically targeting this segment.\n   - These are your future loyal customers waiting for the right nudge.\n\nWould you like me to provide more detailed implementation steps for any of these actions?",
+      "responsePreview": "Good morning! Thank you for sharing this check-in snapshot. Let's address these metrics strategically to maximize customer experience and retention. **Top Three Actions Before Noon:** 1. **Address the Day-3 Review Seque...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Well-structured response with actionable items, though could be more directly tied to numeric data.",
+        "strengths": [
+          "Clear prioritization of three actions as requested",
+          "Each action includes concrete implementation steps",
+          "Professional tone suitable for a dispensary operator",
+          "Focuses on customer experience and business metrics"
+        ],
+        "issues": [
+          "Could better connect actions to specific numbers from the snapshot",
+          "Missing mention of the 'happy' mood customers (49) who might be leveraged",
+          "No specific timeframe suggestions for the outreach to day-3 customers",
+          "The SMS consent rate (63%) isn't addressed despite being relevant"
+        ],
+        "suggestedFixes": [
+          "Include specific references to the numbers provided in the snapshot",
+          "Add a brief mention of how to leverage the 49 'happy' customers",
+          "Specify optimal timing for day-3 sequence completion",
+          "Include one action related to SMS consent optimization"
+        ],
+        "dimensions": {
+          "grounding": 75,
+          "actionability": 85,
+          "completeness": 70,
+          "compliance": 95,
+          "tone": 90,
+          "launchReadiness": 80
+        }
+      }
+    }
+  ]
+}

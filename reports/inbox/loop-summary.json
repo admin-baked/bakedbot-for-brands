@@ -1,0 +1,246 @@
+{
+  "startedAt": "2026-04-18T15:33:14.457Z",
+  "runs": 24,
+  "results": [
+    {
+      "run": 1,
+      "exitCode": 0,
+      "durationMs": 332775,
+      "avgScore": 81.9,
+      "readyCount": 23,
+      "totalCases": 25,
+      "poorOrFail": 2,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T15-33-20-729Z.json"
+    },
+    {
+      "run": 2,
+      "exitCode": 0,
+      "durationMs": 230847,
+      "avgScore": 78,
+      "readyCount": 21,
+      "totalCases": 25,
+      "poorOrFail": 4,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T15-39-06-502Z.json"
+    },
+    {
+      "run": 3,
+      "exitCode": 0,
+      "durationMs": 205151,
+      "avgScore": 84.2,
+      "readyCount": 25,
+      "totalCases": 25,
+      "poorOrFail": 0,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T15-43-13-980Z.json"
+    },
+    {
+      "run": 4,
+      "exitCode": 0,
+      "durationMs": 326430,
+      "avgScore": 79.6,
+      "readyCount": 23,
+      "totalCases": 25,
+      "poorOrFail": 2,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T15-46-55-356Z.json"
+    },
+    {
+      "run": 5,
+      "exitCode": 0,
+      "durationMs": 260048,
+      "avgScore": 78.9,
+      "readyCount": 22,
+      "totalCases": 25,
+      "poorOrFail": 3,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T15-52-37-843Z.json"
+    },
+    {
+      "run": 6,
+      "exitCode": 0,
+      "durationMs": 287319,
+      "avgScore": 77.9,
+      "readyCount": 22,
+      "totalCases": 25,
+      "poorOrFail": 3,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T15-57-13-898Z.json"
+    },
+    {
+      "run": 7,
+      "exitCode": 0,
+      "durationMs": 254961,
+      "avgScore": 82.6,
+      "readyCount": 24,
+      "totalCases": 25,
+      "poorOrFail": 1,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T16-02-13-874Z.json"
+    },
+    {
+      "run": 8,
+      "exitCode": 0,
+      "durationMs": 476038,
+      "avgScore": 78.6,
+      "readyCount": 22,
+      "totalCases": 25,
+      "poorOrFail": 3,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T16-06-45-078Z.json"
+    },
+    {
+      "run": 9,
+      "exitCode": 0,
+      "durationMs": 318438,
+      "avgScore": 79.7,
+      "readyCount": 23,
+      "totalCases": 25,
+      "poorOrFail": 2,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T16-15-00-443Z.json"
+    },
+    {
+      "run": 10,
+      "exitCode": 0,
+      "durationMs": 323022,
+      "avgScore": 81.4,
+      "readyCount": 23,
+      "totalCases": 25,
+      "poorOrFail": 2,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T16-20-30-661Z.json"
+    },
+    {
+      "run": 11,
+      "exitCode": 0,
+      "durationMs": 259128,
+      "avgScore": 84,
+      "readyCount": 24,
+      "totalCases": 25,
+      "poorOrFail": 1,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T16-26-05-718Z.json"
+    },
+    {
+      "run": 12,
+      "exitCode": 0,
+      "durationMs": 334125,
+      "avgScore": 76.3,
+      "readyCount": 21,
+      "totalCases": 25,
+      "poorOrFail": 4,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T16-30-40-369Z.json"
+    },
+    {
+      "run": 13,
+      "exitCode": 0,
+      "durationMs": 249415,
+      "avgScore": 77,
+      "readyCount": 21,
+      "totalCases": 25,
+      "poorOrFail": 4,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T16-36-28-096Z.json"
+    },
+    {
+      "run": 14,
+      "exitCode": 0,
+      "durationMs": 356139,
+      "avgScore": 79.3,
+      "readyCount": 22,
+      "totalCases": 25,
+      "poorOrFail": 3,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T16-40-53-166Z.json"
+    },
+    {
+      "run": 15,
+      "exitCode": 0,
+      "durationMs": 307673,
+      "avgScore": 83.5,
+      "readyCount": 25,
+      "totalCases": 25,
+      "poorOrFail": 0,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T16-47-26-532Z.json"
+    },
+    {
+      "run": 16,
+      "exitCode": 0,
+      "durationMs": 272802,
+      "avgScore": 78.9,
+      "readyCount": 24,
+      "totalCases": 25,
+      "poorOrFail": 1,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T16-52-27-680Z.json"
+    },
+    {
+      "run": 17,
+      "exitCode": 0,
+      "durationMs": 338276,
+      "avgScore": 77.4,
+      "readyCount": 21,
+      "totalCases": 25,
+      "poorOrFail": 4,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T16-57-16-531Z.json"
+    },
+    {
+      "run": 18,
+      "exitCode": 0,
+      "durationMs": 272272,
+      "avgScore": 81.3,
+      "readyCount": 24,
+      "totalCases": 25,
+      "poorOrFail": 1,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T17-03-09-986Z.json"
+    },
+    {
+      "run": 19,
+      "exitCode": 0,
+      "durationMs": 336217,
+      "avgScore": 84.2,
+      "readyCount": 25,
+      "totalCases": 25,
+      "poorOrFail": 0,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T17-08-12-064Z.json"
+    },
+    {
+      "run": 20,
+      "exitCode": 0,
+      "durationMs": 240735,
+      "avgScore": 85,
+      "readyCount": 25,
+      "totalCases": 25,
+      "poorOrFail": 0,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T17-14-14-804Z.json"
+    },
+    {
+      "run": 21,
+      "exitCode": 0,
+      "durationMs": 228571,
+      "avgScore": 81,
+      "readyCount": 23,
+      "totalCases": 25,
+      "poorOrFail": 2,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T17-18-10-904Z.json"
+    },
+    {
+      "run": 22,
+      "exitCode": 0,
+      "durationMs": 275098,
+      "avgScore": 84.7,
+      "readyCount": 24,
+      "totalCases": 25,
+      "poorOrFail": 1,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T17-22-13-478Z.json"
+    },
+    {
+      "run": 23,
+      "exitCode": 0,
+      "durationMs": 234584,
+      "avgScore": 82.8,
+      "readyCount": 24,
+      "totalCases": 25,
+      "poorOrFail": 1,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T17-27-11-586Z.json"
+    },
+    {
+      "run": 24,
+      "exitCode": 0,
+      "durationMs": 221906,
+      "avgScore": 81.4,
+      "readyCount": 23,
+      "totalCases": 25,
+      "poorOrFail": 2,
+      "reportFile": "thrive-syracuse-inbox-stress-2026-04-18T17-31-15-400Z.json"
+    }
+  ]
+}

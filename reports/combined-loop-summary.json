@@ -1,0 +1,298 @@
+{
+  "startedAt": "2026-04-18T17:14:07.410Z",
+  "runs": 10,
+  "runSummaries": [
+    {
+      "run": 1,
+      "ts": "2026-04-18T17:21:15.305Z",
+      "inbox": {
+        "avg": 85,
+        "ready": 25,
+        "total": 25,
+        "blockers": []
+      },
+      "elroy": {
+        "avg": 71.4,
+        "ready": 27,
+        "total": 39,
+        "blockers": [
+          "staffing-sick-call",
+          "closing-time-question",
+          "category-revenue-breakdown",
+          "weekday-revenue-best-day",
+          "edibles-drop-competitor-cause",
+          "new-dispensaries-opening",
+          "evening-product-pairing-compliant",
+          "license-renewal-question",
+          "email-schedule-request",
+          "multi-turn-tool-fail-recovery",
+          "dm-research-off-topic",
+          "external-site-confirm-before-submit"
+        ]
+      }
+    },
+    {
+      "run": 2,
+      "ts": "2026-04-18T17:32:18.471Z",
+      "inbox": {
+        "avg": 82.8,
+        "ready": 24,
+        "total": 25,
+        "blockers": [
+          "category-margin-mix"
+        ]
+      },
+      "elroy": {
+        "avg": 77.3,
+        "ready": 31,
+        "total": 39,
+        "blockers": [
+          "closing-time-question",
+          "category-revenue-breakdown",
+          "vip-customers-show",
+          "evening-product-pairing-compliant",
+          "license-renewal-question",
+          "email-schedule-request",
+          "multi-turn-at-risk-to-message",
+          "external-site-confirm-before-submit"
+        ]
+      }
+    },
+    {
+      "run": 3,
+      "ts": "2026-04-18T17:41:30.478Z",
+      "inbox": {
+        "avg": 80.1,
+        "ready": 23,
+        "total": 25,
+        "blockers": [
+          "campaign-follow-up",
+          "vendor-day-plan"
+        ]
+      },
+      "elroy": {
+        "avg": 72.1,
+        "ready": 28,
+        "total": 39,
+        "blockers": [
+          "closing-time-question",
+          "category-revenue-breakdown",
+          "profit-margin-not-revenue",
+          "weekday-revenue-best-day",
+          "new-dispensaries-opening",
+          "sms-marketing-analytics",
+          "license-renewal-question",
+          "multi-turn-at-risk-to-message",
+          "dm-model-failure-retry",
+          "empty-checkins-slow-day",
+          "external-site-confirm-before-submit"
+        ]
+      }
+    },
+    {
+      "run": 4,
+      "ts": "2026-04-18T17:51:07.633Z",
+      "inbox": {
+        "avg": 85.2,
+        "ready": 25,
+        "total": 25,
+        "blockers": []
+      },
+      "elroy": {
+        "avg": 73.5,
+        "ready": 28,
+        "total": 39,
+        "blockers": [
+          "category-revenue-breakdown",
+          "vip-customers-show",
+          "competitor-flower-pricing",
+          "live-resin-vs-rosin",
+          "license-renewal-question",
+          "email-schedule-request",
+          "multi-turn-at-risk-to-message",
+          "dm-research-off-topic",
+          "dm-model-failure-retry",
+          "partial-data-honest",
+          "external-site-confirm-before-submit"
+        ]
+      }
+    },
+    {
+      "run": 5,
+      "ts": "2026-04-18T18:01:08.602Z",
+      "inbox": {
+        "avg": 79.6,
+        "ready": 22,
+        "total": 25,
+        "blockers": [
+          "checkin-daily-actions",
+          "partial-table-analysis",
+          "multi-turn-sale-to-email"
+        ]
+      },
+      "elroy": {
+        "avg": 72,
+        "ready": 26,
+        "total": 39,
+        "blockers": [
+          "closing-time-question",
+          "category-revenue-breakdown",
+          "weekday-revenue-best-day",
+          "vip-customers-show",
+          "sms-marketing-analytics",
+          "evening-product-pairing-compliant",
+          "metrc-discrepancy-guidance",
+          "email-schedule-request",
+          "multi-turn-at-risk-to-message",
+          "multi-turn-tool-fail-recovery",
+          "stale-intel-flag",
+          "partial-data-honest",
+          "external-site-confirm-before-submit"
+        ]
+      }
+    },
+    {
+      "run": 6,
+      "ts": "2026-04-18T18:12:18.116Z",
+      "inbox": {
+        "avg": 79.5,
+        "ready": 23,
+        "total": 25,
+        "blockers": [
+          "weekend-flash-sale",
+          "compliant-sms-draft",
+          "exact-slowest-movers-no-data"
+        ]
+      },
+      "elroy": {
+        "avg": 81.9,
+        "ready": 34,
+        "total": 39,
+        "blockers": [
+          "vip-customers-show",
+          "evening-product-pairing-compliant",
+          "metrc-discrepancy-guidance",
+          "email-schedule-request",
+          "external-site-confirm-before-submit"
+        ]
+      }
+    },
+    {
+      "run": 7,
+      "ts": "2026-04-18T18:28:33.126Z",
+      "inbox": {
+        "avg": 80.1,
+        "ready": 65,
+        "total": 71,
+        "blockers": [
+          "staff-cannabis-use-policy",
+          "gift-law-question",
+          "sms-opt-out-spike",
+          "subject-line-ab-test",
+          "420-day-marketing-plan",
+          "incomplete-data-decision"
+        ]
+      },
+      "elroy": {
+        "avg": 75.2,
+        "ready": 29,
+        "total": 39,
+        "blockers": [
+          "basket-size-vs-last-month",
+          "weekday-revenue-best-day",
+          "vip-customers-show",
+          "return-followup-lookup",
+          "metrc-discrepancy-guidance",
+          "campaign-status-check",
+          "email-schedule-request",
+          "multi-turn-at-risk-to-message",
+          "stale-intel-flag",
+          "external-site-confirm-before-submit"
+        ]
+      }
+    },
+    {
+      "run": 8,
+      "ts": "2026-04-18T18:44:02.456Z",
+      "inbox": {
+        "avg": 83.7,
+        "ready": 66,
+        "total": 71,
+        "blockers": [
+          "weekend-flash-sale",
+          "customer-return-policy",
+          "rush-hour-floor-decision",
+          "staff-cannabis-use-policy",
+          "medical-question-deflect"
+        ]
+      },
+      "elroy": {
+        "avg": 79.3,
+        "ready": 31,
+        "total": 39,
+        "blockers": [
+          "edibles-drop-competitor-cause",
+          "evening-product-pairing-compliant",
+          "metrc-discrepancy-guidance",
+          "email-schedule-request",
+          "multi-turn-at-risk-to-message",
+          "multi-turn-tool-fail-recovery",
+          "empty-checkins-slow-day",
+          "external-site-confirm-before-submit"
+        ]
+      }
+    },
+    {
+      "run": 9,
+      "ts": "2026-04-18T18:59:13.825Z",
+      "inbox": {
+        "avg": 85.5,
+        "ready": 69,
+        "total": 71,
+        "blockers": [
+          "owner-daily-briefing-no-data",
+          "multi-turn-prioritization"
+        ]
+      },
+      "elroy": {
+        "avg": 82.9,
+        "ready": 34,
+        "total": 39,
+        "blockers": [
+          "new-dispensaries-opening",
+          "ny-possession-limits",
+          "metrc-discrepancy-guidance",
+          "dm-model-failure-retry",
+          "external-site-confirm-before-submit"
+        ]
+      }
+    },
+    {
+      "run": 10,
+      "ts": "2026-04-18T19:14:41.805Z",
+      "inbox": {
+        "avg": 84.1,
+        "ready": 67,
+        "total": 71,
+        "blockers": [
+          "category-margin-mix",
+          "exact-slowest-movers-no-data",
+          "shift-callout-coverage",
+          "staff-cannabis-use-policy"
+        ]
+      },
+      "elroy": {
+        "avg": 83,
+        "ready": 34,
+        "total": 39,
+        "blockers": [
+          "metrc-discrepancy-guidance",
+          "license-renewal-question",
+          "multi-turn-tool-fail-recovery",
+          "dm-research-off-topic",
+          "partial-data-honest"
+        ]
+      }
+    }
+  ]
+}

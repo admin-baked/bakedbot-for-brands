@@ -54,6 +54,7 @@ export async function createFirstOrderCoupon(
             maxUses: 1, // Single-use only
             uses: 0,
             orgId: orgId,
+            brandId: orgId, // CRITICAL FIX: Ensure brandId is also set so that applyCoupon can find it
             createdAt: FieldValue.serverTimestamp(),
             expiresAt: Timestamp.fromMillis(Date.now() + (30 * 24 * 60 * 60 * 1000)), // 30 days
             description: 'First Order Welcome Discount',
@@ -110,8 +111,8 @@ export async function validateFirstOrderCoupon(
 
         const coupon = couponDoc.data();
 
-        // Validate orgId
-        if (coupon?.orgId !== orgId) {
+        // Validate orgId/brandId correctly since legacy coupons might use orgId or brandId
+        if (coupon?.orgId !== orgId && coupon?.brandId !== orgId) {
             return {
                 valid: false,
                 reason: 'Coupon not valid for this store'

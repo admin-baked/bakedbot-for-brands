@@ -1,0 +1,44 @@
+{
+  "orgId": "org_thrive_syracuse",
+  "generatedAt": "2026-04-18T15:03:24.904Z",
+  "totalCases": 1,
+  "averageScore": 10,
+  "readyCount": 0,
+  "results": [
+    {
+      "id": "slow-movers-table",
+      "title": "Slow movers with inventory table",
+      "kind": "data",
+      "threadType": "inventory_promo",
+      "configuredAgent": "auto",
+      "resolvedAgent": "money_mike",
+      "personaId": "money_mike",
+      "durationMs": 1373,
+      "response": "ERROR: 401 {\"error\":{\"message\":\"token expired or incorrect\",\"type\":\"401\"}}",
+      "responsePreview": "ERROR: 401 {\"error\":{\"message\":\"token expired or incorrect\",\"type\":\"401\"}}",
+      "toolCalls": [],
+      "grade": {
+        "grade": "fail",
+        "score": 10,
+        "responseReady": false,
+        "summary": "The case failed before a usable inbox response was generated.",
+        "strengths": [],
+        "issues": [
+          "401 {\"error\":{\"message\":\"token expired or incorrect\",\"type\":\"401\"}}"
+        ],
+        "suggestedFixes": [
+          "Fix the runtime error and rerun the case before launch."
+        ],
+        "dimensions": {
+          "grounding": 0,
+          "actionability": 0,
+          "completeness": 0,
+          "compliance": 0,
+          "tone": 0,
+          "launchReadiness": 0
+        }
+      },
+      "error": "401 {\"error\":{\"message\":\"token expired or incorrect\",\"type\":\"401\"}}"
+    }
+  ]
+}

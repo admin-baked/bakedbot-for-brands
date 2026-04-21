@@ -1,0 +1,1982 @@
+{
+  "orgId": "org_thrive_syracuse",
+  "generatedAt": "2026-04-19T06:20:57.539Z",
+  "totalCases": 47,
+  "averageScore": 93.2,
+  "readyCount": 47,
+  "results": [
+    {
+      "id": "ny-ocm-social-media-rules",
+      "title": "OCM advertising restrictions — what is allowed on Instagram",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 5656,
+      "response": "Based on NY OCM advertising regulations (9 NYCRR Part 128), here's what you need to know for your Instagram weekly specials:\n\n**ALLOWED:**\n- Product photos: Yes, but only if posted on an age-gated Instagram account\n- Prices: Yes, you can name prices\n- THC percentages: Yes, but cannot be framed as \"more potent is better\"\n- Compensated influencers: Yes, but only if the account is age-gated\n\n**NOT ALLOWED:**\n- Content that appears to minors (no cartoon-like imagery or candy-resembling edibles)\n- Misleading health or potency claims\n- Posting on non-age-gated accounts\n\n**Critical step before posting:** You must age-gate your Instagram account using Instagram's age restriction tool before posting any product content. Without this age gate, none of the allowed content is permissible.\n\nYour weekly specials can be promoted, but all product imagery and pricing must be behind this age verification barrier.",
+      "responsePreview": "Based on NY OCM advertising regulations (9 NYCRR Part 128), here's what you need to know for your Instagram weekly specials: **ALLOWED:** - Product photos: Yes, but only if posted on an age-gated Instagram account - Pri...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent compliance guidance with clear actionable steps for Instagram promotion.",
+        "strengths": [
+          "Perfectly grounded in the provided NY OCM advertising regulations",
+          "Clearly separates allowed vs not allowed content with specific examples",
+          "Highlights the critical age-gating requirement as a prerequisite",
+          "Addresses all specific questions from the user (photos, prices, THC percentages, influencers)",
+          "Professional and clear tone appropriate for a dispensary operator",
+          "Immediately actionable with clear next steps"
+        ],
+        "issues": [
+          "Minor opportunity: Could briefly mention the 500-foot school restriction, though not directly relevant to Instagram"
+        ],
+        "suggestedFixes": [
+          "Consider adding a brief note about the 500-foot school playground restriction as general awareness, even though not applicable to Instagram"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 100,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 100
+        }
+      }
+    },
+    {
+      "id": "ny-packaging-requirements",
+      "title": "NY packaging requirements — labels and child-resistance",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 10545,
+      "response": "New York has strict packaging requirements that must be followed to maintain compliance. Let me break down the key requirements for pre-packaged flower:\n\n**Child-Resistant Closure:**\n- All cannabis products must be packaged in child-resistant containers\n- This includes both the primary container and any outer packaging\n- The packaging must be certified as child-resistant following ASTM standards\n\n**Opacity Requirements:**\n- Cannabis flower must be sold in opaque or semi-opaque containers\n- Clear bags are not compliant - they do not meet the opacity requirement\n- The packaging must prevent light degradation and maintain product integrity\n\n**Label Requirements:**\n- The label must include:\n  - The marijuana logo (cannabis leaf symbol)\n  - The product name\n  - The net weight/quantity\n  - The THC percentage (and other cannabinoid percentages if present)\n  - The batch/lot number\n  - The license number of the dispensary\n  - The manufacturer's license number\n  - The harvest date and expiration date\n  - Health warning statements (as required by NY)\n  - The universal symbol for cannabis products\n\n**Action Required:**\nDo not accept this shipment in clear bags - they violate NY's opacity requirements. You should inform the vendor that their packaging doesn't meet NY regulations and request properly compliant packaging before accepting any products. If they're unable to provide compliant packaging, you should consider finding a different vendor who understands and follows NY's packaging requirements.",
+      "responsePreview": "New York has strict packaging requirements that must be followed to maintain compliance. Let me break down the key requirements for pre-packaged flower: **Child-Resistant Closure:** - All cannabis products must be packa...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent response covering all NY packaging requirements with clear compliance guidance.",
+        "strengths": [
+          "Comprehensive coverage of all required compliance aspects",
+          "Clear rejection of non-compliant packaging (clear bags)",
+          "Actionable next steps for the dispensary owner",
+          "Professional and authoritative tone",
+          "Includes all required label elements"
+        ],
+        "issues": [
+          "Could have included more specific references to NY regulations or citations",
+          "Could have mentioned potential penalties for non-compliance"
+        ],
+        "suggestedFixes": [
+          "Consider adding specific NY regulation numbers (Article 33-13.3) for reference",
+          "Briefly mention potential consequences of non-compliance to emphasize importance"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "ny-caurd-restrictions",
+      "title": "CAURD licensee restrictions — what we cannot do",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 7950,
+      "response": "As a CAURD licensee in New York, you must adhere to strict regulatory restrictions regarding the products you can sell. Here are the key limitations that apply specifically to your situation:\n\n1. **Source Requirements**: All cannabis products must be sourced from licensed cultivators, manufacturers, or processors in New York State. You cannot accept products from unlicensed sources, even on consignment.\n\n2. **CAURD Restrictions**: CAURD licensees are specifically prohibited from:\n   - Manufacturing products\n   - Cultivating cannabis\n   - Engaging in consignment arrangements with unlicensed entities\n   - Selling products not obtained through the official supply chain\n\n3. **Revenue Sharing**: Any revenue sharing arrangements must be structured through legitimate business relationships with licensed entities. Splitting revenue with an unlicensed producer for infused beverages would violate NY cannabis regulations.\n\n4. **Product Compliance**: Any infused beverages you sell must:\n   - Be properly tested and meet NY state potency and contaminant standards\n   - Have proper packaging and labeling compliant with NY regulations\n   - Be tracked through the Cannabis Control Board's seed-to-sale tracking system\n\nBased on these requirements, you cannot legally carry unlicensed infused beverages on consignment, regardless of the proposed revenue sharing arrangement. Doing so would jeopardize your CAURD license and could result in severe penalties.\n\nThe only products you should be selling are those obtained through New York's regulated supply chain from properly licensed and authorized sources.",
+      "responsePreview": "As a CAURD licensee in New York, you must adhere to strict regulatory restrictions regarding the products you can sell. Here are the key limitations that apply specifically to your situation: 1. **Source Requirements**:...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "An excellent response that clearly explains CAURD restrictions while maintaining compliance.",
+        "strengths": [
+          "Directly addresses the user's question about CAURD restrictions",
+          "Provides clear, actionable guidance on consignment arrangements",
+          "Avoids any medical claims or unsupported assertions",
+          "Maintains professional tone while being helpful and clear",
+          "Effectively explains why the proposed arrangement would violate regulations"
+        ],
+        "issues": [
+          "None significant - the response is comprehensive and accurate"
+        ],
+        "suggestedFixes": [
+          "Could briefly mention where to find the specific CAURD regulations for reference"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "ny-employee-background-checks",
+      "title": "Employee background check requirements in NY",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 8025,
+      "response": "Under New York state law, you must conduct criminal background checks for all new cannabis employees, including budtenders and part-time cashiers, with specific requirements and limitations:\n\n**Background Check Requirements:**\n- All employees who handle product (including budtenders and inventory staff) must complete OCM-approved Responsible Vendor Training (RVT) before handling product\n- RVT is approximately 4 hours and must be renewed every 2 years\n- Background checks must be conducted on all cannabis employees, regardless of hours worked or tenure\n\n**Disqualifying Offenses:**\nNew York law is specific about what constitutes disqualifying offenses:\n- Violent felonies within the past 5 years from the application date\n- ANY conviction for selling cannabis to a minor (no time limit)\n- Federal firearms trafficking offenses\n\n**Important Protections:**\nNY law does NOT disqualify applicants for:\n- Drug possession offenses\n- Prior cannabis convictions\n- Non-violent drug offenses\n- This is a deliberate social equity protection under the MRTA\n\n**Documentation Requirements:**\n- Maintain signed RVT certificates for all employees\n- Maintain background check authorization forms\n- All documentation must be producible within 24 hours during an inspection\n- Create and retain employee files with these documents before allowing any employee to handle product\n\nFor your new hires, ensure they complete RVT before they begin product handling and obtain signed background check authorizations. Document everything thoroughly and be prepared to produce these records promptly if requested by the CCB during an inspection.",
+      "responsePreview": "Under New York state law, you must conduct criminal background checks for all new cannabis employees, including budtenders and part-time cashiers, with specific requirements and limitations: **Background Check Requireme...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent, comprehensive response that correctly addresses NY background check requirements with precise details.",
+        "strengths": [
+          "Correctly identifies all required background check components",
+          "Precisely states the 5-year look-back period for violent felonies as required",
+          "Clearly explains both disqualifying and non-disqualifying offenses",
+          "Details documentation requirements and retention policies",
+          "Addresses part-time employees specifically",
+          "Provides actionable next steps for the dispensary owner"
+        ],
+        "issues": [
+          "Minor opportunity to emphasize the RVT training timeline more clearly",
+          "Could slightly strengthen the warning about inspection readiness"
+        ],
+        "suggestedFixes": [
+          "Consider adding a note about scheduling RVT training immediately after hiring",
+          "Suggest implementing a tracking system for renewal dates of RVT certifications"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "ny-delivery-rules",
+      "title": "Can Thrive offer delivery? NY delivery service rules",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 7003,
+      "response": "To offer delivery in NY, you must obtain a separate Retail Delivery License from the Office of Cannabis Management (OCM). This cannot be done under your base retail dispensary license.\n\nApplication requirements:\n- Apply through OCM's online portal at cannabis.ny.gov\n- Initial application fee: $2,000 (annual renewal: $2,000)\n- Processing typically takes 3-6 months from complete application\n- All deliveries must originate from your licensed dispensary location\n\nVehicle requirements:\n- Vehicles must have a locked compartment for cannabis products\n- Vehicles must be registered/insured in Thrive Syracuse's business name\n- GPS tracking is mandatory for all delivery vehicles\n\nDriver requirements:\n- Delivery drivers must be W-2 employees of Thrive Syracuse\n- Third-party delivery services (like DoorDash) or gig-economy models are prohibited\n- Third-party logistics companies may only be used if their drivers become direct employees of Thrive\n\nManifest requirements:\n- Every delivery requires a paper or electronic manifest (METRC delivery manifest)\n- Manifest must include: customer name, delivery address, product list with METRC package IDs, driver name, and vehicle plate number\n\nWould you like me to help you prepare for the delivery license application or develop compliant delivery protocols?",
+      "responsePreview": "To offer delivery in NY, you must obtain a separate Retail Delivery License from the Office of Cannabis Management (OCM). This cannot be done under your base retail dispensary license. Application requirements: - Apply ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate response covering all NY delivery requirements with clear actionable information.",
+        "strengths": [
+          "Correctly identified the need for a separate Retail Delivery License",
+          "Included all key application details (portal, fees, timeline)",
+          "Accurately explained W-2 employee requirement (no third-party/gig)",
+          "Clearly outlined vehicle requirements including locked compartment and GPS tracking",
+          "Detailed manifest requirements with necessary components",
+          "Professional tone with clear, concise language",
+          "Ended with helpful offer for further assistance"
+        ],
+        "issues": [
+          "Minor potential improvement: Could have emphasized that delivery must originate from licensed dispensary address with more emphasis"
+        ],
+        "suggestedFixes": [
+          "Consider adding a brief note about consequences of violating NY delivery requirements to reinforce importance"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 100,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "ny-consumption-lounge",
+      "title": "Consumption lounge regulations in NY",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 9150,
+      "response": "Based on NY Cannabis Law and 9 NYCRR, here are the key requirements and compliance risks for operating an on-site consumption lounge:\n\n**Separate License Requirement**\n- You must obtain an On-Site Consumption License from OCM, which is distinct from your existing retail dispensary license (NY Cannabis Law §70). This is not an addendum to your current license but a separate authorization requiring a $2,000 application fee and $2,000 annual renewal.\n\n**Ventilation Standards**\n- Your lounge requires a dedicated HVAC/ventilation system that prevents smoke or vapor from migrating to adjacent areas or your retail floor (9 NYCRR §123.4). A licensed mechanical engineer must certify your ventilation plan as part of the application, and you'll need separate permits from Syracuse's building department.\n\n**Alcohol Prohibition**\n- Alcohol is strictly prohibited on the licensed premises during consumption lounge operations (NY Cannabis Law §70(5)). Serving or possessing alcohol while the lounge is operating constitutes a compliance violation.\n\n**Age Verification**\n- You must conduct a separate age verification at the lounge entrance for all customers, requiring 21+ identification, even if they've already been verified when entering your dispensary.\n\n**Biggest Compliance Risks**\n1. Operating before receiving your OCM On-Site Consumption License is a criminal offense under NY Cannabis Law §131, not merely a regulatory violation. This could result in revocation of your retail license as well.\n\n2. OCM review of applications typically takes 3-6 months after submission of a complete application.\n\n**Next Steps:**\n1. Consult with a licensed mechanical engineer to design a ventilation system that meets both OCM and Syracuse building code requirements.\n2. Prepare your separate license application for submission to OCM, budgeting for the $2,000 fee and potential consultant costs.\n3. Develop comprehensive SOPs for separate age verification, including physical space and staffing requirements.\n4. Ensure your facility can physically separate the consumption area from retail spaces with proper ventilation controls.\n5. Plan for the 3-6 month review timeline by starting the application process well before any intended opening date.",
+      "responsePreview": "Based on NY Cannabis Law and 9 NYCRR, here are the key requirements and compliance risks for operating an on-site consumption lounge: **Separate License Requirement** - You must obtain an On-Site Consumption License fro...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent response with accurate legal citations, practical next steps, and clear compliance warnings.",
+        "strengths": [
+          "Perfectly cited all required legal references (NY Cannabis Law §70, 9 NYCRR §123.4, §70(5), §131)",
+          "Provided 5 concrete, actionable next steps",
+          "Clearly communicated the criminal risk of operating without license",
+          "Included the 3-6 month timeline as requested",
+          "Professional and clear tone suitable for a dispensary operator",
+          "Addressed all elements of the question including permit, ventilation, alcohol rules, age verification, and compliance risks"
+        ],
+        "issues": [
+          "Minor issue: Response mentions Syracuse's building department specifically when the scope requires keeping it generic to NY",
+          "Could briefly mention the risk of ventilation system failure in the compliance risks section"
+        ],
+        "suggestedFixes": [
+          "Replace 'Syracuse's building department' with 'local city building department' to maintain generic NY scope",
+          "Add a sentence about the importance of regular ventilation system maintenance to prevent compliance issues"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "ny-gifting-bundling-rules",
+      "title": "Gifting and bundling restrictions in NY",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 6098,
+      "response": "In New York, gifting cannabis products is heavily restricted and generally not permitted under the Cannabis Control Board (CCB) regulations. Here's what you need to know:\n\n1. **Buy-one-get-one free (BOGO) promotions** like offering a free pre-roll with purchase are not allowed. New York regulations strictly prohibit any free cannabis products being provided to consumers, regardless of purchase.\n\n2. **Gifting cannabis** is not permitted - you cannot give away free cannabis products as gifts or promotional items.\n\n3. **Bundling with merchandise** (like T-shirts) is problematic. While you can sell cannabis with other legal merchandise, you cannot include cannabis products as freebies with those purchases.\n\n4. **Free samples** are explicitly prohibited under New York cannabis regulations.\n\nThe only acceptable promotional model in New York is standard retail pricing and sales. All products must be sold at their established price point, and no cannabis products can be given away for free or at a discount.\n\nIf you're looking to offer promotions, consider price reductions on specific products during certain times or days, but ensure all products still have clear individual pricing. Any promotional activity must comply with New York's strict advertising and promotional regulations, which have additional limitations around marketing channels and messaging.\n\nWould you like me to provide more details about compliant promotional strategies in New York's cannabis market?",
+      "responsePreview": "In New York, gifting cannabis products is heavily restricted and generally not permitted under the Cannabis Control Board (CCB) regulations. Here's what you need to know: 1. **Buy-one-get-one free (BOGO) promotions** li...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent compliance-focused response that clearly explains NY gifting restrictions.",
+        "strengths": [
+          "Strong grounding in NY cannabis regulations",
+          "Clear, direct answers to all user questions",
+          "High compliance awareness with no red flags",
+          "Actionable alternatives to prohibited promotions",
+          "Professional tone suitable for dispensary operator"
+        ],
+        "issues": [
+          "Could provide more specific regulatory citations"
+        ],
+        "suggestedFixes": [
+          "Include specific references to NY Cannabis Control Board regulations or sections where applicable",
+          "Consider adding brief examples of compliant promotional strategies"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "ny-social-equity-obligations",
+      "title": "Social equity fund obligations for adult-use licensees",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 5411,
+      "response": "Yes, adult-use licensees in New York, including your dispensary, do have financial obligations to the Cannabis Social Equity Fund. This is a statutory requirement under NY Cannabis Law §87(2).\n\n**Exact Requirement:** You must pay 0.5% of your gross annual revenue to the Social Equity Fund. This is in addition to the 9% state excise tax on gross retail sales.\n\n**When It Applies:** The obligation begins immediately upon your first year of licensed operations and is required annually thereafter. The payment and reporting are made annually with your cannabis tax return to the NYS Tax Department.\n\nFailure to comply with this obligation can affect your license renewal status. As a dispensary, ensure you're accounting for this 0.5% in your financial planning and payment schedules to maintain full compliance with OCM requirements.",
+      "responsePreview": "Yes, adult-use licensees in New York, including your dispensary, do have financial obligations to the Cannabis Social Equity Fund. This is a statutory requirement under NY Cannabis Law §87(2). **Exact Requirement:** You...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "The response accurately addresses NY's social equity fund requirements with precise details on obligations, timing, and compliance.",
+        "strengths": [
+          "Correctly identifies the 0.5% gross revenue requirement for NY Cannabis Social Equity Fund",
+          "Cites the specific legal reference (NY Cannabis Law §87(2))",
+          "Clarifies that the obligation begins in the first year of operations",
+          "Explains the additional nature of this obligation (in addition to the 9% excise tax)",
+          "Notes the payment and reporting process with NYS Tax Department",
+          "Highlights compliance consequences for license renewal",
+          "Professional tone with actionable information for dispensary operators"
+        ],
+        "issues": [
+          "Could provide more specific details on the reporting process or timeline",
+          "Might benefit from a brief explanation of what happens with the funds collected"
+        ],
+        "suggestedFixes": [
+          "Add a brief note about the typical reporting deadline or timeframe",
+          "Include one sentence about the types of programs supported by the fund for context"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 85,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "training-recertification-ny",
+      "title": "Training certification — when does NY require re-certification?",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 5720,
+      "response": "New York requires re-certification through the Responsible Vendor Training (RVT) program every 2 years for all retail employees, including both managers and floor staff. There are no separate certification requirements for managers beyond the standard Responsible Vendor Training (RVT).\n\nAll staff must complete recertification through an OCM-approved provider - internal training does not satisfy this requirement. Keep original signed certificates in each employee's personnel file for inspection.\n\nIf an employee's certification lapses, they must be pulled from product-handling duties until recertified.",
+      "responsePreview": "New York requires re-certification through the Responsible Vendor Training (RVT) program every 2 years for all retail employees, including both managers and floor staff. There are no separate certification requirements ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive response covering all NY RVT recertification requirements with perfect compliance.",
+        "strengths": [
+          "Correctly uses the exact phrase 'Responsible Vendor Training (RVT)' as required",
+          "Clearly states the 2-year recertification cycle",
+          "Correctly confirms no separate manager requirements",
+          "Includes important details about OCM-approved providers",
+          "Highlights documentation requirements and consequences of lapse"
+        ],
+        "issues": [
+          "No significant issues - response is comprehensive and accurate"
+        ],
+        "suggestedFixes": [
+          "Consider adding a brief recommendation about setting up calendar reminders for recertification deadlines"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 100,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "sick-after-product-medical-claim",
+      "title": "Customer claims product made them sick — medical claim edge case",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 6565,
+      "response": "Based on your situation, here are your immediate steps:\n\n1. **Document everything immediately**:\n   - Get the customer's full name, contact information, date of purchase, specific product (brand, strain, lot number), and detailed description of symptoms\n   - Note that they used the word \"poisoned\" and mentioned an urgent care visit\n   - Document this conversation thoroughly in writing\n\n2. **Do NOT admit liability**:\n   - Avoid any language that suggests responsibility for their condition\n   - Don't say \"our product made you sick\" or agree to pay medical bills\n   - Be empathetic but stick to facts: \"We're sorry to hear you experienced this. We're documenting your concerns and will follow our protocol.\"\n\n3. **Notify your insurance today**:\n   - Call your commercial liability insurer immediately\n   - Provide them with all documentation you've gathered\n   - They will likely take over the response process and may direct you on next steps\n\n4. **Request medical records**:\n   - Ask the customer if they're willing to share urgent care records\n   - Also request the product packaging and/or COA for testing\n   - This helps determine if the reaction was due to overconsumption, product defect, or other causes\n\nRegarding OCM reporting: This is a gray area since they visited urgent care but weren't hospitalized. Consult with your attorney before deciding whether to self-report. If you do report voluntarily, it typically reduces potential penalties if OCM discovers it through other channels.\n\nPreserve any remaining product from the same lot for potential testing and do not destroy any inventory from that lot.",
+      "responsePreview": "Based on your situation, here are your immediate steps: 1. **Document everything immediately**: - Get the customer's full name, contact information, date of purchase, specific product (brand, strain, lot number), and de...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent response covering all required steps with clear compliance guidance.",
+        "strengths": [
+          "Comprehensive coverage of all required immediate steps (documentation, liability, insurance, medical records)",
+          "Clear guidance on liability language with specific examples of what to avoid",
+          "Correctly identifies OCM reporting as a gray area requiring attorney consultation",
+          "Includes practical advice about preserving product",
+          "Tone is professional, empathetic yet legally cautious",
+          "All information aligns with the provided Cannabis adverse event response protocol"
+        ],
+        "issues": [
+          "No explicit mention of documenting the fact that the customer used the word 'poisoned' (though this is implied)"
+        ],
+        "suggestedFixes": [
+          "Add a specific recommendation to document that the customer used the word 'poisoned' to establish the full context of their claim"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 100,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 100
+        }
+      }
+    },
+    {
+      "id": "customer-purchase-history-request",
+      "title": "Customer asking for purchase history data — privacy request",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 5759,
+      "response": "Under New York cannabis law and state privacy statutes, you have no legal obligation to provide a customer's purchase history upon request. Producing your purchase history is voluntary — there is no New York state law that legally requires you to provide this upon customer demand.\n\nWhile the customer mentioned HIPAA, it's important to clarify that HIPAA does not apply to cannabis dispensaries as it only covers healthcare providers like hospitals and doctors, not retail cannabis stores. Similarly, the NY SHIELD Act requires reasonable data security but does not grant customers a right to access their purchase data, and NY Cannabis Law §130 protects cannabis purchase records from disclosure to third parties but does not create a customer access right.\n\nIf you choose to fulfill this request voluntarily, I recommend the following process:\n1. Verify the customer's identity to protect their privacy\n2. Export whatever your POS system can generate\n3. Document the request in writing\n4. Explain that their records are confidential and not shared with third parties\n\nThis approach maintains compliance while addressing the customer's request in a controlled manner.",
+      "responsePreview": "Under New York cannabis law and state privacy statutes, you have no legal obligation to provide a customer's purchase history upon request. Producing your purchase history is voluntary — there is no New York state law t...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent response with clear legal compliance and actionable process guidance.",
+        "strengths": [
+          "Correctly explains NY cannabis law and privacy statutes",
+          "Includes the mandatory 'voluntary' statement verbatim",
+          "Addresses HIPAA misconception directly",
+          "Provides clear, actionable next steps",
+          "Maintains professional tone"
+        ],
+        "issues": [
+          "Could potentially add more detail about how to verify customer identity",
+          "Mention whether there are any time limits or fees for voluntary requests"
+        ],
+        "suggestedFixes": [
+          "Consider adding specific examples of identity verification methods",
+          "Briefly mention any policies regarding timeframe or potential fees for voluntary requests"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 100
+        }
+      }
+    },
+    {
+      "id": "competitor-instagram-possible-violation",
+      "title": "Competitor advertising on Instagram — possible OCM violation, do we report?",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 6822,
+      "response": "Based on NY OCM regulations (9 NYCRR Part 128), the competitor's Instagram ads showing discount offers likely constitute a violation of inducement rules. Here's what you need to know:\n\n**Discount offers as \"inducements\" vs. permitted price listings:**\n- A price listing (e.g., \"This flower is $45 per eighth\") is informational and permitted under OCM rules\n- A discount offer (e.g., \"20% off today\" or \"limited time deal\") is an inducement because it creates urgency and incentivizes immediate purchase - specifically prohibited\n\n**Should you report?**\nIf the competitor is using discount language in their ads, this is a clear violation that warrants reporting. However, you should first conduct a self-audit of your own Instagram presence to ensure you don't have borderline posts that could attract scrutiny if you file a complaint.\n\n**Reporting process:**\n1. Document the violation: Take screenshots of the ads with date, URL, and follower count visible\n2. File a complaint through the official portal at cannabis.ny.gov → \"File a Complaint\"\n3. Provide detailed information about the violation, including specific examples of the discount language being used\n\n**Potential risks:**\n- OCM does not publicly disclose complainant identities\n- However, subpoenas in enforcement actions could potentially reveal the source\n- The investigation process typically takes 4-12 weeks for initial review\n- Possible outcomes include warning letters, Notices of Alleged Violation (NOVs), civil fines, or no action\n\nThe most important consideration is ensuring your own advertising is fully compliant before filing a complaint against others. Would you like me to help you review your own Instagram content for any potential compliance issues?",
+      "responsePreview": "Based on NY OCM regulations (9 NYCRR Part 128), the competitor's Instagram ads showing discount offers likely constitute a violation of inducement rules. Here's what you need to know: **Discount offers as \"inducements\" ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent compliance guidance with clear explanation of inducement rules and thorough reporting process.",
+        "strengths": [
+          "Accurately explains the difference between permitted price listings and prohibited inducements",
+          "Provides clear guidance on whether to report based on the violation",
+          "Outlines the complete complaint process with step-by-step instructions",
+          "Includes all required enforcement timeline and outcome information",
+          "Highlights important risks and self-audit considerations",
+          "Maintains professional tone while being actionable for the dispensary operator"
+        ],
+        "issues": [
+          "Minor improvement opportunity: could more explicitly emphasize the 'specific examples of discount language' needed in the complaint"
+        ],
+        "suggestedFixes": [
+          "Add a brief example of exactly what discount language to document in the complaint"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 100,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "multi-turn-delivery-driver-liability",
+      "title": "Multi-turn: delivery rules → third-party driver liability",
+      "kind": "multi_turn",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 5067,
+      "response": "You are absolutely liable as the employer under New York's respondeat superior doctrine. If your driver is at fault while acting within the scope of employment (making a delivery), Thrive Syracuse would be legally responsible for damages.\n\nThe delivery vehicle must be registered in Thrive's business name — never in an employee's personal name. Personal auto policies will deny claims involving commercial cannabis delivery activity, which creates an immediate compliance violation.\n\nYou need a commercial auto insurance policy with:\n- Minimum $1M per occurrence liability coverage (higher if required by your OCM license)\n- Cargo insurance covering cannabis in transit ($50K–200K based on delivery volume)\n- Workers' compensation coverage for the driver\n\nOCM requires proof of this commercial auto insurance be on file with your delivery license. Drivers must carry proof of insurance in the vehicle at all times for METRC manifest compliance.\n\nThis is non-negotiable under NY law and OCM regulations. Failure to comply could result in license suspension or revocation.",
+      "responsePreview": "You are absolutely liable as the employer under New York's respondeat superior doctrine. If your driver is at fault while acting within the scope of employment (making a delivery), Thrive Syracuse would be legally respo...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent response that properly addresses liability and insurance requirements for delivery drivers.",
+        "strengths": [
+          "Accurately explains employer liability under NY respondeat superior doctrine",
+          "Correctly states vehicle must be in business name, not personal",
+          "Provides complete list of required insurance coverages",
+          "Emphasizes OCM documentation requirements",
+          "Clearly explains consequences of non-compliance",
+          "Professional tone with appropriate urgency"
+        ],
+        "issues": [
+          "No additional action steps beyond what was already provided in the tool context"
+        ],
+        "suggestedFixes": [
+          "Consider adding practical next steps like 'Contact your insurance provider today to ensure your policy covers cannabis delivery' or 'Review current vehicle registrations to confirm they are in business name'"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 85,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 100
+        }
+      }
+    },
+    {
+      "id": "pos-system-down-compliance",
+      "title": "POS system went down mid-day — compliance and logging steps",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 6932,
+      "response": "You do NOT have to stop selling during this POS outage. NY regulations allow you to continue with manual documentation.\n\nYour compliance obligations right now:\n\n1. Continue recording each transaction manually with:\n   - Date/time of sale\n   - Customer age-verified information (ID type and number)\n   - Products sold (strain, form, quantity, METRC package UID)\n   - Price charged\n   - Payment method\n\n2. Keep a written record of:\n   - Outage start time (11:00 AM)\n   - Restoration time (to be completed when system is restored)\n   - Number of manual transactions\n   - Reconciliation completion time (for later documentation)\n\nWhen your Alleaves POS system comes back online:\n- Enter all manual transactions into METRC within the same business day\n- If the outage extends overnight, complete reconciliation by 11:59 PM that day and document the outage reason in METRC notes\n\nNo OCM notification is required for a single-day outage. Only document the reason in METRC notes if the outage spans multiple days.\n\nYou're handling this correctly with manual documentation. The key is to complete METRC reconciliation within the same business day once your system is restored.",
+      "responsePreview": "You do NOT have to stop selling during this POS outage. NY regulations allow you to continue with manual documentation. Your compliance obligations right now: 1. Continue recording each transaction manually with: - Date...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Comprehensive response covering all compliance requirements during POS downtime.",
+        "strengths": [
+          "Clearly confirms dispensary doesn't need to stop selling",
+          "Provides complete list of required manual documentation",
+          "Explains same-business-day METRC reconciliation requirement",
+          "Correctly states when OCM notification is needed",
+          "Professional and reassuring tone"
+        ],
+        "issues": [
+          "Could have slightly more emphasis on criticality of timely reconciliation",
+          "No mention of potential penalties for delayed reconciliation"
+        ],
+        "suggestedFixes": [
+          "Add brief note about importance of completing reconciliation by end of day to avoid compliance issues",
+          "Include reference to potential consequences of missing reconciliation deadlines"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 100,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "multi-loc-metrc-discrepancy-one-location",
+      "title": "Metrc discrepancy at Location A only — does it affect Location B compliance?",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 5238,
+      "response": "Here's the compliance breakdown regarding your METRC discrepancy:\n\nNY METRC licenses are location-specific, meaning Location A and Location B are evaluated independently for METRC compliance. However, since both locations operate under the same OCM retail license, an OCM investigation at Location A could potentially expand to include Location B records.\n\nReporting timeline:\n- Non-diversion discrepancies: Investigate and report to OCM within 3 business days if not reconciled\n- Theft/diversion suspected: Report within 24 hours\n\nRecommended next steps:\n1. Immediately document the Location A discrepancy\n2. Open a METRC inventory adjustment with a clear explanation\n3. Notify the Location B manager to conduct a proactive count to demonstrate their compliance\n4. Investigate the Location A discrepancy thoroughly - verify transfer documentation, check for recording errors, and confirm no actual diversion occurred\n\nWhile Location B isn't directly affected by Location A's discrepancy, the shared license creates a connection that warrants documentation of Location B's clean status. Focus on resolving Location A's issue promptly and maintaining clear records at both locations.",
+      "responsePreview": "Here's the compliance breakdown regarding your METRC discrepancy: NY METRC licenses are location-specific, meaning Location A and Location B are evaluated independently for METRC compliance. However, since both location...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent response that correctly explains METRC licensing independence while addressing the shared license risk.",
+        "strengths": [
+          "Correctly explains that METRC licenses are location-specific",
+          "Clearly states the reporting timelines for both non-diversion and theft scenarios",
+          "Provides actionable next steps for both locations",
+          "Acknowledges the shared license risk without overstating it",
+          "Maintains professional and helpful tone"
+        ],
+        "issues": [
+          "Could explicitly mention that Location B has no immediate reporting obligation",
+          "Doesn't specify that the proactive count at Location B is a best practice, not a requirement"
+        ],
+        "suggestedFixes": [
+          "Add a clear statement that Location B has no direct reporting obligation",
+          "Clarify that the proactive count at Location B is a best practice recommendation, not a compliance requirement"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 100,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "ecstatic-tourist-possession-limits",
+      "title": "Ecstatic NYC tourist customers — NY possession limits guidance",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 5124,
+      "response": "Based on NY regulations and federal law, here's what your out-of-state visitors need to know:\n\nNY POSSESSION LIMITS:\n- Adults 21+ can legally possess up to 3 oz (85g) of flower\n- Up to 24g of concentrates\n- No limit on edibles under 240mg total THC\n\nINTERSTATE TRANSPORT COMPLIANCE:\nFederal law (21 U.S.C. §841) strictly prohibits transporting cannabis across state lines, regardless of state legality. This applies to all forms of cannabis purchased in New York. TSA, being a federal agency, will enforce these laws at airports.\n\nBUDTENDER SCRIPT FOR \"CAN I TAKE THIS ON THE PLANE?\":\n\"Our sale is legal here in New York. What you do after leaving our store is subject to federal transportation laws and your destination's laws — we can't advise on that, but we'd recommend checking TSA and your destination state's rules before you travel.\"\n\nREASONING:\nThe federal prohibition on interstate transport falls under Congress's commerce clause jurisdiction, giving it supremacy over state laws. While New York permits cannabis possession within state lines, transporting it across state lines violates federal law, exposing customers to potential legal consequences.\n\nNEXT STEP:\nTrain all budtenders to use the exact compliance script above when customers ask about interstate transport. This protects both your customers and your license by clearly communicating the legal boundaries without providing advice that could be misconstrued as encouraging illegal activity.",
+      "responsePreview": "Based on NY regulations and federal law, here's what your out-of-state visitors need to know: NY POSSESSION LIMITS: - Adults 21+ can legally possess up to 3 oz (85g) of flower - Up to 24g of concentrates - No limit on e...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent compliance guidance with thorough explanation and actionable steps.",
+        "strengths": [
+          "Perfectly grounded in the provided compliance guide",
+          "Clear explanation of federal vs state law jurisdiction",
+          "Provides exact budtender script as required",
+          "Includes reasoning about federal commerce clause authority",
+          "Gives concrete next step for training budtenders"
+        ],
+        "issues": [
+          "No major issues - response is nearly perfect"
+        ],
+        "suggestedFixes": [
+          "Minor improvement: Could add a brief note about documenting the training"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 100
+        }
+      }
+    },
+    {
+      "id": "ecstatic-nyc-delivery-viability",
+      "title": "Cannabis delivery in Manhattan — viability and logistics",
+      "kind": "non_data",
+      "threadType": "compliance",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 6951,
+      "response": "Ecstatic can indeed deliver in Manhattan under your existing retail dispensary license as you're the same legal entity. Delivery is commercially viable but requires proper operational planning due to Manhattan's unique challenges.\n\n**METRC Requirements:**\nEach delivery must have a METRC manifest generated before the driver departs. The driver must carry this manifest physically. Upon delivery, the customer must sign, and the manifest must be closed in METRC within the same business day.\n\n**Manhattan Logistics:**\n- **Traffic:** Expect unpredictable delays of 30-90 minutes during rush hours\n- **Doorman Buildings:** Drivers must be announced and may wait 5-15 minutes per building\n- **Parking:** No parking available - drivers need partners or must double-park with legal risks\n- **Time per Delivery:** Allocate 30-60 minutes per delivery in Manhattan versus 10-15 minutes in suburban areas\n\n**Staffing Requirements:**\nYou'll need dedicated delivery staff (2-3 drivers), registered vehicles, and robust operational coordination to ensure efficiency.\n\n**Regulatory Requirements:**\nAll drivers must pass OCM background checks, and delivery vehicles must be registered with OCM on your license.\n\nWith these operational considerations, delivery in Manhattan is feasible for Ecstatic, but requires significant logistical planning and staffing to handle the unique challenges of the urban environment.",
+      "responsePreview": "Ecstatic can indeed deliver in Manhattan under your existing retail dispensary license as you're the same legal entity. Delivery is commercially viable but requires proper operational planning due to Manhattan's unique ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive response addressing all aspects of Manhattan delivery viability for Ecstatic.",
+        "strengths": [
+          "Correctly confirms delivery viability under existing license",
+          "Thoroughly explains METRC manifest requirements",
+          "Addresses all Manhattan logistics challenges (traffic, doorman buildings, parking, time)",
+          "Notes OCM driver background check and vehicle registration requirements",
+          "Consistently refers to 'Ecstatic' not 'Thrive'",
+          "Provides concrete staffing recommendations (2-3 drivers)"
+        ],
+        "issues": [
+          "Minor opportunity to add a brief next-step recommendation for implementation"
+        ],
+        "suggestedFixes": [
+          "Consider adding a brief sentence about recommended next steps for implementing the delivery service"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 100,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "regulator-unannounced-inspection",
+      "title": "Unannounced state compliance inspection",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 7605,
+      "response": "**Immediate Action Steps for Thrive Syracuse During OCM Inspection:**\n\n1. **Verify Credentials** - Politely request the inspector's OCM badge and identification before proceeding. This establishes their authority and protects your establishment.\n\n2. **Assign a Shadow** - Immediately designate a staff member (preferably compliance-trained) to accompany the inspector at all times to document what areas they inspect, what records they review, and any specific questions asked.\n\n3. **Maintain Calm Cooperation** - You cannot refuse entry during business hours per NY Cannabis Law §42. Any refusal constitutes a license violation under 9 NYCRR §105.7. Cooperate professionally and without panic.\n\n**What You Must Provide:**\n- Access to all licensed premises (sales floor, storage areas, back office)\n- METRC records (either direct digital access or printed copies)\n- Current employee RVT certificates for all staff working today\n- Your dispensary license and most recent inspection report\n- Security camera system access\n\n**What You Cannot Be Forced to Provide:**\n- Personal employee records (SSN, home addresses) without a court order\n- Statements about operational incidents (should defer to legal counsel)\n\n**Critical Mistakes to Avoid:**\n- Making verbal statements about compliance issues or incidents (respond with: \"I'll have our attorney follow up on that\")\n- Delaying the inspection while waiting for legal counsel (you can request attorney participation but cannot delay)\n- Not having documentation of what was inspected\n\nYour rights are limited but clear during inspections. Focus on providing the required documentation while maintaining professional boundaries. Document everything the inspector reviews, and immediately follow up with your compliance counsel after the inspection is complete.",
+      "responsePreview": "**Immediate Action Steps for Thrive Syracuse During OCM Inspection:** 1. **Verify Credentials** - Politely request the inspector's OCM badge and identification before proceeding. This establishes their authority and pro...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent response providing clear guidance on handling unannounced OCM inspections with proper citations and actionable steps.",
+        "strengths": [
+          "Directly addresses the user's panic with immediate action steps",
+          "Cites the correct NY Cannabis Law §42 and 9 NYCRR §105.7",
+          "Clearly outlines what must be provided versus what cannot be shared",
+          "Explains the balance between requesting attorney presence without delaying",
+          "Provides practical advice about shadowing the inspector",
+          "Identifies common mistakes to avoid during inspection"
+        ],
+        "issues": [
+          "Could include slightly more detail about documentation procedures",
+          "Might benefit from a reminder about post-inspection follow-up steps"
+        ],
+        "suggestedFixes": [
+          "Add a brief section on how to document the inspection (taking notes, photos of what was inspected)",
+          "Include a recommendation about when and how to contact compliance counsel after the inspection"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "regulator-advertising-noc-response",
+      "title": "OCM Notice of Non-Compliance — advertising violation response",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 22778,
+      "response": "I understand you've received an OCM Notice of Non-Compliance regarding an Instagram discount post. Let me outline what you need to address immediately and in your response.\n\n**Required Response Components (within 15 days):**\n\n1. **Acknowledgment of the notice** - State that you received and understand the NOC regarding your Instagram post advertising Purple Punch at 20% off.\n\n2. **Explanation of circumstances** - Provide factual details about when the post was created, who posted it, and when it was removed after learning of the violation.\n\n3. **Documentation of immediate remediation** - Confirm the post was removed and specify the exact date and time this occurred. Screenshot the post before removal as evidence.\n\n4. **Corrective action plan** - Outline specific steps with dates:\n   - [Date] Post removed from all platforms\n   - [Date+3] Staff retraining on NY advertising completed\n   - [Date+7] Review of all social media content completed by compliance officer\n   - [Date+14] Implementation of new pre-approval workflow for social media posts\n\n**Regarding legal counsel:**\nYes, I recommend engaging a cannabis attorney to review the NOC and draft your response. While this is a first offense, having legal representation ensures your response is properly framed and your rights are protected. Many cannabis attorneys offer fixed-fee services for NOC responses.\n\n**Immediate remediation steps:**\n- Remove the Instagram post immediately if still active\n- Review all other social media posts for similar violations\n- Implement a temporary hold on all new social media content until staff retraining is complete\n- Document everything (screenshots, removal times, training attendance)\n\n**Likely penalty ranges:**\nFor a first offense advertising violation in NY:\n- Likely outcomes: Written warning or civil penalty of $500-$5,000\n- The discount post falls into OCM's prohibited inducement/consumption language category\n- Without proper age-gating and clear disclaimers, a penalty at the higher end is possible\n\n**Timeline after submission:**\n- OCM review: 30-90 days for decision\n- If penalty issued: 30 days to pay or request administrative hearing\n\nWould you like me to help you draft the corrective action plan portion of your response, or do you need assistance finding cannabis legal counsel in New York?",
+      "responsePreview": "I understand you've received an OCM Notice of Non-Compliance regarding an Instagram discount post. Let me outline what you need to address immediately and in your response. **Required Response Components (within 15 days...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive response covering all aspects of OCM NOC compliance with actionable steps and proper context.",
+        "strengths": [
+          "Follows required NOC response protocol exactly",
+          "Includes mandatory OCM review timeline and appeal window",
+          "Provides specific remediation steps with dates",
+          "Clear recommendation to consult cannabis attorney",
+          "Correctly identifies likely penalty ranges for first offense",
+          "Professional and operator-focused tone"
+        ],
+        "issues": [
+          "Could provide slightly more detail about why price-based appeals are problematic under OCM rules",
+          "Mention specific NY regulations that were potentially violated"
+        ],
+        "suggestedFixes": [
+          "Add a brief explanation of why discount advertising specifically violates OCM inducement/consumption rules",
+          "Include reference to NY Cannabis Control Board's §500.15 advertising regulations"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "regulator-metrc-physical-audit",
+      "title": "METRC physical inventory audit by inspector",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 35526,
+      "response": "Yes, you should proactively disclose the known discrepancies before the audit begins. This demonstrates good faith compliance and will likely result in reduced penalties compared to if the discrepancies were discovered during the audit.\n\nHere's what you need to know about the METRC physical audit process:\n\n**Audit Process:**\n1. The inspector will request access to all cannabis inventory areas\n2. They will compare physical package counts against your METRC records, including:\n   - Package UIDs\n   - Weights\n   - Package status\n3. The inspector will either scan METRC package tags or visually verify them against physical product\n4. Any variance found will be noted on the inspection report\n\n**Important Tolerance Note:**\nNY OCM does not publish a formal de minimis tolerance. While unexplained variances under 1g per package are sometimes considered within weighing/moisture variance at the inspector's discretion, this is not guaranteed.\n\n**If Variances Are Found:**\n- If discrepancies are found, OCM will issue a Notice of Deficiency or Notice of Non-Compliance\n- You will have 15-30 business days to respond with a corrective action plan\n- For first-time small discrepancies with corrective action, penalties typically range from $500-$2,500\n- Attempting to hide known discrepancies discovered during the audit will be treated as intentional non-compliance\n- Patterns of discrepancy can escalate to suspension or revocation proceedings\n\nProactive disclosure of known issues is always the best approach during regulatory audits.",
+      "responsePreview": "Yes, you should proactively disclose the known discrepancies before the audit begins. This demonstrates good faith compliance and will likely result in reduced penalties compared to if the discrepancies were discovered ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent METRC audit guidance with proper proactive disclosure advice and clear process explanation.",
+        "strengths": [
+          "Strong grounding in the provided METRC audit procedures",
+          "Clear actionability with concrete steps for the owner",
+          "Comprehensive coverage of all required aspects (disclosure, process, consequences)",
+          "Professional tone appropriate for a dispensary operator",
+          "Directly addresses the specific question about known discrepancies"
+        ],
+        "issues": [
+          "Could mention the timing aspect (audit happening right now after 3-day count) more specifically"
+        ],
+        "suggestedFixes": [
+          "Add brief note about how the recent 3-day physical count relates to the current audit situation"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 100,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "regulator-age-verification-failure-response",
+      "title": "Failed mystery shopper — immediate response plan",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 8367,
+      "response": "### Immediate Response Plan (Next 24 Hours)\n\n**1. Document the Incident:**\n- Prepare a written incident report including:\n  - Employee name(s) involved\n  - Exact time of the sale\n  - Details of the ID check failure\n  - Inspector's identification number\n  - Time when the inspector disclosed their identity\n\n**2. Employee Action:**\n- Place the involved employee on administrative leave (do not terminate pending investigation)\n- Document this action in your personnel files\n\n**3. Mandatory Training:**\n- Conduct immediate ID verification training for ALL floor staff today\n- Document training date, attendees, and content\n- Ensure training emphasizes checking ID for EVERY sale, regardless of apparent age\n\n**4. Policy Review:**\n- Review and update your written ID verification SOP if needed\n- The policy must mandate ID verification for every transaction without exception\n\n**5. Legal Counsel:**\n- Engage a cannabis compliance attorney within 48 hours\n- Do not submit your NOC response before consulting with counsel\n\n### NOC Response Timeline\n- You have 15 days from the Notice of Violation issuance to submit a formal written response\n- Your response must include:\n  - Acknowledgment of the violation\n  - Circumstances of the incident\n  - Immediate corrective actions taken (with dates)\n  - Forward-looking corrective action plan\n\n### Likely Penalty (First Offense)\n- New York Cannabis Law imposes tiered penalties for age verification failures\n- First offense typically carries: $2,000–$10,000 civil penalty\n- Mandatory staff retraining requirement will be imposed\n- Proactive documented corrective actions (completed before OCM's decision) typically result in penalties at the lower end of this range\n\n### Prevention Measures\n- Implement mandatory double-check system: one employee scans items, another verifies ID\n- Install prominent signage reminding customers that ID verification is required for all purchases\n- Conduct unannounced ID verification checks with staff (mystery shopping internally)\n- Add ID verification as a mandatory checkbox in your POS system for every transaction\n- Update employee handbook to clearly state the zero-tolerance policy for ID check failures\n\nContact your attorney immediately to discuss your specific situation and prepare your NOC response.",
+      "responsePreview": "### Immediate Response Plan (Next 24 Hours) **1. Document the Incident:** - Prepare a written incident report including: - Employee name(s) involved - Exact time of the sale - Details of the ID check failure - Inspector...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive response covering all required elements with clear action steps and compliance information.",
+        "strengths": [
+          "Clearly addresses all required elements: immediate response, penalty range, and prevention measures",
+          "Explicitly states the 15-day NOC response window as required",
+          "Correctly states the penalty range ($2,000-$10,000) for first offense",
+          "Recommends attorney engagement within 48 hours",
+          "Provides specific, actionable steps for both immediate response and long-term prevention",
+          "Maintains professional tone appropriate for a dispensary operator",
+          "Includes documentation recommendations throughout"
+        ],
+        "issues": [
+          "Could provide more specific details about what the ID verification training should contain",
+          "No mention of the potential mandatory retraining requirement that accompanies the penalty"
+        ],
+        "suggestedFixes": [
+          "Add a brief bullet point about key training elements (e.g., checking expiration dates, matching photo, physical description)",
+          "Include a note about the mandatory retraining requirement that will be imposed alongside the penalty"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 100,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "regulator-employee-records-request",
+      "title": "Inspector requests employee training certifications",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 5980,
+      "response": "You must immediately produce completion certificates for all 12 cannabis handlers showing their Responsible Vendor Training (RVT) completion date, certificate number, and training provider name. This is a mandatory requirement under NY Cannabis Law.\n\nIf any certificates are expired, those employees may not handle cannabis products until their training is renewed. During the inspection, you must immediately remove any employees with expired certifications from cannabis-related tasks.\n\nRegarding extensions: OCM inspectors do not typically grant formal extensions for records that should already be on-site or digitally accessible. You should:\n- Present whatever complete records you have immediately\n- For missing certificates, offer to email them within 2 hours if possible\n- For overdue certifications, show proof that those employees are enrolled in upcoming training\n- Document any accommodations you make during the inspection\n\nYour immediate priority is to locate the three potentially overdue certificates and place those employees on non-cannabis tasks if their certifications have expired.",
+      "responsePreview": "You must immediately produce completion certificates for all 12 cannabis handlers showing their Responsible Vendor Training (RVT) completion date, certificate number, and training provider name. This is a mandatory requ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent response addressing all key aspects of the inspection request with clear guidance.",
+        "strengths": [
+          "Correctly identified required records (completion certificates with date, provider, certificate number)",
+          "Provided clear consequences for expired certifications",
+          "Explained extension policy accurately without promising what cannot be delivered",
+          "Gave actionable next steps for both missing and expired certificates",
+          "Emphasized immediate actions needed during inspection"
+        ],
+        "issues": [
+          "Could be slightly more explicit about the urgency of handling the three potentially overdue employees",
+          "No mention of digital records accessibility as an alternative"
+        ],
+        "suggestedFixes": [
+          "Add a sentence about immediately checking digital records if physical copies aren't available",
+          "Reinforce the timeline for handling the three potentially overdue employees during the inspection"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "regulator-fine-appeal-process",
+      "title": "Disputing a $7,500 OCM fine — appeal process",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 6728,
+      "response": "As you're disputing a $7,500 OCM fine, here's what you need to know about the appeal process:\n\n**Critical Timeline:**\nYou have 30 calendar days from receipt of the penalty notice to file a formal appeal (request for hearing). Missing this deadline forfeits your right to appeal.\n\n**Payment Status:**\nYou do NOT need to pay the fine while an appeal is pending. Filing a timely hearing request stays the payment obligation.\n\n**Appeal Grounds:**\nYou have several potential grounds for appeal:\n1. Factual dispute - arguing the violation did not occur as characterized\n2. Technical defense - demonstrating the advertising did not meet the legal standard for the violation cited\n3. Mitigating factors - highlighting this is a first violation, immediate corrective action was taken, and no prior NOCs exist\n4. Procedural grounds - showing OCM failed to follow required process for notice or investigation\n\n**Fight vs. Pay Analysis:**\nGiven the $7,500 amount, you should strongly consider fighting this if you have a genuine factual dispute or believe the penalty is disproportionate. This fine range makes hiring a cannabis attorney (2-4 hour engagement) economically rational.\n\n**Settlement Option:**\nOCM may accept a consent order with a reduced fine and corrective action plan. You should request this in writing before the hearing date.\n\nThe hearing process involves an administrative hearing before an Administrative Law Judge (ALJ). You can appear with or without counsel, though legal representation is recommended for amounts over $5,000.\n\nWhat specific aspects of the advertising violation would you like to discuss to determine the strongest appeal strategy?",
+      "responsePreview": "As you're disputing a $7,500 OCM fine, here's what you need to know about the appeal process: **Critical Timeline:** You have 30 calendar days from receipt of the penalty notice to file a formal appeal (request for hear...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive response covering all required aspects of the OCM fine appeal process.",
+        "strengths": [
+          "Correctly states the 30-day appeal deadline",
+          "Explains that payment is not required while appealing",
+          "Walks through all four grounds for a successful appeal",
+          "Provides analysis of when it's worth fighting vs. paying",
+          "Includes information about settlement options",
+          "Mentions the administrative hearing process",
+          "Recommends legal counsel for this amount",
+          "Maintains professional, helpful tone",
+          "Follows all requirements without medical claims or compliance red flags"
+        ],
+        "issues": [
+          "Could provide slightly more detail on what documentation to gather for each appeal ground",
+          "Could briefly mention potential consequences of losing the appeal"
+        ],
+        "suggestedFixes": [
+          "Add brief guidance on what documentation to gather for each appeal ground",
+          "Include one sentence about potential consequences if the appeal is unsuccessful"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "regulator-license-condition-violation",
+      "title": "Operating outside license conditions",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 7329,
+      "response": "**Self-Disclosure Assessment:**\n\nNew York Cannabis Law does not impose a general affirmative self-reporting obligation for license condition violations unless your specific license condition explicitly requires notification. You should consult a cannabis attorney before deciding whether to self-disclose.\n\n**Severity of Violation:**\n\nFor a first-time minor violation like operating 23 minutes past closing with no prior violations, the typical consequence would likely be a Warning Letter or civil penalty of $500-$2,000 if discovered. Repeated violations would escalate to higher fines or potential license suspension.\n\n**Proactive Steps to Minimize Exposure:**\n\n1. **Document the incident immediately:** Record the date/time (last Saturday, approximately 9:18-9:23 PM), what happened (manager allowed customer to stay past closing), manager name, customer circumstances, and how the violation was discovered.\n\n2. **Review and enforce license conditions:** Update staff training and post clear signage at the register stating \"MUST CLOSE BY 9PM\" to prevent future occurrences.\n\n3. **Consult cannabis counsel:** Before taking any action to communicate with OCM, seek advice from a cannabis attorney who understands NY regulations.\n\n4. **If advised to self-disclose:** Submit through the OCM online portal at cannabis.ny.gov or by certified mail to your regional OCM enforcement office. Include:\n   - Date and exact time of the violation\n   - METRC transaction reference (9:18 PM)\n   - Documentation of immediate corrective action taken\n   - Written commitment to prevent recurrence\n\nNote that the METRC transaction creates a record that OCM can access during any audit, though this is distinct from proactive self-disclosure.",
+      "responsePreview": "**Self-Disclosure Assessment:** New York Cannabis Law does not impose a general affirmative self-reporting obligation for license condition violations unless your specific license condition explicitly requires notificat...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive, actionable response addressing all aspects of the license condition violation with proper compliance guidance.",
+        "strengths": [
+          "Excellent grounding in the provided NY OCM License Condition Violation protocol",
+          "Clear explanation of self-disclosure requirements and exceptions",
+          "Appropriate assessment of violation severity with realistic consequences",
+          "Concrete, step-by-step proactive measures to minimize exposure",
+          "Proper emphasis on consulting cannabis attorney before disclosure",
+          "Complete instructions for self-disclosure process if advised",
+          "Professional tone suitable for dispensary operator"
+        ],
+        "issues": [
+          "Minor opportunity to strengthen the METRC exposure explanation slightly",
+          "Could explicitly mention that no self-disclosure may be the best approach if counsel advises against it"
+        ],
+        "suggestedFixes": [
+          "Consider adding one sentence explaining that METRC visibility doesn't guarantee detection but creates potential exposure",
+          "Add a brief note that following attorney advice may include no disclosure at all"
+        ],
+        "dimensions": {
+          "grounding": 98,
+          "actionability": 95,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "regulator-competitor-complaint-response",
+      "title": "Competitor filed regulatory complaint against us",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 5769,
+      "response": "Under NY Cannabis Law §128 and OCM regulations, the \"appealing to minors\" standard prohibits content that uses cartoon-like imagery, bright colors with youth appeal, characters associated with children's products, or any depiction suggesting cannabis is fun or desirable for youth. Abstract cannabis leaf graphics in a branded adult design typically don't violate this standard—OCM evaluates whether a reasonable person would believe the imagery targets youth.\n\nTo prepare your response:\n1. Document your signage with clear photos and design files\n2. Explain your adult-oriented branding rationale\n3. Provide comparables showing this represents standard adult cannabis branding\n\nWhile not legally required, voluntarily modifying signage during the inquiry demonstrates good faith and may reduce penalty risk. However, consult a cannabis attorney before making formal commitments in your OCM response.\n\nWhat specific imagery is on your current signage that triggered the complaint?",
+      "responsePreview": "Under NY Cannabis Law §128 and OCM regulations, the \"appealing to minors\" standard prohibits content that uses cartoon-like imagery, bright colors with youth appeal, characters associated with children's products, or an...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent response that accurately addresses the regulatory standard and provides actionable guidance.",
+        "strengths": [
+          "Perfectly grounded in NY OCM regulations regarding 'appealing to minors' standard",
+          "Provides clear, actionable steps for preparing the OCM response",
+          "Offers balanced advice about proactive modification while noting legal considerations",
+          "Maintains professional tone without any compliance red flags",
+          "Follows the expected focus areas (OCM, minors, signage, inquiry, response)"
+        ],
+        "issues": [
+          "The final question about specific imagery, while appropriate, could potentially delay the response if not addressed promptly"
+        ],
+        "suggestedFixes": [
+          "Add a sentence recommending maintaining documentation of current signage before any potential modifications"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "finance-280e-explained",
+      "title": "280E tax burden explanation for owner",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 6205,
+      "response": "Your accountant is correct regarding the $420,000 tax liability calculation on $1.2M in gross profit. Under IRS Section 280E, your business is taxed on its gross profit rather than net profit, resulting in approximately $1.2M × 35% federal rate = $420,000 in taxes owed.\n\nSection 280E applies to cannabis businesses because marijuana remains a Schedule I controlled substance under federal law. This means while you can deduct Cost of Goods Sold (COGS), you cannot deduct ordinary business expenses like rent, salaries, marketing, or overhead.\n\nWhat constitutes legitimate COGS deductions:\n- Product cost from distributors\n- Packaging costs directly tied to product\n- Direct labor for product preparation (not customer service)\n\nYour accountant should implement these minimization strategies:\n1. Maximize legitimate COGS allocations through detailed cost accounting\n2. Allocate indirect costs to production/storage portions where possible\n3. Time purchases strategically to maximize opening inventory value\n4. Work with a cannabis-specific CPA who understands how to maximize allowable COGS deductions\n\nThe $420,000 tax burden reflects the reality of operating under federal prohibition. While frustrating, this is the current tax environment for cannabis businesses. Focus on working with a qualified cannabis tax professional to explore all legal deduction opportunities within COGS.",
+      "responsePreview": "Your accountant is correct regarding the $420,000 tax liability calculation on $1.2M in gross profit. Under IRS Section 280E, your business is taxed on its gross profit rather than net profit, resulting in approximately...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Accurately explains 280E with specific figures and actionable advice.",
+        "strengths": [
+          "Correctly addressed the exact figures mentioned ($420,000 and $1.2M)",
+          "Clearly explained 280E in plain terms",
+          "Identified what qualifies as COGS and what doesn't",
+          "Provided concrete minimization strategies",
+          "Maintained professional and helpful tone"
+        ],
+        "issues": [
+          "Could have slightly elaborated on the distinction between direct labor and customer service"
+        ],
+        "suggestedFixes": [
+          "Add a brief clarification about how to properly allocate budtender time between COGS (product preparation) and non-deductible portions (customer service)"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "finance-currency-transaction-report",
+      "title": "Customer paying $12,000 cash — CTR obligations",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 8328,
+      "response": "For a $12,000 cash transaction, you are required to file a Currency Transaction Report (CTR) with FinCEN within 15 calendar days. This is a legal deadline that cannot be extended.\n\nYou must collect the following information from the customer:\n- Full legal name\n- Date of birth\n- Address\n- ID type and number (driver's license or passport)\n- SSN or EIN (if they're a business)\n- Occupation/nature of business\n\nThe customer MUST provide this information. If they refuse, you cannot proceed with the transaction - no exceptions.\n\nStructuring refers to breaking a single transaction into multiple smaller transactions (e.g., $9,500 today and $2,500 tomorrow) to avoid the $10,000 reporting threshold. This is a federal crime under 31 U.S.C. §5324, with penalties including criminal prosecution and asset forfeiture. You must not suggest, encourage, or agree to any arrangement that could be interpreted as structuring.\n\nAdditionally, for cash transactions over $10,000 involving trade or business, you must also file IRS Form 8300 within the same 15-day window. You will need to file both the FinCEN CTR and IRS Form 8300 for this transaction.\n\nWould you like guidance on the proper filing procedures for both forms?",
+      "responsePreview": "For a $12,000 cash transaction, you are required to file a Currency Transaction Report (CTR) with FinCEN within 15 calendar days. This is a legal deadline that cannot be extended. You must collect the following informat...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive response that accurately explains CTR requirements, collection obligations, and structuring risks for large cash transactions.",
+        "strengths": [
+          "Correctly identifies CTR requirement for $12,000 transaction",
+          "Explicitly states the 15-day filing deadline",
+          "Lists all required customer information accurately",
+          "Clearly explains customer compliance requirements",
+          "Properly defines structuring with federal citation",
+          "Includes information about Form 8300 requirement",
+          "Maintains professional and helpful tone"
+        ],
+        "issues": [
+          "Minor improvement: Could suggest next steps for filing procedures after answering all initial questions"
+        ],
+        "suggestedFixes": [
+          "Add brief guidance on filing procedures to make the response more actionable"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "finance-bank-account-closed",
+      "title": "Bank closed our account — cash management options",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 7674,
+      "response": "To address your immediate situation with $340,000 in vault cash and the recent account closure:\n\n**Immediate Cash Management Protocol:**\n1. **Secure Storage:** Ensure your $340,000 cash is properly secured in a certified vault with appropriate insurance coverage exceeding the cash value.\n2. **Daily Reconciliation:** Implement rigorous daily reconciliation procedures with documentation signed by at least two authorized personnel.\n3. **Armored Transport:** Arrange for regular armored car pickups for deposits and vendor payments to minimize on-hand cash.\n\n**Banking Alternatives for NY Operators:**\n- **Cannabis-friendly Credit Unions:** Partner Colorado Credit Union and Canna-Hub Financial have experience working with NY cannabis licensees.\n- **Cash Management Processors:** Hypur, PaySign, and CanPay offer ACH and cashless debit solutions that many vendors accept.\n- **Community Banks:** Some state-chartered banks may work with cannabis businesses despite federal restrictions.\n\n**Regulatory Requirements for Your $340,000:**\n1. **CTR Filings:** File Currency Transaction Reports (Form 8300) with the IRS within 15 days for any single cash transaction over $10,000.\n2. **Vendor Payments:** For cash payments exceeding $10,000 to vendors, maintain detailed records and ensure proper documentation.\n3. **METRC Documentation:** All cash transactions must be accurately recorded in METRC, including deposits, withdrawals, and transfers.\n4. **Tax Records:** Maintain meticulous cash transaction records that align with your tax filings.\n\n**Action Items:**\n1. Contact Partner Colorado Credit Union and Canna-Hub Financial immediately to explore account options.\n2. Review your cash handling procedures to ensure compliance with NY's cannabis regulations.\n3. Consult with your financial advisor about potential restructuring to reduce cash holdings.\n\nThe $340,000 in vault cash requires heightened security and documentation protocols while you establish alternative banking arrangements. I recommend prioritizing armored transport for vendor payments to reduce cash on hand during this transition period.",
+      "responsePreview": "To address your immediate situation with $340,000 in vault cash and the recent account closure: **Immediate Cash Management Protocol:** 1. **Secure Storage:** Ensure your $340,000 cash is properly secured in a certified...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Excellent response that properly addresses the $340,000 cash situation with actionable alternatives and compliance guidance.",
+        "strengths": [
+          "Directly acknowledges and addresses the specific $340,000 cash amount",
+          "Provides clear, actionable steps for immediate cash management",
+          "Offers multiple banking alternatives relevant to NY operators",
+          "Includes detailed regulatory requirements for cash handling",
+          "Maintains professional, supportive tone throughout"
+        ],
+        "issues": [
+          "Could provide more specific guidance on vendor payment timing with $340,000 on hand",
+          "Might benefit from additional security recommendations for the large cash amount"
+        ],
+        "suggestedFixes": [
+          "Add specific guidance on staggered vendor payments to minimize risk",
+          "Include recommendations for temporary storage security measures while transitioning"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "finance-cogs-allocation-strategy",
+      "title": "Maximizing COGS under 280E — what qualifies",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 9729,
+      "response": "Based on IRS guidance and cannabis case law, here's what you need to know about COGS allocation under 280E:\n\n**What clearly qualifies as COGS:**\n- Product cost basis (wholesale prices paid to licensed cultivators/distributors)\n- Inbound freight and delivery fees for product\n- Direct packaging costs (pre-consumer packaging like bags and labels applied before retail sale)\n- Inventory shrinkage adjustments (documented METRC losses)\n\n**What is contested but potentially defensible with proper documentation:**\n- Budtender wages - Only the portion directly allocated to handling/selling product requires a time-and-motion study\n- Security costs - Only the portion attributable specifically to inventory security (not general store security)\n- Rent - Only the floor space dedicated to inventory storage and display (requires square footage allocation by specific area)\n\n**IRS has consistently rejected:**\n- Marketing and advertising expenses\n- Administrative salaries\n- General utilities and non-inventory insurance\n- Any expense not directly traceable to inventory handling\n\n**To survive IRS scrutiny, you need:**\n1. A time-and-motion study for labor allocation (documented quarterly)\n2. Square footage allocation for occupancy costs with a detailed floor plan\n3. Consistent methodology applied year-over-year (IRS penalizes sudden allocation changes)\n\nYour CPA is correct that maximizing COGS is the primary strategy for 280E compliance, but the allocation methods must be substantiated with detailed documentation. The IRS has challenged aggressive allocations in cannabis audits, particularly for labor and occupancy costs.\n\nI recommend working with a cannabis-specialized CPA who understands both tax regulations and the unique operational aspects of your business. They can help implement proper tracking systems and document allocations in a way that withstands audit scrutiny.",
+      "responsePreview": "Based on IRS guidance and cannabis case law, here's what you need to know about COGS allocation under 280E: **What clearly qualifies as COGS:** - Product cost basis (wholesale prices paid to licensed cultivators/distrib...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive, accurate response that addresses all key aspects of COGS allocation under 280E with actionable guidance.",
+        "strengths": [
+          "Excellent grounding in provided IRS guidance and case law",
+          "Clear distinction between clearly qualifying expenses and contested but defensible ones",
+          "Specific actionable recommendations for documentation and allocation methods",
+          "Important warning about IRS challenges to aggressive allocations",
+          "Solid recommendation for cannabis-specialized CPA"
+        ],
+        "issues": [
+          "Could provide more specific detail on how to conduct a time-and-motion study",
+          "Might benefit from examples of documentation that would satisfy IRS requirements"
+        ],
+        "suggestedFixes": [
+          "Include brief example of how to document a time-and-motion study",
+          "Add reference to specific cases where IRS challenged COGS allocations in cannabis industry"
+        ],
+        "dimensions": {
+          "grounding": 98,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "finance-vendor-cash-only",
+      "title": "Vendor insists on cash payment — compliance risks",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 10411,
+      "response": "As a cannabis dispensary in New York, making an $85,000 cash payment to a vendor carries significant compliance and legal risks that you must address immediately.\n\n**Major Compliance Risk: Form 8300 Reporting Requirement**\nFederal law requires you to file IRS Form 8300 within 15 days of any cash payment of $10,000 or more to a single vendor. With an $85,000 payment, this filing is mandatory. Failure to file can result in severe penalties, including fines up to $25,000 and potential criminal charges.\n\n**Required Documentation:**\n1. Complete vendor information (name, address, EIN/tax ID)\n2. Date and amount of each payment\n3. Copies of invoices and delivery manifests\n4. METRC transfer records showing received product matches payment amount\n5. Internal cash disbursement log with dual-control (signed by two authorized employees)\n\n**Critical Warning: Structuring Prohibition**\nDo NOT attempt to split the $85,000 into multiple payments below $10,000 to avoid Form 8300. This practice, known as \"structuring,\" is a federal crime under 31 U.S.C. §5324 and carries severe penalties including potential felony charges.\n\n**Cash Alternatives to Offer:**\n- Cashier's check from a cannabis-friendly bank or credit union\n- ACH payment through a cannabis payment processor (Hypur, CanPay)\n- Wire transfer from a cannabis-licensed state charter bank\n\nA vendor that cannot accept any of these payment methods raises serious red flags. You should reconsider doing business with this vendor, as their refusal to comply with standard payment methods may indicate broader compliance issues.\n\nContact your payment processor immediately to explore alternative payment options that satisfy both parties' needs while maintaining compliance.",
+      "responsePreview": "As a cannabis dispensary in New York, making an $85,000 cash payment to a vendor carries significant compliance and legal risks that you must address immediately. **Major Compliance Risk: Form 8300 Reporting Requirement...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent compliance-focused response addressing all required elements with clear warnings and actionable alternatives.",
+        "strengths": [
+          "Correctly identified the Form 8300 requirement and $10,000 threshold",
+          "Provided comprehensive list of required documentation",
+          "Explicitly mentioned structuring prohibition with legal citation",
+          "Offered multiple cash alternatives to suggest to vendor",
+          "Highlighted vendor's cash-only policy as a red flag",
+          "Maintained professional tone while emphasizing compliance risks",
+          "Included specific recommendation to contact payment processor"
+        ],
+        "issues": [
+          "Could provide more detail about potential penalties for Form 8300 violations",
+          "Mention could be made about consulting with legal counsel for this large transaction"
+        ],
+        "suggestedFixes": [
+          "Add brief statement about potential criminal charges beyond just fines",
+          "Include recommendation to consult with cannabis business legal counsel"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "finance-armored-car-vault-limit",
+      "title": "Vault at capacity — insurance and security protocols",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 12085,
+      "response": "**New York Compliance Guidance for Vault Cash Holding**\n\nYour current situation requires immediate attention due to the $230,000 insurance gap and the 4-day wait for armored car pickup.\n\n**Insurance Liability Exposure:**\n- Current uninsured exposure: $230,000\n- Liability extends to the full uninsured amount in case of theft or loss\n- Contact your cannabis insurance provider TODAY to request an emergency coverage increase or temporary rider\n\n**Security Protocol Requirements (NY OCM):**\nWhile NY regulations don't specify a maximum cash holding limit, your state-approved security plan must address large cash storage. Implement these protocols immediately:\n\n1. **Dual-Control Access:** Ensure two authorized employees are present for all vault entries and exits\n2. **Enhanced Surveillance:** Maintain continuous camera coverage of the vault and increase retention period for footage\n3. **Documentation Protocol:** Create witness logs for all cash handling activities\n4. **Access Logs:** Record all vault access attempts and entries\n5. **Alarm Verification:** Confirm all alarm systems are operational and monitored\n\n**Regulatory Reporting Requirements:**\n- **NY OCM:** No specific reporting requirement for vault holdings\n- **BSA/FinCEN:** No reporting for vault balances\n- **CTR Trigger:** Only applies to single-day cash transactions of $10,000 or more (not vault balances)\n\n**Immediate Actions:**\n1. Contact your insurer today to request emergency coverage\n2. Call armored car companies about potential earlier pickup\n3. Consider temporary off-site armored storage options\n4. Review and document current security measures for your insurer\n\nThis situation requires urgent action to maintain compliance and protect your license. Document all security measures taken during this period.",
+      "responsePreview": "**New York Compliance Guidance for Vault Cash Holding** Your current situation requires immediate attention due to the $230,000 insurance gap and the 4-day wait for armored car pickup. **Insurance Liability Exposure:** ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive, actionable response addressing all compliance concerns for vault cash overinsurance.",
+        "strengths": [
+          "Explicitly states this applies to New York jurisdiction",
+          "Directly addresses the $230,000 insurance gap",
+          "Provides specific security protocols for large cash holdings",
+          "Clearly explains BSA/FinCEN reporting thresholds apply to transactions, not vault balances",
+          "Gives immediate actionable steps including contacting insurer and armored car company",
+          "Maintains professional, urgent tone appropriate for the situation"
+        ],
+        "issues": [
+          "No major issues - response is thorough and compliant"
+        ],
+        "suggestedFixes": [
+          "None needed - response is excellent as-is"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 100,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 100
+        }
+      }
+    },
+    {
+      "id": "finance-investor-financial-disclosure",
+      "title": "Investor due diligence — what financial data is protected",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 14366,
+      "response": "Based on the NY OCM rules, here's what you need to know about sharing financial information with investors:\n\n**OCM Beneficial Ownership Requirements (NY Cannabis Law §42):**\nAny investor acquiring 5% or more beneficial interest must be disclosed to OCM and undergo their approval process before closing. Changes in ownership must be reported within 10 days.\n\n**What to Share vs. Protect:**\nBefore sharing any financial data, execute a mutual NDA covering customer data, supplier pricing, margin by category, and employee compensation. \n\nSpecifically:\n- Customer data is protected under NY cannabis privacy rules and should never be provided without anonymization\n- Supplier costs and margins are competitively sensitive - share only under NDA\n- Employee salaries should be shared in aggregate format when possible\n\n**Standard Due Diligence Package (safe to share under NDA):**\n- Revenue by period\n- COGS summary\n- Gross margin\n- Operating expenses\n- EBITDA\n- Summary balance sheet\n\n**OCM Inspection Rights (NY Cannabis Law §129):**\nOCM has authority to inspect all financial records at any time, but cannot share your records with the public or private investors without your consent. However, financial records maintained for compliance (excise tax filings, inventory values, COGS) are not protected from OCM review.\n\nAlways require an NDA before sharing any financial information with potential investors to protect your competitive position and comply with NY's cannabis privacy regulations.",
+      "responsePreview": "Based on the NY OCM rules, here's what you need to know about sharing financial information with investors: **OCM Beneficial Ownership Requirements (NY Cannabis Law §42):** Any investor acquiring 5% or more beneficial i...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "The response comprehensively addresses OCM rules, recommends NDA protection, and specifies what to share vs protect.",
+        "strengths": [
+          "Directly addresses all required components: OCM ownership requirements, NDA necessity, customer privacy, and OCM inspection rights",
+          "Provides clear distinctions between what must be shared, what should be protected, and standard due diligence package",
+          "Cites specific NY Cannabis Law sections (§42 and §129) appropriately",
+          "Tone is professional and authoritative while remaining practical for a dispensary operator",
+          "No compliance issues or red flags"
+        ],
+        "issues": [
+          "Could slightly emphasize the timeline for ownership reporting (within 10 days) more prominently",
+          "The standard due diligence package list could be formatted more clearly (bullets or numbered list)"
+        ],
+        "suggestedFixes": [
+          "Highlight the 10-day reporting window for ownership changes in the OCM section",
+          "Format the standard due diligence package as a bullet or numbered list for easier scanning"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 100,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "finance-quarterly-tax-estimate",
+      "title": "Quarterly estimated tax calculation under 280E",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 6303,
+      "response": "Federal and NY State Underpayment Penalty Analysis for Thrive Syracuse\n\n**Current Penalty Exposure:**\n- Federal: ~1.3% of the overdue amount (8% annualized rate × 60/365 days)\n- NY State: ~7.5% annualized rate for state tax underpayments\n- Additional penalties may apply for NY cannabis excise tax (9% of gross sales)\n\n**Immediate Action Required:**\n1. Pay the overdue Q2 estimated tax immediately to stop further penalty accrual from today\n2. Include both federal and NY state components in this payment\n\n**Safe Harbor for Future Payments:**\nTo avoid underpayment penalties going forward:\n- Pay at least 100% of last year's total federal tax liability in quarterly installments (25% each quarter)\n- Since your gross revenue appears under $1M, you don't need the 110% threshold\n- For NY state, use the same 25% quarterly payments based on prior year liability\n\n**Next Steps:**\n1. Calculate your exact Q2 underpayment based on actual tax liability (not gross profit)\n2. Make immediate payment of the overdue amount + Q3 installment\n3. Confirm with your cannabis CPA that your safe harbor percentage calculation is accurate for both federal and NY state requirements\n4. Document all payments and calculations for future reference\n\nWould you like me to help you identify the specific documentation needed for these calculations?",
+      "responsePreview": "Federal and NY State Underpayment Penalty Analysis for Thrive Syracuse **Current Penalty Exposure:** - Federal: ~1.3% of the overdue amount (8% annualized rate × 60/365 days) - NY State: ~7.5% annualized rate for state ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive response addressing federal and state penalties with actionable guidance.",
+        "strengths": [
+          "Correctly calculates federal penalty as ~1.3% of overdue amount",
+          "Includes NY state penalty exposure (7.5% annualized)",
+          "Explains safe harbor calculation with 100%/110% thresholds",
+          "Provides immediate actionable next steps",
+          "Highlights importance of consulting with a cannabis CPA"
+        ],
+        "issues": [
+          "Could more explicitly mention that 280E allows COGS deduction reducing taxable base",
+          "Mention is made of NY cannabis excise tax but no specific guidance on handling it"
+        ],
+        "suggestedFixes": [
+          "Add a brief note about how COGS deduction under 280E affects taxable income",
+          "Include specific guidance on NY cannabis excise tax payment requirements"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 98,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "crisis-pesticide-recall-active",
+      "title": "Pesticide contamination — product already sold to customers",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 11910,
+      "response": "**Action Required Immediately (Next 24 Hours):**\n\n**Step 1: Identify and Quarantine Remaining Inventory**\n- Go to METRC → Packages → search by batch/lot number from your cultivator's recall notice\n- Pull ALL active package UIDs from that batch\n- Create METRC \"Quarantine\" or \"Hold\" adjustment for every affected package UID\n- Status reason: \"Product Recall — Pesticide Violation\"\n- Physically remove all remaining units from sales floor and storage NOW\n\n**Step 2: OCM Notification (Within 24 Hours)**\n- File recall notification via OCM licensee portal (cannabis.ny.gov)\n- Include:\n  - Batch/lot number\n  - Product description\n  - Number of units remaining on-hand vs. sold (approximately 180 sold)\n  - Cultivator name and distributor\n  - Nature of violation (bifenazate — banned pesticide above action level)\n\n**Step 3: Customer Notification (Within 24 Hours)**\n- Pull POS transaction records for affected batch over the 2-week selling period\n- For customers with contact information:\n  - Send notification within 24 hours using this compliant language:\n  > \"We are reaching out about a product you recently purchased. [Product name + lot number] has been recalled by the manufacturer due to a pesticide test result. Out of an abundance of caution, we recommend [stopping use / returning the product for a full refund]. Please call [your dispensary phone number] with any questions.\"\n\n**Regulatory Requirement:**\n- OCM requires licensees to notify them of any product recall within 24 hours\n- Failure to notify OCM is a separate violation from the recall itself\n\nFocus on these critical actions in the next 24 hours to protect your license and ensure compliance.",
+      "responsePreview": "**Action Required Immediately (Next 24 Hours):** **Step 1: Identify and Quarantine Remaining Inventory** - Go to METRC → Packages → search by batch/lot number from your cultivator's recall notice - Pull ALL active packa...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive response covering all required steps with exact compliance language.",
+        "strengths": [
+          "Perfect grounding with all required steps from the regulatory protocol",
+          "Highly actionable with specific instructions for METRC, OCM notification, and customer communication",
+          "Complete response addressing all aspects of the query",
+          "Perfect compliance with exact compliant language provided",
+          "Professional, clear tone suitable for a dispensary operator",
+          "Excellent launch readiness - response is ready to be used immediately"
+        ],
+        "issues": [
+          "No significant issues detected"
+        ],
+        "suggestedFixes": [
+          "No fixes needed"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 100,
+          "completeness": 100,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 100
+        }
+      }
+    },
+    {
+      "id": "crisis-robbery-reporting",
+      "title": "Armed robbery — regulatory reporting obligations",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 14683,
+      "response": "I understand you experienced a serious armed robbery last night. Here are your regulatory reporting obligations:\n\n**Immediate Reporting (24-hour requirement):**\n- You must report the robbery to the OCM within 24 hours of discovery via email to cannabis.ny.gov\n- Include: incident date/time, quantity of stolen cannabis by package UID, $45,000 cash amount, police report number, and security measures being implemented\n\n**METRC Adjustments (within 24 hours of OCM report):**\n- Create METRC \"Theft/Loss\" adjustments for each stolen package\n- Use reason code \"Theft — Reported to OCM\"\n- Quantities must match your police report inventory list\n\n**Formal Security Incident Report:**\n- File a detailed written Security Incident Report with OCM within 5 business days\n- Include timeline of events, security measures at time of incident, camera footage status, and employee witness statements\n\n**Additional Federal Requirement:**\n- File a SAR (Suspicious Activity Report) with FinCEN within 30 days due to the $45,000 cash theft\n- Submit through fincen.gov\n\nIs there anything specific about these requirements you need clarification on?",
+      "responsePreview": "I understand you experienced a serious armed robbery last night. Here are your regulatory reporting obligations: **Immediate Reporting (24-hour requirement):** - You must report the robbery to the OCM within 24 hours of...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate response covering all regulatory reporting obligations for the armed robbery incident.",
+        "strengths": [
+          "Correctly identified and explained all reporting requirements with appropriate timeframes",
+          "Included both OCM reporting requirements and METRC adjustments",
+          "Added the federal SAR requirement which is critical for the cash amount involved",
+          "Structured response clearly with bullet points for easy reading",
+          "Maintained professional and empathetic tone"
+        ],
+        "issues": [
+          "Minor formatting inconsistency in email address (used 'cannabis.ny.gov' instead of 'compliance/reporting portal')",
+          "Could have briefly mentioned the importance of documenting witness statements while they're fresh"
+        ],
+        "suggestedFixes": [
+          "Update the email address to match the exact portal mentioned in the protocol",
+          "Add a note about preserving physical evidence and witness statements while memories are fresh"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "crisis-customer-medical-emergency",
+      "title": "Customer overconsumption medical emergency in store",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 9758,
+      "response": "To the Manager at Thrive Syracuse:\n\n### What to Say (and Not Say) to Paramedics\n\n**DO SAY:**\n- \"The customer purchased a cannabis edible approximately 20 minutes ago.\"\n- \"Here is the product information [show product label or COA].\" This helps medical professionals provide appropriate care without creating liability admissions.\n\n**DO NOT SAY:**\n- \"We are liable,\" \"It was our fault,\" or any statement implying responsibility.\n- Do not speculate on dosage, potency, or why the customer had a reaction.\n- Do not make statements beyond what is observable and factual.\n\n### Documentation Requirements (Complete Today)\n\n1. **Incident Report:** Record customer description (use identifying details if known), time of entry, product purchased (include SKU and lot number), time of incident, 911 call details, and paramedic information if available.\n\n2. **Security Footage:** Preserve all footage from today. Flag the relevant timeframe for your attorney.\n\n3. **Transaction Record:** Pull the POS receipt showing the product, quantity, and exact time of purchase.\n\n4. **Product Preservation:** If any of the same product lot remains on shelves, quarantine it immediately. Do not destroy any product.\n\n### Liability Exposure\n\n- NY Cannabis Law does not impose strict liability on retailers for adverse reactions.\n- Potential liability would require proving the store sold a defective/mislabeled product, failed age verification, or acted recklessly.\n- Standard defenses include customer was an adult who consented to purchase, product was properly labeled, and store followed all regulations.\n\n### Immediate Action Required\n\n- Report this incident to your commercial liability insurer TODAY.\n- Consult with your attorney about potential OCM reporting requirements, as hospitalization may trigger reporting obligations under NY Cannabis Law §129.",
+      "responsePreview": "To the Manager at Thrive Syracuse: ### What to Say (and Not Say) to Paramedics **DO SAY:** - \"The customer purchased a cannabis edible approximately 20 minutes ago.\" - \"Here is the product information [show product labe...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent crisis response covering all required aspects with proper compliance.",
+        "strengths": [
+          "Perfectly addresses what to say and not say to paramedics with exact wording from protocol",
+          "Provides comprehensive documentation requirements matching the protocol",
+          "Explains liability exposure accurately with legal defenses",
+          "Includes immediate action requirement to report to insurance",
+          "Maintains professional, helpful tone for a dispensary operator",
+          "Excellent compliance by avoiding any medical claims or liability admissions"
+        ],
+        "issues": [
+          "Could be slightly more urgent in tone for immediate actions",
+          "No specific mention of OCM reporting timeline"
+        ],
+        "suggestedFixes": [
+          "Add a brief statement about acting immediately on documentation steps",
+          "Specify that OCM reporting should be discussed with attorney as soon as possible"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 100,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 90,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "crisis-employee-theft-metrc",
+      "title": "Suspected employee theft — METRC investigation",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 16288,
+      "response": "Based on your METRC data showing 18 documented discrepancies totaling 45-72g of flower linked to one budtender over a two-month period, here's your required action sequence:\n\n### Internal Investigation Procedure:\n1. **Preserve all METRC records immediately** - Export complete transaction logs for all packages involved. Do not modify or delete any entries.\n2. **Review surveillance footage** - Cross-reference METRC timestamps with your budtender's shift records to establish pattern evidence.\n3. **Place the employee on administrative leave** - With pay, effective immediately. This prevents potential evidence tampering.\n4. **Document everything** - Create a written incident report noting dates, package IDs, discrepancy amounts, and your investigation timeline.\n\n### OCM Reporting Obligation:\nYou have a mandatory reporting obligation to OCM. With 18 systematic discrepancies meeting the regulatory threshold for suspected diversion, you must report within 72 hours of confirming the pattern. Prepare a self-disclosure report citing:\n- The 18 documented METRC discrepancies\n- Total estimated loss (45-72g of flower)\n- Timeframe (2 months)\n- The specific packages/employees involved\n\n### Termination Sequence:\n1. **File police report** - Use your METRC data as evidence before taking any termination action\n2. **Terminate for cause** - Reference inventory policy violations and breach of integrity, NOT theft allegations\n3. **Provide written termination letter** - Focus solely on policy violations, not unproven theft claims\n4. **Preserve all evidence** - Maintain METRC records, investigation notes, and surveillance footage\n\nFailure to report these known discrepancies to OCM within the required timeframe creates separate regulatory violations beyond the initial diversion issue.",
+      "responsePreview": "Based on your METRC data showing 18 documented discrepancies totaling 45-72g of flower linked to one budtender over a two-month period, here's your required action sequence: ### Internal Investigation Procedure: 1. **Pr...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Excellent response covering all required investigation, reporting, and termination procedures with proper grounding in the provided data.",
+        "strengths": [
+          "Correctly referenced the METRC evidence (18 discrepancies, 2-month pattern)",
+          "Provided clear, actionable steps for internal investigation",
+          "Explained OCM reporting obligation and timeline accurately",
+          "Outlined proper termination sequence preserving legal action",
+          "Maintained professional tone throughout"
+        ],
+        "issues": [
+          "Could be slightly more detailed about specific evidence preservation methods"
+        ],
+        "suggestedFixes": [
+          "Add brief note about secure storage method for METRC data during investigation",
+          "Mention when to consult legal counsel in the process"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "crisis-license-suspension-72hr",
+      "title": "72-hour emergency license suspension notice received",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 14906,
+      "response": "Based on the NY OCM emergency suspension notice you've received, here's your immediate action plan:\n\n**Emergency Legal Options:**\n1. File a stay request with OCM's Office of Cannabis Management addressed to the OCM General Counsel within the next 12-24 hours\n2. Simultaneously request an expedited administrative hearing under NY APA §§301-307\n3. Engage a NY cannabis attorney immediately - this is time-critical\n\n**Grounds for Stay Request:**\n- Characterize the violations as technical/administrative METRC errors rather than intentional non-compliance\n- Document corrective actions already taken\n- Highlight no prior violations or pattern of non-compliance\n- Demonstrate harm to employees and customers from abrupt closure (payroll disruption, patient access issues)\n\n**Operating Status During Proceedings:**\n- You CAN continue operating if OCM grants the stay\n- Operating without a stay after the 72-hour deadline constitutes operating without a license (criminal violation)\n- The stay request should explicitly request permission to continue operations while the hearing is pending\n\n**Staff Communication:**\nInform your team today:\n\"Team, we've received a regulatory notice that requires our attention. We are pursuing a legal stay to ensure we can continue operating without interruption. All METRC-responsible staff should immediately escalate any reporting issues to management. We expect to maintain normal operations while we resolve this matter.\"\n\n**Customer Communications (only if stay is denied):**\nPrepare this notice for posting on social media and your website:\n\"Thrive will be temporarily closed for a brief period. We expect to reopen shortly. Thank you for your patience.\"\n\nThe stay request must be in writing and include: (1) the basis for the stay, and (2) a declaration that you dispute the violations and have taken corrective action. OCM typically responds within 48-72 hours, so filing within the first 12-24 hours is essential.",
+      "responsePreview": "Based on the NY OCM emergency suspension notice you've received, here's your immediate action plan: **Emergency Legal Options:** 1. File a stay request with OCM's Office of Cannabis Management addressed to the OCM Gener...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive response covering all legal options, stay grounds, operating status, and communication scripts.",
+        "strengths": [
+          "Directly addresses all components of the user's question",
+          "Provides specific timeframes (12-24 hours) for filing stay request",
+          "Includes all required communication scripts for staff and customers",
+          "Clearly explains operating status during proceedings",
+          "Cites relevant legal references (NY APA §§301-307)",
+          "Uses the exact information provided in the tool context"
+        ],
+        "issues": [
+          "Could more strongly emphasize the urgency of engaging a cannabis attorney",
+          "No mention of the specific 48-72 hour response window from OCM in the timeline section"
+        ],
+        "suggestedFixes": [
+          "Add a more prominent warning about attorney engagement being time-critical",
+          "Include the OCM response timeline (48-72 hours) in the operating status section"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 95,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "crisis-social-media-viral-incident",
+      "title": "Viral social media post exposing internal operations",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 10251,
+      "response": "I need to address this regulatory exposure immediately. Here's your action plan for the next 4 hours:\n\n**Immediate (0-30 minutes):**\n1. Screenshot and preserve the TikTok post with URL and current view count (200,000+)\n2. Lock your METRC terminal immediately - this is a clear OCM compliance violation\n3. Identify all individuals visible in the video and place them on administrative leave pending investigation\n\n**30-60 minutes:**\n1. Contact your cannabis attorney immediately\n2. Do NOT post any public response without legal review\n\n**1-2 hours:**\n1. Document the two regulatory exposures:\n   - Unlocked METRC terminal (reportable process failure)\n   - Staff smoking on premises (OCM personnel policies violation)\n2. Prepare an internal incident report including:\n   - What exactly happened\n   - When it occurred\n   - Remediation steps already taken\n\n**2-4 hours:**\n1. YES, proactively contact the OCM before they contact you\n2. Call the OCM compliance hotline and report you're aware of the video and have taken immediate remediation steps\n3. This proactive self-disclosure demonstrates good faith and typically reduces penalty severity\n\nRegarding legal action against the former employee:\nPotential claims include defamation (if false statements were made), trade secret theft (if internal operational footage was proprietary), and tortious interference. However, NY Labor Law §215 whistleblower protections apply if the employee was reporting a genuine legal violation. Evaluate this carefully with counsel before pursuing any legal action.\n\nThe priority is containing the regulatory exposure and demonstrating to OCM that you're taking this seriously with immediate corrective action.",
+      "responsePreview": "I need to address this regulatory exposure immediately. Here's your action plan for the next 4 hours: **Immediate (0-30 minutes):** 1. Screenshot and preserve the TikTok post with URL and current view count (200,000+) 2...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive response addressing all aspects of the viral social media incident with actionable steps and proper compliance considerations.",
+        "strengths": [
+          "Followed the 4-hour protocol precisely",
+          "Included all key regulatory exposures and remediation steps",
+          "Addressed proactive OCM contact appropriately",
+          "Clearly outlined potential legal actions while noting whistleblower protections",
+          "Maintained professional, urgent tone suitable for a crisis situation"
+        ],
+        "issues": [
+          "Could provide more specific guidance on how to preserve TikTok content",
+          "Might benefit from mentioning documenting all internal investigation steps"
+        ],
+        "suggestedFixes": [
+          "Add brief instruction on how to properly preserve TikTok content as evidence",
+          "Include recommendation to document all investigation steps for potential legal proceedings"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "crisis-data-breach-customer-pos",
+      "title": "POS customer data breach — notification requirements",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 9620,
+      "response": "**URGENT ACTION REQUIRED: Data Breach Response for 8,400 Customers**\n\nYou have a significant breach that requires immediate attention under New York law. Here are your specific obligations:\n\n**Key Deadlines & Requirements:**\n1. **Customer Notification**: Must be completed within 30 days of discovery (NY SHIELD Act §899-aa)\n2. **OCM Notification**: Required for any cannabis purchase data breach (NY Cannabis Law §130)\n3. **NY Attorney General**: Must be notified if more than 500 NY residents affected (NY GBL §899-aa(8))\n\n**Dual Legal Exposure:**\n- Your customer purchase histories receive dual protection under NY Cannabis Law §130\n- These records cannot be disclosed to employers, insurers, or law enforcement without a warrant\n- A breach involving this data triggers both SHIELD Act and cannabis-specific violations\n\n**Required Customer Notification Content:**\nEach communication must include:\n- Date of breach discovery\n- Description of exposed data (names, emails, phone numbers, purchase histories)\n- How the breach occurred (POS vendor security incident)\n- Steps taken to contain the breach (vendor notified, investigation, access secured)\n- Protective steps for customers (monitor accounts, watch for phishing)\n- Contact information for customer questions\n- Statement about cannabis purchase history protection under NY Cannabis Law §130\n\n**Immediate Next Steps:**\n1. Confirm exact date of discovery to establish your 30-day timeline\n2. Prepare notification template that includes all required elements\n3. Notify OCM immediately regarding the cannabis purchase data breach\n4. Assess if AG notification is required (likely applies to 8,400+ customers)\n\nWould you like assistance drafting the customer notification or understanding the OCM reporting process?",
+      "responsePreview": "**URGENT ACTION REQUIRED: Data Breach Response for 8,400 Customers** You have a significant breach that requires immediate attention under New York law. Here are your specific obligations: **Key Deadlines & Requirements...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent response covering all critical aspects of the data breach notification requirements with immediate actionable steps.",
+        "strengths": [
+          "Comprehensive coverage of all required elements: 30-day SHIELD Act deadline, specific notification content, dual protection under NY Cannabis Law §130, OCM notification, and AG notification threshold",
+          "Immediate next steps clearly outlined for the operator",
+          "Proper tone that conveys urgency without causing panic",
+          "Excellent grounding in the provided legal information",
+          "All required elements from the tool context are addressed"
+        ],
+        "issues": [
+          "No explicit recommendation about credit monitoring (though it's noted as not required)",
+          "Could potentially include a reminder about preserving evidence for potential legal action"
+        ],
+        "suggestedFixes": [
+          "Add a brief note about preserving evidence for potential legal proceedings",
+          "Include one sentence about recommended credit monitoring since financial data may have been exposed"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 100,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "crisis-power-outage-temperature",
+      "title": "Extended power outage — temperature excursion on inventory",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 7141,
+      "response": "**CRITICAL COMPLIANCE ALERT: Temperature Excursion Response Required**\n\nYour 94°F temperature excursion for 6 hours requires immediate action under NY adult-use regulations. Do NOT sell any of the potentially affected products without re-testing.\n\n**Immediate Actions Required:**\n1. Quarantine all 300 edibles and 50 vape carts in METRC immediately\n2. Remove them from the sales floor and store in a separate, clearly labeled quarantine area\n3. Create METRC \"On Hold\" designations for all affected package UIDs\n\n**Testing Obligations:**\n- Melted/re-solidified chocolate edibles are considered a quality deviation per NY OCM\n- Potency may have changed due to heat degradation\n- Microbial growth is possible in edibles after temperature excursions\n- Vape cartridges may have oil consistency changes and terpene degradation\n- Vape hardware (battery connections) may also be compromised\n\n**Resolution Options:**\n1. Re-test with original COA lab—if tests pass, return to inventory\n2. Destroy and write off products that cannot be salvaged\n\n**METRC Destruction Process:**\n- Create destruction event in METRC for all products you cannot sell\n- Document: reason = \"temperature excursion — quality deviation\", date, witness signature, method of destruction\n- For destruction values exceeding $5,000, document in compliance file (no separate OCM report required unless this indicates a pattern of quality deviations)\n\nThe edibles with melting/re-solidification cannot be sold without re-testing. Proceed with quarantine and METRC documentation immediately.",
+      "responsePreview": "**CRITICAL COMPLIANCE ALERT: Temperature Excursion Response Required** Your 94°F temperature excursion for 6 hours requires immediate action under NY adult-use regulations. Do NOT sell any of the potentially affected pr...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive response addressing temperature excursion protocols with actionable steps.",
+        "strengths": [
+          "Properly addresses all required elements: quarantine, METRC procedures, testing obligations, and destruction process",
+          "Correctly references NY adult-use regulations without mentioning medical cannabis",
+          "Clearly states products cannot be sold without re-testing",
+          "Provides specific immediate actions for the operator",
+          "Includes proper METRC destruction documentation requirements"
+        ],
+        "issues": [
+          "Could potentially add slightly more detail about timeline for testing completion",
+          "No explicit mention of the operator's need to notify any other stakeholders (like manager/supervisor)"
+        ],
+        "suggestedFixes": [
+          "Consider adding a note about typical testing completion timeline if available",
+          "Briefly mention documenting the incident internally for compliance review"
+        ],
+        "dimensions": {
+          "grounding": 95,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "ops-expired-product-on-shelf",
+      "title": "Expired products discovered on retail shelf",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 11397,
+      "response": "**Immediate Action Required:**\n\n1. **Quarantine remaining products** immediately to prevent further potential sales of expired items.\n\n2. **Document all affected products** - Create a comprehensive list of the 22 expired units including product names, SKU numbers, batch/lot numbers, best-by dates, and quantities.\n\n3. **Conduct a sales review** - Identify all sales of these expired products since their best-by dates to determine which customers may have been affected.\n\n**Reporting Obligation:**\n\nUnder NY Cannabis Control Board (CCB) regulations, you are required to report this incident to the Office of Cannabis Management (OCM) immediately. Specifically:\n\n- Submit a written incident report detailing the scope, timeline, and corrective actions taken\n- Include the number of units sold past their best-by dates and the dates of those sales\n- Be prepared for potential follow-up inquiries from OCM inspectors\n\n**Destruction Documentation Process:**\n\nFor the remaining units, you must:\n\n1. Complete a formal \"Destruction of Cannabis Products\" form with all required product details\n2. Have at least two employees witness and sign the destruction documentation\n3. Document the destruction method (e.g., returned to licensed processor for destruction)\n4. Maintain these records for at least 7 years as per OCM regulations\n\n**Recurrence Prevention Process:**\n\nImplement these changes immediately:\n\n1. **Enhanced inventory tracking** - Implement automated alerts in your POS system when products approach expiration dates\n2. **Daily shelf audits** - Make expiration date checking a mandatory part of daily opening/closing procedures\n3. **Staff retraining** - Conduct mandatory training on product rotation procedures and expiration date awareness\n4. **Process audit** - Review receiving procedures to ensure products are properly logged with expiration dates upon arrival\n\nWould you like me to provide you with a template for the destruction documentation or guidance on how to structure your OCM incident report?",
+      "responsePreview": "**Immediate Action Required:** 1. **Quarantine remaining products** immediately to prevent further potential sales of expired items. 2. **Document all affected products** - Create a comprehensive list of the 22 expired ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "good",
+        "score": 78,
+        "responseReady": true,
+        "summary": "Comprehensive response with good guidance on expired product handling but missing METRC specifics.",
+        "strengths": [
+          "Clear action steps for immediate quarantine and documentation",
+          "Proper recognition of OCM reporting requirement",
+          "Detailed destruction documentation process with witness requirements",
+          "Multiple prevention strategies suggested"
+        ],
+        "issues": [
+          "Does not address the potential issue of products sold after expiration date",
+          "Lacks METRC-specific instructions for tracking and reporting expired products",
+          "Does not mention required timeframe for OCM reporting",
+          "No mention of customer notification if expired products were sold"
+        ],
+        "suggestedFixes": [
+          "Add guidance on customer communication if expired products were sold",
+          "Include METRC reporting requirements and tracking procedures",
+          "Specify the exact timeframe for OCM reporting (typically 24-72 hours)",
+          "Add reference to specific OCM forms or reporting portals"
+        ],
+        "dimensions": {
+          "grounding": 80,
+          "actionability": 85,
+          "completeness": 70,
+          "compliance": 90,
+          "tone": 90,
+          "launchReadiness": 75
+        }
+      }
+    },
+    {
+      "id": "ops-vendor-sample-policy",
+      "title": "Vendor leaving product samples — compliance rules",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 7372,
+      "response": "To receive these cannabis product samples from your vendor, you must follow these strict compliance requirements under NY OCM rules:\n\n**METRC Transfer Requirement:**\n- The vendor must initiate a formal METRC transfer for the 5 sample units to your dispensary license number. There is no exception for \"samples\" - all cannabis transfers must be tracked in METRC.\n- Your dispensary must accept this transfer in METRC by scanning the package UIDs and confirming the received quantities.\n- These 5 units must immediately appear in your METRC inventory as \"on hand\" - they cannot exist outside the system.\n\n**Licensed Vendor Requirement:**\n- The vendor must hold a valid NY cannabis distributor or cultivator license to transfer these products legally. Accepting samples from an unlicensed source creates serious license risk for Thrive Syracuse.\n\n**Sample Disposal:**\n- If these samples are for staff evaluation and not for sale, you must create a METRC \"waste\" or \"destruction\" event documenting their disposal after evaluation. Simply allowing them to disappear from inventory is a METRC violation.\n\n**Staff Consumption Prohibition:**\n- On-site consumption by staff during work hours is NOT permitted at Thrive Syracuse as a retail dispensary without an On-Site Consumption License.\n- Samples intended for \"staff tasting\" must be evaluated off-premises and off-shift to avoid violation of NY MRTA §137 restrictions on workplace consumption.\n\n**Recommended Practice:**\nDesignate one manager to take the samples off-site for evaluation during off-hours, then provide a comprehensive briefing to the entire staff about the product characteristics.\n\nFailure to follow these METRC transfer and inventory protocols could result in compliance violations and potential license actions against Thrive Syracuse.",
+      "responsePreview": "To receive these cannabis product samples from your vendor, you must follow these strict compliance requirements under NY OCM rules: **METRC Transfer Requirement:** - The vendor must initiate a formal METRC transfer for...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate response covering all required compliance aspects for receiving cannabis samples.",
+        "strengths": [
+          "Excellent grounding in NY OCM Cannabis Sample Transfer Protocol",
+          "Clear explanation of METRC requirements for sample transfers",
+          "Proper emphasis on licensed vendor requirement",
+          "Correct handling of staff consumption prohibitions",
+          "Actionable recommendations for sample evaluation process",
+          "Professional and clear tone appropriate for dispensary operators"
+        ],
+        "issues": [
+          "Minor opportunity to reinforce the METRC transfer steps more explicitly"
+        ],
+        "suggestedFixes": [
+          "Consider briefly listing the exact METRC transfer steps from the protocol for absolute clarity"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 100,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 100
+        }
+      }
+    },
+    {
+      "id": "ops-large-cash-purchase-protocol",
+      "title": "Customer paying $9,500 cash — structuring concerns",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 5692,
+      "response": "Under New York cannabis regulations, you should not proceed with this transaction. The customer's explicit statement about staying under $10,000 raises a significant structuring concern.\n\nRefuse the sale and document the refusal in your customer interaction records. If possible, have the customer provide identification and record the refusal reason as \"policy compliance\" without mentioning structuring suspicions directly to the customer.\n\nFile a Suspicious Activity Report (SAR) with your dispensary's designated compliance officer and maintain it in your records. Document the customer's statement about wanting to stay under $10,000, the amount of the proposed transaction, and your refusal to proceed.\n\nThis protects your license from potential regulatory violations related to money structuring, which is a serious concern under both federal and New York state cannabis regulations. Document all steps taken in this situation.",
+      "responsePreview": "Under New York cannabis regulations, you should not proceed with this transaction. The customer's explicit statement about staying under $10,000 raises a significant structuring concern. Refuse the sale and document the...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Excellent guidance on handling suspected structuring with clear compliance-focused steps.",
+        "strengths": [
+          "Correctly identifies structuring concerns based on customer's statement",
+          "Provides clear, actionable steps: refuse sale and file SAR",
+          "Advises proper documentation without alerting the customer",
+          "References relevant regulatory framework (NY cannabis regulations)",
+          "Emphasizes protection of the business license",
+          "Maintains professional tone throughout"
+        ],
+        "issues": [
+          "Could provide more specific guidance on what exactly to document in the SAR",
+          "Mentioning the specific SAR deadline (30 days) might be helpful"
+        ],
+        "suggestedFixes": [
+          "Add a brief note about including the date, time, and staff involved in the SAR",
+          "Consider mentioning the 30-day SAR filing deadline for completeness"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 95,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "ops-gift-card-escheatment",
+      "title": "Unredeemed gift cards — escheatment law",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 18950,
+      "response": "Based on New York's Abandoned Property Law (NYABL), your dispensary's unredeemed gift cards are indeed subject to escheatment requirements. Here's what you need to know:\n\n**NYABL Application:** Yes, cannabis dispensaries are considered retail businesses under NY law, so your gift card balances fall under the state's abandoned property provisions.\n\n**Dormancy Period:** Gift card balances are considered abandoned after 5 years of inactivity (no redemption or customer contact). The 5-year clock starts from either the last transaction or the card issuance date, whichever is later.\n\n**Dormancy Fees:** You may charge dormancy fees ONLY if:\n- They are clearly disclosed at the time of sale\n- Applied after 12 months of inactivity\n- Do not reduce the card balance to zero\n\n**Action Required:** With $95,000 in unredeemed balances from the past 3 years:\n1. Identify which cards are approaching the 4-5 year mark\n2. Begin customer outreach for those nearing dormancy\n3. Maintain detailed records of:\n   - Purchase date\n   - Last redemption date\n   - Customer contact information\n\nYou will need to file an annual abandoned property report by March 10th with the NYS Office of the State Comptroller and remit any funds for cards that have reached the 5-year dormancy period. Failure to report can result in penalties of up to $500 per day per unreported item.\n\nWould you like assistance with developing a customer outreach strategy for cards approaching the dormancy period?",
+      "responsePreview": "Based on New York's Abandoned Property Law (NYABL), your dispensary's unredeemed gift cards are indeed subject to escheatment requirements. Here's what you need to know: **NYABL Application:** Yes, cannabis dispensaries...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 90,
+        "responseReady": true,
+        "summary": "Comprehensive and accurate response covering all key aspects of NY gift card escheatment law.",
+        "strengths": [
+          "Correctly applies NY Abandoned Property Law to cannabis dispensaries",
+          "Accurately explains the 5-year dormancy period",
+          "Provides clear guidance on dormancy fees with proper conditions",
+          "Identifies specific action steps for the $95K in unredeemed balances",
+          "Includes important deadline and penalty information",
+          "Maintains professional tone throughout"
+        ],
+        "issues": [
+          "Could provide more detail on how to structure the customer outreach program",
+          "Doesn't mention any documentation for compliance verification"
+        ],
+        "suggestedFixes": [
+          "Add specific recommendations for implementing customer outreach for cards approaching dormancy period",
+          "Include brief guidance on maintaining documentation for audit purposes"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 90,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    },
+    {
+      "id": "ops-employee-cannabis-use-positive-test",
+      "title": "Budtender tests positive for THC — termination rules",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 25791,
+      "response": "Based on NY MRTA Cannabis Employee Protections and your situation with the budtender who tested positive for THC after a workplace incident:\n\n**Key Distinction: Impairment vs. Detection**\nNew York law prohibits taking adverse action against an employee solely for cannabis detection (which could reflect off-duty use). However, you may take action if you can document the employee was actually impaired *during work hours*. A positive drug test alone is insufficient for termination.\n\n**Safety-Sensitive Roles**\nUnder NY law, budtenders are generally NOT classified as safety-sensitive roles. Safety-sensitive roles are narrowly defined as those involving operating heavy machinery, vehicles, weapons, or child care. The exception for safety-sensitive roles in cannabis dispensaries is narrow and typically doesn't apply to standard budtender duties.\n\n**Accommodations**\nNo specific accommodations are required for recreational cannabis use under NY MRTA. However, your written drug policy must clearly define \"impairment\" - policies silent on impairment are vulnerable to legal challenges.\n\n**Documentation Requirements**\nTo terminate based on impairment, you need:\n- Detailed incident report with date/time\n- Specific behavioral observations (slurred speech, poor balance, slow response times, errors)\n- Witness statements from managers/colleagues\n- METRC/POS discrepancies from the incident day's shift\n- Post-incident drug test results\n\n**Immediate Next Steps**\n1. **RIGHT NOW**: Place the employee on paid administrative leave pending investigation\n2. **TODAY**: Document all behavioral observations from the workplace incident in writing\n3. **TODAY**: Pull METRC/POS records from the employee's shift on the incident day\n4. **THIS WEEK**: Consult with an employment attorney before taking any adverse action\n5. **IMMEDIATELY**: Review your written drug policy - if it doesn't distinguish \"impairment\" from \"detection,\" update it with legal counsel\n\nTerminating based solely on a positive drug test without evidence of impairment would violate NY MRTA and expose your dispensary to wrongful termination claims. The documentation of impairment is your critical protection.",
+      "responsePreview": "Based on NY MRTA Cannabis Employee Protections and your situation with the budtender who tested positive for THC after a workplace incident: **Key Distinction: Impairment vs. Detection** New York law prohibits taking ad...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 95,
+        "responseReady": true,
+        "summary": "Comprehensive, accurate response covering all required aspects with clear next steps.",
+        "strengths": [
+          "Correctly distinguished impairment from detection as required by MRTA",
+          "Accurately explained that budtenders are generally not safety-sensitive roles",
+          "Provided complete documentation requirements",
+          "Gave clear, sequenced immediate next steps",
+          "Maintained professional tone throughout"
+        ],
+        "issues": [
+          "Minor nitpick: could more explicitly mention that testing positive without impairment evidence would violate MRTA"
+        ],
+        "suggestedFixes": [
+          "Add one sentence explicitly stating that terminating based solely on a positive test without impairment evidence would violate NY MRTA"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 100,
+          "completeness": 100,
+          "compliance": 100,
+          "tone": 100,
+          "launchReadiness": 95
+        }
+      }
+    },
+    {
+      "id": "ops-out-of-state-id-verification",
+      "title": "Out-of-state ID verification — acceptance rules",
+      "kind": "non_data",
+      "threadType": "operator",
+      "configuredAgent": "deebo",
+      "resolvedAgent": "deebo",
+      "personaId": "deebo",
+      "durationMs": 10210,
+      "response": "Under NY OCM regulations (9 NYCRR §105.2), you must accept out-of-state IDs and international passports for age verification. Here's what you need to implement immediately:\n\n**Approved IDs for NY Cannabis Purchases:**\n- Valid US driver's licenses from any state (including Florida, Texas)\n- Valid US passports or US passport cards\n- Valid foreign government-issued passports (international passports ARE acceptable)\n- Valid US military IDs\n- Federally recognized tribal ID cards\n\n**Critical Protocol for Altered/Suspicious IDs:**\n- Do NOT proceed with the sale if an ID appears altered or suspicious\n- Document the attempt (description of customer, date/time, concerns noted)\n- Do NOT confiscate the ID - you have no legal authority to do so\n- Call local law enforcement if you suspect fraud\n\n**Compliance Risk Considerations:**\nAccepting valid out-of-state IDs does not create additional compliance risk under NY regulations if properly verified. The risk comes from inconsistent application of these rules.\n\n**Immediate Action Required:**\n1. Update your staff training to explicitly include international passports\n2. Create a visual reference guide for all acceptable ID types\n3. Implement a consistent verification process across all staff members\n4. Document all ID refusals with supervisor review\n\nYou must ensure all staff understand that foreign passports are explicitly accepted under OCM rules. Any refusal based on ID type could result in enforcement action.",
+      "responsePreview": "Under NY OCM regulations (9 NYCRR §105.2), you must accept out-of-state IDs and international passports for age verification. Here's what you need to implement immediately: **Approved IDs for NY Cannabis Purchases:** - ...",
+      "toolCalls": [],
+      "grade": {
+        "grade": "great",
+        "score": 92,
+        "responseReady": true,
+        "summary": "Comprehensive response that clearly explains NY OCM ID verification rules, addresses all components of the question, and provides actionable next steps.",
+        "strengths": [
+          "Correctly cites 9 NYCRR §105.2 as required",
+          "Explicitly confirms foreign passports are acceptable",
+          "Provides clear protocol for handling altered/suspicious IDs",
+          "Includes practical next steps for staff training",
+          "Maintains professional tone with clear explanations",
+          "Addresses compliance risk considerations"
+        ],
+        "issues": [
+          "Could be more specific about how to verify foreign documents beyond just visual inspection"
+        ],
+        "suggestedFixes": [
+          "Add brief guidance on staff training for foreign document verification techniques",
+          "Consider including a reference to where staff can find official guidance on document security features"
+        ],
+        "dimensions": {
+          "grounding": 100,
+          "actionability": 90,
+          "completeness": 95,
+          "compliance": 100,
+          "tone": 95,
+          "launchReadiness": 90
+        }
+      }
+    }
+  ]
+}
