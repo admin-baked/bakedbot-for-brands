@@ -512,7 +512,7 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
 
         // Fetch customers and orders in parallel
         const [customers, orders] = await Promise.all([
-            client.getAllCustomersPaginated(30).catch(err => {
+            client.getAllCustomersPaginated(200).catch(err => {
                 logger.error('[POS_SYNC] Failed to fetch customers', { orgId, error: err.message });
                 return [];
             }),

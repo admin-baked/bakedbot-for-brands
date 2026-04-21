@@ -88,21 +88,98 @@ function isMissingIndexError(error: unknown): boolean {
     return message.includes('requires an index') || message.includes('FAILED_PRECONDITION');
 }
 
-export async function computeCohortData(
+interface CustomerActivityRecord {
+    key: string;
+    orderCount: number;
+    visitCount: number;
+    firstActivityAt: Date | null;
+    lastActivityAt: Date | null;
+}
+
+function coerceCount(value: unknown): number {
+    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function normalizeCohortEmail(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const normalized = value.trim().toLowerCase();
+    return normalized ? normalized : null;
+}
+
+function isCohortPlaceholderEmail(email: string): boolean {
+    return email.endsWith('@alleaves.local') || email.endsWith('@unknown.local');
+}
+
+function normalizeCohortAlleavesId(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) return null;
+    if (normalized.startsWith('cid_')) return normalized;
+    if (normalized.startsWith('alleaves_')) return `cid_${normalized.slice('alleaves_'.length)}`;
+    return null;
+}
+
+function getActivityRecordKey(docId: string, data: FirebaseFirestore.DocumentData): string {
+    const email = normalizeCohortEmail(data.email) ?? normalizeCohortEmail(docId);
+    if (email && !isCohortPlaceholderEmail(email)) return email;
+
+    const alleavesCustomerId = normalizeCohortAlleavesId(data.alleavesCustomerId)
+        ?? normalizeCohortAlleavesId(docId);
+    return alleavesCustomerId || email || docId;
+}
+
+function mergeActivityRecord(
+    records: Map<string, CustomerActivityRecord>,
+    next: CustomerActivityRecord,
+): void {
+    const existing = records.get(next.key);
+    if (!existing) {
+        records.set(next.key, next);
+        return;
+    }
+
+    const firstActivityAt = [existing.firstActivityAt, next.firstActivityAt]
+        .filter((value): value is Date => Boolean(value))
+        .sort((left, right) => left.getTime() - right.getTime())[0] ?? null;
+    const lastActivityAt = [existing.lastActivityAt, next.lastActivityAt]
+        .filter((value): value is Date => Boolean(value))
+        .sort((left, right) => right.getTime() - left.getTime())[0] ?? null;
+
+    records.set(next.key, {
+        key: next.key,
+        orderCount: Math.max(existing.orderCount, next.orderCount),
+        visitCount: Math.max(existing.visitCount, next.visitCount),
+        firstActivityAt,
+        lastActivityAt,
+    });
+}
+
+async function loadCustomerActivityRecords(
+    db: FirebaseFirestore.Firestore,
     orgId: string,
-    daysBack: 90 | 180 | 365
-): Promise<CustomerVisitCohortResult> {
-    const db = getAdminFirestore();
-    const now = new Date();
-    const cutoff = new Date(now.getTime() - daysBack * 86_400_000);
+): Promise<CustomerActivityRecord[]> {
+    const records = new Map<string, CustomerActivityRecord>();
 
-    logger.info('[CohortAnalytics] Computing visit cohort', { orgId, daysBack });
+    const spendingSnap = await db
+        .collection('tenants').doc(orgId)
+        .collection('customer_spending')
+        .limit(5000)
+        .get();
 
-    // Query customers active in the period (lastOrderDate >= cutoff)
-    // We use the pre-cached orderCount field on CustomerProfile.
-    let snap: FirebaseFirestore.QuerySnapshot;
+    spendingSnap.docs.forEach((doc) => {
+        const data = doc.data();
+        mergeActivityRecord(records, {
+            key: getActivityRecordKey(doc.id, data),
+            orderCount: coerceCount(data.orderCount),
+            visitCount: 0,
+            firstActivityAt: firestoreTimestampToDate(data.firstOrderDate),
+            lastActivityAt: firestoreTimestampToDate(data.lastOrderDate),
+        });
+    });
+
+    let customersSnap: FirebaseFirestore.QuerySnapshot;
     try {
-        snap = await db
+        customersSnap = await db
             .collection('customers')
             .where('orgId', '==', orgId)
             .where('archived', '!=', true)
@@ -117,27 +194,56 @@ export async function computeCohortData(
             error: error instanceof Error ? error.message : String(error),
         });
 
-        snap = await db
+        customersSnap = await db
             .collection('customers')
             .where('orgId', '==', orgId)
             .get();
     }
 
-    // Filter to customers active in the period — POS orders OR check-in visits
-    const activeDocs = snap.docs.filter(doc => {
+    customersSnap.docs.forEach((doc) => {
         const data = doc.data();
-        if (data.archived === true) return false;
-        const lastOrder = firestoreTimestampToDate(data.lastOrderDate);
+        if (data.archived === true) return;
+
         const firstOrder = firestoreTimestampToDate(data.firstOrderDate);
-        if (lastOrder && lastOrder >= cutoff) return true;
-        if (firstOrder && firstOrder >= cutoff) return true;
-        // Also count check-in activity (tablet/kiosk visits without POS orders)
+        const lastOrder = firestoreTimestampToDate(data.lastOrderDate);
         const lastCheckin = firestoreTimestampToDate(data.lastCheckinAt);
-        if (lastCheckin && lastCheckin >= cutoff) return true;
-        return false;
+        const firstActivityAt = [firstOrder, lastCheckin]
+            .filter((value): value is Date => Boolean(value))
+            .sort((left, right) => left.getTime() - right.getTime())[0] ?? firstOrder ?? null;
+        const lastActivityAt = [lastOrder, lastCheckin]
+            .filter((value): value is Date => Boolean(value))
+            .sort((left, right) => right.getTime() - left.getTime())[0] ?? lastOrder ?? null;
+
+        mergeActivityRecord(records, {
+            key: getActivityRecordKey(doc.id, data),
+            orderCount: coerceCount(data.orderCount),
+            visitCount: coerceCount(data.visitCount),
+            firstActivityAt,
+            lastActivityAt,
+        });
     });
 
-    const total = activeDocs.length;
+    return Array.from(records.values());
+}
+
+export async function computeCohortData(
+    orgId: string,
+    daysBack: 90 | 180 | 365
+): Promise<CustomerVisitCohortResult> {
+    const db = getAdminFirestore();
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - daysBack * 86_400_000);
+
+    logger.info('[CohortAnalytics] Computing visit cohort', { orgId, daysBack });
+
+    const activeRecords = (await loadCustomerActivityRecords(db, orgId))
+        .filter((record) => {
+            if (record.lastActivityAt && record.lastActivityAt >= cutoff) return true;
+            if (record.firstActivityAt && record.firstActivityAt >= cutoff) return true;
+            return false;
+        });
+
+    const total = activeRecords.length;
 
     if (total === 0) {
         const empty: CohortBucket[] = [1, 2, 3, 4, 5].map(v => ({
@@ -165,9 +271,8 @@ export async function computeCohortData(
     // Bucket by activity count: POS orderCount OR check-in visitCount, whichever is higher.
     // This ensures tablet-only customers (no POS orders yet) still appear in the funnel.
     const counts = [0, 0, 0, 0, 0]; // index 0=1visit, 1=2visits, 2=3visits, 3=4visits, 4=5+
-    for (const doc of activeDocs) {
-        const data = doc.data();
-        const activityCount = Math.max((data.orderCount as number) || 0, (data.visitCount as number) || 0) || 1;
+    for (const record of activeRecords) {
+        const activityCount = Math.max(record.orderCount, record.visitCount) || 1;
         const idx = Math.min(activityCount, 5) - 1;
         counts[idx]++;
     }
@@ -378,4 +483,4 @@ function buildSummary(
 
     return lines.join('\n');
 }
-
+

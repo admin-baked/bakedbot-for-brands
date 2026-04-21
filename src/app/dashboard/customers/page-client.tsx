@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { buildAutoCustomerTags, mergeCustomerTags } from '@/lib/customers/profile-derivations';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,9 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-    Users, UserPlus, AlertTriangle, Crown, Search,
-    Download, Upload, Loader2, TrendingUp, Sparkles, CheckCircle2, Rocket, MessageSquare
+    Users, AlertTriangle, Crown, Search,
+    Download, Upload, Loader2, TrendingUp, Sparkles, CheckCircle2, Rocket, MessageSquare, ArrowUpDown
 } from 'lucide-react';
+import { Pagination } from '@/components/ui/pagination';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     Dialog,
     DialogContent,
@@ -32,6 +34,16 @@ interface CRMDashboardProps {
     brandId: string;
 }
 
+type CustomerSortBy = 'lastOrderDate' | 'totalSpent' | 'orderCount' | 'displayName' | 'createdAt';
+type SortOrder = 'asc' | 'desc';
+
+function getCustomerDateMs(customer: CustomerProfile, field: 'lastOrderDate' | 'createdAt'): number {
+    const value = customer[field];
+    if (!value) return 0;
+    const ms = new Date(value).getTime();
+    return Number.isNaN(ms) ? 0 : ms;
+}
+
 export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps) {
     const { toast } = useToast();
     const router = useRouter();
@@ -44,15 +56,21 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
     const [spendingLoading, setSpendingLoading] = useState(false);
     const [spendingLoaded, setSpendingLoaded] = useState(false);
     const [spendingCustomerCount, setSpendingCustomerCount] = useState(0);
-    const [spendingMeta, setSpendingMeta] = useState<{ cached: boolean; duration: number | null } | null>(null);
+    const [spendingMeta, setSpendingMeta] = useState<{ cached: boolean; duration: number | null; source?: string | null } | null>(null);
     const [launchingPlaybook, setLaunchingPlaybook] = useState<SegmentSuggestion['playbookKind'] | null>(null);
     const [cohortData, setCohortData] = useState<CustomerVisitCohortResult | null>(null);
     const [cohortLoading, setCohortLoading] = useState(false);
+    const [sortBy, setSortBy] = useState<CustomerSortBy>('lastOrderDate');
+    const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [pageSize, setPageSize] = useState(50);
+    const [currentPage, setCurrentPage] = useState(1);
     const spendingFetchedRef = useRef(false);
 
-    const loadSuggestions = useCallback(async () => {
+    const loadSuggestions = useCallback(async (stats?: CRMStats) => {
         try {
-            const segs = await getSuggestedSegments(brandId);
+            const segs = await getSuggestedSegments(brandId, stats);
             setSuggestions(segs);
         } catch (error) {
             console.error('Failed to load playbook suggestions:', error);
@@ -69,7 +87,7 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
         try {
             const result = await getCustomers({ orgId: brandId });
             setData(result);
-            await loadSuggestions();
+            await loadSuggestions(result.stats);
         } catch (error) {
             console.error('Failed to load customers:', error);
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to load customer data' });
@@ -104,7 +122,7 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
         if (!initialData) {
             loadData();
         } else {
-            loadSuggestions();
+            loadSuggestions(initialData.stats);
         }
     }, [initialData, brandId, loadData, loadSuggestions]);
 
@@ -129,6 +147,7 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                 setSpendingMeta({
                     cached: Boolean(json.cached),
                     duration: typeof json.duration === 'number' ? json.duration : null,
+                    source: typeof json.source === 'string' ? json.source : null,
                 });
 
                 if (!json.success || !json.spending) return;
@@ -225,7 +244,7 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                 setSpendingCustomerCount(matchedCount);
 
                 // Reload AI suggestions with enriched data
-                loadSuggestions().catch(() => {});
+                loadSuggestions(enrichedStats).catch(() => {});
             } catch (err) {
                 console.error('[CRM] Failed to load spending data:', err);
                 toast({
@@ -240,7 +259,7 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
         }
 
         enrichWithSpending();
-    }, [data, brandId, toast]);
+    }, [data, brandId, loadSuggestions, toast]);
 
     const handleExport = () => {
         if (!data?.customers.length) return;
@@ -267,24 +286,69 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
         document.body.removeChild(link);
     };
 
-    // Filter customers
-    const filteredCustomers = data?.customers.filter(c => {
-        // Segment filter
-        if (activeSegment !== 'all' && c.segment !== activeSegment) return false;
+    const filteredCustomers = useMemo(() => {
+        const fromMs = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null;
+        const toMs = dateTo ? new Date(`${dateTo}T23:59:59.999`).getTime() : null;
+        const searchLower = search.trim().toLowerCase();
 
-        // Search filter
-        if (search) {
-            const searchLower = search.toLowerCase();
-            return (
-                c.email.toLowerCase().includes(searchLower) ||
-                c.displayName?.toLowerCase().includes(searchLower) ||
-                c.firstName?.toLowerCase().includes(searchLower) ||
-                c.lastName?.toLowerCase().includes(searchLower) ||
-                c.allTags?.some(tag => tag.toLowerCase().includes(searchLower))
-            );
+        return (data?.customers || [])
+            .filter((customer) => {
+                if (activeSegment !== 'all' && customer.segment !== activeSegment) return false;
+
+                if (fromMs !== null || toMs !== null) {
+                    const lastOrderMs = getCustomerDateMs(customer, 'lastOrderDate');
+                    if (!lastOrderMs) return false;
+                    if (fromMs !== null && lastOrderMs < fromMs) return false;
+                    if (toMs !== null && lastOrderMs > toMs) return false;
+                }
+
+                if (!searchLower) return true;
+
+                return (
+                    customer.email.toLowerCase().includes(searchLower) ||
+                    customer.displayName?.toLowerCase().includes(searchLower) ||
+                    customer.firstName?.toLowerCase().includes(searchLower) ||
+                    customer.lastName?.toLowerCase().includes(searchLower) ||
+                    customer.allTags?.some(tag => tag.toLowerCase().includes(searchLower))
+                );
+            })
+            .sort((left, right) => {
+                let leftValue: string | number;
+                let rightValue: string | number;
+
+                if (sortBy === 'displayName') {
+                    leftValue = (left.displayName || left.email).toLowerCase();
+                    rightValue = (right.displayName || right.email).toLowerCase();
+                } else if (sortBy === 'lastOrderDate' || sortBy === 'createdAt') {
+                    leftValue = getCustomerDateMs(left, sortBy);
+                    rightValue = getCustomerDateMs(right, sortBy);
+                } else {
+                    leftValue = left[sortBy] || 0;
+                    rightValue = right[sortBy] || 0;
+                }
+
+                if (leftValue < rightValue) return sortOrder === 'asc' ? -1 : 1;
+                if (leftValue > rightValue) return sortOrder === 'asc' ? 1 : -1;
+                return 0;
+            });
+    }, [activeSegment, data?.customers, dateFrom, dateTo, search, sortBy, sortOrder]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / pageSize));
+    const visiblePage = Math.min(currentPage, totalPages);
+    const paginatedCustomers = filteredCustomers.slice(
+        (visiblePage - 1) * pageSize,
+        visiblePage * pageSize,
+    );
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeSegment, dateFrom, dateTo, pageSize, search, sortBy, sortOrder]);
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
         }
-        return true;
-    }) || [];
+    }, [currentPage, totalPages]);
 
     const handleSuggestionClick = (suggestion: SegmentSuggestion) => {
         const filter = suggestion.filters[0];
@@ -303,6 +367,11 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
             return;
         }
 
+        if (suggestion.statusHint === 'active') {
+            router.push('/dashboard/playbooks');
+            return;
+        }
+
         setLaunchingPlaybook(suggestion.playbookKind);
         try {
             const result = await launchLifecyclePlaybook(suggestion.playbookKind, brandId);
@@ -318,8 +387,8 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
             toast({
                 title: suggestion.name,
                 description: result.status === 'active'
-                    ? `${suggestion.name} is already active for this organization.`
-                    : `${suggestion.name} is ready in sandbox. Activate it from Playbooks when you are satisfied.`,
+                    ? `${suggestion.name} is active for this organization.`
+                    : `${suggestion.name} is ready for review.`,
             });
             await loadSuggestions();
         } catch (error) {
@@ -379,7 +448,9 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
             {spendingLoaded && spendingCustomerCount > 0 && (
                 <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
                     <CheckCircle2 className="h-4 w-4" />
-                    {spendingMeta?.cached
+                    {spendingMeta?.source === 'customer_spending_index'
+                        ? `Loaded indexed POS spending for ${spendingCustomerCount} customers.`
+                        : spendingMeta?.cached
                         ? `Loaded cached POS spending snapshot for ${spendingCustomerCount} customers.`
                         : `Loaded fresh POS spending snapshot for ${spendingCustomerCount} customers.`}
                     {spendingMeta?.duration != null ? ` (${spendingMeta.duration} ms)` : ''} Segments updated.
@@ -502,7 +573,7 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                                             ) : (
                                                 <Rocket className="h-4 w-4 mr-2" />
                                             )}
-                                            {s.ctaLabel || 'Launch Playbook'}
+                                            {s.ctaLabel || 'Open Playbook'}
                                         </Button>
                                     </div>
                                 </div>
@@ -629,10 +700,10 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                         <div>
                             <CardTitle>Customer List</CardTitle>
                             <CardDescription>
-                                {filteredCustomers.length} customers {activeSegment !== 'all' ? `in ${activeSegment}` : ''}
+                                {filteredCustomers.length.toLocaleString()} customers {activeSegment !== 'all' ? `in ${activeSegment}` : ''}
                             </CardDescription>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
                             <div className="relative">
                                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
@@ -642,6 +713,54 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                                     className="pl-8 w-64"
                                 />
                             </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">Last order</span>
+                                <Input
+                                    type="date"
+                                    value={dateFrom}
+                                    onChange={(event) => setDateFrom(event.target.value)}
+                                    className="w-40"
+                                    aria-label="Last order from"
+                                />
+                                <Input
+                                    type="date"
+                                    value={dateTo}
+                                    onChange={(event) => setDateTo(event.target.value)}
+                                    className="w-40"
+                                    aria-label="Last order to"
+                                />
+                            </div>
+                            <Select value={sortBy} onValueChange={(value) => setSortBy(value as CustomerSortBy)}>
+                                <SelectTrigger className="w-44">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="lastOrderDate">Last order</SelectItem>
+                                    <SelectItem value="totalSpent">Total spent</SelectItem>
+                                    <SelectItem value="orderCount">Orders</SelectItem>
+                                    <SelectItem value="displayName">Customer</SelectItem>
+                                    <SelectItem value="createdAt">Created</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
+                                <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="desc">Desc</SelectItem>
+                                    <SelectItem value="asc">Asc</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value))}>
+                                <SelectTrigger className="w-28">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="25">25 rows</SelectItem>
+                                    <SelectItem value="50">50 rows</SelectItem>
+                                    <SelectItem value="100">100 rows</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                 </CardHeader>
@@ -659,11 +778,39 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Customer</TableHead>
+                                    <TableHead>
+                                        <Button variant="ghost" size="sm" className="-ml-3" onClick={() => {
+                                            setSortBy('displayName');
+                                            setSortOrder(sortBy === 'displayName' && sortOrder === 'asc' ? 'desc' : 'asc');
+                                        }}>
+                                            Customer <ArrowUpDown className="ml-2 h-3.5 w-3.5" />
+                                        </Button>
+                                    </TableHead>
                                     <TableHead>Segment</TableHead>
-                                    <TableHead>Total Spent</TableHead>
-                                    <TableHead>Orders</TableHead>
-                                    <TableHead>Last Order</TableHead>
+                                    <TableHead>
+                                        <Button variant="ghost" size="sm" className="-ml-3" onClick={() => {
+                                            setSortBy('totalSpent');
+                                            setSortOrder(sortBy === 'totalSpent' && sortOrder === 'desc' ? 'asc' : 'desc');
+                                        }}>
+                                            Total Spent <ArrowUpDown className="ml-2 h-3.5 w-3.5" />
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead>
+                                        <Button variant="ghost" size="sm" className="-ml-3" onClick={() => {
+                                            setSortBy('orderCount');
+                                            setSortOrder(sortBy === 'orderCount' && sortOrder === 'desc' ? 'asc' : 'desc');
+                                        }}>
+                                            Orders <ArrowUpDown className="ml-2 h-3.5 w-3.5" />
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead>
+                                        <Button variant="ghost" size="sm" className="-ml-3" onClick={() => {
+                                            setSortBy('lastOrderDate');
+                                            setSortOrder(sortBy === 'lastOrderDate' && sortOrder === 'desc' ? 'asc' : 'desc');
+                                        }}>
+                                            Last Order <ArrowUpDown className="ml-2 h-3.5 w-3.5" />
+                                        </Button>
+                                    </TableHead>
                                     <TableHead>Tier</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -674,7 +821,7 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                                             {search ? 'No matching customers found.' : 'No customers yet. Orders will appear here.'}
                                         </TableCell>
                                     </TableRow>
-                                ) : filteredCustomers.slice(0, 50).map(customer => {
+                                ) : paginatedCustomers.map(customer => {
                                     const segInfo = getSegmentInfo(customer.segment);
                                     return (
                                         <TableRow
@@ -716,10 +863,15 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                             </TableBody>
                         </Table>
 
-                        {filteredCustomers.length > 50 && (
-                            <div className="text-center py-4 text-sm text-muted-foreground">
-                                Showing 50 of {filteredCustomers.length} customers
-                            </div>
+                        {filteredCustomers.length > 0 && (
+                            <Pagination
+                                currentPage={visiblePage}
+                                totalPages={totalPages}
+                                onPageChange={setCurrentPage}
+                                itemsPerPage={pageSize}
+                                totalItems={filteredCustomers.length}
+                                className="pt-4"
+                            />
                         )}
                     </Tabs>
                 </CardContent>

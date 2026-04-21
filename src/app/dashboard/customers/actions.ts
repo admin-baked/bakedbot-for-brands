@@ -16,7 +16,7 @@ import {
 import { LIFECYCLE_PLAYBOOKS, type LifecyclePlaybookKind } from '@/lib/customers/lifecycle-playbooks';
 import {
     getDispensaryPlaybookAssignments,
-    updatePlaybookAssignmentConfig,
+    toggleDispensaryPlaybookAssignment,
 } from '@/server/actions/dispensary-playbooks';
 import {
     createVIPPlaybook,
@@ -196,10 +196,12 @@ async function getLifecycleStatusHints(
         templateId: typeof doc.data().templateId === 'string' ? doc.data().templateId : null,
     }));
 
-    let activeIds = new Set<string>();
+    let assignmentStatuses = new Map<string, 'active' | 'paused' | 'completed'>();
     try {
         const assignments = await getDispensaryPlaybookAssignments(orgId);
-        activeIds = new Set(assignments.activeIds);
+        assignmentStatuses = new Map(
+            assignments.assignments.map((assignment) => [assignment.playbookId, assignment.status]),
+        );
     } catch (error) {
         logger.warn('[CUSTOMERS] Unable to load playbook assignments for suggestion hints', {
             orgId,
@@ -209,15 +211,45 @@ async function getLifecycleStatusHints(
 
     for (const definition of LIFECYCLE_PLAYBOOKS) {
         const playbook = playbooks.find((candidate) => candidate.templateId === definition.templateId);
+        const acceptedAssignmentIds = new Set([
+            definition.templateId,
+            ...definition.assignmentIds,
+            ...(playbook?.id ? [playbook.id] : []),
+        ]);
+        const assignmentStatus = Array.from(acceptedAssignmentIds)
+            .map((id) => assignmentStatuses.get(id))
+            .find(Boolean);
+
+        if (assignmentStatus) {
+            hints[definition.kind] = assignmentStatus === 'active' ? 'active' : 'paused';
+            continue;
+        }
+
         if (!playbook) {
             hints[definition.kind] = 'missing';
             continue;
         }
 
-        hints[definition.kind] = activeIds.has(playbook.id) ? 'active' : 'paused';
+        hints[definition.kind] = 'paused';
     }
 
     return hints;
+}
+
+function getLifecycleCtaLabel(status: 'missing' | 'paused' | 'active'): string {
+    if (status === 'active') return 'View Playbook';
+    if (status === 'paused') return 'Activate Playbook';
+    return 'Create Playbook';
+}
+
+function resolveLifecycleSenderEmail(orgId: string): string {
+    const slug = orgId
+        .replace(/^(org|brand|dispensary)_/, '')
+        .replace(/_/g, '-')
+        .replace(/[^a-z0-9-]/gi, '')
+        .toLowerCase();
+
+    return `hello@${slug || 'customers'}.bakedbot.ai`;
 }
 
 // ==========================================
@@ -298,7 +330,7 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
 
         // Fetch all customers from Alleaves
         logger.info('[CUSTOMERS] Starting customer fetch from Alleaves', { orgId });
-        const alleavesCustomers = await client.getAllCustomersPaginated(30); // Max 30 pages = 3000 customers
+        const alleavesCustomers = await client.getAllCustomersPaginated(200);
 
         logger.info('[CUSTOMERS] Fetched customers from Alleaves', {
             orgId,
@@ -640,11 +672,11 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
         // In-store Alleaves orders use 'no-email@alleaves.local' but always have a userId
         // set to the Alleaves customer ID — use that to link the order to the right customer.
         let customerId: string | undefined;
+        const isAlleavesOrder = order.source === 'alleaves';
         if (!isPlaceholderEmail) {
             customerId = emailToIdMap.get(email!);
         }
         if (!customerId) {
-            const isAlleavesOrder = order.source === 'alleaves';
             const rawUserId = typeof order.userId === 'number'
                 ? order.userId.toString()
                 : (typeof order.userId === 'string' ? order.userId.trim() : '');
@@ -663,6 +695,10 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
         const existing = customerId ? customerMap.get(customerId) : undefined;
 
         if (existing) {
+            if (isAlleavesOrder && existing.source === 'pos_dutchie' && ((existing.orderCount || 0) > 0 || (existing.totalSpent || 0) > 0)) {
+                return;
+            }
+
             existing.orderCount = (existing.orderCount || 0) + 1;
             existing.totalSpent = (existing.totalSpent || 0) + orderTotal;
 
@@ -1075,11 +1111,10 @@ export async function addCustomerNote(customerId: string, note: string): Promise
  * Get AI-suggested customer segments
  * References Craig (campaign manager) and Mrs. Parker (email specialist) agents
  */
-export async function getSuggestedSegments(brandId: string): Promise<SegmentSuggestion[]> {
+export async function getSuggestedSegments(brandId: string, statsOverride?: CRMStats): Promise<SegmentSuggestion[]> {
     const { orgId } = await resolveAccessibleOrgContext(brandId);
     const { firestore } = await createServerClient();
-    const data = await getCustomers(brandId);
-    const stats = data.stats;
+    const stats = statsOverride ?? (await getCustomers({ orgId })).stats;
     const statusHints = await getLifecycleStatusHints(orgId, firestore);
     const suggestions: SegmentSuggestion[] = [];
 
@@ -1091,8 +1126,8 @@ export async function getSuggestedSegments(brandId: string): Promise<SegmentSugg
             estimatedCount: stats.newThisMonth,
             reasoning: `${stats.newThisMonth} customers currently fit your welcome lifecycle. Launch or review the Welcome Email playbook to keep onboarding consistent.`,
             playbookKind: 'welcome',
-            ctaLabel: 'Launch Playbook',
             statusHint: statusHints.welcome,
+            ctaLabel: getLifecycleCtaLabel(statusHints.welcome),
         });
     }
 
@@ -1104,8 +1139,8 @@ export async function getSuggestedSegments(brandId: string): Promise<SegmentSugg
             estimatedCount: stats.atRiskCount,
             reasoning: `${stats.atRiskCount} customers need a win-back touch. Launch or review the Win-Back playbook to keep re-engagement running on schedule.`,
             playbookKind: 'winback',
-            ctaLabel: 'Launch Playbook',
             statusHint: statusHints.winback,
+            ctaLabel: getLifecycleCtaLabel(statusHints.winback),
         });
     }
 
@@ -1117,8 +1152,8 @@ export async function getSuggestedSegments(brandId: string): Promise<SegmentSugg
             estimatedCount: stats.vipCount,
             reasoning: `${stats.vipCount} customers qualify for VIP treatment right now. Launch or review the VIP Appreciation playbook to keep those relationships warm.`,
             playbookKind: 'vip',
-            ctaLabel: 'Launch Playbook',
             statusHint: statusHints.vip,
+            ctaLabel: getLifecycleCtaLabel(statusHints.vip),
         });
     }
 
@@ -1149,9 +1184,26 @@ export async function launchLifecyclePlaybook(
             .get();
 
         let playbookId = playbooksSnap.docs.find((doc) => doc.data().templateId === definition.templateId)?.id;
+        const assignments = await getDispensaryPlaybookAssignments(orgId);
+        const acceptedAssignmentIds = new Set([
+            definition.templateId,
+            ...definition.assignmentIds,
+            ...(playbookId ? [playbookId] : []),
+        ]);
+        const existingLifecycleAssignment = assignments.assignments.find((assignment) => acceptedAssignmentIds.has(assignment.playbookId));
+        if (existingLifecycleAssignment?.status === 'active') {
+            logger.info('[CUSTOMERS] Lifecycle playbook already active', {
+                orgId,
+                playbookKind,
+                playbookId: existingLifecycleAssignment.playbookId,
+                status: 'active',
+            });
+            return { success: true, playbookId: existingLifecycleAssignment.playbookId, status: 'active' };
+        }
+
         const emailConfig: PilotEmailConfig = {
             provider: 'mailjet',
-            senderEmail: 'hello@bakedbot.ai',
+            senderEmail: resolveLifecycleSenderEmail(orgId),
             senderName: 'Mrs. Parker',
             enableWelcomePlaybook: true,
             enableWinbackPlaybook: true,
@@ -1172,20 +1224,13 @@ export async function launchLifecyclePlaybook(
             playbookId = createResult.playbookId;
         }
 
-        const assignments = await getDispensaryPlaybookAssignments(orgId);
-        const existingAssignment = assignments.assignments.find((assignment) => assignment.playbookId === playbookId);
-        if (existingAssignment?.status === 'active') {
-            logger.info('[CUSTOMERS] Lifecycle playbook already active', { orgId, playbookKind, playbookId, status: 'active' });
-            return { success: true, playbookId, status: 'active' };
+        const toggleResult = await toggleDispensaryPlaybookAssignment(orgId, playbookId, true);
+        if (!toggleResult.success) {
+            return { success: false, error: toggleResult.error || 'Failed to activate lifecycle playbook assignment' };
         }
 
-        const updateResult = await updatePlaybookAssignmentConfig(orgId, playbookId, {});
-        if (!updateResult.success) {
-            return { success: false, error: updateResult.error || 'Failed to prepare lifecycle playbook assignment' };
-        }
-
-        logger.info('[CUSTOMERS] Lifecycle playbook ready in sandbox', { orgId, playbookKind, playbookId, status: 'paused' });
-        return { success: true, playbookId, status: 'paused' };
+        logger.info('[CUSTOMERS] Lifecycle playbook activated', { orgId, playbookKind, playbookId, status: 'active' });
+        return { success: true, playbookId, status: 'active' };
     } catch (error) {
         logger.error('[CUSTOMERS] Failed to launch lifecycle playbook', {
             playbookKind,

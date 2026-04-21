@@ -44,6 +44,7 @@ import {
 import { calculateSegment, getSegmentInfo, type CustomerProfile, type CustomerSegment } from '@/types/customers';
 import { CustomerChatDialog } from '../components/customer-chat-dialog';
 import { CustomerMessageSandboxDialog } from '../components/customer-message-sandbox-dialog';
+import { launchLifecyclePlaybook } from '../actions';
 import {
     getCustomerDetail,
     getCustomerOrders,
@@ -211,6 +212,7 @@ export default function CustomerDetailClient({ customerId, orgId }: CustomerDeta
     const [sandboxOpen, setSandboxOpen] = useState(false);
     const [sandboxPlaybookKind, setSandboxPlaybookKind] = useState<LifecyclePlaybookKind>('welcome');
     const [orderMeta, setOrderMeta] = useState<{ source: CustomerOrderData['source'] } | null>(null);
+    const [launchingPlaybook, setLaunchingPlaybook] = useState<LifecyclePlaybookKind | null>(null);
 
     const loadOrders = useCallback(async () => {
         if (ordersLoading || ordersLoaded) {
@@ -396,6 +398,47 @@ export default function CustomerDetailClient({ customerId, orgId }: CustomerDeta
     const openSandbox = (kind: LifecyclePlaybookKind) => {
         setSandboxPlaybookKind(kind);
         setSandboxOpen(true);
+    };
+
+    const refreshCustomerDetail = useCallback(async () => {
+        const data = await getCustomerDetail(customerId);
+        setCustomerData(data);
+        setNotes(data.customer?.notes || '');
+        setTags(data.customer?.customTags || []);
+    }, [customerId]);
+
+    const handlePlaybookAction = async (kind: LifecyclePlaybookKind, status: 'missing' | 'paused' | 'active') => {
+        if (status === 'active') {
+            router.push('/dashboard/playbooks');
+            return;
+        }
+
+        setLaunchingPlaybook(kind);
+        try {
+            const result = await launchLifecyclePlaybook(kind, orgId);
+            if (!result.success) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Playbook launch failed',
+                    description: result.error || 'Could not activate this lifecycle playbook.',
+                });
+                return;
+            }
+
+            await refreshCustomerDetail();
+            toast({
+                title: 'Playbook active',
+                description: 'Lifecycle automation is active for this organization.',
+            });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Playbook launch failed',
+                description: error instanceof Error ? error.message : 'Could not activate this lifecycle playbook.',
+            });
+        } finally {
+            setLaunchingPlaybook(null);
+        }
     };
 
     if (loading) {
@@ -706,9 +749,25 @@ export default function CustomerDetailClient({ customerId, orgId }: CustomerDeta
                                                     </div>
                                                 </div>
                                             </div>
-                                            <Button size="sm" variant="outline" onClick={() => openSandbox(playbook.playbookKind)}>
-                                                Sandbox
-                                            </Button>
+                                            <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => handlePlaybookAction(playbook.playbookKind, playbook.assignmentStatus)}
+                                                    disabled={launchingPlaybook === playbook.playbookKind}
+                                                >
+                                                    {launchingPlaybook === playbook.playbookKind && (
+                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    )}
+                                                    {playbook.assignmentStatus === 'active'
+                                                        ? 'View'
+                                                        : playbook.assignmentStatus === 'paused'
+                                                            ? 'Activate'
+                                                            : 'Create'}
+                                                </Button>
+                                                <Button size="sm" variant="outline" onClick={() => openSandbox(playbook.playbookKind)}>
+                                                    Sandbox
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

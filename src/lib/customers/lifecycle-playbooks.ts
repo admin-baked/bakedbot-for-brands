@@ -7,6 +7,7 @@ export interface LifecyclePlaybookDefinition {
     name: string;
     description: string;
     templateId: string;
+    assignmentIds: string[];
 }
 
 export interface LifecycleMessagePreview {
@@ -36,18 +37,21 @@ export const LIFECYCLE_PLAYBOOKS: readonly LifecyclePlaybookDefinition[] = [
         name: 'Welcome Email',
         description: 'Recurring welcome automation for new customers.',
         templateId: 'welcome_email_template',
+        assignmentIds: ['welcome_email_template', 'welcome-sequence'],
     },
     {
         kind: 'winback',
         name: 'Win-Back',
         description: 'Recurring re-engagement automation for slipping and at-risk customers.',
         templateId: 'winback_campaign_template',
+        assignmentIds: ['winback_campaign_template', 'win-back-sequence'],
     },
     {
         kind: 'vip',
         name: 'VIP Appreciation',
         description: 'Recurring VIP appreciation automation for your highest-value customers.',
         templateId: 'vip_appreciation_template',
+        assignmentIds: ['vip_appreciation_template', 'vip-customer-identification'],
     },
 ] as const;
 
@@ -258,12 +262,19 @@ export function buildLifecyclePlaybookStatuses(input: {
 }): CustomerLifecyclePlaybookStatus[] {
     return LIFECYCLE_PLAYBOOKS.map((definition) => {
         const playbook = input.playbooks.find((candidate) => candidate.templateId === definition.templateId) ?? null;
+        const acceptedAssignmentIds = new Set([
+            definition.templateId,
+            ...definition.assignmentIds,
+            ...(playbook?.id ? [playbook.id] : []),
+        ]);
         const assignment = playbook
-            ? input.assignments.find((candidate) => candidate.playbookId === playbook.id) ?? null
-            : null;
+            ? input.assignments.find((candidate) => acceptedAssignmentIds.has(candidate.playbookId)) ?? null
+            : input.assignments.find((candidate) => acceptedAssignmentIds.has(candidate.playbookId)) ?? null;
 
         const assignmentStatus: CustomerLifecyclePlaybookStatus['assignmentStatus'] = !playbook
-            ? 'missing'
+            ? assignment
+                ? (assignment.isActive === true || assignment.status === 'active') ? 'active' : 'paused'
+                : 'missing'
             : (assignment?.isActive === true || assignment?.status === 'active')
                 ? 'active'
                 : 'paused';

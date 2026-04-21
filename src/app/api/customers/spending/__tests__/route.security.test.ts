@@ -141,4 +141,57 @@ describe('/api/customers/spending security', () => {
         expect(body.success).toBe(true);
         expect(mockPosCacheGet).toHaveBeenCalledWith('spending:org-target');
     });
+
+    it('uses the precomputed spending index before falling back to live POS calls', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            role: 'dispensary_admin',
+            orgId: 'org-a',
+            currentOrgId: 'org-a',
+        });
+        mockPosCacheGet.mockReturnValue(null);
+
+        const spendingDocs = [
+            {
+                id: 'cid_42',
+                data: () => ({
+                    totalSpent: 210,
+                    orderCount: 3,
+                    avgOrderValue: 70,
+                    lastOrderDate: { toDate: () => new Date('2026-03-10T10:00:00.000Z') },
+                    firstOrderDate: { toDate: () => new Date('2026-01-10T10:00:00.000Z') },
+                }),
+            },
+        ];
+
+        const firestore = {
+            collection: jest.fn((name: string) => {
+                if (name !== 'tenants') throw new Error(`Unexpected collection: ${name}`);
+                return {
+                    doc: jest.fn(() => ({
+                        collection: jest.fn(() => ({
+                            limit: jest.fn().mockReturnThis(),
+                            get: jest.fn().mockResolvedValue({
+                                empty: false,
+                                docs: spendingDocs,
+                                forEach: (callback: (doc: typeof spendingDocs[number]) => void) => spendingDocs.forEach(callback),
+                            }),
+                        })),
+                    })),
+                };
+            }),
+        };
+        mockCreateServerClient.mockResolvedValue({ firestore });
+
+        const response = await GET({
+            url: 'https://example.com/api/customers/spending?orgId=org-a',
+        } as any);
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.source).toBe('customer_spending_index');
+        expect(body.spending.alleaves_42.totalSpent).toBe(210);
+        expect(mockPosCacheSet).toHaveBeenCalledWith('spending:org-a', expect.any(Object), 900);
+    });
 });

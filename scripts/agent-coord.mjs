@@ -64,6 +64,16 @@ function fmt(ts) {
   return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
+function safeText(value, fallback = '?') {
+  if (value === null || value === undefined) return fallback;
+  const text = String(value).trim();
+  return text.length > 0 ? text : fallback;
+}
+
+function padText(value, width, fallback = '?') {
+  return safeText(value, fallback).padEnd(width);
+}
+
 async function cmdStatus() {
   initFirebase();
   const db = getFirestore();
@@ -76,7 +86,16 @@ async function cmdStatus() {
   ]);
 
   const activeLocks = locks.docs
-    .map(d => d.data())
+    .map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data,
+        agent: safeText(data.agent, 'unknown'),
+        file: safeText(data.file ?? d.id),
+        intent: safeText(data.intent, '(no intent)'),
+      };
+    })
     .filter(l => l.expiresAt?.toDate ? l.expiresAt.toDate() > now : true);
 
   console.log('\n╔══════════════════════════════════════════╗');
@@ -89,9 +108,14 @@ async function cmdStatus() {
     console.log('  AGENT STATUS:');
     for (const d of statuses.docs) {
       const s = d.data();
+      const agent = safeText(s.agent ?? d.id, d.id);
+      const phase = safeText(s.phase, 'unknown');
+      const task = safeText(s.task, '(no task)');
       const icon = s.phase === 'done' ? '✅' : s.phase === 'blocked' ? '🚫' : s.phase === 'in-progress' ? '🔧' : '📋';
-      console.log(`  ${icon} ${s.agent.padEnd(10)} ${s.phase.padEnd(12)} ${s.task}`);
-      if (s.files?.length) console.log(`             files: ${s.files.join(', ')}`);
+      console.log(`  ${icon} ${padText(agent, 10)} ${padText(phase, 12)} ${task}`);
+      if (Array.isArray(s.files) && s.files.length) {
+        console.log(`             files: ${s.files.map(file => safeText(file)).join(', ')}`);
+      }
     }
     console.log('');
   }

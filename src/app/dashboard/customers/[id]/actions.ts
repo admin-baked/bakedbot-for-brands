@@ -202,7 +202,7 @@ async function enrichCustomerIdentityFromPos(
     }
 
     const numericId = customer.id.replace('alleaves_', '');
-    const allCustomers = await client.getAllCustomersPaginated(30);
+    const allCustomers = await client.getAllCustomersPaginated(200);
     const alleavesCustomer = allCustomers.find((candidate: Record<string, unknown>) => String(candidate.id_customer || candidate.id) === numericId) ?? null;
     if (!alleavesCustomer) {
         return customer;
@@ -493,7 +493,7 @@ async function loadCustomerBaseDetail(
         const client = await initAlleavesClient(orgId, firestore);
         if (client) {
             const numericId = customerId.replace('alleaves_', '');
-            const allCustomers = await client.getAllCustomersPaginated(30);
+            const allCustomers = await client.getAllCustomersPaginated(200);
             const alleavesCustomer = allCustomers.find((candidate: Record<string, unknown>) => String(candidate.id_customer || candidate.id) === numericId) ?? null;
             if (alleavesCustomer) {
                 return {

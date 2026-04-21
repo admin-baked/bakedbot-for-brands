@@ -2,7 +2,7 @@ import { getSuggestedSegments, launchLifecyclePlaybook } from '../actions';
 import { createServerClient } from '@/firebase/server-client';
 import {
     getDispensaryPlaybookAssignments,
-    updatePlaybookAssignmentConfig,
+    toggleDispensaryPlaybookAssignment,
 } from '@/server/actions/dispensary-playbooks';
 import { createWelcomeEmailPlaybook } from '@/server/actions/pilot-setup';
 
@@ -20,7 +20,7 @@ jest.mock('@/server/auth/auth', () => ({
 
 jest.mock('@/server/actions/dispensary-playbooks', () => ({
     getDispensaryPlaybookAssignments: jest.fn(),
-    updatePlaybookAssignmentConfig: jest.fn(),
+    toggleDispensaryPlaybookAssignment: jest.fn(),
 }));
 
 jest.mock('@/server/actions/pilot-setup', () => ({
@@ -60,7 +60,7 @@ function createQuery(snapshot: ReturnType<typeof createSnapshot>) {
 describe('customer CRM actions', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        jest.useFakeTimers().setSystemTime(new Date('2026-03-11T10:00:00Z'));
+        jest.useFakeTimers().setSystemTime(new Date('2026-03-11T10:00:00Z').getTime());
 
         const now = new Date('2026-03-11T10:00:00Z');
         const oldDate = new Date('2025-11-01T10:00:00Z');
@@ -155,9 +155,11 @@ describe('customer CRM actions', () => {
 
         expect(suggestions).toHaveLength(3);
         expect(suggestions.map((suggestion) => suggestion.playbookKind)).toEqual(['welcome', 'winback', 'vip']);
-        suggestions.forEach((suggestion) => {
-            expect(suggestion.ctaLabel).toBe('Launch Playbook');
-        });
+        expect(suggestions.map((suggestion) => suggestion.ctaLabel)).toEqual([
+            'Activate Playbook',
+            'Create Playbook',
+            'Create Playbook',
+        ]);
     });
 
     it('does not claim customers were already auto-added by an agent', async () => {
@@ -207,7 +209,7 @@ describe('customer CRM actions', () => {
             totalActive: 0,
             customConfigs: {},
         });
-        (updatePlaybookAssignmentConfig as jest.Mock).mockResolvedValue({
+        (toggleDispensaryPlaybookAssignment as jest.Mock).mockResolvedValue({
             success: true,
         });
 
@@ -216,16 +218,16 @@ describe('customer CRM actions', () => {
         expect(result).toEqual(expect.objectContaining({
             success: true,
             playbookId: 'playbook-welcome',
-            status: 'paused',
+            status: 'active',
         }));
         expect(createWelcomeEmailPlaybook).toHaveBeenCalledWith(
             'org-target',
             'org-target',
             expect.objectContaining({
                 provider: 'mailjet',
-                senderEmail: 'hello@bakedbot.ai',
+                senderEmail: 'hello@org-target.bakedbot.ai',
             }),
         );
-        expect(updatePlaybookAssignmentConfig).toHaveBeenCalledWith('org-target', 'playbook-welcome', {});
+        expect(toggleDispensaryPlaybookAssignment).toHaveBeenCalledWith('org-target', 'playbook-welcome', true);
     });
 });

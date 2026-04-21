@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
 import { posCache } from '@/lib/cache/pos-cache';
 import { requireUser } from '@/server/auth/auth';
@@ -44,6 +45,19 @@ function getActorOrgId(user: SpendingRouteUser): string | null {
     }
 
     return resolveActorOrgIdWithLegacyAliases(user, [user.locationId ?? null]);
+}
+
+function toSpendingDate(value: unknown): string | null {
+    const date = firestoreTimestampToDate(value);
+    return date ? date.toISOString() : null;
+}
+
+function mapSpendingIndexKey(docId: string): string {
+    if (docId.startsWith('cid_') && docId.length > 4) {
+        return `alleaves_${docId.slice(4)}`;
+    }
+
+    return docId;
 }
 
 /**
@@ -139,6 +153,46 @@ export async function GET(request: NextRequest) {
 
         const { firestore } = await createServerClient();
 
+        const spendingSnap = await firestore
+            .collection('tenants').doc(orgId)
+            .collection('customer_spending')
+            .limit(5000)
+            .get();
+
+        if (!spendingSnap.empty) {
+            const spendingData: Record<string, CustomerSpending> = {};
+
+            spendingSnap.forEach((doc) => {
+                const data = doc.data();
+                const orderCount = Number(data.orderCount || 0);
+                const totalSpent = Number(data.totalSpent || 0);
+                spendingData[mapSpendingIndexKey(doc.id)] = {
+                    totalSpent,
+                    orderCount,
+                    lastOrderDate: toSpendingDate(data.lastOrderDate),
+                    firstOrderDate: toSpendingDate(data.firstOrderDate),
+                    avgOrderValue: Number(data.avgOrderValue || (orderCount > 0 ? totalSpent / orderCount : 0)),
+                };
+            });
+
+            await posCache.set(cacheKey, spendingData, 900);
+
+            logger.info('[SPENDING] Returning indexed spending data', {
+                orgId,
+                customerCount: Object.keys(spendingData).length,
+                duration: Date.now() - startTime,
+            });
+
+            return NextResponse.json({
+                success: true,
+                spending: spendingData,
+                customerCount: Object.keys(spendingData).length,
+                cached: false,
+                source: 'customer_spending_index',
+                duration: Date.now() - startTime,
+            });
+        }
+
         // Get location with Alleaves POS config
         let locationsSnap = await firestore.collection('locations')
             .where('orgId', '==', orgId)
@@ -227,6 +281,7 @@ export async function GET(request: NextRequest) {
             spending: spendingData,
             customerCount: Object.keys(spendingData).length,
             cached: false,
+            source: 'alleaves_live',
             duration: Date.now() - startTime,
         });
     } catch (error: unknown) {
