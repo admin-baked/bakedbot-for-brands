@@ -1,7 +1,5 @@
 import { execFileSync } from 'node:child_process';
 
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-
 function run(command, args, { allowFailure = false, capture = false } = {}) {
   try {
     const stdout = execFileSync(command, args, {
@@ -18,6 +16,15 @@ function run(command, args, { allowFailure = false, capture = false } = {}) {
 
     throw error;
   }
+}
+
+function runNpm(args) {
+  if (process.platform === 'win32') {
+    const command = ['npm', ...args].join(' ');
+    return run(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', command]);
+  }
+
+  return run('npm', args);
 }
 
 console.log('[safe-push] Fetching latest changes...');
@@ -53,10 +60,10 @@ if (local !== remote) {
 }
 
 console.log('[safe-push] Scanning for hardcoded secrets...');
-run(npmCommand, ['run', '-s', 'check:secrets']);
+runNpm(['run', '-s', 'check:secrets']);
 
 console.log('[safe-push] Checking simplify gate...');
-run(npmCommand, ['run', '-s', 'simplify:verify']);
+runNpm(['run', '-s', 'simplify:verify']);
 
 console.log('[safe-push] Pushing to origin/main...');
 run('git', ['push', 'origin', 'main']);
