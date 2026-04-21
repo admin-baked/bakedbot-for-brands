@@ -1,7 +1,7 @@
 'use client';
 
 import React, { type ReactNode, useEffect, useState } from 'react';
-import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { firebaseConfig } from '@/firebase/config';
@@ -105,7 +105,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       // TEMPORARY FIX: Disable App Check in dev to unblock storage uploads
       if (!isDevelopment) {
         initializeAppCheck(firebaseServices.firebaseApp, {
-          provider: new ReCaptchaV3Provider(recaptchaSiteKey),
+          provider: new ReCaptchaEnterpriseProvider(recaptchaSiteKey),
           isTokenAutoRefreshEnabled: true,
         });
         logger.info('[FirebaseClientProvider] App Check initialized successfully');
