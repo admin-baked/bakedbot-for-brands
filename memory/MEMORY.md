@@ -6,8 +6,8 @@
 - **CRM data correctness**: Raised Alleaves customer pagination to avoid the 3,000-customer cap, reduced duplicate POS/order counting, and loaded indexed `customer_spending` before live Alleaves fallback.
 - **CRM operator controls**: Added pagination, row-size selection, search, sortable columns, and last-order date filters to the customer list.
 - **Retention + playbooks**: Visit Retention now reads POS-backed customer activity; lifecycle playbooks now show status-aware CTAs and activate/create from dashboard/detail instead of only opening sandbox modals.
-- **Tooling + version**: Fixed `agent-coord.mjs status` for partial Firestore coordination records and bumped to `4.10.27-COD`.
-- **Verification**: focused CRM/security Jest suites passed `12/12`; `check:types` passed; `agent:status` passed; simplify record generated for the outgoing diff. Local `npm run build` timed out after 20 minutes without diagnostic failure.
+- **Tooling + version**: Fixed `agent-coord.mjs status` for partial Firestore coordination records, fixed Windows `safe-push` npm execution, and bumped to `4.10.27-COD`.
+- **Verification**: focused CRM/security Jest suites passed `12/12`; `check:types` passed; `agent:status` passed; simplify record generated for the outgoing diff after both script fixes. Local `npm run build` timed out after 20 minutes without diagnostic failure.
 - See `sessions/2026-04-20-2345-thrive-crm-audit-deploy.md`
 
 ## Session 2026-04-20 - Firestore Query Cost Optimization COMPLETE (`fca8cc07f`)

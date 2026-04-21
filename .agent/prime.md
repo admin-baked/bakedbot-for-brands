@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Thrive CRM data/playbook hardening + agent coordination status fix + version 4.10.27-COD
-**Recent work (2026-04-20):** `8040ec18e` Thrive CRM audit fixes (POS-backed counts/spending/retention, pagination/sort/date filters, playbook activation); `e56e3cc37` campaigns UX overhaul; `4a5eb1c6c` Graceful Service Pause
+**Current Status:** 🟢 main green | Thrive CRM data/playbook hardening + agent coordination/safe-push fixes + version 4.10.27-COD
+**Recent work (2026-04-20):** `8040ec18e` Thrive CRM audit fixes (POS-backed counts/spending/retention, pagination/sort/date filters, playbook activation); `b88970912` Windows safe-push npm fix; `e56e3cc37` campaigns UX overhaul; `4a5eb1c6c` Graceful Service Pause
 
 ---
 
