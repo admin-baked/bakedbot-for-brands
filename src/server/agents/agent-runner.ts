@@ -1234,7 +1234,7 @@ All agents are online and ready. Type an agent name or describe your task to get
         // 240s+ timeouts because it chains multi-step Claude tool calls.
         const isSlackSource = extraOptions?.source === 'slack';
 
-        if (agentInfo && routing.confidence > 0.6 && agentInfo.id !== 'general' && agentInfo.id !== 'puff' && canAccessAgent && !isSlackSource) {
+        if (agentInfo && routing.confidence >= 0.6 && agentInfo.id !== 'general' && agentInfo.id !== 'puff' && canAccessAgent && !isSlackSource) {
             try {
                 await emitThought(jobId, 'Handing off', `Transferring control to specialized agent: ${agentInfo.name}`);
                 const res = await triggerAgentRun(agentInfo.id, userMessage, userBrandId);
@@ -1247,8 +1247,8 @@ All agents are online and ready. Type an agent name or describe your task to get
                 return finalizeAgentResult({ content: res.log?.result || res.message, toolCalls: executedTools });
             } catch (e: unknown) {
                 const errMsg = e instanceof Error ? e.message : String(e);
-                logger.error(`[AgentRunner] Agent '${agentInfo.id}' failed`, { error: errMsg });
-                return finalizeAgentResult({ content: `Agent ${agentInfo.name} encountered an error: ${errMsg}`, toolCalls: executedTools });
+                logger.error(`[AgentRunner] Agent '${agentInfo.id}' failed, falling through to general synthesis`, { error: errMsg });
+                executedTools.push({ id: `agent-fallback-${Date.now()}`, name: agentInfo.name, status: 'error', result: errMsg });
             }
         } else if (agentInfo && !canAccessAgent && agentInfo.id !== 'general' && agentInfo.id !== 'puff') {
             // Log blocked access attempt for security auditing
@@ -1282,42 +1282,48 @@ All agents are online and ready. Type an agent name or describe your task to get
 
         // 5. Ezal Intelligence Detection
         if (routing.primaryAgent === 'ezal' || lowerMessage.includes('competitor') || lowerMessage.includes('price match')) {
-            await emitThought(jobId, 'Intelligence Scan', 'Performing competitive analysis...');
-            const res = await triggerAgentRun('ezal', userMessage, userBrandId);
-            executedTools.push({
-                id: `ezal-${Date.now()}`,
-                name: 'Ezal Intelligence',
-                status: res.success ? 'success' : 'error',
-                result: res.message
-            });
+            try {
+                await emitThought(jobId, 'Intelligence Scan', 'Performing competitive analysis...');
+                const res = await triggerAgentRun('ezal', userMessage, userBrandId);
+                executedTools.push({
+                    id: `ezal-${Date.now()}`,
+                    name: 'Ezal Intelligence',
+                    status: res.success ? 'success' : 'error',
+                    result: res.message
+                });
 
-            if (res.success) {
-                await emitThought(jobId, 'Synthesizing', 'Formatting intelligence snapshot...');
-                const format = `
-                Cannabis Menu Intelligence - [Brand]
-                📊 COMPETITIVE ANALYSIS - ${new Date().toLocaleDateString()}
-                -------------------------
-                💰 KEY PRICING INSIGHTS:
-                ...
-                -------------------------
-                📈 TOP MOVERS:
-                ...
-                -------------------------
-                🎯 MARGIN OPPORTUNITY:
-                ...
-                -------------------------
-                🚨 COMPETITOR VULNERABILITIES:
-                ...
-                -------------------------
-                🏆 MARKET INSIGHT:
-                ...
-                -------------------------
-                📊 NEXT STEPS:
-                ...
-                `;
+                if (res.success) {
+                    await emitThought(jobId, 'Synthesizing', 'Formatting intelligence snapshot...');
+                    const format = `
+                    Cannabis Menu Intelligence - [Brand]
+                    📊 COMPETITIVE ANALYSIS - ${new Date().toLocaleDateString()}
+                    -------------------------
+                    💰 KEY PRICING INSIGHTS:
+                    ...
+                    -------------------------
+                    📈 TOP MOVERS:
+                    ...
+                    -------------------------
+                    🎯 MARGIN OPPORTUNITY:
+                    ...
+                    -------------------------
+                    🚨 COMPETITOR VULNERABILITIES:
+                    ...
+                    -------------------------
+                    🏆 MARKET INSIGHT:
+                    ...
+                    -------------------------
+                    📊 NEXT STEPS:
+                    ...
+                    `;
 
-                const synthesized = await synthesizeSnapshot(res.log?.result || res.message, format, effectiveModelLevel);
-                return finalizeAgentResult({ content: synthesized, toolCalls: executedTools, metadata: { ...metadata, jobId } });
+                    const synthesized = await synthesizeSnapshot(res.log?.result || res.message, format, effectiveModelLevel);
+                    return finalizeAgentResult({ content: synthesized, toolCalls: executedTools, metadata: { ...metadata, jobId } });
+                }
+            } catch (ezalErr: unknown) {
+                const ezalErrMsg = ezalErr instanceof Error ? ezalErr.message : String(ezalErr);
+                logger.warn('[AgentRunner] Ezal intelligence scan failed, falling through to general synthesis', { error: ezalErrMsg });
+                executedTools.push({ id: `ezal-${Date.now()}`, name: 'Ezal Intelligence', status: 'error', result: ezalErrMsg });
             }
         }
 

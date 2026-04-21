@@ -50,7 +50,7 @@ const INTENT_RULES: IntentRule[] = [
     {
         agentId: 'pops',
         patterns: [
-            /\b(analytic|report|goal|metric|dashb|funnel|retention.?(rate|report)|revenue.?(report|forecast|trend)|churn.?(rate|report|analytic)|performance|forecast|KPI|insight.*data|data.*insight)\b/i,
+            /\b(analytic|report|goal|metric|dashb|funnel|retention.?(rate|report)|revenue|churn.?(rate|report|analytic)|performance|forecast|KPI|insight.*data|data.*insight)\b/i,
             /\b(pops|mrr|arr|ltv|cohort|conversion.?rate|click.?through|open.?rate|roi|roas)\b/i,
             /\b(last (month|quarter|week|year).*revenue|revenue.*(last|this) (month|quarter|week))\b/i,
             /\b(lifecycle|life.?cycle|customer.*journey|journey.*customer|visit|returning.*customer|customer.*return|drop.?off|dropout|fall.?off|where.*losing|losing.*customer)\b/i,
