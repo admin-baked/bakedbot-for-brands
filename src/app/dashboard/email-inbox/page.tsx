@@ -13,10 +13,10 @@ export default async function EmailInboxPage() {
     const orgId = isSuperUser ? undefined : (typeof user.orgId === 'string' ? user.orgId : undefined);
 
     const [outreachThreads, orgThreads, gmailToken] = await Promise.all([
-        isSuperUser ? getEmailThreadHeaders({ scope: 'outreach', limit: 100 }) : Promise.resolve([]),
+        isSuperUser ? getEmailThreadHeaders({ scope: 'outreach', limit: 100 }).catch(() => []) : Promise.resolve([]),
         isSuperUser
-            ? getEmailThreadHeaders({ scope: 'org', limit: 100 })
-            : orgId ? getEmailThreadHeaders({ scope: 'org', orgId, limit: 100 }) : Promise.resolve([]),
+            ? getEmailThreadHeaders({ scope: 'org', limit: 100 }).catch(() => [])
+            : orgId ? getEmailThreadHeaders({ scope: 'org', orgId, limit: 100 }).catch(() => []) : Promise.resolve([]),
         getGmailToken(user.uid).catch(() => null),
     ]);
 
