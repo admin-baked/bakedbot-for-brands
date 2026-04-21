@@ -44,6 +44,27 @@ jest.mock('@/lib/notifications/blackleaf-service', () => {
     };
 });
 
+jest.mock('@/lib/metering/usage-service', () => ({
+    getUsageWithLimits: jest.fn().mockResolvedValue({
+        metrics: {
+            customCampaigns: {
+                unlimited: true,
+                used: 0,
+                limit: 999,
+            },
+        },
+    }),
+    incrementUsage: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('@/server/services/proactive-runtime-diagnostics', () => ({
+    recordProactiveRuntimeDiagnostic: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('@/lib/email/unsubscribe-token', () => ({
+    encodeUnsubscribeToken: jest.fn(() => 'unsubscribe-token'),
+}));
+
 jest.mock('@/lib/logger', () => ({
     logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
 }));
@@ -114,6 +135,19 @@ function makeCampaign(overrides: Partial<Campaign> = {}): Campaign {
 // Helper to build a mock Firestore doc snapshot
 function mockDocSnap(id: string, data: Record<string, unknown>, exists = true) {
     return { id, exists, data: () => data };
+}
+
+function mockQuerySnap(docs: Array<ReturnType<typeof mockDocSnap>> = []) {
+    return { docs, size: docs.length, empty: docs.length === 0 };
+}
+
+function mockQuery(snapshot = mockQuerySnap()) {
+    return {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        get: jest.fn().mockResolvedValue(snapshot),
+    };
 }
 
 // ---------------------------------------------------------------------------
@@ -244,7 +278,12 @@ describe('resolveAudience', () => {
         jest.clearAllMocks();
 
         // Default: collection().where().get() chain
-        mockCollection.mockReturnValue({ where: mockWhere });
+        mockCollection.mockImplementation((name: string) => {
+            if (name === 'customer_communications') {
+                return mockQuery();
+            }
+            return { where: mockWhere };
+        });
         mockWhere.mockReturnValue({ get: mockGet });
     });
 
@@ -438,6 +477,9 @@ describe('executeCampaign', () => {
             if (name === 'tenants') {
                 return { doc: mockDoc };
             }
+            if (name === 'customer_communications') {
+                return mockQuery();
+            }
             return { doc: mockDoc, where: mockWhere };
         });
 
@@ -626,8 +668,8 @@ describe('executeCampaign', () => {
         mockGet.mockImplementation(() => {
             getCalls++;
             if (getCalls === 1) return Promise.resolve(campaignSnap);
-            if (getCalls === 2) return Promise.resolve(customerDocs);
-            if (getCalls === 3) return Promise.resolve(tenantSnap);
+            if (getCalls === 2) return Promise.resolve(tenantSnap);
+            if (getCalls === 3) return Promise.resolve(customerDocs);
             return Promise.resolve({ exists: false, data: () => null });
         });
 
@@ -656,6 +698,9 @@ describe('executeCampaign', () => {
                     }),
                 };
             }
+            if (name === 'customer_communications') {
+                return mockQuery();
+            }
             return { doc: mockDoc };
         });
 
@@ -670,7 +715,7 @@ describe('executeCampaign', () => {
             },
         });
 
-        (sendGenericEmail as jest.Mock).mockResolvedValue({ success: true });
+        (sendGenericEmail as jest.Mock).mockResolvedValue({ success: true, messageId: 'ses-message-1' });
 
         const result = await executeCampaign('camp_compliance_passed');
 
@@ -694,7 +739,7 @@ describe('executeCampaign', () => {
 
     it('returns success with 0 sent when audience is empty', async () => {
         // First get() call — campaign doc
-        const campaignData = makeCampaign({ status: 'scheduled' });
+        const campaignData = makeCampaign({ status: 'scheduled', complianceStatus: 'passed' });
         const campaignSnap = {
             exists: true,
             id: 'camp_empty',
@@ -702,6 +747,11 @@ describe('executeCampaign', () => {
         };
 
         // Second get() call — customer query (empty)
+        const tenantSnap = {
+            exists: true,
+            data: () => ({ name: 'Test Org' }),
+        };
+
         const emptyQuerySnap = { docs: [] };
 
         // We need to handle both campaign get AND customers get AND tenant get
@@ -711,7 +761,8 @@ describe('executeCampaign', () => {
         mockGet.mockImplementation(() => {
             getCalls++;
             if (getCalls === 1) return Promise.resolve(campaignSnap); // campaign doc
-            if (getCalls === 2) return Promise.resolve(emptyQuerySnap); // customers query
+            if (getCalls === 2) return Promise.resolve(tenantSnap); // tenant doc
+            if (getCalls === 3) return Promise.resolve(emptyQuerySnap); // customers query
             return Promise.resolve({ exists: false, data: () => null }); // anything else
         });
 
@@ -727,6 +778,7 @@ describe('executeCampaign', () => {
     it('sends email successfully and updates performance', async () => {
         const campaignData = makeCampaign({
             status: 'approved',
+            complianceStatus: 'passed',
             channels: ['email'],
             content: {
                 email: {
@@ -764,8 +816,8 @@ describe('executeCampaign', () => {
         mockGet.mockImplementation(() => {
             getCalls++;
             if (getCalls === 1) return Promise.resolve(campaignSnap);
-            if (getCalls === 2) return Promise.resolve(customerDocs);
-            if (getCalls === 3) return Promise.resolve(tenantSnap);
+            if (getCalls === 2) return Promise.resolve(tenantSnap);
+            if (getCalls === 3) return Promise.resolve(customerDocs);
             return Promise.resolve({ exists: false, data: () => null });
         });
 
@@ -794,6 +846,9 @@ describe('executeCampaign', () => {
                     }),
                 };
             }
+            if (name === 'customer_communications') {
+                return mockQuery();
+            }
             return { doc: mockDoc };
         });
 
@@ -809,7 +864,7 @@ describe('executeCampaign', () => {
             },
         });
 
-        (sendGenericEmail as jest.Mock).mockResolvedValue({ success: true });
+        (sendGenericEmail as jest.Mock).mockResolvedValue({ success: true, messageId: 'ses-message-1' });
 
         const result = await executeCampaign('camp_send');
 
@@ -834,6 +889,13 @@ describe('executeCampaign', () => {
                     sent: 1,
                     bounced: 0,
                 }),
+            }),
+        );
+        expect(mockBatchSet).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                providerMessageId: 'ses-message-1',
+                status: 'sent',
             }),
         );
     });

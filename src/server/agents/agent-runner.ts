@@ -1105,11 +1105,45 @@ All agents are online and ready. Type an agent name or describe your task to get
                 }
 
                 let result;
+                const scheduleTriggers = parseResult.config.triggers.filter((trigger: { type?: string }) => trigger.type === 'schedule');
+                const explicitEmails = Array.from(new Set(
+                    (userMessage.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [])
+                        .map((email) => email.toLowerCase())
+                ));
+                const deliverTo = explicitEmails.length > 0
+                    ? explicitEmails
+                    : (/\b(?:send|email|notify)\s+me\b/i.test(userMessage) && user?.email ? [user.email] : []);
+                const shouldUseOrgCustomPlaybooks =
+                    !isSuperUser &&
+                    isPaidUser &&
+                    userBrandId !== 'general' &&
+                    userBrandId !== 'demo-brand-123';
 
                 // Super users save to internal collection, others to brand collection
                 if (isSuperUser) {
                     const { createSuperUserPlaybook } = await import('@/app/dashboard/ceo/playbooks/actions');
                     result = await createSuperUserPlaybook(parseResult.config);
+                } else if (shouldUseOrgCustomPlaybooks) {
+                    const { createCustomPlaybook } = await import('@/server/actions/custom-playbooks');
+                    const customResult = await createCustomPlaybook(userBrandId, {
+                        ...parseResult.config,
+                        status: scheduleTriggers.length > 0 ? 'active' : 'draft',
+                        metadata: {
+                            prompt: userMessage,
+                            deliverTo,
+                        },
+                    });
+
+                    result = customResult.success
+                        ? {
+                            success: true,
+                            playbook: {
+                                id: customResult.playbookId,
+                                ...parseResult.config,
+                                status: scheduleTriggers.length > 0 ? 'active' : 'draft',
+                            },
+                        }
+                        : customResult;
                 } else {
                     result = await createPlaybook(metadata.brandId || 'demo', parseResult.config);
                 }

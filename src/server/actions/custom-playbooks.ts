@@ -9,10 +9,12 @@ import {
 } from '@/server/auth/actor-context';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
-import type { Playbook, PlaybookCategory, PlaybookTrigger, PlaybookStatus } from '@/types/playbook';
+import type { Playbook, PlaybookCategory, PlaybookTrigger, PlaybookStatus, PlaybookStep } from '@/types/playbook';
 import type { UserRole } from '@/types/roles';
+import { computeNextRunAt } from '@/server/playbooks/scheduler';
+import { Timestamp, type Firestore } from 'firebase-admin/firestore';
 
-const ALLOWED_ROLES: UserRole[] = ['dispensary_admin', 'brand_admin', 'super_user', 'super_admin'];
+const ALLOWED_ROLES: UserRole[] = ['dispensary_admin', 'dispensary', 'brand_admin', 'brand', 'super_user', 'super_admin'];
 
 type CustomPlaybookActor = ActorContextLike & {
     dispensaryId?: string | null;
@@ -45,6 +47,151 @@ function normalizePlaybookName(name: string): string | null {
 function isCronExpressionValid(cron: string): boolean {
     // Basic 5-field cron validation; scheduler enforces full semantics.
     return /^(\S+\s+){4}\S+$/.test(cron.trim());
+}
+
+function getScheduleTriggers(playbook: Playbook): PlaybookTrigger[] {
+    return Array.isArray(playbook.triggers)
+        ? playbook.triggers.filter((trigger) => trigger.type === 'schedule' && typeof trigger.cron === 'string')
+        : [];
+}
+
+function getCustomPlaybookPrompt(playbook: Playbook): string {
+    const metadataPrompt = playbook.metadata?.prompt;
+    if (typeof metadataPrompt === 'string' && metadataPrompt.trim()) {
+        return metadataPrompt.trim();
+    }
+
+    return [playbook.name, playbook.description]
+        .filter((value) => typeof value === 'string' && value.trim().length > 0)
+        .join(': ');
+}
+
+async function resolveActiveSubscriptionId(db: Firestore, orgId: string): Promise<string> {
+    const subscriptionSnap = await db
+        .collection('subscriptions')
+        .where('orgId', '==', orgId)
+        .where('status', '==', 'active')
+        .limit(1)
+        .get();
+
+    if (!subscriptionSnap.empty) {
+        return subscriptionSnap.docs[0].id;
+    }
+
+    const customerSnap = await db
+        .collection('subscriptions')
+        .where('customerId', '==', orgId)
+        .where('status', '==', 'active')
+        .limit(1)
+        .get();
+
+    if (!customerSnap.empty) {
+        return customerSnap.docs[0].id;
+    }
+
+    logger.warn('[custom-playbooks] No active subscription found for custom dispatcher assignment', { orgId });
+    return orgId;
+}
+
+async function syncCustomPlaybookDispatcherAssignments(
+    db: Firestore,
+    playbookId: string,
+    playbook: Playbook,
+    active: boolean,
+): Promise<void> {
+    const existingSnap = await db
+        .collection('playbook_assignments')
+        .where('orgId', '==', playbook.orgId)
+        .where('playbookId', '==', playbookId)
+        .get();
+
+    const existingDocs = existingSnap.docs.filter((doc) => doc.data().source === 'custom_playbook');
+    const batch = db.batch();
+    let writeCount = 0;
+
+    if (!active) {
+        existingDocs.forEach((doc) => {
+            batch.update(doc.ref, {
+                status: 'paused',
+                updatedAt: Timestamp.now(),
+            });
+            writeCount++;
+        });
+        if (writeCount > 0) await batch.commit();
+        return;
+    }
+
+    const scheduleTriggers = getScheduleTriggers(playbook);
+    if (scheduleTriggers.length === 0) {
+        existingDocs.forEach((doc) => {
+            batch.update(doc.ref, {
+                status: 'paused',
+                updatedAt: Timestamp.now(),
+            });
+            writeCount++;
+        });
+        if (writeCount > 0) await batch.commit();
+        return;
+    }
+
+    const subscriptionId = await resolveActiveSubscriptionId(db, playbook.orgId);
+
+    scheduleTriggers.forEach((trigger, index) => {
+        const schedule = trigger.cron?.trim() || '0 9 * * *';
+        const timezone = trigger.timezone || 'America/New_York';
+        const nextRunAt = computeNextRunAt(schedule, timezone);
+        const existingDoc = existingDocs.find((doc) => doc.data().config?.triggerIndex === index);
+        const assignment = {
+            orgId: playbook.orgId,
+            subscriptionId,
+            playbookId,
+            status: 'active',
+            handler: 'custom-report',
+            schedule,
+            timezone,
+            nextRunAt: Timestamp.fromDate(nextRunAt),
+            lastRunAt: null,
+            lastRunStatus: null,
+            source: 'custom_playbook',
+            config: {
+                customPlaybookId: playbookId,
+                playbookName: playbook.name,
+                triggerIndex: index,
+                prompt: getCustomPlaybookPrompt(playbook),
+                deliverTo: playbook.metadata?.deliverTo ?? null,
+            },
+            intentDescription: playbook.description || playbook.name,
+            scheduleDescription: `Custom playbook schedule ${schedule}`,
+            createdBy: playbook.createdBy || playbook.ownerId || 'user',
+            triggerCount: existingDoc?.data().triggerCount || 0,
+            lastTriggered: existingDoc?.data().lastTriggered || null,
+            updatedAt: Timestamp.now(),
+        };
+
+        if (existingDoc) {
+            batch.update(existingDoc.ref, assignment);
+            writeCount++;
+        } else {
+            const ref = db.collection('playbook_assignments').doc();
+            batch.set(ref, {
+                ...assignment,
+                createdAt: Timestamp.now(),
+            });
+            writeCount++;
+        }
+    });
+
+    existingDocs
+        .filter((doc) => !scheduleTriggers.some((_, index) => doc.data().config?.triggerIndex === index))
+        .forEach((doc) => {
+            batch.update(doc.ref, {
+                status: 'paused',
+                updatedAt: Timestamp.now(),
+            });
+            writeCount++;
+        });
+
+    if (writeCount > 0) await batch.commit();
 }
 
 function sanitizeTriggers(
@@ -153,6 +300,9 @@ export interface CreateCustomPlaybookInput {
     agent: string;
     category: PlaybookCategory;
     triggers: PlaybookTrigger[];
+    steps?: PlaybookStep[];
+    metadata?: Record<string, unknown>;
+    status?: Exclude<PlaybookStatus, 'archived'>;
 }
 
 export async function createCustomPlaybook(
@@ -180,18 +330,19 @@ export async function createCustomPlaybook(
         const ref = db.collection('playbooks').doc();
         const now = new Date();
 
+        const steps = input.steps ?? [];
         const playbook: Playbook = {
             id: ref.id,
             name,
             description: input.description?.trim() ?? '',
-            status: 'draft',
+            status: input.status ?? 'draft',
             agent: input.agent,
             category: input.category,
             triggers: triggerValidation.value,
-            steps: [],
+            steps,
             ownerId: user.uid,
             isCustom: true,
-            requiresApproval: false,
+            requiresApproval: steps.some((step) => ['send_email', 'email.send', 'gmail.send', 'notify'].includes(step.action)),
             runCount: 0,
             successCount: 0,
             failureCount: 0,
@@ -200,9 +351,11 @@ export async function createCustomPlaybook(
             createdBy: user.uid,
             orgId,
             version: 1,
+            ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
         };
 
         await ref.set(playbook);
+        await syncCustomPlaybookDispatcherAssignments(db, ref.id, playbook, playbook.status === 'active');
 
         logger.info(`[custom-playbooks] Created custom playbook ${ref.id} for org ${orgId}`);
         return { success: true, playbookId: ref.id };
@@ -275,6 +428,14 @@ export async function updateCustomPlaybook(
 
         await ref.update(updates);
 
+        const nextPlaybook = {
+            ...data,
+            ...updates,
+            id: playbookId,
+            orgId,
+        } as Playbook;
+        await syncCustomPlaybookDispatcherAssignments(db, playbookId, nextPlaybook, nextPlaybook.status === 'active');
+
         logger.info(`[custom-playbooks] Updated custom playbook ${playbookId}`);
         return { success: true };
     } catch (err) {
@@ -316,6 +477,7 @@ export async function deleteCustomPlaybook(
         }
 
         await ref.update({ status: 'archived', updatedAt: new Date() });
+        await syncCustomPlaybookDispatcherAssignments(db, playbookId, data, false);
 
         logger.info(`[custom-playbooks] Archived custom playbook ${playbookId}`);
         return { success: true };
@@ -360,6 +522,12 @@ export async function toggleCustomPlaybookStatus(
 
         const newStatus: PlaybookStatus = active ? 'active' : 'paused';
         await ref.update({ status: newStatus, updatedAt: new Date() });
+        await syncCustomPlaybookDispatcherAssignments(
+            db,
+            playbookId,
+            { ...data, id: playbookId, orgId, status: newStatus } as Playbook,
+            active,
+        );
 
         logger.info(`[custom-playbooks] Toggled playbook ${playbookId} to ${newStatus}`);
         return { success: true };

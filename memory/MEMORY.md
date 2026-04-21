@@ -2,6 +2,15 @@
 
 ---
 
+## Session 2026-04-21 - Thrive Playbook Audit + Repair COMPLETE (local)
+- **Production playbook repair**: Audited Thrive Syracuse playbooks end-to-end, paused stale active duplicates, aligned active catalog assignments with `thrive-syracuse-operator-monthly`, paused orphaned `playbook_welcome_series` assignments, and retargeted signup/customer-created listeners to the real Thrive welcome playbook.
+- **Runtime hardening**: Dashboard playbook reads/toggles now canonicalize duplicate assignments; scheduled custom playbooks sync `custom-report` dispatcher assignments; prompt-created paid-org playbooks save into the top-level custom playbook store instead of legacy brand-only docs.
+- **Delivery proof**: SES `messageId` is preserved through generic email sends, campaign recipient writes can store provider ids, playbook emails pass org context for verified tenant senders, and unsubscribe token helpers moved out of the API route boundary.
+- **Audit evidence**: Active duplicate playbook ids `0`; active missing subscription ids `0`; active unknown playbooks `0`; dispatcher-ready scheduled custom docs `2`; explicit active enrollments `14`.
+- **Remaining gaps**: Historical paused duplicate groups remain for auditability; POS `customer_spending` has 2307 rows but no contact keys; one past sent campaign reports sends without recipient rows.
+- **Verification**: `check:types` passed; focused custom playbook, campaign sender, and dispatcher routing suites passed `47/47`; local `npm run build` timed out after 20 minutes without diagnostic failure.
+- See `sessions/2026-04-21-1649-thrive-playbook-audit-repair.md`
+
 ## Session 2026-04-20 - Thrive CRM Audit + Deploy Prep COMPLETE (`8040ec18e`)
 - **CRM data correctness**: Raised Alleaves customer pagination to avoid the 3,000-customer cap, reduced duplicate POS/order counting, and loaded indexed `customer_spending` before live Alleaves fallback.
 - **CRM operator controls**: Added pagination, row-size selection, search, sortable columns, and last-order date filters to the customer list.

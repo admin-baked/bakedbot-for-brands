@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** 🟢 main green | Thrive CRM hardening + Test suite Jest conversion & stable (4.10.32-GEM)
-**Recent work (2026-04-21):** `62633d4c8` Inbox agent routing resilience — specialist fallback to general synthesis; intent-router "revenue" fix; App Check retry storm fix.
+**Current Status:** green | Thrive playbook audit/repair + delivery proof hardening (4.10.34-COD)
+**Recent work (2026-04-21):** Thrive playbook assignments repaired, custom scheduled dispatcher sync added, delivery proof hardened, and typecheck/focused playbook-email suites are green.
 
 ---
 
@@ -181,7 +181,7 @@ Before every , bump  + kiosk footer () using format ****.
 
 Patch bump guide: +1 small fix · +2 multi-file · +3 new feature · +5 refactor · +7-10 subsystem overhaul
 
-**Current version: 4.10.27-COD** — Full rules: AGENTS.md Versioning Convention
+**Current version: 4.10.34-COD** — Full rules: AGENTS.md Versioning Convention
 
 ## Key Directories
 

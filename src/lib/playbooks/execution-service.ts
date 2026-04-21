@@ -201,6 +201,7 @@ async function deliverEmail(
         htmlBody: content.body,
         playbookId: ctx.playbookId,
         playbookName: definition.name,
+        orgId: ctx.orgId,
     });
 }
 

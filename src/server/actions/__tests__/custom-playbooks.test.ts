@@ -24,14 +24,45 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+jest.mock('@/server/playbooks/scheduler', () => ({
+  computeNextRunAt: jest.fn(() => new Date('2026-01-01T14:00:00.000Z')),
+}));
+
 describe('custom-playbooks action security', () => {
   const mockCollection = jest.fn();
+  const mockBatchSet = jest.fn();
+  const mockBatchUpdate = jest.fn();
+  const mockBatchCommit = jest.fn();
+
+  function emptyAssignmentQuery() {
+    return {
+      where: jest.fn().mockReturnThis(),
+      get: jest.fn().mockResolvedValue({ docs: [] }),
+    };
+  }
+
+  function activeSubscriptionQuery(subscriptionId = 'sub-org-a') {
+    return {
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      get: jest.fn().mockResolvedValue({
+        empty: false,
+        docs: [{ id: subscriptionId }],
+      }),
+    };
+  }
 
   beforeEach(() => {
     jest.clearAllMocks();
     (getAdminFirestore as jest.Mock).mockReturnValue({
       collection: mockCollection,
+      batch: () => ({
+        set: mockBatchSet,
+        update: mockBatchUpdate,
+        commit: mockBatchCommit,
+      }),
     });
+    mockBatchCommit.mockResolvedValue(undefined);
   });
 
   it('denies listing custom playbooks for a different org', async () => {
@@ -175,6 +206,7 @@ describe('custom-playbooks action security', () => {
           doc: jest.fn(() => docRef),
         };
       }
+      if (name === 'playbook_assignments') return emptyAssignmentQuery();
       return {};
     });
 
@@ -266,6 +298,7 @@ describe('custom-playbooks action security', () => {
           doc: jest.fn(() => docRef),
         };
       }
+      if (name === 'playbook_assignments') return emptyAssignmentQuery();
       return {};
     });
 
@@ -313,6 +346,7 @@ describe('custom-playbooks action security', () => {
           doc: jest.fn(() => docRef),
         };
       }
+      if (name === 'playbook_assignments') return emptyAssignmentQuery();
       return {};
     });
 
@@ -348,6 +382,7 @@ describe('custom-playbooks action security', () => {
           doc: jest.fn(() => docRef),
         };
       }
+      if (name === 'playbook_assignments') return emptyAssignmentQuery();
       return {};
     });
 
@@ -358,6 +393,77 @@ describe('custom-playbooks action security', () => {
       status: 'active',
       updatedAt: expect.any(Date),
     });
+  });
+
+  it('creates a dispatcher assignment when a scheduled custom playbook is activated', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      currentOrgId: 'org-a',
+      orgId: 'org-a',
+    });
+
+    const docRef = {
+      get: jest.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({
+          id: 'custom-pb',
+          name: 'Weekly campaign report',
+          description: 'Summarize campaign activity',
+          orgId: 'org-a',
+          isCustom: true,
+          ownerId: 'user-1',
+          agent: 'craig',
+          category: 'marketing',
+          triggers: [{ type: 'schedule', cron: '0 10 * * 2', timezone: 'America/New_York' }],
+          steps: [],
+          createdBy: 'user-1',
+          runCount: 0,
+          successCount: 0,
+          failureCount: 0,
+          version: 1,
+        }),
+      }),
+      update: jest.fn().mockResolvedValue(undefined),
+    };
+    const assignmentDoc = jest.fn(() => ({ id: 'assignment-1' }));
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'playbooks') {
+        return {
+          doc: jest.fn(() => docRef),
+        };
+      }
+      if (name === 'playbook_assignments') {
+        const query = emptyAssignmentQuery();
+        return {
+          ...query,
+          doc: assignmentDoc,
+        };
+      }
+      if (name === 'subscriptions') return activeSubscriptionQuery('sub-org-a');
+      return {};
+    });
+
+    const result = await toggleCustomPlaybookStatus('org-a', 'custom-pb', true);
+
+    expect(result).toEqual({ success: true });
+    expect(mockBatchSet).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'assignment-1' }),
+      expect.objectContaining({
+        orgId: 'org-a',
+        subscriptionId: 'sub-org-a',
+        playbookId: 'custom-pb',
+        status: 'active',
+        handler: 'custom-report',
+        schedule: '0 10 * * 2',
+        config: expect.objectContaining({
+          customPlaybookId: 'custom-pb',
+          prompt: 'Weekly campaign report: Summarize campaign activity',
+        }),
+      }),
+    );
+    expect(mockBatchCommit).toHaveBeenCalled();
   });
 
   it('rejects updates with blank names', async () => {

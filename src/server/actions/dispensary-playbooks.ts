@@ -8,7 +8,7 @@
  */
 
 import { getAdminFirestore } from '@/firebase/admin';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, type DocumentData, type Firestore, type QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { requireUser } from '@/server/auth/auth';
 import { PLAYBOOKS, getPlaybookIdsForTier } from '@/config/playbooks';
 import type { TierId } from '@/config/tiers';
@@ -47,6 +47,8 @@ export interface DispensaryPlaybookData {
     customConfigs: Record<string, PlaybookCustomConfig>;
 }
 
+type AssignmentDoc = QueryDocumentSnapshot<DocumentData>;
+
 function sanitizePlaybookCustomConfig(config: PlaybookCustomConfig): PlaybookCustomConfig {
     const sanitized: PlaybookCustomConfig = {};
 
@@ -67,6 +69,83 @@ function sanitizePlaybookCustomConfig(config: PlaybookCustomConfig): PlaybookCus
     }
 
     return sanitized;
+}
+
+function getAssignmentUpdatedAt(doc: AssignmentDoc): number {
+    const data = doc.data();
+    const updatedAt = data.updatedAt?.toDate?.() ?? data.createdAt?.toDate?.();
+    return updatedAt instanceof Date ? updatedAt.getTime() : 0;
+}
+
+function chooseCanonicalAssignment(
+    docs: AssignmentDoc[],
+    activeSubscriptionId?: string,
+): AssignmentDoc | undefined {
+    return [...docs].sort((a, b) => {
+        const aData = a.data();
+        const bData = b.data();
+        const aSubMatch = activeSubscriptionId && aData.subscriptionId === activeSubscriptionId ? 1 : 0;
+        const bSubMatch = activeSubscriptionId && bData.subscriptionId === activeSubscriptionId ? 1 : 0;
+        if (aSubMatch !== bSubMatch) return bSubMatch - aSubMatch;
+
+        const aActive = aData.status === 'active' ? 1 : 0;
+        const bActive = bData.status === 'active' ? 1 : 0;
+        if (aActive !== bActive) return bActive - aActive;
+
+        const updatedDelta = getAssignmentUpdatedAt(b) - getAssignmentUpdatedAt(a);
+        if (updatedDelta !== 0) return updatedDelta;
+
+        return a.id.localeCompare(b.id);
+    })[0];
+}
+
+function groupAssignmentsByPlaybook(docs: AssignmentDoc[]): Map<string, AssignmentDoc[]> {
+    const grouped = new Map<string, AssignmentDoc[]>();
+    for (const doc of docs) {
+        const playbookId = doc.data().playbookId;
+        if (typeof playbookId !== 'string' || !playbookId) continue;
+        const group = grouped.get(playbookId) ?? [];
+        group.push(doc);
+        grouped.set(playbookId, group);
+    }
+    return grouped;
+}
+
+function latestAssignmentDate(docs: AssignmentDoc[]): string | null {
+    const latest = docs
+        .map((doc) => doc.data().lastTriggered?.toDate?.() ?? doc.data().lastRunAt?.toDate?.())
+        .filter((date): date is Date => date instanceof Date)
+        .sort((a, b) => b.getTime() - a.getTime())[0];
+
+    return latest?.toISOString?.() ?? null;
+}
+
+function isActiveSubscription(data: DocumentData | undefined): boolean {
+    return data?.status === 'active' || data?.status === 'trialing';
+}
+
+async function resolveActiveSubscriptionId(
+    db: Firestore,
+    orgId: string,
+): Promise<string> {
+    const byOrgSnap = await db
+        .collection('subscriptions')
+        .where('orgId', '==', orgId)
+        .limit(10)
+        .get();
+    const byOrg = byOrgSnap.docs.find((doc) => isActiveSubscription(doc.data()));
+    if (byOrg) return byOrg.id;
+
+    const byCustomerSnap = await db
+        .collection('subscriptions')
+        .where('customerId', '==', orgId)
+        .limit(10)
+        .get();
+    const byCustomer = byCustomerSnap.docs.find((doc) => isActiveSubscription(doc.data()));
+    if (byCustomer) return byCustomer.id;
+
+    logger.warn('[DispensaryPlaybooks] No active subscription doc found, falling back to orgId', { orgId });
+    return orgId;
 }
 
 /**
@@ -114,22 +193,29 @@ export async function getDispensaryPlaybookAssignments(orgId: string): Promise<D
         .where('orgId', '==', orgId)
         .get();
 
-    const assignments: PlaybookAssignmentStatus[] = snap.docs.map((d) => {
-        const data = d.data();
+    const activeSubscriptionId = await resolveActiveSubscriptionId(db, orgId);
+    const groupedAssignments = groupAssignmentsByPlaybook(snap.docs);
+
+    const assignments: PlaybookAssignmentStatus[] = [...groupedAssignments.entries()].map(([playbookId, docs]) => {
+        const canonical = chooseCanonicalAssignment(docs, activeSubscriptionId);
+        const data = canonical?.data() ?? {};
         return {
-            playbookId: data.playbookId as string,
+            playbookId,
             status: (data.status || 'paused') as 'active' | 'paused' | 'completed',
-            triggerCount: data.triggerCount || 0,
-            lastTriggered: data.lastTriggered?.toDate?.()?.toISOString?.() || null,
+            triggerCount: docs.reduce((sum, doc) => sum + (Number(doc.data().triggerCount) || 0), 0),
+            lastTriggered: latestAssignmentDate(docs),
         };
     });
 
     // Collect customConfig overrides keyed by playbookId
     const customConfigs: Record<string, PlaybookCustomConfig> = {};
-    snap.docs.forEach((d) => {
-        const data = d.data();
-        if (data.customConfig && data.playbookId) {
-            customConfigs[data.playbookId as string] = data.customConfig as PlaybookCustomConfig;
+    groupedAssignments.forEach((docs, playbookId) => {
+        const canonicalWithConfig = chooseCanonicalAssignment(
+            docs.filter((doc) => doc.data().customConfig),
+            activeSubscriptionId,
+        );
+        if (canonicalWithConfig) {
+            customConfigs[playbookId] = canonicalWithConfig.data().customConfig as PlaybookCustomConfig;
         }
     });
 
@@ -152,7 +238,7 @@ export async function getDispensaryPlaybookAssignments(orgId: string): Promise<D
         }
     }
 
-    const activeIds = assignments.filter((a) => a.status === 'active').map((a) => a.playbookId);
+    const activeIds = [...new Set(assignments.filter((a) => a.status === 'active').map((a) => a.playbookId))];
     const tierPlaybookIds = getPlaybookIdsForTier(tierId);
 
     return {
@@ -188,22 +274,24 @@ export async function updatePlaybookAssignmentConfig(
 
     try {
         const sanitizedConfig = sanitizePlaybookCustomConfig(config);
+        const activeSubscriptionId = await resolveActiveSubscriptionId(db, orgId);
         const existing = await db
             .collection('playbook_assignments')
             .where('orgId', '==', orgId)
             .where('playbookId', '==', playbookId)
-            .limit(1)
             .get();
 
         if (!existing.empty) {
-            await existing.docs[0].ref.update({
+            const canonical = chooseCanonicalAssignment(existing.docs, activeSubscriptionId) ?? existing.docs[0];
+            await canonical.ref.update({
                 customConfig: sanitizedConfig,
+                subscriptionId: canonical.data().subscriptionId || activeSubscriptionId,
                 updatedAt: Timestamp.now(),
             });
         } else {
             // Create the assignment document with the config (paused by default)
             await db.collection('playbook_assignments').add({
-                subscriptionId: orgId,
+                subscriptionId: activeSubscriptionId,
                 orgId,
                 playbookId,
                 status: 'paused',
@@ -245,22 +333,44 @@ export async function toggleDispensaryPlaybookAssignment(
     const db = getAdminFirestore();
 
     try {
+        const activeSubscriptionId = await resolveActiveSubscriptionId(db, orgId);
         const existing = await db
             .collection('playbook_assignments')
             .where('orgId', '==', orgId)
             .where('playbookId', '==', playbookId)
-            .limit(1)
             .get();
 
         if (!existing.empty) {
-            await existing.docs[0].ref.update({
-                status: active ? 'active' : 'paused',
-                updatedAt: Timestamp.now(),
-            });
+            const batch = db.batch();
+            const canonical = chooseCanonicalAssignment(existing.docs, activeSubscriptionId) ?? existing.docs[0];
+
+            if (active) {
+                batch.update(canonical.ref, {
+                    status: 'active',
+                    subscriptionId: activeSubscriptionId,
+                    updatedAt: Timestamp.now(),
+                });
+                existing.docs
+                    .filter((doc) => doc.id !== canonical.id)
+                    .forEach((doc) => {
+                        batch.update(doc.ref, {
+                            status: 'paused',
+                            updatedAt: Timestamp.now(),
+                        });
+                    });
+            } else {
+                existing.docs.forEach((doc) => {
+                    batch.update(doc.ref, {
+                        status: 'paused',
+                        updatedAt: Timestamp.now(),
+                    });
+                });
+            }
+
+            await batch.commit();
         } else if (active) {
-            // Create new assignment (subscriptionId = orgId as fallback)
             await db.collection('playbook_assignments').add({
-                subscriptionId: orgId,
+                subscriptionId: activeSubscriptionId,
                 orgId,
                 playbookId,
                 status: 'active',
@@ -297,6 +407,7 @@ export async function activateAllTierPlaybooks(
 
     try {
         const playbookIds = getPlaybookIdsForTier(tierId);
+        const activeSubscriptionId = await resolveActiveSubscriptionId(db, orgId);
 
         // Get existing assignments for this org
         const existingSnap = await db
@@ -304,27 +415,46 @@ export async function activateAllTierPlaybooks(
             .where('orgId', '==', orgId)
             .get();
 
-        const existingMap = new Map(
-            existingSnap.docs.map((d) => [d.data().playbookId as string, d])
-        );
+        const existingMap = groupAssignmentsByPlaybook(existingSnap.docs);
 
         const batch = db.batch();
         let activated = 0;
 
         for (const playbookId of playbookIds) {
-            const existingDoc = existingMap.get(playbookId);
+            const existingDocs = existingMap.get(playbookId) ?? [];
+            const existingDoc = chooseCanonicalAssignment(existingDocs, activeSubscriptionId);
             if (existingDoc) {
-                if (existingDoc.data().status !== 'active') {
+                const wasActive = existingDoc.data().status === 'active';
+                if (!wasActive || existingDoc.data().subscriptionId !== activeSubscriptionId) {
                     batch.update(existingDoc.ref, {
                         status: 'active',
+                        subscriptionId: activeSubscriptionId,
                         updatedAt: Timestamp.now(),
                     });
-                    activated++;
+                    if (!wasActive) activated++;
+                }
+
+                existingDocs
+                    .filter((doc) => doc.id !== existingDoc.id)
+                    .forEach((doc) => {
+                        batch.update(doc.ref, {
+                            status: 'paused',
+                            updatedAt: Timestamp.now(),
+                        });
+                    });
+
+                if (existingDocs.length > 1) {
+                    logger.info('[DispensaryPlaybooks] Canonicalized duplicate assignments', {
+                        orgId,
+                        playbookId,
+                        kept: existingDoc.id,
+                        paused: existingDocs.length - 1,
+                    });
                 }
             } else {
                 const ref = db.collection('playbook_assignments').doc();
                 batch.set(ref, {
-                    subscriptionId: orgId,
+                    subscriptionId: activeSubscriptionId,
                     orgId,
                     playbookId,
                     status: 'active',
@@ -339,7 +469,12 @@ export async function activateAllTierPlaybooks(
 
         await batch.commit();
 
-        logger.info('[DispensaryPlaybooks] Activated all tier playbooks', { orgId, tierId, activated });
+        logger.info('[DispensaryPlaybooks] Activated all tier playbooks', {
+            orgId,
+            tierId,
+            activated,
+            subscriptionId: activeSubscriptionId,
+        });
         return { success: true, activated };
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';

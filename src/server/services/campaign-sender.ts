@@ -12,7 +12,7 @@ import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { BlackleafService } from '@/lib/notifications/blackleaf-service';
 import { getUsageWithLimits, incrementUsage } from '@/lib/metering/usage-service';
 import { recordProactiveRuntimeDiagnostic } from '@/server/services/proactive-runtime-diagnostics';
-import { encodeUnsubscribeToken } from '@/app/api/email/unsubscribe/route';
+import { encodeUnsubscribeToken } from '@/lib/email/unsubscribe-token';
 import type { Campaign, CampaignRecipient, CampaignPerformance, CampaignChannel } from '@/types/campaign';
 import type { CustomerSegment } from '@/types/customers';
 
@@ -695,6 +695,7 @@ async function sendToRecipient(
 
         return {
             success: result.success,
+            messageId: result.messageId,
             error: result.error,
         };
     }

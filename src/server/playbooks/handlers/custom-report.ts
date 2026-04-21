@@ -8,10 +8,28 @@
 
 import { Timestamp } from 'firebase-admin/firestore';
 import { callGroqOrClaude } from '@/ai/glm';
-import { getModelForOrg } from '@/lib/ai-model';
+import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { logger } from '@/lib/logger';
 import { slackService } from '@/server/services/communications/slack';
 import type { ScheduledPlaybookContext } from '../handler-registry';
+
+function normalizeDeliverTo(value: unknown): string[] {
+    if (typeof value === 'string') {
+        return value
+            .split(',')
+            .map((email) => email.trim())
+            .filter((email) => email.includes('@'));
+    }
+
+    if (Array.isArray(value)) {
+        return value
+            .filter((email): email is string => typeof email === 'string')
+            .map((email) => email.trim())
+            .filter((email) => email.includes('@'));
+    }
+
+    return [];
+}
 
 export async function handleCustomReport(ctx: ScheduledPlaybookContext): Promise<void> {
     const { orgId, config, firestore } = ctx;
@@ -35,7 +53,6 @@ export async function handleCustomReport(ctx: ScheduledPlaybookContext): Promise
 Last 7 days: ${ordersSnap.size} orders · $${recentRevenue.toFixed(0)} revenue
 Report requested: ${userPrompt}`;
 
-    const model = await getModelForOrg(orgId);
     const report = await callGroqOrClaude({
         userMessage: `You are BakedBot, an AI commerce assistant for a cannabis dispensary. Generate a concise automated report (3-5 sentences max).\n\n${context}`,
         maxTokens: 400,
@@ -46,20 +63,31 @@ Report requested: ${userPrompt}`;
         orgId,
         type: 'playbook_delivery',
         playbookId: ctx.playbookId,
-        title: '📋 Automated Report',
+        title: 'Automated Report',
         body: report,
         severity: 'info',
         createdAt: Timestamp.now(),
         read: false,
     });
 
+    const deliverTo = normalizeDeliverTo(config.deliverTo);
+    await Promise.all(deliverTo.map((email) => sendGenericEmail({
+        to: email,
+        subject: `Automated Report: ${config.playbookName || ctx.playbookId}`,
+        htmlBody: `<p>${report.replace(/\n/g, '<br>')}</p>`,
+        textBody: report,
+        orgId,
+        communicationType: 'transactional',
+        agentName: 'playbooks',
+    })));
+
     const slackChannel = config.slackChannel as string | undefined;
     if (slackChannel) {
         const channel = await slackService.findChannelByName(slackChannel.replace(/^#/, ''));
         if (channel) {
-            await slackService.postMessage(channel.id, `📋 Automated Report\n${report}`);
+            await slackService.postMessage(channel.id, `Automated Report\n${report}`);
         }
     }
 
-    logger.info('[CustomReport] Delivered', { orgId, playbookId: ctx.playbookId });
+    logger.info('[CustomReport] Delivered', { orgId, playbookId: ctx.playbookId, emails: deliverTo.length });
 }

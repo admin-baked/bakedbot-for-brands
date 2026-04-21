@@ -94,9 +94,19 @@ function makeFirestoreMock() {
 }
 
 describe('resolveOrgSesFrom', () => {
+  const originalSesAccessKey = process.env.AWS_SES_ACCESS_KEY_ID;
+  const originalSesSecretKey = process.env.AWS_SES_SECRET_ACCESS_KEY;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    delete process.env.AWS_SES_ACCESS_KEY_ID;
+    delete process.env.AWS_SES_SECRET_ACCESS_KEY;
     (isOrgOnFreePlan as jest.Mock).mockResolvedValue(true);
+  });
+
+  afterAll(() => {
+    if (originalSesAccessKey) process.env.AWS_SES_ACCESS_KEY_ID = originalSesAccessKey;
+    if (originalSesSecretKey) process.env.AWS_SES_SECRET_ACCESS_KEY = originalSesSecretKey;
   });
 
   it('routes brand-scoped Ecstatic mail through the tenant SES subdomain', async () => {

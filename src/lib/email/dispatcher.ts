@@ -408,7 +408,13 @@ export type GenericEmailData = {
     userId?: string;
 };
 
-export async function sendGenericEmail(data: GenericEmailData): Promise<{ success: boolean; error?: string }> {
+export type GenericEmailDeliveryResult = {
+    success: boolean;
+    error?: string;
+    messageId?: string;
+};
+
+export async function sendGenericEmail(data: GenericEmailData): Promise<GenericEmailDeliveryResult> {
     // ── Deprecated sender check ──
     if (isDeprecatedSender(data.fromEmail)) {
         logger.info('[Dispatcher] Deprecated sender blocked', { from: data.fromEmail, to: data.to, subject: data.subject });
@@ -420,7 +426,7 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
         fromName: resolveEmailSenderName(data.communicationType, data.fromName),
     };
 
-    let result: { success: boolean; error?: string };
+    let result: GenericEmailDeliveryResult;
 
     // ── Resolve plan tier: free orgs use Mailjet, paid orgs use SES ──
     const { isOrgOnFreePlan } = await import('@/lib/get-org-tier');
@@ -446,7 +452,7 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
                 htmlBody: normalizedData.htmlBody,
                 textBody: normalizedData.textBody,
             });
-            result = { success: true };
+            result = { success: true, messageId };
             logCrm(result, normalizedData, 'bakedbot_mail');
             // Fire-and-forget thread creation — never blocks the send path
             createEmailThreadAsync({
@@ -598,7 +604,7 @@ function createEmailThreadAsync(opts: {
 
 /** Fire-and-forget CRM logging — never blocks email send path */
 function logCrm(
-    result: { success: boolean },
+    result: GenericEmailDeliveryResult,
     data: GenericEmailData,
     provider: string,
 ): void {
@@ -614,6 +620,7 @@ function logCrm(
             agentName: data.agentName,
             campaignId: data.campaignId,
             provider,
+            providerMessageId: result.messageId,
         })
     ).catch(() => {});
 }

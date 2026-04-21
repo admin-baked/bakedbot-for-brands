@@ -14,21 +14,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
-
-export function decodeUnsubscribeToken(token: string): { email: string; orgId: string } | null {
-    try {
-        const decoded = Buffer.from(token, 'base64url').toString('utf8');
-        const [email, orgId] = decoded.split('|');
-        if (!email || !orgId) return null;
-        return { email: email.toLowerCase(), orgId };
-    } catch {
-        return null;
-    }
-}
-
-export function encodeUnsubscribeToken(email: string, orgId: string): string {
-    return Buffer.from(`${email.toLowerCase()}|${orgId}`).toString('base64url');
-}
+import { decodeUnsubscribeToken } from '@/lib/email/unsubscribe-token';
 
 async function processUnsubscribe(token: string): Promise<{ success: boolean; email?: string }> {
     const payload = decodeUnsubscribeToken(token);
