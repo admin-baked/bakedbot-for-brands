@@ -1,4 +1,4 @@
-import { roleMatches } from '@/server/auth/auth';
+import { roleMatches } from '@/server/auth/role-utils';
 import { UserRole } from '@/types/roles';
 
 describe('Auth Logic', () => {

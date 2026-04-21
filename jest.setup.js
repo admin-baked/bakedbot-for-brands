@@ -307,19 +307,26 @@ jest.mock('@firecrawl/firecrawl-js', () => {
     return jest.fn().mockImplementation(() => mockFirecrawl);
 });
 
-// Mock DiscoveryService
-jest.mock('@/server/services/discovery-service', () => ({
-    DiscoveryService: {
-        discoverWithActions: jest.fn().mockResolvedValue({
-            success: true,
-            data: { 
-                url: 'https://example.com',
-                content: 'Mock content',
-                metadata: {}
-            }
-        }),
-    }
-}));
+// Mock discovery service (singleton)
+jest.mock('@/server/services/firecrawl', () => {
+    const mockDiscovery = {
+        discoverUrl: jest.fn().mockResolvedValue({ success: true, markdown: 'Mock content' }),
+        discoverWithActions: jest.fn().mockResolvedValue({ success: true, markdown: 'Mock content' }),
+        search: jest.fn().mockResolvedValue([]),
+        mapSite: jest.fn().mockResolvedValue({ success: true, links: [] }),
+        extractData: jest.fn().mockResolvedValue({}),
+        getRemainingCredits: jest.fn().mockResolvedValue(1000),
+        hasCreditBudget: jest.fn().mockResolvedValue(true),
+        isConfigured: jest.fn().mockReturnValue(true),
+        runAgent: jest.fn().mockResolvedValue({ success: true, data: 'Mock agent result' })
+    };
+    return {
+        DiscoveryService: {
+            getInstance: jest.fn(() => mockDiscovery)
+        },
+        discovery: mockDiscovery
+    };
+});
 
 // Comprehensive Lucide-React mock
 jest.mock('lucide-react', () => {
