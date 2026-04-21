@@ -3,6 +3,10 @@
  * Tests for the simulated thinking steps shown during agent processing
  */
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 describe('Episodic Thinking Simulation', () => {
     beforeEach(() => {
         jest.useFakeTimers();
@@ -159,3 +163,4 @@ describe('Episodic Thinking Simulation', () => {
         });
     });
 });
+

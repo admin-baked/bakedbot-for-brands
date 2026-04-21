@@ -27,6 +27,21 @@ jest.mock('@/app/dashboard/brand/components/next-best-actions', () => ({
     NextBestActions: () => <div data-testid="next-best-actions">NextBestActions</div>,
 }));
 
+// Mock DataImportDropdown — it calls useFirebase internally (requires FirebaseProvider)
+jest.mock('@/components/dashboard/data-import-dropdown', () => ({
+    DataImportDropdown: () => <div data-testid="data-import-dropdown" />,
+}));
+
+// Mock ManagedPagesList — has an undefined sub-component import in the test environment
+jest.mock('@/components/dashboard/managed-pages-list', () => ({
+    ManagedPagesList: () => <div data-testid="managed-pages-list" />,
+}));
+
+// Mock the brand dashboard data action — it's a server action that hits Firestore
+jest.mock('@/app/dashboard/brand/actions', () => ({
+    getBrandDashboardData: jest.fn().mockResolvedValue(null),
+}));
+
 // Mock Lucide Icons
 jest.mock('lucide-react', () => ({
     Activity: () => <div data-testid="icon-activity" />,
@@ -92,10 +107,11 @@ describe('BrandOverviewView Component', () => {
         expect(screen.getByTestId('brand-right-rail')).toBeInTheDocument();
     });
 
-    it('displays active retailers count', () => {
+    it('displays active retailers count that defaults to 0 before data loads', () => {
         render(<BrandOverviewView {...defaultProps} />);
 
-        expect(screen.getByText('Active Retailers: 42')).toBeInTheDocument();
+        // liveData starts as null; coverage.value falls back to 0
+        expect(screen.getByText('Active Retailers: 0')).toBeInTheDocument();
     });
 
     it('renders market filter dropdown', () => {

@@ -72,7 +72,7 @@ describe('SuperAdminSidebar', () => {
         render(<SuperAdminSidebar />);
 
         expect(screen.getByText('Boardroom')).toBeInTheDocument();
-        expect(screen.getByText('BakedBot Drive')).toBeInTheDocument();
+        expect(screen.getByText('Creative Center')).toBeInTheDocument();
         expect(screen.getByText('Invite Team Member')).toBeInTheDocument();
     });
 
@@ -85,10 +85,10 @@ describe('SuperAdminSidebar', () => {
         expect(mockToast).toHaveBeenCalled();
     });
 
-    it('contains drive link to CEO tab', () => {
+    it('contains Creative Center link', () => {
         render(<SuperAdminSidebar />);
 
-        const driveLink = screen.getByText('BakedBot Drive').closest('a');
-        expect(driveLink).toHaveAttribute('href', '/dashboard/ceo?tab=drive');
+        const link = screen.getByText('Creative Center').closest('a');
+        expect(link).toHaveAttribute('href', '/dashboard/creative');
     });
 });

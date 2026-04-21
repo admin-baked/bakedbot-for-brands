@@ -65,7 +65,9 @@ describe('agent-telemetry', () => {
     });
 
     it('uses default pricing for unknown models', () => {
+        // DEFAULT_PRICING is Gemini 2.5 Flash: $0.30 input + $2.50 output per 1M tokens
+        // 1M input + 1M output = $0.30 + $2.50 = $2.80
         const cost = estimateCost('unknown-model', 1_000_000, 1_000_000);
-        expect(cost).toBeCloseTo(18);
+        expect(cost).toBeCloseTo(2.8);
     });
 });

@@ -25,6 +25,11 @@ jest.mock('@/app/dashboard/brand/actions', () => ({
   sendBrandChatMessage: jest.fn(),
 }));
 
+jest.mock('@/server/actions/artifacts', () => ({
+  getArtifactAction: jest.fn(),
+  updateArtifactAction: jest.fn(),
+}));
+
 describe('Brand Dashboard Components - Production Readiness', () => {
   const mockBrandId = 'test-brand-123';
 

@@ -106,3 +106,4 @@ describe('Discovery Browser Tools', () => {
         });
     });
 });
+

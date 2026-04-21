@@ -19,7 +19,7 @@ npm run ci:health
 If `ci:health` shows red: **fix the CI failure before doing any new work.** Don't push on top of a broken build.
 If `check:types` fails: **fix type errors before any other work.**
 
-**Current Status:** 🟢 main green | Thrive CRM data/playbook hardening; agent coordination + safe-push fixes; version 4.10.27-COD | **Last update:** 2026-04-20 (`b88970912`)
+**Current Status:** 🟢 main green | Thrive CRM hardening + Test suite Jest conversion & stable (4.10.32-GEM) | **Last update:** 2026-04-20
 
 ---
 

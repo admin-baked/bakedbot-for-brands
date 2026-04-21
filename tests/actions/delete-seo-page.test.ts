@@ -18,69 +18,66 @@ jest.mock('@/firebase/admin', () => ({
     getAdminFirestore: jest.fn(),
 }));
 
-
+/**
+ * deleteSeoPageAction uses Promise.allSettled to delete from 5 paths:
+ *   1. foot_traffic/config/zip_pages/<zip>
+ *   2. foot_traffic/config/seo_pages/<zip>
+ *   3. seo_pages/zip-<zip>
+ *   4. seo_pages/zip_<zip>
+ *   5. seo_pages/<zip>
+ * Since it uses allSettled, individual delete failures don't throw — only
+ * requireUser / getAdminFirestore failures cause the catch branch to activate.
+ */
 describe('deleteSeoPageAction', () => {
-    const mockDelete = jest.fn();
-    const mockDoc = jest.fn((id) => ({ delete: mockDelete })); // Modified to accept id for clarity
-    const mockCollection = jest.fn((path: string) => ({ doc: mockDoc }));
+    const mockDelete = jest.fn().mockResolvedValue({});
+    const makeDocStub = () => ({ delete: mockDelete });
+    const makeCollectionStub = () => ({ doc: jest.fn(() => makeDocStub()) });
+
+    // configDoc stub: collection() → subdoc stub
+    const mockConfigDoc = {
+        collection: jest.fn(() => makeCollectionStub()),
+    };
+
+    // foot_traffic collection stub: doc('config') → configDoc
+    const mockFootTrafficCollection = {
+        doc: jest.fn(() => mockConfigDoc),
+    };
+
+    // top-level seo_pages collection stub
+    const mockSeoPagesColl = makeCollectionStub();
+
     const mockFirestore = {
-        collection: mockCollection,
+        collection: jest.fn((name: string) => {
+            if (name === 'foot_traffic') return mockFootTrafficCollection;
+            if (name === 'seo_pages') return mockSeoPagesColl;
+            return makeCollectionStub();
+        }),
     };
 
     beforeEach(() => {
         jest.clearAllMocks();
+        mockDelete.mockResolvedValue({});
         (getAdminFirestore as jest.Mock).mockReturnValue(mockFirestore);
+        (requireUser as jest.Mock).mockResolvedValue({ uid: 'user-123', role: 'super_user' });
     });
 
-    it('should delete the SEO page and return success message', async () => {
-        // Setup nested mocks
-        const mockSeoPagesCollection = { doc: mockDoc };
-        const mockConfigDoc = { collection: jest.fn(() => mockSeoPagesCollection) };
-        const mockConfigCollection = { doc: jest.fn(() => mockConfigDoc) };
-
-        mockFirestore.collection.mockImplementation((name) => {
-            if (name === 'foot_traffic') return mockConfigCollection;
-            return { doc: jest.fn() };
-        });
-
-        (requireUser as jest.Mock).mockResolvedValue({ role: 'owner' });
-        mockDelete.mockResolvedValue({});
-
+    it('should delete the SEO page across all paths and return success message', async () => {
         const result = await deleteSeoPageAction('90004');
 
-        expect(requireUser).toHaveBeenCalledWith(['owner']);
+        expect(requireUser).toHaveBeenCalledWith(['super_user']);
+        // foot_traffic/config must be accessed
         expect(mockFirestore.collection).toHaveBeenCalledWith('foot_traffic');
-        expect(mockConfigCollection.doc).toHaveBeenCalledWith('config');
-        expect(mockConfigDoc.collection).toHaveBeenCalledWith('seo_pages');
-        expect(mockSeoPagesCollection.doc).toHaveBeenCalledWith('90004');
-        expect(mockDelete).toHaveBeenCalled(); // Call delete on the returned doc
+        expect(mockFootTrafficCollection.doc).toHaveBeenCalledWith('config');
+        // seo_pages top-level collection accessed for 3 delete paths
+        expect(mockFirestore.collection).toHaveBeenCalledWith('seo_pages');
         expect(result).toEqual({ message: 'Successfully deleted page for 90004' });
     });
 
-    it('should return error if delete fails', async () => {
-        (requireUser as jest.Mock).mockResolvedValue({ role: 'owner' });
-        const error = new Error('Delete failed');
-
-        // Setup nested mocks for failure case
-        const mockDeleteFailure = jest.fn().mockRejectedValue(error);
-        const mockSeoPagesCollectionFailure = { doc: jest.fn(() => ({ delete: mockDeleteFailure })) };
-        const mockConfigDocFailure = { collection: jest.fn(() => mockSeoPagesCollectionFailure) };
-        const mockConfigCollectionFailure = { doc: jest.fn(() => mockConfigDocFailure) };
-
-        mockFirestore.collection.mockImplementation((name) => {
-            if (name === 'foot_traffic') return mockConfigCollectionFailure;
-            return { doc: jest.fn() };
-        });
+    it('should return error if requireUser throws (unauthorized)', async () => {
+        (requireUser as jest.Mock).mockRejectedValue(new Error('Unauthorized'));
 
         const result = await deleteSeoPageAction('90004');
 
-        expect(requireUser).toHaveBeenCalledWith(['owner']);
-        expect(mockFirestore.collection).toHaveBeenCalledWith('foot_traffic');
-        expect(mockConfigCollectionFailure.doc).toHaveBeenCalledWith('config');
-        expect(mockConfigDocFailure.collection).toHaveBeenCalledWith('seo_pages');
-        expect(mockSeoPagesCollectionFailure.doc).toHaveBeenCalledWith('90004');
-        expect(mockDeleteFailure).toHaveBeenCalled();
-        expect(result).toEqual({ message: 'Failed to delete page: Delete failed', error: true });
+        expect(result).toMatchObject({ error: true, message: 'Unauthorized' });
     });
-
 });

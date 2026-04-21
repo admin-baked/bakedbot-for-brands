@@ -53,3 +53,4 @@ describe('Discovery MCP Module', () => {
         expect(typeof mcp.getCredits).toBe('function');
     });
 });
+

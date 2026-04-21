@@ -3,6 +3,14 @@ import { runAgentCore } from '@/server/agents/agent-runner';
 
 const mockUpdateStreakAction = jest.fn().mockResolvedValue(undefined);
 
+jest.mock('@/firebase/server-client', () => ({
+  createServerClient: jest.fn().mockReturnValue({
+    collection: jest.fn().mockReturnThis(),
+    doc: jest.fn().mockReturnThis(),
+    get: jest.fn().mockResolvedValue({ exists: false }),
+  }),
+}));
+
 jest.mock('@/server/agents/agent-runner', () => ({
   runAgentCore: jest.fn(),
 }));
@@ -52,7 +60,7 @@ describe('runConsumerAgent', () => {
       id: 'prod-1',
       name: 'Blue Dream',
       category: 'Flower',
-      imageUrl: '/icon-192.png',
+      imageUrl: '',  // getSafeProductImageUrl('') returns '' — no fallback placeholder injected
       description: 'Relaxing classic',
       url: 'https://example.com/products/blue-dream',
     });
@@ -93,7 +101,7 @@ describe('runConsumerAgent', () => {
       id: 'prod-ctx',
       name: 'Night Gummies',
       category: 'Edibles',
-      imageUrl: '/icon-192.png',
+      imageUrl: '',  // getSafeProductImageUrl('') returns '' — no fallback placeholder injected
       reasoning: 'Picked for your stated preferences.',
     });
   });

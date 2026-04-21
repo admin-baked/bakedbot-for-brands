@@ -76,5 +76,7 @@ describe('ProjectSelector', () => {
             
             await expect(getProjects()).rejects.toThrow('Failed to fetch');
         });
+
     });
 });
+

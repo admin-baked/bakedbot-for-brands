@@ -189,6 +189,9 @@ jest.mock('genkit', () => ({
     genkit: jest.fn(() => ({
         definePrompt: jest.fn(() => jest.fn()),
         defineFlow: jest.fn(() => jest.fn()),
+        defineTool: jest.fn(() => jest.fn()),
+        defineModel: jest.fn(() => jest.fn()),
+        defineRetriever: jest.fn(() => jest.fn()),
     })),
     Genkit: jest.fn(),
     tool: jest.fn((_config, impl) => impl),
@@ -248,3 +251,90 @@ jest.mock('next/navigation', () => ({
     redirect: jest.fn(),
     notFound: jest.fn(),
 }));
+
+// Mock the internal Genkit instance creator to bypass Proxy issues in tests
+jest.mock('@/ai/genkit', () => ({
+    ai: {
+        definePrompt: jest.fn(() => jest.fn()),
+        defineFlow: jest.fn(() => jest.fn()),
+        defineTool: jest.fn((_config, impl) => impl),
+        defineModel: jest.fn(() => jest.fn()),
+        defineRetriever: jest.fn(() => jest.fn()),
+    },
+    googleAI: jest.fn(() => () => ({})),
+}));
+
+// Mock react-syntax-highlighter to avoid ESM/CJS issues with refractor
+jest.mock('react-syntax-highlighter', () => ({
+    Prism: ({ children }) => <pre>{children}</pre>,
+    Light: ({ children }) => <pre>{children}</pre>,
+}));
+
+jest.mock('react-syntax-highlighter/dist/cjs/styles/prism', () => ({
+    oneDark: {},
+    vscDarkPlus: {},
+}));
+
+jest.mock('react-syntax-highlighter/dist/esm/styles/prism', () => ({
+    oneDark: {},
+    oneLight: {},
+}));
+
+// Mock Anthropic SDK
+jest.mock('@anthropic-ai/sdk', () => {
+    return jest.fn().mockImplementation(() => ({
+        messages: {
+            create: jest.fn().mockResolvedValue({
+                content: [{ type: 'text', text: 'Anthropic mock response' }],
+            }),
+        },
+    }));
+});
+
+// Mock Firecrawl SDK
+const mockFirecrawl = {
+    search: jest.fn().mockResolvedValue({ success: true, data: [] }),
+    scrapeUrl: jest.fn().mockResolvedValue({ success: true, data: { markdown: '# Mock Content' } }),
+    crawlUrl: jest.fn().mockResolvedValue({ success: true, jobId: 'mock-job-id' }),
+    checkCrawlStatus: jest.fn().mockResolvedValue({ success: true, status: 'completed', data: [] }),
+};
+
+jest.mock('@mendable/firecrawl-js', () => {
+    return jest.fn().mockImplementation(() => mockFirecrawl);
+});
+
+jest.mock('@firecrawl/firecrawl-js', () => {
+    return jest.fn().mockImplementation(() => mockFirecrawl);
+});
+
+// Mock DiscoveryService
+jest.mock('@/server/services/discovery-service', () => ({
+    DiscoveryService: {
+        discoverWithActions: jest.fn().mockResolvedValue({
+            success: true,
+            data: { 
+                url: 'https://example.com',
+                content: 'Mock content',
+                metadata: {}
+            }
+        }),
+    }
+}));
+
+// Comprehensive Lucide-React mock
+jest.mock('lucide-react', () => {
+    const React = require('react');
+    const mockIcon = (name) => {
+        const Icon = (props) => React.createElement('svg', { ...props, 'data-lucide': name });
+        Icon.displayName = name;
+        return Icon;
+    };
+
+    return new Proxy({}, {
+        get: (target, name) => {
+            if (name === '__esModule') return true;
+            return mockIcon(name);
+        }
+    });
+});
+

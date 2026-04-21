@@ -31,6 +31,11 @@ jest.mock('@/hooks/use-toast', () => ({
     }),
 }));
 
+// Mock InviteUserDialog to avoid deep render tree complexity
+jest.mock('@/components/dashboard/admin/invite-user-dialog', () => ({
+    InviteUserDialog: ({ trigger }: any) => <div>{trigger}</div>,
+}));
+
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -65,14 +70,15 @@ describe('SuperAdminSidebar', () => {
                 </SidebarProvider>
             </TooltipProvider>
         );
-        
+
+        // Groups reflect the frequency-based hierarchy introduced in the refactor
+        expect(screen.getByText('Daily')).toBeInTheDocument();
+        expect(screen.getByText('Manage')).toBeInTheDocument();
+        expect(screen.getByText('Content')).toBeInTheDocument();
         expect(screen.getByText('Assistant')).toBeInTheDocument();
-        expect(screen.getByText('Operations')).toBeInTheDocument();
-        expect(screen.getByText('Insights')).toBeInTheDocument();
-        expect(screen.getByText('Admin')).toBeInTheDocument();
     });
 
-    it('renders Deep Research link', () => {
+    it('renders Intel & Research link', () => {
         render(
             <TooltipProvider>
                 <SidebarProvider>
@@ -80,12 +86,15 @@ describe('SuperAdminSidebar', () => {
                 </SidebarProvider>
             </TooltipProvider>
         );
-        const link = screen.getByText('Deep Research');
+        const link = screen.getByText('Intel & Research');
         expect(link).toBeInTheDocument();
-        expect(link.closest('a')).toHaveAttribute('href', '/dashboard/ceo?tab=research');
+        expect(link.closest('a')).toHaveAttribute(
+            'href',
+            '/dashboard/ceo?tab=analytics&sub=intelligence&intel=insights'
+        );
     });
 
-    it('renders Page Generator link', () => {
+    it('renders Content Hub link', () => {
         render(
             <TooltipProvider>
                 <SidebarProvider>
@@ -93,6 +102,8 @@ describe('SuperAdminSidebar', () => {
                 </SidebarProvider>
             </TooltipProvider>
         );
-        expect(screen.getByText('Page Generator')).toBeInTheDocument();
+        const link = screen.getByText('Content Hub');
+        expect(link).toBeInTheDocument();
+        expect(link.closest('a')).toHaveAttribute('href', '/dashboard/ceo?tab=content');
     });
 });

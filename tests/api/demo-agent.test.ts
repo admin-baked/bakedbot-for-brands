@@ -1,10 +1,6 @@
-/**
- * Demo Agent API Route Tests
- * Tests for the public demo agent endpoint
- */
 
 // Mock Firecrawl
-jest.mock('@firecrawl/firecrawl-js', () => ({
+jest.mock('@mendable/firecrawl-js', () => ({
     default: jest.fn().mockImplementation(() => ({
         search: jest.fn().mockResolvedValue({ data: [] }),
         scrapeUrl: jest.fn().mockResolvedValue({ data: { markdown: '' } })
@@ -53,14 +49,14 @@ describe('Demo Agent API', () => {
     describe('request validation', () => {
         it('should require a message in the request body', () => {
             const body = { message: '' };
-            const isValid = body.message && body.message.trim().length > 0;
+            const isValid = !!(body.message && body.message.trim().length > 0);
             
             expect(isValid).toBe(false);
         });
 
         it('should accept valid message request', () => {
             const body = { message: 'What dispensaries are near 60601?' };
-            const isValid = body.message && body.message.trim().length > 0;
+            const isValid = !!(body.message && body.message.trim().length > 0);
             
             expect(isValid).toBe(true);
         });
@@ -133,3 +129,5 @@ describe('Demo Agent API', () => {
         });
     });
 });
+
+

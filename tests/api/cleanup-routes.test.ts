@@ -3,6 +3,10 @@
  * Tests for the brand/dispensary cleanup cron routes
  */
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 // Mock Firebase Admin
 jest.mock('@/firebase/admin', () => ({
     getAdminFirestore: jest.fn(() => ({
@@ -90,3 +94,4 @@ describe('Cleanup Routes', () => {
         });
     });
 });
+

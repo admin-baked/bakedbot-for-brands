@@ -3,6 +3,10 @@
  * Tests for the chat container auto-unfurl behavior with typewriter text
  */
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 describe('Chat Auto-Expand Behavior', () => {
     describe('container styling', () => {
         it('should NOT use overflow-hidden on main container', () => {
@@ -105,3 +109,4 @@ describe('Chat Auto-Expand Behavior', () => {
         });
     });
 });
+

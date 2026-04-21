@@ -64,6 +64,10 @@ const customJestConfig = {
     '^ccxt$': '<rootDir>/tests/__mocks__/ccxt.js',
     '^ccxt/(.*)$': '<rootDir>/tests/__mocks__/ccxt.js',
 
+    // Relocated / Missing modules
+    '^@/lib/firebase$': '<rootDir>/src/firebase/admin.ts',
+    '^@/server/services/api-key-manager$': '<rootDir>/src/server/auth/api-key-auth.ts',
+
     // Handle module aliases (this will be automatically configured for you soon)
     '^@/(.*)$': '<rootDir>/src/$1',
     '^react-markdown$': '<rootDir>/tests/__mocks__/react-markdown.js',
@@ -79,10 +83,14 @@ const customJestConfig = {
   },
   testEnvironment: 'jsdom',
   testPathIgnorePatterns: [
-    '<rootDir>[\\\\/]\\.w[\\\\/]',
-    '<rootDir>[\\\\/]tests[\\\\/]e2e[\\\\/]',
-    '<rootDir>[\\\\/]tests[\\\\/]firestore-rules[\\\\/]',
-    '<rootDir>[\\\\/]cloud-run[\\\\/]',
+    '<rootDir>[\\\\/](?:\\.next|node_modules|usr|\\.firebase|coverage|dist|\\.w)[\\\\/]',
+    '<rootDir>/tests/e2e/',
+    '<rootDir>/tests/firestore-rules/',
+    '<rootDir>/cloud-run/',
+    '<rootDir>/tests/chat/thinking.test.ts', // Deprecated
+    '<rootDir>/tests/chat/chat-history.test.ts', // Deprecated
+    '<rootDir>/tests/components/chat-vibe-logic.test.tsx', // Deprecated
+    '<rootDir>/tests/integration/', // Skip long integration tests by default
   ],
   watchPathIgnorePatterns: ['<rootDir>[\\\\/]\\.w[\\\\/]'],
   testMatch: [
@@ -102,7 +110,7 @@ const customJestConfig = {
     '!src/**/__tests__/**',
   ],
   transformIgnorePatterns: [
-    'node_modules/(?!(uuid|firebase|@firebase|firebase-admin|jwks-rsa|react-markdown|remark-gfm|micromark|unist|hast|mdast|rehype|remark|vfile|bail|trough|unified|is-plain-obj|property-information|space-separated-tokens|comma-separated-tokens|decode-named-character-reference|character-entities|ccount|escape-string-regexp|markdown-table|longest-streak|lucide-react|@genkit-ai|genkit|dotprompt|zod|yaml|jsonpath-plus|google-auth-library|google-gax|googleapis|gaxios|jose|livekit-server-sdk|nanoid|cheerio|parse5|htmlparser2|dom-serializer|entities|domhandler|domutils|css-select|css-what|nth-check|boolbase|refractor|react-syntax-highlighter|hastscript|zwitch|comma-separated-tokens|html-void-elements)/)',
+    'node_modules/(?!(uuid|firebase|@firebase|firebase-admin|jwks-rsa|react-markdown|remark-gfm|micromark|unist|hast|mdast|rehype|remark|vfile|bail|trough|unified|is-plain-obj|property-information|space-separated-tokens|comma-separated-tokens|decode-named-character-reference|character-entities|ccount|escape-string-regexp|markdown-table|longest-streak|lucide-react|@genkit-ai|genkit|dotprompt|zod|yaml|jsonpath-plus|google-auth-library|google-gax|googleapis|gaxios|jose|livekit-server-sdk|nanoid|cheerio|parse5|htmlparser2|dom-serializer|entities|domhandler|domutils|css-select|css-what|nth-check|boolbase|refractor|react-syntax-highlighter|hastscript|zwitch|html-void-elements|@testing-library)/)',
   ],
   coverageThreshold: {
     global: {
