@@ -31,11 +31,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useSearchParams } from 'next/navigation';
 import { signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
 
-jest.mock('react', () => ({
-    ...jest.requireActual('react'),
-    useActionState: jest.fn(() => [{ message: '', error: false }, '/mock-action']),
-}));
-
 // Mocks MUST be before any imports that might use them
 jest.mock('@/firebase/provider', () => ({
     useFirebase: jest.fn(),
@@ -124,7 +119,7 @@ describe('OnboardingClient Signup Flow', () => {
         render(<OnboardingPage />);
 
         // 1. Select Customer role (jumps to review)
-        fireEvent.click(screen.getByText('A Customer'));
+        fireEvent.click(screen.getByText('Customer'));
 
         // 2. Click "Complete Setup"
         const finishButton = screen.getByText('Complete Setup');
@@ -142,7 +137,7 @@ describe('OnboardingClient Signup Flow', () => {
 
         render(<OnboardingPage />);
 
-        fireEvent.click(screen.getByText('A Customer'));
+        fireEvent.click(screen.getByText('Customer'));
         fireEvent.click(screen.getByText('Complete Setup'));
 
         const googleButton = screen.getByText('Sign Up with Google');
@@ -165,7 +160,7 @@ describe('OnboardingClient Signup Flow', () => {
 
         render(<OnboardingPage />);
 
-        fireEvent.click(screen.getByText('A Customer'));
+        fireEvent.click(screen.getByText('Customer'));
         fireEvent.click(screen.getByText('Complete Setup'));
 
         fireEvent.change(screen.getByPlaceholderText('name@example.com'), { target: { value: 'test@example.com' } });
@@ -187,7 +182,7 @@ describe('OnboardingClient Signup Flow', () => {
 
         render(<OnboardingPage />);
 
-        fireEvent.click(screen.getByText('A Customer'));
+        fireEvent.click(screen.getByText('Customer'));
 
         expect(screen.getByText('Selected Plan')).toBeInTheDocument();
         expect(screen.getByText('Empire')).toBeInTheDocument();

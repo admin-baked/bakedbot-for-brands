@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | Check-in flow streamline + dashboard mode cards (4.10.38-COD)
-**Recent work (2026-04-22):** Tablet check-in flow 8→5 screens (skip Returning Check + Offer for new customers); "Just Check Me In" prominent button on Mood screen; dashboard two-mode launcher cards (`c7c1ec988`).
+**Current Status:** local verified | Onboarding runtime submit repair (4.10.40-COD)
+**Recent work (2026-04-22):** Removed the React 19-only `useActionState` dependency from onboarding, preserved the auth modal/server-action completion flow, and verified the focused onboarding suite `18/18`.
 
 ---
 

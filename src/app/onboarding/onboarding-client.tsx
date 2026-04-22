@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useState, useRef, useEffect, useActionState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -59,6 +59,12 @@ type BrandResult = {
   market: string | null;
 };
 
+type OnboardingFormState = {
+  message: string;
+  error: boolean;
+  errors?: Record<string, string[] | undefined>;
+};
+
 type Step = 'role' | 'market' | 'brand-search' | 'manual' | 'goal' | 'review' | 'menu-import';
 
 const GOAL_ICON_MAP: Record<OnboardingPrimaryGoal, typeof QrCode> = {
@@ -89,7 +95,8 @@ export default function OnboardingPage() {
   const [primaryGoal, setPrimaryGoal] = useState<OnboardingPrimaryGoal | null>(null);
 
   // Form State
-  const [formState, formAction] = useActionState(completeOnboarding, { message: '', error: false });
+  const [formState, setFormState] = useState<OnboardingFormState>({ message: '', error: false });
+  const [isSubmittingOnboarding, setIsSubmittingOnboarding] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   // Auth State
@@ -330,6 +337,26 @@ export default function OnboardingPage() {
       toast({ variant: "destructive", title: "Sign Up Failed", description: error.message });
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const handleOnboardingSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isSubmittingOnboarding) return;
+
+    setIsSubmittingOnboarding(true);
+    try {
+      const formData = new FormData(event.currentTarget);
+      const nextState = await completeOnboarding(formState, formData);
+      setFormState(nextState ?? { message: '', error: false });
+    } catch (error) {
+      logger.error('Onboarding submit failed', { error });
+      setFormState({
+        message: 'We could not finish setup. Please try again.',
+        error: true,
+      });
+    } finally {
+      setIsSubmittingOnboarding(false);
     }
   };
 
@@ -769,7 +796,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        <form action={formAction} ref={formRef} className="flex flex-col gap-4">
+        <form onSubmit={handleOnboardingSubmit} ref={formRef} className="flex flex-col gap-4">
           <input type="hidden" name="role" value={role || ''} />
           <input type="hidden" name="orgSubtype" value={orgSubtype || ''} />
           <input type="hidden" name="planId" value={selectedPlanId} />
@@ -793,10 +820,10 @@ export default function OnboardingPage() {
             <Button
               className="w-full h-12 text-lg font-bold shadow-md hover:translate-y-[-2px] transition-transform"
               onClick={attemptFinish}
-              disabled={!role}
+              disabled={!role || isSubmittingOnboarding}
               type="button"
             >
-              Complete Setup
+              {isSubmittingOnboarding ? <Spinner size="sm" /> : 'Complete Setup'}
             </Button>
           )}
         </form>

@@ -33,11 +33,6 @@ import {
   MCBA_SIGNUP_SOURCE,
 } from '@/lib/constants/mcba-power-hour-ama';
 
-jest.mock('react', () => ({
-  ...jest.requireActual('react'),
-  useActionState: jest.fn(() => [{ message: '', error: false }, '/mock-action']),
-}));
-
 jest.mock('@/firebase/provider', () => ({
   useFirebase: jest.fn(),
 }));

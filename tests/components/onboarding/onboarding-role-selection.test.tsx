@@ -25,25 +25,6 @@ jest.mock('@/server/actions/cannmenus', () => ({
   searchCannMenusRetailers: jest.fn(),
 }));
 
-jest.mock('react-dom', () => ({
-  ...jest.requireActual('react-dom'),
-  useFormState: () => [{ message: '', error: false }, jest.fn()],
-}));
-
-beforeAll(() => {
-  // jsdom location is non-configurable; delete first then assign
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete (window as any).location;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).location = { href: '', assign: jest.fn(), replace: jest.fn(), reload: jest.fn() };
-});
-
-afterAll(() => {
-  // Restore default location object
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete (window as any).location;
-});
-
 describe('Onboarding Role Selection', () => {
   beforeEach(() => {
     (useFirebase as jest.Mock).mockReturnValue({ auth: { currentUser: null } });
@@ -57,9 +38,9 @@ describe('Onboarding Role Selection', () => {
     expect(screen.getByText('Welcome to BakedBot')).toBeInTheDocument();
 
     // Check for role buttons
-    expect(screen.getByText('A Brand')).toBeInTheDocument();
-    expect(screen.getByText('A Dispensary')).toBeInTheDocument();
-    expect(screen.getByText('A Customer')).toBeInTheDocument();
+    expect(screen.getByText('Brand')).toBeInTheDocument();
+    expect(screen.getByText('Dispensary')).toBeInTheDocument();
+    expect(screen.getByText('Customer')).toBeInTheDocument();
 
     // Check for skip button
     expect(screen.getByText(/Skip setup for now/i)).toBeInTheDocument();
@@ -69,7 +50,7 @@ describe('Onboarding Role Selection', () => {
     render(<OnboardingPage />);
     
     // Click Brand
-    fireEvent.click(screen.getByText('A Brand'));
+    fireEvent.click(screen.getByText('Brand'));
     
     // Should move to market selection (checking for text that appears in market step)
     expect(screen.getByText('Where do you operate?')).toBeInTheDocument();
