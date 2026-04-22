@@ -626,7 +626,7 @@ describe('Inbox Server Actions', () => {
             );
         });
 
-        it('adds POS grounding rules for inbox responses', async () => {
+        it('hands off finance questions from market-intel threads while keeping POS grounding', async () => {
             mockDocRef.get.mockResolvedValue({
                 exists: true,
                 data: () => ({
@@ -651,9 +651,47 @@ describe('Inbox Server Actions', () => {
 
             expect(runAgentChat).toHaveBeenCalledWith(
                 expect.stringContaining('treat the visible values as verified evidence'),
-                'ezal',
+                'money_mike',
                 expect.any(Object),
             );
+            expect(mockDocRef.update).toHaveBeenCalledWith(expect.objectContaining({
+                primaryAgent: 'money_mike',
+            }));
+        });
+
+        it('hands off average revenue per customer questions to Pops from stale Ezal threads', async () => {
+            mockDocRef.get.mockResolvedValue({
+                exists: true,
+                data: () => ({
+                    ...mockThread,
+                    type: 'market_intel',
+                    primaryAgent: 'ezal',
+                    title: 'Market Intel',
+                    assignedAgents: ['ezal'],
+                }),
+            });
+
+            (runAgentChat as jest.Mock).mockResolvedValue({
+                content: 'Average revenue per customer is $65.',
+                metadata: {},
+            });
+
+            (parseArtifactsFromContent as jest.Mock).mockReturnValue({
+                artifacts: [],
+                cleanedContent: 'Average revenue per customer is $65.',
+            });
+
+            await runInboxAgentChat('thread-1', 'What is average revenue per customer?');
+
+            expect(runAgentChat).toHaveBeenCalledWith(
+                expect.stringContaining('What is average revenue per customer?'),
+                'pops',
+                expect.any(Object),
+            );
+            expect(mockDocRef.update).toHaveBeenCalledWith(expect.objectContaining({
+                primaryAgent: 'pops',
+                assignedAgents: ['ezal', 'pops'],
+            }));
         });
 
         it('prefers CRM thread metadata when lookupCustomer returns placeholder identity', async () => {

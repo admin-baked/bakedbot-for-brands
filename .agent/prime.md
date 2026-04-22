@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** green | Thrive remaining playbook gaps closed + POS contact hydration (4.10.36-COD)
-**Recent work (2026-04-21):** Archived stale Thrive assignment duplicates, hydrated POS spending contacts, marked historical 4/20 send as aggregate-only evidence, and added spending-index campaign audience support.
+**Current Status:** local verified | Inbox analytics routing + Pops ARPC fast path (4.10.38-COD)
+**Recent work (2026-04-22):** Fixed stale Inbox specialist routing for analytics/finance prompts, added Pops ARPC/customer revenue summaries from POS spending data, and guarded CRM detail questions to stay with Mrs. Parker.
 
 ---
 
@@ -181,7 +181,7 @@ Before every , bump  + kiosk footer () using format ****.
 
 Patch bump guide: +1 small fix · +2 multi-file · +3 new feature · +5 refactor · +7-10 subsystem overhaul
 
-**Current version: 4.10.36-COD** — Full rules: AGENTS.md Versioning Convention
+**Current version: 4.10.38-COD** — Full rules: AGENTS.md Versioning Convention
 
 ## Key Directories
 

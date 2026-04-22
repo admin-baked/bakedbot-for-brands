@@ -64,6 +64,14 @@ const getCustomerEmailCoverageDef = {
     }),
 };
 
+const getCustomerRevenueSummaryDef = {
+    name: 'getCustomerRevenueSummary',
+    description: `Calculate customer revenue KPIs from synced POS spending data. Returns total tracked customers, total customer revenue/LTV, average revenue per customer, total orders, average order value, and recent active customers. Use this whenever the user asks for average revenue per customer, ARPC, average LTV, customer revenue, or customer spend.`,
+    schema: z.object({
+        orgId: z.string().describe('Organization/tenant ID'),
+    }),
+};
+
 const getTopCustomersDef = {
     name: 'getTopCustomers',
     description: `Find the highest-value customers in an organization. Returns the top customers ranked by spend or order count. Use this for VIP outreach, concierge treatment, and answering "who are our top customers?"`,
@@ -110,6 +118,7 @@ export const crmToolDefs = [
     getCustomerHistoryDef,
     getSegmentSummaryDef,
     getCustomerEmailCoverageDef,
+    getCustomerRevenueSummaryDef,
     getTopCustomersDef,
     getAtRiskCustomersDef,
     getUpcomingBirthdaysDef,
@@ -118,9 +127,10 @@ export const crmToolDefs = [
 
 /** Per-agent subsets */
 export const craigCrmToolDefs = [lookupCustomerDef, getAtRiskCustomersDef, getCustomerCommsDef, getSegmentSummaryDef];
-export const mrsParkerCrmToolDefs = [lookupCustomerDef, getCustomerEmailCoverageDef, getTopCustomersDef, getUpcomingBirthdaysDef, getCustomerCommsDef, getAtRiskCustomersDef];
+export const mrsParkerCrmToolDefs = [lookupCustomerDef, getCustomerEmailCoverageDef, getCustomerRevenueSummaryDef, getTopCustomersDef, getUpcomingBirthdaysDef, getCustomerCommsDef, getAtRiskCustomersDef];
 export const smokeyCrmToolDefs = [lookupCustomerDef, getCustomerHistoryDef];
-export const moneyMikeCrmToolDefs = [lookupCustomerDef, getSegmentSummaryDef, getCustomerHistoryDef];
+export const moneyMikeCrmToolDefs = [lookupCustomerDef, getCustomerRevenueSummaryDef, getSegmentSummaryDef, getCustomerHistoryDef];
+export const popsCrmToolDefs = [getCustomerRevenueSummaryDef, getSegmentSummaryDef, getCustomerEmailCoverageDef, getTopCustomersDef];
 
 // =============================================================================
 // INTERNAL HELPERS
@@ -386,6 +396,94 @@ ${JSON.stringify(customer)}
     return { summary, customer };
 }
 
+function numberFromUnknown(value: unknown): number {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+    }
+
+    if (typeof value === 'string') {
+        const parsed = Number(value.replace(/[$,]/g, ''));
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    return 0;
+}
+
+function dateFromUnknown(value: unknown): Date | undefined {
+    if (!value) {
+        return undefined;
+    }
+
+    if (value instanceof Date) {
+        return value;
+    }
+
+    if (typeof value === 'object' && value && 'toDate' in value && typeof (value as { toDate?: unknown }).toDate === 'function') {
+        const date = (value as { toDate: () => Date }).toDate();
+        return Number.isNaN(date.getTime()) ? undefined : date;
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? undefined : date;
+    }
+
+    return undefined;
+}
+
+type CustomerRevenueDoc = {
+    totalSpent: number;
+    orderCount: number;
+    avgOrderValue: number;
+    lastOrderDate?: Date;
+};
+
+async function loadCustomerRevenueDocs(orgId: string): Promise<{ docs: CustomerRevenueDoc[]; source: 'customer_spending' | 'customers' }> {
+    const firestore = getAdminFirestore();
+
+    const spendingSnap = await firestore.collection('tenants').doc(orgId)
+        .collection('customer_spending')
+        .get();
+
+    if (!spendingSnap.empty) {
+        return {
+            source: 'customer_spending',
+            docs: spendingSnap.docs.map((doc) => {
+                const data = doc.data();
+                const totalSpent = numberFromUnknown(data.totalSpent ?? data.lifetimeValue ?? data.revenue);
+                const orderCount = numberFromUnknown(data.orderCount ?? data.orders);
+                const avgOrderValue = numberFromUnknown(data.avgOrderValue) || (orderCount > 0 ? totalSpent / orderCount : 0);
+                return {
+                    totalSpent,
+                    orderCount,
+                    avgOrderValue,
+                    lastOrderDate: dateFromUnknown(data.lastOrderDate),
+                };
+            }),
+        };
+    }
+
+    const customersSnap = await firestore.collection('customers')
+        .where('orgId', '==', orgId)
+        .get();
+
+    return {
+        source: 'customers',
+        docs: customersSnap.docs.map((doc) => {
+            const data = doc.data();
+            const totalSpent = numberFromUnknown(data.totalSpent ?? data.lifetimeValue ?? data.revenue);
+            const orderCount = numberFromUnknown(data.orderCount ?? data.orders);
+            const avgOrderValue = numberFromUnknown(data.avgOrderValue) || (orderCount > 0 ? totalSpent / orderCount : 0);
+            return {
+                totalSpent,
+                orderCount,
+                avgOrderValue,
+                lastOrderDate: dateFromUnknown(data.lastOrderDate),
+            };
+        }),
+    };
+}
+
 /**
  * Get order history for a customer from Alleaves POS.
  */
@@ -485,6 +583,69 @@ ${customerOrders.map((o: any, i: number) => `${i + 1}. **${o.date_created ? new 
 }
 
 /**
+ * Calculate customer revenue KPIs from synced POS/customer spending data.
+ */
+export async function getCustomerRevenueSummary(
+    orgId: string,
+): Promise<{ summary: string; metrics: Record<string, unknown> }> {
+    logger.info('[crm-tools] getCustomerRevenueSummary', { orgId });
+    return withCache(
+        CachePrefix.CRM_SEGMENTS,
+        `revenue:${orgId}`,
+        async () => {
+            const { docs, source } = await loadCustomerRevenueDocs(orgId);
+            const trackedCustomers = docs.length;
+
+            if (trackedCustomers === 0) {
+                return {
+                    summary: `No customer revenue data found for organization ${orgId}.`,
+                    metrics: {
+                        trackedCustomers: 0,
+                        totalCustomerRevenue: 0,
+                        averageRevenuePerCustomer: 0,
+                        totalOrders: 0,
+                        averageOrderValue: 0,
+                        activeCustomers30d: 0,
+                        source,
+                    },
+                };
+            }
+
+            const now = Date.now();
+            const totalCustomerRevenue = docs.reduce((sum, doc) => sum + doc.totalSpent, 0);
+            const totalOrders = docs.reduce((sum, doc) => sum + doc.orderCount, 0);
+            const activeCustomers30d = docs.filter((doc) => (
+                doc.lastOrderDate
+                && (now - doc.lastOrderDate.getTime()) <= 30 * 24 * 60 * 60 * 1000
+            )).length;
+            const averageRevenuePerCustomer = totalCustomerRevenue / trackedCustomers;
+            const averageOrderValue = totalOrders > 0 ? totalCustomerRevenue / totalOrders : 0;
+
+            const metrics = {
+                trackedCustomers,
+                totalCustomerRevenue: Math.round(totalCustomerRevenue * 100) / 100,
+                averageRevenuePerCustomer: Math.round(averageRevenuePerCustomer * 100) / 100,
+                totalOrders,
+                averageOrderValue: Math.round(averageOrderValue * 100) / 100,
+                activeCustomers30d,
+                activeCustomerPct: Math.round((activeCustomers30d / trackedCustomers) * 1000) / 10,
+                source,
+            };
+
+            const summary = `**Customer Revenue Summary**
+- Average revenue per customer: $${metrics.averageRevenuePerCustomer.toLocaleString()}
+- Total tracked customer revenue: $${metrics.totalCustomerRevenue.toLocaleString()} across ${trackedCustomers.toLocaleString()} customers
+- Total orders: ${totalOrders.toLocaleString()} | Average order value: $${metrics.averageOrderValue.toLocaleString()}
+- Active in last 30 days: ${activeCustomers30d.toLocaleString()} customers (${metrics.activeCustomerPct}%)
+- Source: ${source === 'customer_spending' ? 'POS customer spending snapshot' : 'synced customer profiles'}`;
+
+            return { summary, metrics };
+        },
+        CacheTTL.CRM_SEGMENTS
+    );
+}
+
+/**
  * Get segment breakdown for the organization.
  */
 export async function getSegmentSummary(
@@ -505,7 +666,7 @@ export async function getSegmentSummary(
                 .get();
 
             if (spendingSnap.empty) {
-                return { summary: `No customer spending data found for organization ${orgId}.`, segments: {} };
+                return { summary: `No customers found in customer spending data for organization ${orgId}.`, segments: {} };
             }
 
             const segments: Record<CustomerSegment, { count: number; totalSpent: number; avgSpend: number; recentActiveCount: number }> = {

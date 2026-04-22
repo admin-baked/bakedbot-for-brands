@@ -126,3 +126,96 @@ export function resolveInboxAgent<TFallback extends string = 'auto'>(
     const fallbackValue = (fallback ?? 'auto') as TFallback;
     return getAgentForIntent(input) ?? fallbackValue;
 }
+
+const INBOX_HANDOFF_CUE_PATTERNS = [
+    /\?$/,
+    /^(what|who|which|where|when|why|how)\b/i,
+    /\b(show|analy[sz]e|calculate|break\s*down|report|review|pull|find|list|compare)\b/i,
+    /\b(avg|average|total|rate|count|revenue|ltv|customer|customers|sales|orders|cogs|margin|segment|segments|churn|retention|competitor|pricing)\b/i,
+];
+
+const CRM_CUSTOMER_DETAIL_PATTERNS = [
+    /\b(this|that|the)\s+customer\b/i,
+    /\bcustomer\s+(has|have|shopped|spent|ordered|bought)\b/i,
+    /\b(has|have|did)\s+(this|that|the)\s+customer\b/i,
+];
+
+export interface InboxThreadAgentResolution<TFallback extends string = 'auto'> {
+    agentId: AgentId | TFallback;
+    matchedAgent: AgentId | null;
+    didHandoff: boolean;
+    reason: string;
+}
+
+/**
+ * Resolves the best agent for a message inside an existing inbox thread.
+ *
+ * Existing threads often have a fixed primary agent. For direct questions with
+ * a clear specialist owner, we allow a handoff so a revenue question in an Ezal
+ * market thread can reach Pops instead of going through the wrong agent planner.
+ */
+export function resolveInboxThreadAgent<TFallback extends string = 'auto'>(
+    input: string,
+    currentAgent: string,
+    fallback?: TFallback,
+): InboxThreadAgentResolution<TFallback> {
+    const fallbackValue = (fallback ?? 'auto') as TFallback;
+    const matchedAgent = getAgentForIntent(input);
+
+    if (!matchedAgent) {
+        return {
+            agentId: currentAgent === 'auto' ? fallbackValue : currentAgent as AgentId | TFallback,
+            matchedAgent: null,
+            didHandoff: false,
+            reason: 'No deterministic specialist matched the message.',
+        };
+    }
+
+    if (currentAgent === 'auto') {
+        return {
+            agentId: matchedAgent,
+            matchedAgent,
+            didHandoff: true,
+            reason: 'Auto thread resolved from message intent.',
+        };
+    }
+
+    if (matchedAgent === currentAgent) {
+        return {
+            agentId: matchedAgent,
+            matchedAgent,
+            didHandoff: false,
+            reason: 'Current agent already owns the matched intent.',
+        };
+    }
+
+    if (
+        currentAgent === 'mrs_parker'
+        && matchedAgent === 'pops'
+        && CRM_CUSTOMER_DETAIL_PATTERNS.some(pattern => pattern.test(input.trim()))
+    ) {
+        return {
+            agentId: currentAgent as AgentId | TFallback,
+            matchedAgent,
+            didHandoff: false,
+            reason: 'Customer-detail question stays with the CRM relationship agent.',
+        };
+    }
+
+    const hasHandoffCue = INBOX_HANDOFF_CUE_PATTERNS.some(pattern => pattern.test(input.trim()));
+    if (!hasHandoffCue) {
+        return {
+            agentId: currentAgent as AgentId | TFallback,
+            matchedAgent,
+            didHandoff: false,
+            reason: 'Matched intent lacked a strong handoff cue.',
+        };
+    }
+
+    return {
+        agentId: matchedAgent,
+        matchedAgent,
+        didHandoff: true,
+        reason: `Message intent matched ${matchedAgent} instead of current ${currentAgent}.`,
+    };
+}

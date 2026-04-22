@@ -2,6 +2,15 @@
 
 ---
 
+## Session 2026-04-22 - Inbox Analytics Routing + Pops ARPC Fix (local)
+- **Inbox routing repair**: Stale market-intel/creative threads now hand off clear analytics/finance questions to Pops or Money Mike, recording `primaryAgent`, `assignedAgents`, and `handoffHistory` for auditability.
+- **Pops ARPC fast path**: Added `getCustomerRevenueSummary` over synced POS customer spending data so "average revenue per customer" returns deterministic revenue, order, AOV, and active-customer metrics instead of the wrong planner error.
+- **CRM detail guard**: Individual customer questions in CRM detail threads stay with Mrs. Parker, preserving customer metadata hydration and avoiding over-broad analytics routing.
+- **Verification**: Focused router, Inbox action, and CRM tool suites passed `65/65`; `check:structure` and `check:config` passed; full `check:types` timed out locally, scoped TS diagnostics were clean for touched production files; bumped to `4.10.38-COD`.
+- See `sessions/2026-04-22-0612-inbox-analytics-routing.md`
+
+---
+
 ## Session 2026-04-21 - Thrive Remaining Playbook Gaps COMPLETE (local)
 - **Assignment cleanup**: Archived 50 stale paused Thrive `playbook_assignments` docs into `playbook_assignment_archive`; live assignments now have 0 duplicate playbook IDs, 0 missing subscription IDs, and 0 unknown playbooks.
 - **POS contact hydration**: Hydrated 155 `customer_spending` docs from canonical customer profiles (130 email, 154 phone/contact keys) and updated POS sync to preserve/hydrate contact fields on future runs.

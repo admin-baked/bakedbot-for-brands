@@ -47,7 +47,7 @@ import type { ResearchReportArtifactData } from '@/types/inbox';
 import type { VmRunArtifactData } from '@/types/agent-vm';
 import { resolveVmToolApproval } from '@/server/actions/agent-vm';
 import { mapVmRunStatusToInboxStatus, queueVmRunResume, resolveVmRunApproval } from '@/types/agent-vm';
-import { resolveInboxAgent } from '@/lib/agents/intent-router';
+import { resolveInboxThreadAgent } from '@/lib/agents/intent-router';
 import { appendProactiveEvent } from '@/server/services/proactive-event-log';
 import {
     listOpenCommitments,
@@ -1511,18 +1511,48 @@ export async function runInboxAgentChat(
             auto: 'puff',
         };
 
-        // When the thread is set to auto, use intent-based routing instead of puff
-        const resolvedAgent =
-            thread.primaryAgent === 'auto'
-                ? resolveInboxAgent(userMessage, 'auto')
-                : thread.primaryAgent;
+        // Use intent-based handoff for clear specialist questions. This keeps a
+        // stale market/creative thread from trapping revenue or CRM questions in
+        // the wrong agent planner.
+        const agentResolution = resolveInboxThreadAgent(userMessage, thread.primaryAgent, 'auto');
+        const resolvedAgent = agentResolution.agentId;
 
-        if (thread.primaryAgent === 'auto') {
-            logger.info('[INBOX] Auto agent routing', {
+        if (thread.primaryAgent === 'auto' || agentResolution.didHandoff) {
+            logger.info('[INBOX] Agent routing resolved', {
                 threadId,
-                matchedAgent: resolvedAgent === 'auto' ? 'puff' : resolvedAgent,
-                usedGeneralFallback: resolvedAgent === 'auto',
+                fromAgent: thread.primaryAgent,
+                matchedAgent: agentResolution.matchedAgent ?? 'none',
+                resolvedAgent: resolvedAgent === 'auto' ? 'puff' : resolvedAgent,
+                didHandoff: agentResolution.didHandoff,
+                reason: agentResolution.reason,
             });
+        }
+
+        if (agentResolution.didHandoff && resolvedAgent !== 'auto' && resolvedAgent !== thread.primaryAgent) {
+            const toAgent = resolvedAgent as InboxAgentPersona;
+            const assignedAgents = Array.from(new Set([
+                ...(Array.isArray(thread.assignedAgents) ? thread.assignedAgents : []),
+                toAgent,
+            ]));
+            const handoff: AgentHandoff = {
+                id: `handoff-${Date.now()}`,
+                fromAgent: thread.primaryAgent,
+                toAgent,
+                reason: agentResolution.reason,
+                timestamp: new Date(),
+            };
+
+            await db.collection(INBOX_THREADS_COLLECTION).doc(threadId).update({
+                primaryAgent: toAgent,
+                assignedAgents,
+                handoffHistory: FieldValue.arrayUnion(handoff),
+                updatedAt: FieldValue.serverTimestamp(),
+                lastActivityAt: FieldValue.serverTimestamp(),
+            });
+
+            thread.primaryAgent = toAgent;
+            thread.assignedAgents = assignedAgents;
+            thread.handoffHistory = [...(thread.handoffHistory ?? []), handoff];
         }
 
         const personaId = resolvedAgent === 'auto'

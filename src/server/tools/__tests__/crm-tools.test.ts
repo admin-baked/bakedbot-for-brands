@@ -9,6 +9,7 @@ import {
   lookupCustomer,
   getTodayCheckins,
   getSegmentSummary,
+  getCustomerRevenueSummary,
   getTopCustomers,
   getAtRiskCustomers,
   getUpcomingBirthdays,
@@ -69,17 +70,21 @@ const mockWhere = jest.fn().mockReturnThis();
 const mockOrderBy = jest.fn().mockReturnThis();
 const mockLimit = jest.fn().mockReturnThis();
 const mockDocGet = jest.fn();
+const mockNestedCollection = jest.fn().mockReturnValue({
+  get: mockGet,
+});
 
 const mockCollection = jest.fn().mockReturnValue({
   where: mockWhere,
   orderBy: mockOrderBy,
   limit: mockLimit,
   get: mockGet,
-  doc: jest.fn().mockReturnValue({ get: mockDocGet }),
+  doc: jest.fn().mockReturnValue({ get: mockDocGet, collection: mockNestedCollection }),
 });
 
 const { getAdminFirestore } = require('@/firebase/admin');
 (getAdminFirestore as jest.Mock).mockReturnValue({ collection: mockCollection });
+const { calculateSegment } = require('@/types/customers');
 
 // ---------------------------------------------------------------------------
 // Test data factories
@@ -135,6 +140,7 @@ function makeSnap(docs: ReturnType<typeof makeCustomerDoc>[]) {
 beforeEach(() => {
   jest.clearAllMocks();
   (getAdminFirestore as jest.Mock).mockReturnValue({ collection: mockCollection });
+  (calculateSegment as jest.Mock).mockReturnValue('loyal');
   // Re-wire chaining after clearAllMocks
   mockWhere.mockReturnThis();
   mockOrderBy.mockReturnThis();
@@ -144,33 +150,40 @@ beforeEach(() => {
     orderBy: mockOrderBy,
     limit: mockLimit,
     get: mockGet,
-    doc: jest.fn().mockReturnValue({ get: mockDocGet }),
+    doc: jest.fn().mockReturnValue({ get: mockDocGet, collection: mockNestedCollection }),
   });
 });
+
+function mockSegmentSequence(segments: string[]) {
+  (calculateSegment as jest.Mock).mockImplementation(() => {
+    const next = segments.shift();
+    return next ?? 'loyal';
+  });
+}
 
 // ===========================================================================
 // Tool definition exports
 // ===========================================================================
 
 describe('CRM tool definition exports', () => {
-  it('crmToolDefs has 7 tools', () => {
-    expect(crmToolDefs).toHaveLength(7);
+  it('crmToolDefs has 9 tools', () => {
+    expect(crmToolDefs).toHaveLength(9);
   });
 
   it('craigCrmToolDefs has 4 tools', () => {
     expect(craigCrmToolDefs).toHaveLength(4);
   });
 
-  it('mrsParkerCrmToolDefs has 5 tools', () => {
-    expect(mrsParkerCrmToolDefs).toHaveLength(5);
+  it('mrsParkerCrmToolDefs has 7 tools', () => {
+    expect(mrsParkerCrmToolDefs).toHaveLength(7);
   });
 
   it('smokeyCrmToolDefs has 2 tools', () => {
     expect(smokeyCrmToolDefs).toHaveLength(2);
   });
 
-  it('moneyMikeCrmToolDefs has 3 tools', () => {
-    expect(moneyMikeCrmToolDefs).toHaveLength(3);
+  it('moneyMikeCrmToolDefs has 4 tools', () => {
+    expect(moneyMikeCrmToolDefs).toHaveLength(4);
   });
 });
 
@@ -316,6 +329,7 @@ describe('getSegmentSummary', () => {
   });
 
   it('returns segment breakdown with correct counts', async () => {
+    mockSegmentSequence(['vip', 'vip', 'loyal', 'at_risk']);
     const customers = [
       makeCustomerDoc('c1', { segment: 'vip', totalSpent: 10000, orderCount: 50 }),
       makeCustomerDoc('c2', { segment: 'vip', totalSpent: 8000, orderCount: 30 }),
@@ -334,6 +348,7 @@ describe('getSegmentSummary', () => {
   });
 
   it('summary includes segment table with % breakdown', async () => {
+    mockSegmentSequence(['vip', 'loyal']);
     const customers = [
       makeCustomerDoc('c1', { segment: 'vip', totalSpent: 10000, orderCount: 50 }),
       makeCustomerDoc('c2', { segment: 'loyal', totalSpent: 3000, orderCount: 15 }),
@@ -349,6 +364,7 @@ describe('getSegmentSummary', () => {
   });
 
   it('summary includes at-risk revenue insight', async () => {
+    mockSegmentSequence(['at_risk', 'slipping']);
     const customers = [
       makeCustomerDoc('c1', { segment: 'at_risk', totalSpent: 5000, orderCount: 20 }),
       makeCustomerDoc('c2', { segment: 'slipping', totalSpent: 3000, orderCount: 10 }),
@@ -360,6 +376,49 @@ describe('getSegmentSummary', () => {
     expect(result.summary).toContain('At-risk revenue');
     expect(result.summary).toContain('8,000');
     expect(result.summary).toContain('2 customers');
+  });
+});
+
+// ===========================================================================
+// getCustomerRevenueSummary
+// ===========================================================================
+
+describe('getCustomerRevenueSummary', () => {
+  it('calculates average revenue per customer from POS spending snapshots', async () => {
+    const spendingDocs = [
+      makeCustomerDoc('cid_1', {
+        totalSpent: 100,
+        orderCount: 2,
+        avgOrderValue: 50,
+        lastOrderDate: { toDate: () => new Date() },
+      }),
+      makeCustomerDoc('cid_2', {
+        totalSpent: 300,
+        orderCount: 3,
+        avgOrderValue: 100,
+        lastOrderDate: { toDate: () => new Date('2026-01-01') },
+      }),
+    ];
+    mockGet.mockResolvedValue(makeSnap(spendingDocs));
+
+    const result = await getCustomerRevenueSummary('org_test');
+
+    expect(result.metrics.trackedCustomers).toBe(2);
+    expect(result.metrics.totalCustomerRevenue).toBe(400);
+    expect(result.metrics.averageRevenuePerCustomer).toBe(200);
+    expect(result.metrics.totalOrders).toBe(5);
+    expect(result.metrics.averageOrderValue).toBe(80);
+    expect(result.summary).toContain('Average revenue per customer: $200');
+  });
+
+  it('returns zero metrics when no revenue data exists', async () => {
+    mockGet.mockResolvedValue(makeSnap([]));
+
+    const result = await getCustomerRevenueSummary('org_empty');
+
+    expect(result.metrics.trackedCustomers).toBe(0);
+    expect(result.metrics.averageRevenuePerCustomer).toBe(0);
+    expect(result.summary).toContain('No customer revenue data found');
   });
 });
 
@@ -423,6 +482,7 @@ describe('getAtRiskCustomers', () => {
   });
 
   it('returns at-risk and slipping customers sorted by LTV', async () => {
+    mockSegmentSequence(['at_risk', 'slipping', 'churned']);
     const customers = [
       makeCustomerDoc('c1', {
         segment: 'at_risk',
@@ -458,6 +518,7 @@ describe('getAtRiskCustomers', () => {
   });
 
   it('excludes slipping when includeSlipping is false', async () => {
+    mockSegmentSequence(['at_risk', 'slipping']);
     const customers = [
       makeCustomerDoc('c1', {
         segment: 'at_risk',
@@ -483,6 +544,7 @@ describe('getAtRiskCustomers', () => {
   });
 
   it('limits results', async () => {
+    mockSegmentSequence(Array.from({ length: 10 }, () => 'at_risk'));
     const customers = Array.from({ length: 10 }, (_, i) =>
       makeCustomerDoc(`c${i}`, {
         segment: 'at_risk',

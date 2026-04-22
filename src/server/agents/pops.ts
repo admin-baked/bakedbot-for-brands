@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, learningLoopToolDefs } from './shared-tools';
 import { analyticsToolDefs, analyticsToolImplementations } from './tools/analytics-tools';
 import { dispensaryAnalyticsToolDefs, makeAnalyticsToolsImpl, executeDispensaryAnalyticsTool } from '@/server/tools/analytics-tools';
+import { popsCrmToolDefs } from '@/server/tools/crm-tools';
 import {
     buildSquadRoster
 } from './agent-definitions';
@@ -24,6 +25,8 @@ import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop
 export interface PopsTools {
   // Execute a natural language query against business data
   analyzeData(query: string, context: any): Promise<{ insight: string; trend: 'up' | 'down' | 'flat' }>;
+  // Calculate customer revenue KPIs from POS/customer spending data
+  getCustomerRevenueSummary?(orgId: string): Promise<{ summary: string; metrics: Record<string, unknown> }>;
   // Check for anomalies in specific metrics
   detectAnomalies(metric: string, history: number[]): Promise<boolean>;
   // Letta Memory Tools
@@ -191,6 +194,36 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
     // === SCENARIO A: User Request (The "Planner" Flow) ===
     if (targetId === 'user_request' && stimulus) {
         const userQuery = stimulus;
+        const isCustomerRevenueQuestion =
+            /\b(arpc|average revenue per customer|avg revenue per customer|revenue per customer|average ltv|avg ltv|average customer spend|customer revenue|customer spend)\b/i.test(userQuery)
+            || (/\b(average|avg)\b/i.test(userQuery) && /\b(revenue|ltv|spend|spent)\b/i.test(userQuery) && /\bcustomers?\b/i.test(userQuery));
+
+        if (isCustomerRevenueQuestion) {
+            try {
+                const output = tools.getCustomerRevenueSummary
+                    ? await tools.getCustomerRevenueSummary(orgId)
+                    : await tools.analyzeData(userQuery, { orgId, metric: 'average_revenue_per_customer' });
+                const result = 'summary' in output ? output.summary : output.insight;
+
+                return {
+                    updatedMemory: agentMemory,
+                    logEntry: {
+                        action: 'customer_revenue_summary',
+                        result,
+                        metadata: {
+                            metric: 'average_revenue_per_customer',
+                            orgId,
+                            output,
+                        },
+                    },
+                };
+            } catch (error) {
+                logger.warn('[Pops] Customer revenue fast path failed, falling back to planner', {
+                    orgId,
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            }
+        }
         
         // 1. Tool Definitions (Agent-specific + Shared Context OS & Letta tools)
         const popsSpecificTools = [
@@ -216,6 +249,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
         const toolsDef = [
             ...popsSpecificTools,
             proactiveSearchToolDef,
+            ...popsCrmToolDefs,
             ...analyticsToolDefs,
             ...dispensaryAnalyticsToolDefs,
             ...learningLoopToolDefs,
@@ -267,7 +301,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
                 output: {
                     schema: z.object({
                         thought: z.string(),
-                        toolName: z.enum(['analyzeData', 'detectAnomalies', 'lettaSaveFact', 'lettaUpdateCoreMemory', 'lettaMessageAgent', 'getSearchConsoleStats', 'getGA4Traffic', 'findSEOOpportunities', 'promotion_scorecard', 'top_sellers_comparison', 'sku_profitability_view', 'inventory_health_score', 'vendor_scorecard', 'customer_visit_cohort', 'null']),
+                        toolName: z.enum(['analyzeData', 'getCustomerRevenueSummary', 'detectAnomalies', 'lettaSaveFact', 'lettaUpdateCoreMemory', 'lettaMessageAgent', 'getSearchConsoleStats', 'getGA4Traffic', 'findSEOOpportunities', 'promotion_scorecard', 'top_sellers_comparison', 'sku_profitability_view', 'inventory_health_score', 'vendor_scorecard', 'customer_visit_cohort', 'null']),
                         args: z.record(z.any())
                     })
                 }
@@ -290,7 +324,12 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
             // 3. EXECUTE
             let output: any = "Tool failed";
             if (decision.toolName === 'analyzeData') {
-                output = await tools.analyzeData(decision.args.query, decision.args.context || {});
+                output = await tools.analyzeData(decision.args.query, { ...(decision.args.context || {}), orgId });
+            } else if (decision.toolName === 'getCustomerRevenueSummary') {
+                if (!tools.getCustomerRevenueSummary) {
+                    throw new Error('Customer revenue summary tool is unavailable');
+                }
+                output = await tools.getCustomerRevenueSummary(decision.args.orgId || orgId);
             } else if (decision.toolName === 'detectAnomalies') {
                 // Mock history if not provided in args (Agent would usually chain this: fetch -> analyze)
                 const mockHistory = decision.args.history || [100, 110, 105, 120, 115, 130]; 

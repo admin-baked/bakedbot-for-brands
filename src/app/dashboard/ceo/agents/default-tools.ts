@@ -17,6 +17,7 @@ import {
     getCustomerHistory,
     getSegmentSummary,
     getCustomerEmailCoverage,
+    getCustomerRevenueSummary,
     getTopCustomers,
     getAtRiskCustomers,
     getUpcomingBirthdays,
@@ -404,6 +405,49 @@ const commonDelegationTools = {
     }
 };
 
+type ToolContextLookup = {
+    orgId?: unknown;
+    brandId?: unknown;
+    tenantId?: unknown;
+    metric?: unknown;
+} | null | undefined;
+
+function nonEmptyString(value: unknown): string | null {
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+async function resolveOrgIdForToolContext(context: ToolContextLookup): Promise<string | null> {
+    const contextOrgId =
+        nonEmptyString(context?.orgId)
+        ?? nonEmptyString(context?.brandId)
+        ?? nonEmptyString(context?.tenantId);
+
+    if (contextOrgId) {
+        return contextOrgId;
+    }
+
+    const globalTenantId = nonEmptyString(
+        (globalThis as typeof globalThis & { currentTenantId?: unknown }).currentTenantId
+    );
+    if (globalTenantId) {
+        return globalTenantId;
+    }
+
+    const user = await requireUser().catch(() => null);
+    const scopedUser = user as { orgId?: unknown; currentOrgId?: unknown; brandId?: unknown } | null;
+    return (
+        nonEmptyString(scopedUser?.orgId)
+        ?? nonEmptyString(scopedUser?.currentOrgId)
+        ?? nonEmptyString(scopedUser?.brandId)
+    );
+}
+
+function isCustomerRevenueQuestion(query: string, context: ToolContextLookup): boolean {
+    const text = `${query} ${nonEmptyString(context?.metric) ?? ''}`.toLowerCase();
+    return /\b(arpc|average revenue per customer|avg revenue per customer|revenue per customer|average ltv|avg ltv|average customer spend|customer revenue|customer spend)\b/.test(text)
+        || (/\b(average|avg)\b/.test(text) && /\b(revenue|ltv|spend|spent)\b/.test(text) && /\bcustomers?\b/.test(text));
+}
+
 const commonPlaybookTools = {
     draft_playbook: async (name: string, description: string, steps: any[], schedule?: string) => {
         try {
@@ -661,6 +705,27 @@ export const defaultPopsTools = {
     ...commonMemoryTools,
     analyzeData: async (query: string, context: any) => {
         try {
+            if (isCustomerRevenueQuestion(query, context)) {
+                const orgId = await resolveOrgIdForToolContext(context);
+                if (!orgId) {
+                    return {
+                        insight: 'I need an organization context before I can calculate average revenue per customer from POS data.',
+                        trend: 'flat' as const,
+                    };
+                }
+
+                const revenueSummary = await getCustomerRevenueSummary(orgId);
+                await commonMemoryTools.lettaSaveFact(
+                    `Customer revenue summary for ${orgId}: ${revenueSummary.summary.replace(/\s+/g, ' ').slice(0, 500)}`,
+                    'analytics_insight'
+                );
+                return {
+                    insight: revenueSummary.summary,
+                    trend: 'flat' as const,
+                    metrics: revenueSummary.metrics,
+                };
+            }
+
             const response = await ai.generate({
                 prompt: `Analyze business query: ${query}. Context: ${JSON.stringify(context)}. Return JSON with 'insight' and 'trend'.`,
             });
@@ -1383,6 +1448,7 @@ export const defaultUniversalTools = {
     getCustomerHistory,
     getSegmentSummary,
     getCustomerEmailCoverage,
+    getCustomerRevenueSummary,
     getTopCustomers,
     getAtRiskCustomers,
     getUpcomingBirthdays,
