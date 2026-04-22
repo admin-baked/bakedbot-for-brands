@@ -139,8 +139,8 @@ function InboxContent() {
                 </AnimatePresence>
             </div>
 
-            {/* Product tour — shown once on first visit */}
-            {showChecklist && <ProductTour />}
+            {/* Product tour — manages its own visibility via localStorage + role check */}
+            <ProductTour />
         </div>
     );
 }

@@ -6,7 +6,7 @@ import { ArrowRight, Laptop, Tablet, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/use-user-role';
-import { isDispensaryRole } from '@/types/roles';
+import { isBrandRole, isDispensaryRole } from '@/types/roles';
 import { completeOnboardingStep } from '@/server/actions/onboarding-progress';
 
 const TOUR_COMPLETED_KEY = 'bakedbot:product-tour-v1';
@@ -154,16 +154,17 @@ function TooltipCard({
   isDispensary,
 }: TooltipCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const [style, setStyle] = useState<React.CSSProperties>({});
+  const centeredStyle: React.CSSProperties = {
+    position: 'fixed',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+  };
+  const [style, setStyle] = useState<React.CSSProperties>(centeredStyle);
 
   useEffect(() => {
     if (step.position === 'center' || !targetRect) {
-      setStyle({
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-      });
+      setStyle(centeredStyle);
       return;
     }
 
@@ -189,8 +190,9 @@ function TooltipCard({
   return (
     <div
       ref={cardRef}
-      className="z-[9999] w-[360px] max-w-[calc(100vw-32px)] rounded-xl border border-border bg-card p-5 shadow-2xl"
+      className="fixed z-[9999] w-[360px] max-w-[calc(100vw-32px)] rounded-xl border border-border bg-card p-5 shadow-2xl"
       style={style}
+      onClick={(e) => e.stopPropagation()}
     >
       <button
         onClick={onSkip}
@@ -302,7 +304,8 @@ export function ProductTour() {
     setCurrentStep((s) => s + 1);
   }, [currentStep, steps.length, completeTour]);
 
-  if (!isActive || !role) return null;
+  const isBrand = isBrandRole(role);
+  if (!isActive || !role || (!isBrand && !isDispensary)) return null;
 
   const step = steps[currentStep];
 
