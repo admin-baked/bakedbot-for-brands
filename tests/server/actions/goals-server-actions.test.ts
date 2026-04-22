@@ -256,7 +256,7 @@ describe('Goals Server Actions', () => {
       const result = await getOrgGoals('org_test');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toContain('Unauthorized');
     });
 
     it('converts Firestore Timestamps to Dates', async () => {
@@ -316,7 +316,7 @@ describe('Goals Server Actions', () => {
       const result = await getActiveGoals('org_test');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toContain('Unauthorized');
     });
   });
 
@@ -385,7 +385,7 @@ describe('Goals Server Actions', () => {
       const result = await updateGoalProgress('org_test', 'goal_123', []);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toContain('Unauthorized');
     });
 
     it('returns error if goal not found', async () => {
@@ -431,7 +431,7 @@ describe('Goals Server Actions', () => {
       const result = await updateGoalStatus('org_test', 'goal_123', 'active');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toContain('Unauthorized');
     });
   });
 
@@ -467,7 +467,7 @@ describe('Goals Server Actions', () => {
       const result = await deleteGoal('org_test', 'goal_123');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toContain('Unauthorized');
     });
   });
 
@@ -503,7 +503,7 @@ describe('Goals Server Actions', () => {
       const result = await activateGoal('org_test', 'goal_123');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toContain('Unauthorized');
     });
 
     it('returns error if goal not found', async () => {
@@ -549,7 +549,7 @@ describe('Goals Server Actions', () => {
       const result = await achieveGoal('org_test', 'goal_123');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toContain('Unauthorized');
     });
   });
 
@@ -562,7 +562,7 @@ describe('Goals Server Actions', () => {
       const result = await getOrgGoals('org_b');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toContain('Unauthorized');
     });
 
     it('prevents users from modifying other orgs goals', async () => {
@@ -572,7 +572,7 @@ describe('Goals Server Actions', () => {
       const result = await updateGoalStatus('org_b', 'goal_123', 'active');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toContain('Unauthorized');
     });
 
     it('allows users with multiple org memberships to access their orgs', async () => {

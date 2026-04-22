@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | Onboarding runtime submit repair (4.10.40-COD)
-**Recent work (2026-04-22):** Removed the React 19-only `useActionState` dependency from onboarding, preserved the auth modal/server-action completion flow, and verified the focused onboarding suite `18/18`.
+**Current Status:** local verified | Brand Guide + Goals audit fixes (4.10.42-COD)
+**Recent work (2026-04-22):** Tightened Brand Guide extraction cleanup/sample limits, fixed Goals date coercion for Firestore/native dates, and verified focused Brand Guide `87/87` plus Goals `81/81`.
 
 ---
 

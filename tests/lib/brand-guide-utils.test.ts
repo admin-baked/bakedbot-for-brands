@@ -187,7 +187,7 @@ describe('Brand Guide Utilities', () => {
 
     it('should handle all fallback scenarios', () => {
       // AI valid
-      expect(buildBrandName('Brand Name', 'title', 'domain.com')).toBe('Brand Name');
+      expect(buildBrandName('Acme Wellness', 'title', 'domain.com')).toBe('Acme Wellness');
 
       // AI invalid, title valid
       expect(buildBrandName('Unknown', 'Brand | Tagline', 'domain.com')).toBe('Brand');

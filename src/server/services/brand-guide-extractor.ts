@@ -854,7 +854,7 @@ Return ONLY a valid JSON object (no markdown formatting):
     const paragraphs = content
       .split('\n\n')
       .map((p) => p.trim())
-      .filter((p) => p.length > 50 && p.length < 700) // Meaningful paragraphs
+      .filter((p) => p.length > 50 && p.length <= 500) // Meaningful paragraphs
       .filter((p) => !p.startsWith('#')) // Skip headers
       .filter((p) => !p.includes('©')) // Skip copyright
       .filter((p) => !p.includes('http')); // Skip URLs
@@ -869,15 +869,16 @@ Return ONLY a valid JSON object (no markdown formatting):
       .reduce<string[]>((chunks, sentence) => {
         const trimmed = sentence.trim();
         if (trimmed.length < 20) return chunks;
+        if (trimmed.length > 500) return chunks;
         const current = chunks[chunks.length - 1];
-        if (!current || current.length > 350) {
+        if (!current || current.length > 350 || `${current} ${trimmed}`.length > 500) {
           chunks.push(trimmed);
         } else {
           chunks[chunks.length - 1] = `${current} ${trimmed}`;
         }
         return chunks;
       }, [])
-      .filter((chunk) => chunk.length > 60 && chunk.length < 700)
+      .filter((chunk) => chunk.length > 60 && chunk.length <= 500)
       .filter((chunk) => !chunk.includes('http'));
 
     return [...paragraphs, ...sentenceChunks].slice(0, 30);

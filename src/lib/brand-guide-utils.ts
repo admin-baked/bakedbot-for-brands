@@ -152,14 +152,19 @@ export function cleanExtractedValue(value: string | undefined): string {
   if (!value) return '';
 
   const lower = value.toLowerCase().trim();
+  const normalized = lower
+    .replace(/[.!:;-]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-  // List of AI placeholder patterns to filter
-  const placeholderPatterns = [
+  const exactPlaceholders = new Set([
     'unknown',
     'unable',
     'n/a',
+    'na',
     'unable to extract',
     'no content',
+    'no content available',
     'insufficient',
     'not found',
     'not available',
@@ -168,10 +173,23 @@ export function cleanExtractedValue(value: string | undefined): string {
     'brand name',
     'your brand',
     'company name',
+  ]);
+
+  if (exactPlaceholders.has(normalized)) {
+    return '';
+  }
+
+  const placeholderPatterns = [
+    /^unknown\b/,
+    /^unable\b/,
+    /^n\/a\b/,
+    /^not available\b/,
+    /^not found\b/,
+    /^no content\b/,
+    /^insufficient\b/,
   ];
 
-  // Check if value matches any placeholder pattern
-  if (placeholderPatterns.some((pattern) => lower.includes(pattern))) {
+  if (placeholderPatterns.some((pattern) => pattern.test(normalized))) {
     return '';
   }
 

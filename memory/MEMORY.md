@@ -2,6 +2,16 @@
 
 ---
 
+## Session 2026-04-22 - Brand Guide + Goals Audit Fixes (local)
+- **Brand Guide utilities**: Placeholder filtering now uses exact/anchored matches instead of broad substring checks, so valid extracted names are not discarded accidentally.
+- **Brand Guide extractor**: Voice text samples now consistently enforce the intended 50-500 character range; extractor tests mock the current `callGroqOrClaude` wrapper and avoid live direct-fetch attempts.
+- **Goals server actions**: Goal reads and progress updates now normalize Firestore `Timestamp`, native `Date`, string, and numeric date values before using them.
+- **Authorization tests**: Kept the production-specific unauthorized message and updated Goals tests to assert the authorization category.
+- **Verification**: Brand Guide suites passed `87/87`; Goals suites passed `81/81`; `check:structure` and `check:config` passed; bumped to `4.10.42-COD`.
+- See `sessions/2026-04-22-0819-brand-guide-goals-audit.md`
+
+---
+
 ## Session 2026-04-22 - Onboarding Runtime Submit Repair (local)
 - **Runtime repair**: Removed `useActionState` from the onboarding client because the repo is on React 18.3.1; onboarding now submits through a React 18-compatible `onSubmit` handler.
 - **Flow preservation**: Kept the canonical `completeOnboarding` server action, auth modal `requestSubmit()` behavior, hidden form payload, session-expired relogin path, and wiring screen completion flow.

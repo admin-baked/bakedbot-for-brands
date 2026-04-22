@@ -30,6 +30,32 @@ async function verifyGoalAccess(orgId: string): Promise<{ authorized: boolean; e
   return { authorized: true };
 }
 
+function coerceGoalDate(value: unknown): Date {
+  if (value instanceof Date) return value;
+
+  if (value && typeof value === 'object' && typeof (value as { toDate?: unknown }).toDate === 'function') {
+    return (value as { toDate: () => Date }).toDate();
+  }
+
+  if (typeof value === 'string' || typeof value === 'number') {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+
+  return new Date();
+}
+
+function normalizeGoalDates(data: Record<string, unknown>): OrgGoal {
+  return {
+    ...data,
+    createdAt: coerceGoalDate(data.createdAt),
+    updatedAt: coerceGoalDate(data.updatedAt),
+    lastProgressUpdatedAt: coerceGoalDate(data.lastProgressUpdatedAt),
+    startDate: coerceGoalDate(data.startDate),
+    endDate: coerceGoalDate(data.endDate),
+  } as OrgGoal;
+}
+
 /**
  * Create a new goal
  */
@@ -100,17 +126,7 @@ export async function getOrgGoals(orgId: string): Promise<{
       .orderBy('endDate', 'desc')
       .get();
 
-    const goals = snapshot.docs.map(doc => {
-      const data = doc.data() as Record<string, any>;
-      return {
-        ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
-        lastProgressUpdatedAt: data.lastProgressUpdatedAt?.toDate() || new Date(),
-        startDate: data.startDate?.toDate() || new Date(),
-        endDate: data.endDate?.toDate() || new Date(),
-      } as OrgGoal;
-    });
+    const goals = snapshot.docs.map(doc => normalizeGoalDates(doc.data() as Record<string, unknown>));
 
     return { success: true, goals };
   } catch (error) {
@@ -141,17 +157,7 @@ export async function getActiveGoals(orgId: string): Promise<{
       .where('status', '==', 'active')
       .get();
 
-    const goals = snapshot.docs.map(doc => {
-      const data = doc.data() as Record<string, any>;
-      return {
-        ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
-        lastProgressUpdatedAt: data.lastProgressUpdatedAt?.toDate() || new Date(),
-        startDate: data.startDate?.toDate() || new Date(),
-        endDate: data.endDate?.toDate() || new Date(),
-      } as OrgGoal;
-    });
+    const goals = snapshot.docs.map(doc => normalizeGoalDates(doc.data() as Record<string, unknown>));
 
     return { success: true, goals };
   } catch (error) {
@@ -182,7 +188,7 @@ export async function updateGoalProgress(
       return { success: false, error: 'Goal not found' };
     }
 
-    const goalData = goalDoc.data() as OrgGoal;
+    const goalData = normalizeGoalDates(goalDoc.data() as Record<string, unknown>);
     const now = new Date();
 
     // Update metrics
