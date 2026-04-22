@@ -2,6 +2,14 @@
 
 ---
 
+## Session 2026-04-21 - Thrive Remaining Playbook Gaps COMPLETE (local)
+- **Assignment cleanup**: Archived 50 stale paused Thrive `playbook_assignments` docs into `playbook_assignment_archive`; live assignments now have 0 duplicate playbook IDs, 0 missing subscription IDs, and 0 unknown playbooks.
+- **POS contact hydration**: Hydrated 155 `customer_spending` docs from canonical customer profiles (130 email, 154 phone/contact keys) and updated POS sync to preserve/hydrate contact fields on future runs.
+- **Campaign audience + evidence**: Campaign sender can now include contactable spending-index recipients missing from top-level `customers`; historical 4/20 day-of campaign is marked `aggregate_only` instead of pretending per-recipient proof exists.
+- **Audit result**: Thrive playbook audit now reports "No high-confidence issues detected"; aggregate-only historical evidence is shown explicitly.
+- **Verification**: campaign sender suite passed `29/29`; `npm run -s check:types` passed; bumped to `4.10.36-COD`.
+- See `sessions/2026-04-21-2059-thrive-remaining-gaps.md`
+
 ## Session 2026-04-21 - Thrive Playbook Audit + Repair COMPLETE (local)
 - **Production playbook repair**: Audited Thrive Syracuse playbooks end-to-end, paused stale active duplicates, aligned active catalog assignments with `thrive-syracuse-operator-monthly`, paused orphaned `playbook_welcome_series` assignments, and retargeted signup/customer-created listeners to the real Thrive welcome playbook.
 - **Runtime hardening**: Dashboard playbook reads/toggles now canonicalize duplicate assignments; scheduled custom playbooks sync `custom-report` dispatcher assignments; prompt-created paid-org playbooks save into the top-level custom playbook store instead of legacy brand-only docs.

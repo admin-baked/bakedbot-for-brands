@@ -14,7 +14,7 @@ import { getUsageWithLimits, incrementUsage } from '@/lib/metering/usage-service
 import { recordProactiveRuntimeDiagnostic } from '@/server/services/proactive-runtime-diagnostics';
 import { encodeUnsubscribeToken } from '@/lib/email/unsubscribe-token';
 import type { Campaign, CampaignRecipient, CampaignPerformance, CampaignChannel } from '@/types/campaign';
-import type { CustomerSegment } from '@/types/customers';
+import { calculateSegment, type CustomerSegment } from '@/types/customers';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai';
 
@@ -97,6 +97,146 @@ function normalizeEmail(value: unknown): string | null {
     return normalized.length > 0 ? normalized : null;
 }
 
+function normalizePhone(value: unknown): string | null {
+    if (typeof value !== 'string') {
+        return null;
+    }
+
+    const digits = value.replace(/\D/g, '');
+    return digits.length >= 10 ? digits.slice(-10) : null;
+}
+
+function cleanString(value: unknown): string | null {
+    if (typeof value !== 'string') {
+        return null;
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+}
+
+function isPlaceholderEmail(value: string): boolean {
+    return value.endsWith('@alleaves.local');
+}
+
+type SpendingIndexRecipient = {
+    id: string;
+    customerProfileId?: string;
+    email?: string;
+    phone?: string;
+    firstName?: string;
+    lastName?: string;
+    displayName?: string;
+    totalSpent: number;
+    orderCount: number;
+    avgOrderValue: number;
+    lastOrderDate?: Date;
+    firstOrderDate?: Date;
+};
+
+function dateFromFirestoreValue(value: unknown): Date | undefined {
+    const date = firestoreTimestampToDate(value);
+    return date ?? undefined;
+}
+
+function getRecipientDedupeKeys(input: { customerId?: string; email?: string; phone?: string }): string[] {
+    const keys: string[] = [];
+    if (input.customerId) keys.push(`customer:${input.customerId}`);
+    const email = normalizeEmail(input.email);
+    if (email) keys.push(`email:${email}`);
+    const phone = normalizePhone(input.phone);
+    if (phone) keys.push(`phone:${phone}`);
+    return keys;
+}
+
+async function loadCustomerSpendingIndex(
+    firestore: FirebaseFirestore.Firestore,
+    orgId: string,
+): Promise<SpendingIndexRecipient[]> {
+    try {
+        const snap = await firestore
+            .collection('tenants').doc(orgId)
+            .collection('customer_spending')
+            .limit(5000)
+            .get();
+
+        return snap.docs.map((doc) => {
+            const data = doc.data();
+            const email = normalizeEmail(data.email) ?? normalizeEmail(data.customerEmail) ?? (doc.id.includes('@') ? normalizeEmail(doc.id) : null);
+            const phone = cleanString(data.phone) ?? cleanString(data.customerPhone);
+            return {
+                id: doc.id,
+                customerProfileId: cleanString(data.customerProfileId) ?? undefined,
+                email: email && !isPlaceholderEmail(email) ? email : undefined,
+                phone: phone ?? undefined,
+                firstName: cleanString(data.firstName) ?? undefined,
+                lastName: cleanString(data.lastName) ?? undefined,
+                displayName: cleanString(data.displayName) ?? undefined,
+                totalSpent: Number(data.totalSpent) || 0,
+                orderCount: Number(data.orderCount) || 0,
+                avgOrderValue: Number(data.avgOrderValue) || 0,
+                lastOrderDate: dateFromFirestoreValue(data.lastOrderDate),
+                firstOrderDate: dateFromFirestoreValue(data.firstOrderDate),
+            };
+        });
+    } catch (error) {
+        logger.warn('[CAMPAIGN_SENDER] Spending index unavailable while resolving audience', {
+            orgId,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return [];
+    }
+}
+
+function buildSpendingLookup(spendingIndex: SpendingIndexRecipient[]): Map<string, SpendingIndexRecipient> {
+    const lookup = new Map<string, SpendingIndexRecipient>();
+    for (const spending of spendingIndex) {
+        lookup.set(`spending:${spending.id}`, spending);
+        if (spending.customerProfileId) lookup.set(`customer:${spending.customerProfileId}`, spending);
+        for (const key of getRecipientDedupeKeys(spending)) {
+            lookup.set(key, spending);
+        }
+    }
+    return lookup;
+}
+
+function findSpendingForCustomer(
+    docId: string,
+    data: FirebaseFirestore.DocumentData,
+    spendingLookup: Map<string, SpendingIndexRecipient>,
+): SpendingIndexRecipient | undefined {
+    const keys = [
+        `customer:${docId}`,
+        cleanString(data.alleavesCustomerId) ? `spending:${cleanString(data.alleavesCustomerId)}` : null,
+        normalizeEmail(data.email) ? `email:${normalizeEmail(data.email)}` : null,
+        normalizePhone(data.phone) ? `phone:${normalizePhone(data.phone)}` : null,
+    ].filter((key): key is string => key !== null);
+
+    return keys.map((key) => spendingLookup.get(key)).find((spending): spending is SpendingIndexRecipient => Boolean(spending));
+}
+
+function calculateRecipientSegment(input: {
+    storedSegment?: unknown;
+    totalSpent: number;
+    orderCount: number;
+    avgOrderValue: number;
+    lastOrderDate?: Date | null;
+    firstOrderDate?: Date | null;
+    preferCalculated: boolean;
+}): CustomerSegment {
+    if (!input.preferCalculated && typeof input.storedSegment === 'string') {
+        return input.storedSegment as CustomerSegment;
+    }
+
+    return calculateSegment({
+        totalSpent: input.totalSpent,
+        lifetimeValue: input.totalSpent,
+        orderCount: input.orderCount,
+        avgOrderValue: input.avgOrderValue,
+        lastOrderDate: input.lastOrderDate ?? undefined,
+        firstOrderDate: input.firstOrderDate ?? undefined,
+    });
+}
 
 function getCampaignCommunicationType(goal: Campaign['goal']): string {
     if (goal === 'winback') {
@@ -258,7 +398,7 @@ async function loadRecentlyContactedEmails(input: {
 /**
  * Resolve campaign audience to actual customer records.
  */
-export async function resolveAudience(campaign: Campaign): Promise<ResolvedRecipient[]> {
+async function resolveAudienceFromCustomers(campaign: Campaign): Promise<ResolvedRecipient[]> {
     const { firestore } = await createServerClient();
     const targetCustomerIds = normalizeTargetCustomerIds(campaign.audience.customFilter);
 
@@ -355,6 +495,103 @@ export async function resolveAudience(campaign: Campaign): Promise<ResolvedRecip
     });
 
     return deduped;
+}
+
+export async function resolveAudience(campaign: Campaign): Promise<ResolvedRecipient[]> {
+    const baseRecipients = await resolveAudienceFromCustomers(campaign);
+    const { firestore } = await createServerClient();
+    const targetCustomerIds = normalizeTargetCustomerIds(campaign.audience.customFilter);
+    const spendingIndex = await loadCustomerSpendingIndex(firestore, campaign.orgId);
+    const seenRecipientKeys = new Set<string>();
+
+    baseRecipients.forEach((recipient) => {
+        getRecipientDedupeKeys(recipient).forEach((key) => seenRecipientKeys.add(key));
+    });
+
+    const spendingRecipients: ResolvedRecipient[] = [];
+    for (const spending of spendingIndex) {
+        const customerId = spending.customerProfileId || spending.id;
+        if (targetCustomerIds && !targetCustomerIds.has(customerId) && !targetCustomerIds.has(spending.id)) {
+            continue;
+        }
+
+        const hasEmail = !!spending.email && campaign.channels.includes('email');
+        const hasPhone = !!spending.phone && campaign.channels.includes('sms');
+        if (!hasEmail && !hasPhone) continue;
+
+        const keys = getRecipientDedupeKeys({
+            customerId,
+            email: spending.email,
+            phone: spending.phone,
+        });
+        if (keys.some((key) => seenRecipientKeys.has(key))) {
+            continue;
+        }
+
+        const segment = calculateRecipientSegment({
+            totalSpent: spending.totalSpent,
+            orderCount: spending.orderCount,
+            avgOrderValue: spending.avgOrderValue,
+            lastOrderDate: spending.lastOrderDate,
+            firstOrderDate: spending.firstOrderDate,
+            preferCalculated: true,
+        });
+
+        if (campaign.audience.type === 'segment' && campaign.audience.segments?.length) {
+            if (!campaign.audience.segments.includes(segment)) continue;
+        }
+
+        const daysSince = spending.lastOrderDate
+            ? Math.floor((Date.now() - spending.lastOrderDate.getTime()) / (1000 * 60 * 60 * 24))
+            : undefined;
+
+        const recipient: ResolvedRecipient = {
+            customerId,
+            email: spending.email || '',
+            phone: spending.phone,
+            firstName: spending.firstName || spending.displayName?.split(' ')[0] || undefined,
+            lastName: spending.lastName,
+            segment,
+            totalSpent: spending.totalSpent,
+            orderCount: spending.orderCount,
+            daysSinceLastOrder: daysSince,
+            loyaltyPoints: undefined,
+        };
+
+        spendingRecipients.push(recipient);
+        keys.forEach((key) => seenRecipientKeys.add(key));
+    }
+
+    if (spendingRecipients.length === 0) {
+        return baseRecipients;
+    }
+
+    const lookbackDate = new Date(Date.now() - DEDUP_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+    const campaignType = getCampaignCommunicationType(campaign.goal);
+    const recentlyContactedEmails = await loadRecentlyContactedEmails({
+        firestore,
+        campaign,
+        recipients: spendingRecipients,
+        campaignType,
+        lookbackDate,
+    });
+    const dedupedSpendingRecipients = recentlyContactedEmails.size > 0
+        ? spendingRecipients.filter((recipient) => {
+            const normalizedEmail = normalizeEmail(recipient.email);
+            return !normalizedEmail || !recentlyContactedEmails.has(normalizedEmail);
+        })
+        : spendingRecipients;
+
+    if (dedupedSpendingRecipients.length > 0) {
+        logger.info('[CAMPAIGN_SENDER] Added spending-index recipients', {
+            campaignId: campaign.id,
+            orgId: campaign.orgId,
+            spendingIndexContacts: spendingIndex.filter((spending) => spending.email || spending.phone).length,
+            added: dedupedSpendingRecipients.length,
+        });
+    }
+
+    return [...baseRecipients, ...dedupedSpendingRecipients];
 }
 
 // =============================================================================

@@ -19,7 +19,7 @@ npm run ci:health
 If `ci:health` shows red: **fix the CI failure before doing any new work.** Don't push on top of a broken build.
 If `check:types` fails: **fix type errors before any other work.**
 
-**Current Status:** green | Thrive playbook audit/repair + delivery proof hardening (4.10.34-COD) | **Last update:** 2026-04-21
+**Current Status:** green | Thrive remaining playbook gaps closed + POS contact hydration (4.10.36-COD) | **Last update:** 2026-04-21
 
 ---
 

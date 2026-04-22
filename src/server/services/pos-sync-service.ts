@@ -287,7 +287,7 @@ async function computeAndPersistSpending(
         if (orderDate < s.firstOrderDate) s.firstOrderDate = orderDate;
     }
 
-    // Batch-write summaries to tenants/{orgId}/customer_spending/{email}
+    // Batch-write summaries to tenants/{orgId}/customer_spending/{email or cid_*}.
     // Full replacement (no merge) — summaries are always recomputed from complete history
     const BATCH_SIZE = 400;
     let batch = firestore.batch();
@@ -308,7 +308,7 @@ async function computeAndPersistSpending(
                 : now,
             firstOrderDate: Timestamp.fromDate(s.firstOrderDate),
             updatedAt: now,
-        });
+        }, { merge: true });
 
         count++;
         if (count % BATCH_SIZE === 0) {
@@ -326,6 +326,109 @@ async function computeAndPersistSpending(
         customersIndexed: spending.size,
         ordersProcessed: orders.length,
     });
+}
+
+function normalizePhone(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const digits = value.replace(/\D/g, '');
+    return digits.length >= 10 ? digits.slice(-10) : null;
+}
+
+function cleanString(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+}
+
+async function hydrateCustomerSpendingContacts(
+    firestore: FirebaseFirestore.Firestore,
+    orgId: string,
+): Promise<{ spendingDocs: number; matched: number; withEmail: number; withPhone: number }> {
+    const { Timestamp } = await import('firebase-admin/firestore');
+    const [customersSnap, spendingSnap] = await Promise.all([
+        firestore.collection('customers').where('orgId', '==', orgId).get(),
+        firestore.collection('tenants').doc(orgId).collection('customer_spending').limit(5000).get(),
+    ]);
+
+    const contactsBySpendingKey = new Map<string, Record<string, unknown>>();
+
+    customersSnap.docs.forEach((doc) => {
+        const data = doc.data();
+        const email = normalizeEmail(data.email);
+        const phone = normalizePhone(data.phone);
+        if (!email && !phone) return;
+
+        const alleavesCustomerId = cleanString(data.alleavesCustomerId);
+        const keys = new Set<string>();
+        if (alleavesCustomerId) keys.add(alleavesCustomerId);
+        if (email && !isAlleavesPlaceholderEmail(email)) keys.add(email);
+
+        const docAlleavesMatch = doc.id.match(/_alleaves_(\d+)$/);
+        if (docAlleavesMatch?.[1]) keys.add(`cid_${docAlleavesMatch[1]}`);
+
+        const contact: Record<string, unknown> = {
+            customerProfileId: doc.id,
+            contactKey: email || `phone:${phone}`,
+            contactSource: 'customers',
+        };
+        if (email && !isAlleavesPlaceholderEmail(email)) {
+            contact.email = email;
+            contact.customerEmail = email;
+        }
+        if (phone) {
+            contact.phone = data.phone || phone;
+            contact.customerPhone = data.phone || phone;
+            contact.phoneLast4 = phone.slice(-4);
+        }
+        for (const field of ['firstName', 'lastName', 'displayName']) {
+            const value = cleanString(data[field]);
+            if (value) contact[field] = value;
+        }
+
+        keys.forEach((key) => contactsBySpendingKey.set(key, contact));
+    });
+
+    const BATCH_SIZE = 400;
+    let batch = firestore.batch();
+    let pending = 0;
+    let matched = 0;
+    let withEmail = 0;
+    let withPhone = 0;
+    const now = Timestamp.now();
+
+    for (const doc of spendingSnap.docs) {
+        const contact = contactsBySpendingKey.get(doc.id);
+        if (!contact) continue;
+
+        batch.set(doc.ref, {
+            ...contact,
+            contactHydratedAt: now,
+        }, { merge: true });
+
+        pending++;
+        matched++;
+        if (contact.email) withEmail++;
+        if (contact.phone) withPhone++;
+
+        if (pending % BATCH_SIZE === 0) {
+            await batch.commit();
+            batch = firestore.batch();
+        }
+    }
+
+    if (pending % BATCH_SIZE !== 0) {
+        await batch.commit();
+    }
+
+    logger.info('[POS_SYNC] Customer spending contacts hydrated', {
+        orgId,
+        spendingDocs: spendingSnap.size,
+        matched,
+        withEmail,
+        withPhone,
+    });
+
+    return { spendingDocs: spendingSnap.size, matched, withEmail, withPhone };
 }
 
 /**
@@ -556,6 +659,15 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
         }
 
         // Sync menu/product catalog from POS (non-fatal — failure doesn't break customer/order sync)
+        try {
+            await hydrateCustomerSpendingContacts(firestore, orgId);
+        } catch (contactErr: any) {
+            logger.warn('[POS_SYNC] Customer spending contact hydration failed (non-fatal)', {
+                orgId,
+                error: contactErr?.message || String(contactErr),
+            });
+        }
+
         let menuProductsCount = 0;
         try {
             menuProductsCount = await syncPOSProducts(locationId, orgId);

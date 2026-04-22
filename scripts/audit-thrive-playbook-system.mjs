@@ -188,6 +188,7 @@ async function audit() {
     subscriptionsByOrg,
     subscriptionsByCustomer,
     usersByOrg,
+    archivedAssignments,
   ] = await Promise.all([
     db.collection('organizations').doc(ORG_ID).get(),
     db.collection('tenants').doc(ORG_ID).get(),
@@ -212,6 +213,7 @@ async function audit() {
     getCollectionDocs(db.collection('subscriptions').where('orgId', '==', ORG_ID)),
     getCollectionDocs(db.collection('subscriptions').where('customerId', '==', ORG_ID)),
     getCollectionDocs(db.collection('users').where('orgId', '==', ORG_ID)),
+    getCollectionDocs(db.collection('playbook_assignment_archive').where('orgId', '==', ORG_ID)),
   ]);
 
   const orgData = orgDoc.data() || {};
@@ -222,7 +224,11 @@ async function audit() {
   const spendingWithContactCount = customerSpending.filter((customer) => {
     const id = typeof customer.id === 'string' ? customer.id : '';
     const email = typeof customer.email === 'string' ? customer.email : '';
-    return id.includes('@') || email.includes('@');
+    const customerEmail = typeof customer.customerEmail === 'string' ? customer.customerEmail : '';
+    const contactKey = typeof customer.contactKey === 'string' ? customer.contactKey : '';
+    const phone = typeof customer.phone === 'string' ? customer.phone : '';
+    const customerPhone = typeof customer.customerPhone === 'string' ? customer.customerPhone : '';
+    return id.includes('@') || email.includes('@') || customerEmail.includes('@') || contactKey.length > 0 || phone.length > 0 || customerPhone.length > 0;
   }).length;
   const subscriptions = [...subscriptionsByOrg, ...subscriptionsByCustomer].filter((sub, idx, arr) => (
     arr.findIndex((other) => other.id === sub.id) === idx
@@ -298,6 +304,7 @@ async function audit() {
       ['non-catalog active docs missing dispatcher fields', nonCatalogMissingDispatcherFields.length],
       ['unknown/missing registry playbook ids', unknownPlaybooks.length],
       ['active unknown/missing registry playbook ids', activeUnknownPlaybooks.length],
+      ['archived assignment docs', archivedAssignments.length],
     ],
   );
 
@@ -468,7 +475,14 @@ async function audit() {
   const sentCampaignsWithoutRecipientRows = recentCampaigns.filter((campaign) => (
     campaign.status === 'sent' &&
     getCampaignReportedSendCount(campaign) > 0 &&
-    (campaignRecipientCounts.get(campaign.id) || 0) === 0
+    (campaignRecipientCounts.get(campaign.id) || 0) === 0 &&
+    campaign.deliveryEvidence?.status !== 'aggregate_only'
+  ));
+  const aggregateOnlyCampaigns = recentCampaigns.filter((campaign) => (
+    campaign.status === 'sent' &&
+    getCampaignReportedSendCount(campaign) > 0 &&
+    (campaignRecipientCounts.get(campaign.id) || 0) === 0 &&
+    campaign.deliveryEvidence?.status === 'aggregate_only'
   ));
 
   printSection('Delivery Evidence');
@@ -482,6 +496,7 @@ async function audit() {
       ['inbox_threads', recentThreads.length, countBy(recentThreads, (r) => r.type || r.status).map(([k, v]) => `${k}:${v}`).join(', ') || 'none'],
       ['email_threads', recentEmailThreads.length, countBy(recentEmailThreads, (r) => r.status).map(([k, v]) => `${k}:${v}`).join(', ') || 'none'],
       ['campaign recipients', campaignRecipientRows.length, countBy(campaignRecipientRows, (r) => r.status).map(([k, v]) => `${k}:${v}`).join(', ') || 'none'],
+      ['aggregate-only campaign evidence', aggregateOnlyCampaigns.length, aggregateOnlyCampaigns.map((campaign) => campaign.name || campaign.id).join(', ') || 'none'],
     ],
   );
 
@@ -561,7 +576,7 @@ async function audit() {
   if (scheduledCustomWithoutDispatcher.length > 0) {
     findings.push('At least one active scheduled custom playbook exists in top-level playbooks, but custom playbook toggles do not create dispatcher assignments.');
   }
-  if (customerSpending.length > allCustomerCount) {
+  if (customerSpending.length > allCustomerCount && spendingWithContactCount === 0) {
     findings.push(`The POS spending audience (${customerSpending.length}) is larger than the top-level campaign audience (${allCustomerCount}); customer_spending currently has ${spendingWithContactCount} email/contact keys, so campaign sends use the smaller customers collection.`);
   }
   if (campaignRecipientRows.some((row) => row.providerMessageId === undefined || row.providerMessageId === null)) {

@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** green | Thrive playbook audit/repair + delivery proof hardening (4.10.34-COD)
-**Recent work (2026-04-21):** Thrive playbook assignments repaired, custom scheduled dispatcher sync added, delivery proof hardened, and typecheck/focused playbook-email suites are green.
+**Current Status:** green | Thrive remaining playbook gaps closed + POS contact hydration (4.10.36-COD)
+**Recent work (2026-04-21):** Archived stale Thrive assignment duplicates, hydrated POS spending contacts, marked historical 4/20 send as aggregate-only evidence, and added spending-index campaign audience support.
 
 ---
 
@@ -181,7 +181,7 @@ Before every , bump  + kiosk footer () using format ****.
 
 Patch bump guide: +1 small fix · +2 multi-file · +3 new feature · +5 refactor · +7-10 subsystem overhaul
 
-**Current version: 4.10.34-COD** — Full rules: AGENTS.md Versioning Convention
+**Current version: 4.10.36-COD** — Full rules: AGENTS.md Versioning Convention
 
 ## Key Directories
 

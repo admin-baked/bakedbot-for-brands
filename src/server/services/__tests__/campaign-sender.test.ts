@@ -456,6 +456,47 @@ describe('resolveAudience', () => {
         expect(result).toHaveLength(1);
         expect(result[0].customerId).toBe('c1');
     });
+
+    it('includes contactable spending-index recipients missing from customers', async () => {
+        const customersQuery = mockQuery(mockQuerySnap([]));
+        const spendingQuery = {
+            limit: jest.fn().mockReturnThis(),
+            get: jest.fn().mockResolvedValue(mockQuerySnap([
+                mockDocSnap('cid_2076', {
+                    customerEmail: 'spend@example.com',
+                    firstName: 'Spend',
+                    totalSpent: 1321,
+                    orderCount: 34,
+                    avgOrderValue: 38.85,
+                    lastOrderDate: { toDate: () => new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
+                }),
+            ])),
+        };
+
+        mockCollection.mockImplementation((name: string) => {
+            if (name === 'customers') return { where: jest.fn().mockReturnValue(customersQuery) };
+            if (name === 'tenants') {
+                return {
+                    doc: jest.fn(() => ({
+                        collection: jest.fn(() => spendingQuery),
+                    })),
+                };
+            }
+            if (name === 'customer_communications') return mockQuery();
+            return { where: mockWhere };
+        });
+
+        const result = await resolveAudience(makeCampaign({ audience: { type: 'all', estimatedCount: 1 } }));
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).toEqual(expect.objectContaining({
+            customerId: 'cid_2076',
+            email: 'spend@example.com',
+            firstName: 'Spend',
+            totalSpent: 1321,
+            orderCount: 34,
+        }));
+    });
 });
 
 // ---------------------------------------------------------------------------
