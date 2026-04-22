@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | Goals adopt fix, visit notification auth, products draft status (4.10.48-COD)
-**Recent work (2026-04-22):** Goals adopt white screen fix + IncomingVisitNotification auth fix + products draft/active status toggle (`742768e87`). Dashboard onboarding product tour + welcome thread (`232895354`).
+**Current Status:** local verified | Stress test fixes: notification auth, tour viewport, goal toasts, checklist collapse (4.10.48-COD)
+**Recent work (2026-04-22):** Stress test bug fixes — notification orgId guard, tour viewport clamp, goal adopt toasts, checklist collapse, Elroy outreach ban list (`a61e3873a`, `5c8e8b090`).
 
 ---
 
