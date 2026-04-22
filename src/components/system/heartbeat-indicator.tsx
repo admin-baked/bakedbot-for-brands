@@ -43,8 +43,7 @@ export function HeartbeatIndicator({
                 const data = await res.json();
                 setStatus(data);
                 setIsLoading(false);
-            } catch (error) {
-                console.error('[Heartbeat] Failed to fetch status:', error);
+            } catch {
                 setStatus({
                     pulse: 'error',
                     timestamp: null,

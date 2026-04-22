@@ -63,7 +63,13 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
         });
       }
     } catch (error: unknown) {
-      logger.error('Error suggesting goals:', error instanceof Error ? { message: error.message, stack: error.stack, forceRefresh } : { error, forceRefresh });
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.error('Error suggesting goals', { message: msg, forceRefresh });
+      toast({
+        title: 'Could not load suggestions',
+        description: msg === 'Failed to fetch' ? 'Server unreachable — try refreshing the page.' : 'Something went wrong. Try again later.',
+        variant: 'destructive',
+      });
     } finally {
       setIsSuggestingGoals(false);
     }

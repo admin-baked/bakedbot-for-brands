@@ -44,24 +44,6 @@ export async function POST(request: NextRequest) {
     const parsedBody = getRequestBody(await request.json().catch(() => ({})));
 
     // Resolve orgId from session claims (dispensary users use orgId/currentOrgId)
-    const orgId = (session as any).orgId
-      || (session as any).currentOrgId
-      || session.brandId
-      || session.locationId;
-
-    if (!orgId) {
-      // Fallback: look it up from the users collection
-      const userDoc = await db.collection('users').doc(session.uid).get();
-      const userData = userDoc.data();
-      const resolvedOrgId = userData?.orgId || userData?.currentOrgId || userData?.brandId;
-      if (!resolvedOrgId) {
-        return NextResponse.json(
-          { error: 'Organization not found' },
-          { status: 404 }
-        );
-      }
-    }
-
     const resolvedOrgId = (session as any).orgId
       || (session as any).currentOrgId
       || session.brandId
