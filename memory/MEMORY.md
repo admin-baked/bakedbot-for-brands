@@ -2,6 +2,15 @@
 
 ---
 
+## Session 2026-04-22 - Analytics Hardening (local)
+- **Analytics data resilience**: Overview metrics now tolerate missing order item arrays and string/currency-formatted totals without crashing.
+- **Dispensary visibility**: Super-user/admin Analytics views can use retailerId and Alleaves fallback paths for dispensary orgs, matching operator views.
+- **Cache isolation**: Dashboard analytics cache keys now include entity, role, location, current org, org, and brand context so one access shape does not mask another.
+- **Verification**: Focused Analytics action suite passed `13/13`; bumped to `4.10.46-COD`.
+- See `sessions/2026-04-22-1216-analytics-hardening.md`
+
+---
+
 ## Session 2026-04-22 - Inbox KPI Fast Path + Creative Audit (local)
 - **Inbox chat repair**: Pops now answers customer revenue questions such as "average revenue per customer" through a deterministic CRM/POS fast path instead of the fragile planner path that produced the mission-planning error.
 - **CRM metric reuse**: Shared the canonical customer-revenue query detector between Inbox and CEO agent default tools, with persisted message metadata for auditability.

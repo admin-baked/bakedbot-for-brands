@@ -1,6 +1,7 @@
 import { getAnalyticsData } from '../actions';
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
+import { withCache } from '@/lib/cache';
 
 jest.mock('@/firebase/server-client', () => ({
   createServerClient: jest.fn(),
@@ -8,6 +9,16 @@ jest.mock('@/firebase/server-client', () => ({
 
 jest.mock('@/server/auth/auth', () => ({
   requireUser: jest.fn(),
+}));
+
+jest.mock('@/lib/cache', () => ({
+  CachePrefix: {
+    DASHBOARD_ANALYTICS: 'dash_analytics',
+  },
+  CacheTTL: {
+    DASHBOARD_ANALYTICS: 600,
+  },
+  withCache: jest.fn(async (_prefix: string, _id: string, fn: () => Promise<unknown>) => fn()),
 }));
 
 jest.mock('@/lib/logger', () => ({
@@ -18,6 +29,13 @@ jest.mock('@/lib/logger', () => ({
     debug: jest.fn(),
   },
 }));
+
+const mockWithCache = withCache as jest.MockedFunction<typeof withCache>;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockWithCache.mockImplementation(async (_prefix, _id, fn) => fn());
+});
 
 // Mock Alleaves client used inside getOrdersFromAlleaves
 jest.mock('@/lib/pos/adapters/alleaves', () => ({
@@ -157,6 +175,13 @@ describe('getAnalyticsData — dispensary role', () => {
     expect(result.totalOrders).toBe(1);
     expect(result.totalRevenue).toBe(46);
     expect(result.averageOrderValue).toBe(46);
+    expect(mockWithCache).toHaveBeenCalledWith(
+      'dash_analytics',
+      expect.stringContaining('role:dispensary_admin'),
+      expect.any(Function),
+      600,
+    );
+    expect(mockWithCache.mock.calls[0][1]).toContain('loc:loc-thrive');
   });
 
   it('falls back to brandId query when retailerId returns nothing', async () => {
@@ -310,6 +335,27 @@ describe('getAnalyticsData — brand role', () => {
     expect(categories['Flower']).toBe(40);   // 20 * 2
     expect(categories['Edibles']).toBe(10);  // 10 * 1
   });
+
+  it('handles orders with missing item arrays and numeric string totals', async () => {
+    const docs = [
+      makeOrderDoc({
+        items: undefined,
+        totals: { subtotal: '40.00', tax: '4.00', discount: 0, total: '$44.00' },
+      }),
+    ];
+    const firestore = buildFirestore({
+      returnDocsWhen: (f) => f.some((x) => x.field === 'brandId'),
+      docs,
+    });
+    (createServerClient as jest.Mock).mockResolvedValue({ firestore });
+
+    const result = await getAnalyticsData('brand-acme');
+
+    expect(result.totalOrders).toBe(1);
+    expect(result.totalRevenue).toBe(44);
+    expect(result.salesByProduct).toEqual([]);
+    expect(result.salesByCategory).toEqual([]);
+  });
 });
 
 describe('getAnalyticsData — authorization', () => {
@@ -339,5 +385,24 @@ describe('getAnalyticsData — authorization', () => {
 
     const result = await getAnalyticsData('org-thrive');
     expect(result.totalOrders).toBe(1);
+  });
+
+  it('super_user can load dispensary orders through retailerId fallback', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'admin-2',
+      role: 'super_user',
+      currentOrgId: 'org-thrive',
+    });
+    const firestore = buildFirestore({
+      returnDocsWhen: (f) =>
+        f.some((x) => x.field === 'retailerId' && x.value === 'org-thrive'),
+    });
+    (createServerClient as jest.Mock).mockResolvedValue({ firestore });
+
+    const result = await getAnalyticsData('org-thrive');
+
+    expect(result.totalOrders).toBe(1);
+    expect(result.totalRevenue).toBe(46);
+    expect(mockWithCache.mock.calls[0][1]).toContain('role:super_user');
   });
 });

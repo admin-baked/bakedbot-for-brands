@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | Inbox KPI + Creative audit fixes (4.10.44-COD)
-**Recent work (2026-04-22):** Added deterministic Pops Inbox customer-revenue answers from CRM/POS metrics, shared the canonical ARPC query detector, and refreshed Creative Center audit coverage for Studio/Assets, Remotion, Deck, and error states.
+**Current Status:** local verified | Analytics hardening (4.10.46-COD)
+**Recent work (2026-04-22):** Hardened Analytics overview order normalization, enabled super/admin retailer/POS fallback for dispensary orgs, and scoped dashboard analytics cache entries by access context.
 
 ---
 

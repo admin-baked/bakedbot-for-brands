@@ -9,9 +9,11 @@ import { withCache, CachePrefix, CacheTTL } from '@/lib/cache';
 import { getDispensaryRetailerId, getLocationId } from '@/app/dashboard/orders/order-context';
 import { getOrdersFromAlleaves } from '@/app/dashboard/orders/actions';
 import { ANALYTICS_ORDER_STATUSES } from '@/app/dashboard/orders/order-utils';
+import { toNonNegativeNumber } from '@/server/services/catalog-analytics-source';
 
 const ANALYTICS_ALLOWED_ROLES = ['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user', 'super_admin'] as const;
 const DISPENSARY_ANALYTICS_ROLES = ['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender'] as const;
+const RETAILER_FALLBACK_ROLES = [...DISPENSARY_ANALYTICS_ROLES, 'super_user', 'super_admin'] as const;
 
 export interface DailyAnalytics {
   date: string;
@@ -68,6 +70,30 @@ export interface CohortData {
   retention: number[]; // [Month 0 (100%), Month 1, Month 2...]
 }
 
+type AnalyticsOrderItem = Record<string, unknown>;
+
+function getUserString(user: Record<string, unknown>, field: string): string {
+  const value = user[field];
+  return typeof value === 'string' ? value : '';
+}
+
+function buildAnalyticsCacheId(entityId: string, user: Record<string, unknown>): string {
+  const role = getUserString(user, 'role') || 'unknown';
+  const parts = [
+    `entity:${entityId}`,
+    `role:${role}`,
+    `loc:${getUserString(user, 'locationId')}`,
+    `current:${getUserString(user, 'currentOrgId')}`,
+    `org:${getUserString(user, 'orgId')}`,
+    `brand:${getUserString(user, 'brandId')}`,
+  ];
+
+  return parts.join('|').replace(/[^a-zA-Z0-9_.:|-]/g, '_');
+}
+
+function shouldUseRetailerFallback(role: string): boolean {
+  return RETAILER_FALLBACK_ROLES.includes(role as (typeof RETAILER_FALLBACK_ROLES)[number]);
+}
 
 function userCanAccessEntity(user: Record<string, unknown>, entityId: string): boolean {
   const role = typeof user.role === 'string' ? user.role : '';
@@ -93,7 +119,7 @@ async function fetchOrdersWithFallback(
   user: Record<string, unknown>,
 ): Promise<OrderDoc[]> {
   const role = typeof user.role === 'string' ? user.role : '';
-  const isDispensaryRole = DISPENSARY_ANALYTICS_ROLES.includes(role as (typeof DISPENSARY_ANALYTICS_ROLES)[number]);
+  const useRetailerFallback = shouldUseRetailerFallback(role);
   const locationId = getLocationId(user);
   const currentOrgId = typeof user.currentOrgId === 'string' ? user.currentOrgId : undefined;
   const orgId = typeof user.orgId === 'string' ? user.orgId : undefined;
@@ -102,7 +128,7 @@ async function fetchOrdersWithFallback(
   const queryPlans: Array<{
     field: 'brandId' | 'orgId' | 'retailerId';
     ids: string[];
-  }> = isDispensaryRole
+  }> = useRetailerFallback
     ? [
         {
           field: 'retailerId',
@@ -140,7 +166,7 @@ async function fetchOrdersWithFallback(
 
   // Final fallback for dispensary roles: fetch live from Alleaves POS.
   // Orders for Alleaves dispensaries are not always backfilled to Firestore.
-  if (isDispensaryRole) {
+  if (useRetailerFallback) {
     const alleavesOrders = await getOrdersFromAlleaves(entityId, firestore);
     if (alleavesOrders.length > 0) {
       logger.info('[Analytics] Using Alleaves live orders fallback', {
@@ -227,9 +253,58 @@ function getOrderDate(order: OrderDoc): Date | null {
 }
 
 function getOrderTotal(order: OrderDoc): number {
-  return typeof order.totals?.total === 'number' && Number.isFinite(order.totals.total)
-    ? order.totals.total
-    : 0;
+  const rawOrder = order as unknown as {
+    amount?: unknown;
+    total?: unknown;
+    totals?: {
+      total?: unknown;
+      subtotal?: unknown;
+    };
+  };
+
+  return toNonNegativeNumber(
+    rawOrder.totals?.total ?? rawOrder.total ?? rawOrder.amount ?? rawOrder.totals?.subtotal,
+    0,
+  );
+}
+
+function getOrderItems(order: OrderDoc): AnalyticsOrderItem[] {
+  const value = (order as unknown as { items?: unknown }).items;
+  if (!Array.isArray(value)) return [];
+
+  return value.filter((item): item is AnalyticsOrderItem =>
+    item !== null && typeof item === 'object' && !Array.isArray(item)
+  );
+}
+
+function getItemText(item: AnalyticsOrderItem, fields: string[]): string | null {
+  for (const field of fields) {
+    const value = item[field];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
+
+function getItemProductKey(item: AnalyticsOrderItem, index: number): string {
+  return getItemText(item, ['productId', 'id', 'sku', 'skuId', 'externalId', 'name', 'productName', 'item'])
+    ?? `unknown-item-${index}`;
+}
+
+function getItemName(item: AnalyticsOrderItem): string {
+  return getItemText(item, ['name', 'productName', 'item', 'title']) ?? 'Unknown Item';
+}
+
+function getItemCategory(item: AnalyticsOrderItem): string {
+  return getItemText(item, ['category', 'productCategory', 'type']) ?? 'Uncategorized';
+}
+
+function getItemRevenue(item: AnalyticsOrderItem): number {
+  const quantity = toNonNegativeNumber(item.qty ?? item.quantity, 1);
+  const price = toNonNegativeNumber(item.price ?? item.unitPrice ?? item.unit_price, 0);
+  return price * quantity;
 }
 
 export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> {
@@ -252,9 +327,11 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
     throw new Error('Forbidden: You do not have permission to access this data.');
   }
 
+  const cacheId = buildAnalyticsCacheId(brandId, u);
+
   return withCache(
     CachePrefix.DASHBOARD_ANALYTICS,
-    brandId,
+    cacheId,
     async () => {
       const { firestore } = await createServerClient();
 
@@ -332,35 +409,37 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
 
       orders.forEach(order => {
         totalRevenue += getOrderTotal(order);
+        const items = getOrderItems(order);
 
         // Sales Aggregation
-        order.items.forEach(item => {
-          const existing = salesByProductMap.get(item.productId);
-          const itemRevenue = item.price * item.qty;
+        items.forEach((item, index) => {
+          const productKey = getItemProductKey(item, index);
+          const existing = salesByProductMap.get(productKey);
+          const itemRevenue = getItemRevenue(item);
           if (existing) {
             existing.revenue += itemRevenue;
           } else {
-            salesByProductMap.set(item.productId, {
-              productName: item.name,
+            salesByProductMap.set(productKey, {
+              productName: getItemName(item),
               revenue: itemRevenue,
             });
           }
 
-          const cat = item.category || 'Uncategorized';
+          const cat = getItemCategory(item);
           salesByCategoryMap.set(cat, (salesByCategoryMap.get(cat) || 0) + itemRevenue);
         });
 
         // Affinity Logic (Task 403)
         // Only analyze if basket has > 1 item
-        if (order.items.length > 1) {
+        if (items.length > 1) {
           // Generate unique pairs
-          for (let i = 0; i < order.items.length; i++) {
-            for (let j = i + 1; j < order.items.length; j++) {
-              const itemA = order.items[i];
-              const itemB = order.items[j];
+          for (let i = 0; i < items.length; i++) {
+            for (let j = i + 1; j < items.length; j++) {
+              const itemA = items[i];
+              const itemB = items[j];
 
               // Create sorted Key to ensure A-B is same as B-A
-              const [first, second] = [itemA.name, itemB.name].sort();
+              const [first, second] = [getItemName(itemA), getItemName(itemB)].sort();
               const key = `${first}|${second}`;
 
               const current = pairCounts.get(key);

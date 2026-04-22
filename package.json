@@ -1,6 +1,6 @@
 {
   "name": "nextn",
-  "version": "4.10.44-COD",
+  "version": "4.10.46-COD",
   "private": true,
   "engines": {
     "node": "20"

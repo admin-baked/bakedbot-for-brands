@@ -50,7 +50,7 @@ export interface CatalogAnalyticsProduct {
   skuId?: string;
 }
 
-function toFiniteNumber(value: unknown): number | null {
+export function toFiniteNumber(value: unknown): number | null {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : null;
   }
@@ -67,7 +67,7 @@ function toFiniteNumber(value: unknown): number | null {
   return null;
 }
 
-function toNonNegativeNumber(value: unknown, fallback = 0): number {
+export function toNonNegativeNumber(value: unknown, fallback = 0): number {
   const parsed = toFiniteNumber(value);
   return parsed == null ? fallback : Math.max(parsed, 0);
 }
