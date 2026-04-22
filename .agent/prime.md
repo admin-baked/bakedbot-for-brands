@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | Analytics hardening (4.10.46-COD)
-**Recent work (2026-04-22):** Hardened Analytics overview order normalization, enabled super/admin retailer/POS fallback for dispensary orgs, and scoped dashboard analytics cache entries by access context.
+**Current Status:** local verified | Onboarding product tour + welcome thread (4.10.48-COD)
+**Recent work (2026-04-22):** Dashboard onboarding: 5-step product tour, pinned setup checklist on Inbox, auto-created Marty welcome thread for new orgs + seeded Thrive/SimplyPure/Ecstatic (`232895354`). Projects CRUD wired (`56ab4ad32`).
 
 ---
 
