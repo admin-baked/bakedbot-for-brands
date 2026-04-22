@@ -13,6 +13,7 @@ import Link from 'next/link';
 import {
   CheckCircle,
   Clock,
+  ChevronDown,
   ChevronRight,
   X,
   Store,
@@ -41,6 +42,7 @@ import type { OnboardingPrimaryGoal } from '@/types/onboarding';
 import { getCompletedOnboardingSteps } from '@/server/actions/onboarding-progress';
 
 const DISMISS_KEY = `setup-checklist-dismissed-${ONBOARDING_PHASE1_VERSION}`;
+const SEEN_KEY = `setup-checklist-seen-${ONBOARDING_PHASE1_VERSION}`;
 
 export interface ChecklistItem {
   id: string;
@@ -254,8 +256,10 @@ export async function getCompetitiveIntelSetupStatus(): Promise<{ isComplete: bo
 export function SetupChecklist() {
   const { role, isBrandRole, isDispensaryRole, orgId } = useUserRole();
   const { userData, isLoading: isUserLoading } = useUser();
-  const { brandGuide, loading: brandGuideLoading } = useBrandGuide(orgId || '');
+  const { brandGuide } = useBrandGuide(orgId || '');
   const [isDismissed, setIsDismissed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [hasSeenBefore, setHasSeenBefore] = useState(true);
   const [linkedStatus, setLinkedStatus] = useState({ isLinked: false, posConnected: false });
   const [linkedStatusLoaded, setLinkedStatusLoaded] = useState(false);
   const [competitiveIntelComplete, setCompetitiveIntelComplete] = useState(false);
@@ -316,6 +320,12 @@ export function SetupChecklist() {
     const dismissed = localStorage.getItem(DISMISS_KEY);
     if (dismissed === 'true') {
       setIsDismissed(true);
+    }
+    const seen = localStorage.getItem(SEEN_KEY);
+    if (!seen) {
+      setHasSeenBefore(false);
+      setIsExpanded(true);
+      localStorage.setItem(SEEN_KEY, 'true');
     }
   }, []);
 
@@ -379,8 +389,49 @@ export function SetupChecklist() {
     return null;
   }
 
+  const nextTodo = items.find((item) => item.status !== 'done');
+
+  if (!isExpanded) {
+    return (
+      <div className="rounded-lg border border-primary/20 bg-gradient-to-r from-primary/5 to-transparent px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0">
+            <CheckCircle className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">{completedCount}/{totalCount}</span>
+          </div>
+          <Progress value={progressPercent} className="h-1.5 flex-1 max-w-[120px]" />
+          {nextTodo && (
+            <Link
+              href={nextTodo.href}
+              className="flex items-center gap-2 flex-1 min-w-0 hover:text-primary transition-colors group"
+            >
+              <span className="text-sm truncate">
+                Next: <span className="font-medium">{nextTodo.title}</span>
+              </span>
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground group-hover:text-primary" />
+            </Link>
+          )}
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => setIsExpanded(true)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted/50"
+            >
+              Expand
+            </button>
+            <button
+              onClick={handleDismiss}
+              className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-muted/50"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent mb-6">
+    <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div>
@@ -404,11 +455,10 @@ export function SetupChecklist() {
         </div>
         <div className="mt-3 space-y-2">
           <Progress value={progressPercent} className="h-1.5" />
-          <p className="text-xs text-muted-foreground">
-            Inbox is where work lands, Playbooks keep repeatable work running, and Agents help you execute the jobs below.
-          </p>
-          {brandGuideLoading && (
-            <p className="text-xs text-muted-foreground">Checking Brand Guide progress…</p>
+          {!hasSeenBefore && (
+            <p className="text-xs text-muted-foreground">
+              Inbox is where work lands, Playbooks keep repeatable work running, and Agents help you execute the jobs below.
+            </p>
           )}
         </div>
       </CardHeader>
@@ -427,13 +477,13 @@ export function SetupChecklist() {
               )}
             >
               <div className={cn(
-                'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center',
+                'flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center',
                 item.status === 'done'
                   ? 'bg-primary/20 text-primary'
                   : 'bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'
               )}>
                 {item.status === 'done' ? (
-                  <CheckCircle className="h-4 w-4" />
+                  <CheckCircle className="h-3.5 w-3.5" />
                 ) : (
                   item.icon
                 )}
@@ -445,8 +495,7 @@ export function SetupChecklist() {
                 )}>
                   {item.title}
                 </div>
-                <div className="text-xs text-muted-foreground">{item.description}</div>
-                <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {item.estimatedTime}
                 </div>
@@ -454,6 +503,13 @@ export function SetupChecklist() {
               <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
             </Link>
           ))}
+          <button
+            onClick={() => setIsExpanded(false)}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors pt-1 w-full justify-center"
+          >
+            <ChevronDown className="h-3 w-3 rotate-180 transition-transform" />
+            Show less
+          </button>
         </div>
       </CardContent>
     </Card>
