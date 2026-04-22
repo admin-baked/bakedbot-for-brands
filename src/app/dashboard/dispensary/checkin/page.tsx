@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, QrCode, Send } from 'lucide-react';
+import { ClipboardCheck, ExternalLink, Loader2, QrCode, Send, Tablet } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -119,7 +119,7 @@ export default function CheckInManagementPage() {
                         )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                        Manage the rewards page check-in flow, view visits, and configure settings.
+                        Two check-in modes: self-service tablet for customers, or staff quick check-in at the register.
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -136,13 +136,72 @@ export default function CheckInManagementPage() {
                             : <Send className="h-3.5 w-3.5" />}
                         Post to Inbox
                     </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open('/dashboard/loyalty-tablet-qr', '_blank', 'noopener')}
-                    >
-                        QR &amp; Training
-                    </Button>
+                </div>
+            </div>
+
+            {/* Launch Modes */}
+            <div className="grid gap-4 sm:grid-cols-2">
+                <div className="relative rounded-xl border bg-card p-5 shadow-sm">
+                    <div className="flex items-start gap-4">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
+                            <Tablet className="h-6 w-6 text-emerald-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-semibold">Self-Service Tablet</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Customer checks in on the iPad. Name, phone, mood picks, and Smokey AI recommendations.
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1 font-medium">Best for: browsing customers, normal pace</p>
+                        </div>
+                    </div>
+                    <div className="mt-4 flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() => window.open(`/loyalty-tablet?orgId=${dispensaryId}`, '_blank', 'noopener')}
+                        >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Launch Tablet
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open('/dashboard/loyalty-tablet-qr', '_blank', 'noopener')}
+                        >
+                            <QrCode className="h-3.5 w-3.5 mr-1" />
+                            QR Code
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="relative rounded-xl border bg-card p-5 shadow-sm">
+                    <div className="flex items-start gap-4">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
+                            <ClipboardCheck className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-semibold">Staff Quick Check-In</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Staff checks customer in at the register. Name + phone lookup only &mdash; 30 seconds.
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1 font-medium">Best for: busy periods, rush hour</p>
+                        </div>
+                    </div>
+                    <div className="mt-4">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() => {
+                                const slug = dispensaryId?.replace(/^org_/, '').replace(/_/g, '-') || '';
+                                window.open(`/${slug}/rewards`, '_blank', 'noopener');
+                            }}
+                        >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Launch Staff Check-In
+                        </Button>
+                    </div>
                 </div>
             </div>
 

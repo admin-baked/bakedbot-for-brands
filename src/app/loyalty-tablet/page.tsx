@@ -249,12 +249,12 @@ export default function LoyaltyTabletPage() {
                         handleSubmit={flow.handleSubmit}
                         loading={flow.loading}
                         enteredViaQuickLookup={flow.enteredViaQuickLookup}
-                        isReturningCustomer={flow.isReturningCustomer}
                         setStep={(s: any) => flow.setStep(s)}
                         resetToWelcome={flow.resetToWelcome}
                         mutedTextColor={mutedTextColor}
                         faintTextColor={faintTextColor}
                         panelStyle={panelStyle}
+                        primaryButtonStyle={primaryButtonStyle}
                     />
                 )}
 

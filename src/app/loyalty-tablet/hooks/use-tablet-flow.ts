@@ -343,12 +343,9 @@ export function useTabletFlow(orgId: string) {
             return;
         }
 
-        if (isReturningCustomer) {
-            setStep('mood');
-            return;
-        }
-        // Ask "Have you shopped here before?" before offer
-        setStep('returning_check');
+        // Both returning and new customers go straight to mood selection.
+        // Enrichment (birthday, email, visit prefs) is captured post-visit via SMS.
+        setStep('mood');
     };
 
     const handleReturningYes = async () => {

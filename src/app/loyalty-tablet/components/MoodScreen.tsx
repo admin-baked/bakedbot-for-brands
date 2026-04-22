@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { CheckCircle2 } from 'lucide-react';
 import { CSSProperties } from 'react';
 import { TABLET_MOODS, TabletMoodId } from '@/lib/checkin/loyalty-tablet-shared';
 import { slideVariants, BUTTON_FOCUS_CLASS } from './shared';
@@ -11,12 +12,12 @@ interface MoodScreenProps {
     handleSubmit: () => void;
     loading: boolean;
     enteredViaQuickLookup: boolean;
-    isReturningCustomer: boolean;
-    setStep: (step: 'phone' | 'offer') => void;
+    setStep: (step: 'phone') => void;
     resetToWelcome: () => void;
     mutedTextColor: string;
     faintTextColor: string;
     panelStyle: CSSProperties;
+    primaryButtonStyle: CSSProperties;
 }
 
 export function MoodScreen({
@@ -25,12 +26,12 @@ export function MoodScreen({
     handleSubmit,
     loading,
     enteredViaQuickLookup,
-    isReturningCustomer,
     setStep,
     resetToWelcome,
     mutedTextColor,
     faintTextColor,
-    panelStyle
+    panelStyle,
+    primaryButtonStyle
 }: MoodScreenProps) {
     return (
         <motion.div
@@ -45,7 +46,7 @@ export function MoodScreen({
                     How are you feeling today{firstName ? `, ${firstName}` : ''}?
                 </h2>
                 <p className="mt-2 text-sm sm:text-lg" style={{ color: mutedTextColor }}>
-                    Smokey will pull product cards from the live menu, and your budtender can refine them with voice.
+                    Tap a mood for personalized picks, or just check in below.
                 </p>
             </div>
 
@@ -66,12 +67,13 @@ export function MoodScreen({
             <button
                 onClick={() => handleSubmit()}
                 disabled={loading}
-                className="text-sm hover:opacity-70 disabled:opacity-40"
-                style={{ color: faintTextColor }}
+                className={`flex w-full items-center justify-center gap-3 rounded-[28px] py-5 text-xl font-bold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-40 ${BUTTON_FOCUS_CLASS}`}
+                style={primaryButtonStyle}
             >
-                {loading ? 'Saving...' : 'Skip for now'}
+                <CheckCircle2 className="h-6 w-6" />
+                {loading ? 'Checking in...' : 'Just Check Me In'}
             </button>
-            <button onClick={() => enteredViaQuickLookup ? resetToWelcome() : setStep(isReturningCustomer ? 'phone' : 'offer')} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
+            <button onClick={() => enteredViaQuickLookup ? resetToWelcome() : setStep('phone')} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
         </motion.div>
     );
 }
