@@ -11,17 +11,20 @@
  * Now supports toggling between Unified Inbox and Traditional Agent Chat views.
  */
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UnifiedInbox } from '@/components/inbox';
 import { UnifiedAgentChat } from '@/components/chat/unified-agent-chat';
 import { InboxViewToggle } from '@/components/inbox/inbox-view-toggle';
 import { InboxWorkspaceBriefing } from '@/components/inbox/inbox-workspace-briefing';
+import { SetupChecklist } from '@/components/dashboard/setup-checklist';
 import { useInboxStore } from '@/lib/store/inbox-store';
 import { useUserRole } from '@/hooks/use-user-role';
 import { isBrandRole, isDispensaryRole, isGrowerRole } from '@/types/roles';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ensureWelcomeThread } from '@/server/actions/welcome-thread';
+import { ProductTour } from '@/components/onboarding/product-tour';
 
 function InboxLoading() {
     return (
@@ -49,6 +52,14 @@ function InboxContent() {
     const isSuper = role === 'super_user' || role === 'super_admin';
     const isGrower = isGrowerRole(role);
     const isDispensary = isDispensaryRole(role);
+    const showChecklist = isBrandRole(role) || isDispensary;
+    const welcomeTriggered = useRef(false);
+
+    useEffect(() => {
+        if (!role || isSuper || welcomeTriggered.current) return;
+        welcomeTriggered.current = true;
+        void ensureWelcomeThread();
+    }, [role, isSuper]);
 
     // Determine role for chat component
     const chatRole = isBrandRole(role)
@@ -86,8 +97,15 @@ function InboxContent() {
                 </div>
             </div>
 
+            {/* Setup checklist — pinned for new brand/dispensary orgs until completed or dismissed */}
+            {viewMode === 'inbox' && showChecklist && (
+                <div className="shrink-0 px-4 pt-3 sm:px-6" data-tour="setup-checklist">
+                    <SetupChecklist />
+                </div>
+            )}
+
             {/* View Content - Animated transitions */}
-            <div className="flex-1 flex flex-col w-full min-h-0 overflow-hidden">
+            <div className="flex-1 flex flex-col w-full min-h-0 overflow-hidden" data-tour="inbox-area">
                 <AnimatePresence mode="wait">
                     {viewMode === 'inbox' ? (
                         <motion.div
@@ -120,6 +138,9 @@ function InboxContent() {
                     )}
                 </AnimatePresence>
             </div>
+
+            {/* Product tour — shown once on first visit */}
+            {showChecklist && <ProductTour />}
         </div>
     );
 }
