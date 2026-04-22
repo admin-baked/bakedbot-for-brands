@@ -88,39 +88,49 @@ export function ProjectCard({
                         <DropdownMenu>
                             <DropdownMenuTrigger
                                 className="opacity-0 group-hover:opacity-100 transition-opacity p-1 -m-1 rounded hover:bg-muted"
-                                onClick={(e) => e.preventDefault()}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                }}
                             >
                                 <MoreVertical className="h-4 w-4 text-muted-foreground" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                                {isOwner && (
+                                    <DropdownMenuItem
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            onEdit?.(project);
+                                        }}
+                                    >
+                                        <Edit3 className="h-4 w-4 mr-2" />
+                                        Edit
+                                    </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        onEdit?.(project);
-                                    }}
-                                >
-                                    <Edit3 className="h-4 w-4 mr-2" />
-                                    Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={(e) => {
-                                        e.preventDefault();
+                                        e.stopPropagation();
                                         onDuplicate?.(project);
                                     }}
                                 >
                                     <Copy className="h-4 w-4 mr-2" />
                                     Duplicate
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        onArchive?.(project);
-                                    }}
-                                    className="text-destructive focus:text-destructive"
-                                >
-                                    <Archive className="h-4 w-4 mr-2" />
-                                    Archive
-                                </DropdownMenuItem>
+                                {isOwner && (
+                                    <DropdownMenuItem
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            onArchive?.(project);
+                                        }}
+                                        className="text-destructive focus:text-destructive"
+                                    >
+                                        <Archive className="h-4 w-4 mr-2" />
+                                        Archive
+                                    </DropdownMenuItem>
+                                )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>

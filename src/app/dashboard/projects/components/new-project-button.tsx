@@ -24,10 +24,12 @@ import { useToast } from "@/hooks/use-toast";
 interface NewProjectButtonProps {
     asCard?: boolean;
     baseUrl?: string;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
 }
 
-export function NewProjectButton({ asCard = false, baseUrl = "/dashboard/projects" }: NewProjectButtonProps) {
-    const [open, setOpen] = useState(false);
+export function NewProjectButton({ asCard = false, baseUrl = "/dashboard/projects", open, onOpenChange }: NewProjectButtonProps) {
+    const [internalOpen, setInternalOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -35,6 +37,8 @@ export function NewProjectButton({ asCard = false, baseUrl = "/dashboard/project
     const [selectedColor, setSelectedColor] = useState(PROJECT_COLORS[0]);
     const router = useRouter();
     const { toast } = useToast();
+    const dialogOpen = open ?? internalOpen;
+    const setDialogOpen = onOpenChange ?? setInternalOpen;
 
     const handleCreate = () => {
         if (!name.trim()) return;
@@ -53,10 +57,11 @@ export function NewProjectButton({ asCard = false, baseUrl = "/dashboard/project
                     description: `"${project.name}" is ready to use.`,
                 });
 
-                setOpen(false);
+                setDialogOpen(false);
                 setName('');
                 setDescription('');
                 setSystemInstructions('');
+                setSelectedColor(PROJECT_COLORS[0]);
                 
                 router.push(`${baseUrl}/${project.id}`);
             } catch (error) {
@@ -89,7 +94,7 @@ export function NewProjectButton({ asCard = false, baseUrl = "/dashboard/project
     );
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
                 {trigger}
             </DialogTrigger>
@@ -160,7 +165,7 @@ export function NewProjectButton({ asCard = false, baseUrl = "/dashboard/project
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setOpen(false)}>
+                    <Button variant="outline" onClick={() => setDialogOpen(false)}>
                         Cancel
                     </Button>
                     <Button onClick={handleCreate} disabled={!name.trim() || isPending}>

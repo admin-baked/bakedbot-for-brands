@@ -15,6 +15,7 @@ import { NewProjectButton } from './components/new-project-button';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { InboxCTABanner } from '@/components/inbox';
+import { archiveProject, duplicateProject } from '@/server/actions/projects';
 
 interface ProjectsPageClientProps {
     projects: Project[];
@@ -24,6 +25,7 @@ interface ProjectsPageClientProps {
 export function ProjectsPageClient({ projects, currentUserId }: ProjectsPageClientProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState<ProjectFilter>('my');
+    const [newProjectOpen, setNewProjectOpen] = useState(false);
     const router = useRouter();
     const { toast } = useToast();
 
@@ -63,24 +65,43 @@ export function ProjectsPageClient({ projects, currentUserId }: ProjectsPageClie
     };
 
     const handleDuplicate = async (project: Project) => {
-        // TODO: Implement duplicate via server action
+        const copy = await duplicateProject(project.id);
+        if (!copy) {
+            toast({
+                variant: 'destructive',
+                title: 'Could not duplicate project',
+                description: 'Check your access and try again.',
+            });
+            return;
+        }
+
         toast({
-            title: 'Coming soon',
-            description: 'Project duplication will be available soon.',
+            title: 'Project duplicated',
+            description: `"${copy.name}" is ready to use.`,
         });
+        router.push(`/dashboard/projects/${copy.id}`);
     };
 
     const handleArchive = async (project: Project) => {
-        // TODO: Implement archive via server action
+        const archived = await archiveProject(project.id);
+        if (!archived) {
+            toast({
+                variant: 'destructive',
+                title: 'Could not archive project',
+                description: 'Only project owners can archive active projects.',
+            });
+            return;
+        }
+
         toast({
-            title: 'Coming soon',
-            description: 'Project archiving will be available soon.',
+            title: 'Project archived',
+            description: `"${project.name}" was removed from active projects.`,
         });
+        router.refresh();
     };
 
     const handleNewProject = () => {
-        // NewProjectButton handles this with dialog, but we provide the callback
-        // for potential programmatic triggering
+        setNewProjectOpen(true);
     };
 
     return (
@@ -100,7 +121,11 @@ export function ProjectsPageClient({ projects, currentUserId }: ProjectsPageClie
             {/* Projects Grid */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {/* New Project Card */}
-                <NewProjectButton asCard />
+                <NewProjectButton
+                    asCard
+                    open={newProjectOpen}
+                    onOpenChange={setNewProjectOpen}
+                />
 
                 {/* Project Cards */}
                 {filteredProjects.map((project) => (

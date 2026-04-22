@@ -45,6 +45,12 @@ describe('ProjectsHeader', () => {
             render(<ProjectsHeader {...defaultProps} />);
             expect(screen.getByRole('button', { name: /new project/i })).toBeInTheDocument();
         });
+
+        it('calls onNewProject when the new project button is clicked', () => {
+            render(<ProjectsHeader {...defaultProps} />);
+            fireEvent.click(screen.getByRole('button', { name: /new project/i }));
+            expect(defaultProps.onNewProject).toHaveBeenCalledTimes(1);
+        });
     });
 
     describe('Filter Tabs', () => {

@@ -134,7 +134,7 @@ describe('ProjectBadge', () => {
         const { container } = render(<ProjectBadge project={mockProjects[0]} />);
         
         const badge = container.firstChild as HTMLElement;
-        expect(badge.style.borderLeft).toContain('#10b981');
+        expect(badge.style.borderLeft).toContain('rgb(16, 185, 129)');
     });
 
     it('should render with different project', () => {

@@ -35,6 +35,8 @@ export interface Project {
     createdAt: Date;
     updatedAt: Date;
     lastChatAt?: Date;            // Last conversation timestamp
+    archivedAt?: Date;            // Soft archive timestamp
+    isArchived?: boolean;         // Hidden from active project lists
     
     // Sharing
     isShared?: boolean;           // Share with team (future)

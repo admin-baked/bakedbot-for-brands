@@ -9,11 +9,10 @@
 
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { getAdminFirestore } from '@/firebase/admin';
-import { 
-    Project, 
+import {
+    Project,
     ProjectChat,
-    ProjectDocument,
-    CreateProjectInput, 
+    CreateProjectInput,
     UpdateProjectInput,
     CreateProjectSchema,
     UpdateProjectSchema,
@@ -22,6 +21,7 @@ import {
 } from '@/types/project';
 import { requireUser } from '@/server/auth/auth';
 import { revalidatePath } from 'next/cache';
+import { logger } from '@/lib/logger';
 
 // --- Firestore Helpers ---
 
@@ -35,14 +35,33 @@ const PROJECT_DOCUMENTS_COLLECTION = 'project_documents';
 
 // --- Type Converters ---
 
+function toProjectDate(value: unknown): Date {
+    if (value instanceof Timestamp) return value.toDate();
+    if (value instanceof Date) return value;
+    if (value && typeof value === 'object' && 'toDate' in value && typeof value.toDate === 'function') {
+        const date = value.toDate();
+        return date instanceof Date && Number.isFinite(date.getTime()) ? date : new Date();
+    }
+    if (typeof value === 'string' || typeof value === 'number') {
+        const date = new Date(value);
+        return Number.isFinite(date.getTime()) ? date : new Date();
+    }
+    return new Date();
+}
+
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
+function isMissingIndexError(error: unknown): boolean {
+    const err = error as { code?: unknown; message?: unknown };
+    return err.code === 9 || String(err.message ?? '').toLowerCase().includes('index');
+}
+
 function projectFromFirestore(doc: FirebaseFirestore.DocumentSnapshot): Project | null {
     if (!doc.exists) return null;
     const data = doc.data()!;
-    
-    // Safety check for timestamps
-    const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
-    const updatedAt = data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date();
-    const lastChatAt = data.lastChatAt instanceof Timestamp ? data.lastChatAt.toDate() : undefined;
+    const archivedAt = data.archivedAt ? toProjectDate(data.archivedAt) : undefined;
 
     return {
         id: doc.id,
@@ -56,11 +75,13 @@ function projectFromFirestore(doc: FirebaseFirestore.DocumentSnapshot): Project 
         documentCount: data.documentCount || 0,
         totalBytes: data.totalBytes || 0,
         chatCount: data.chatCount || 0,
-        createdAt,
-        updatedAt,
-        lastChatAt,
+        createdAt: toProjectDate(data.createdAt),
+        updatedAt: toProjectDate(data.updatedAt),
+        lastChatAt: data.lastChatAt ? toProjectDate(data.lastChatAt) : undefined,
         isShared: data.isShared || false,
         sharedWith: data.sharedWith || [],
+        isArchived: data.isArchived === true || data.status === 'archived' || Boolean(archivedAt),
+        archivedAt,
     };
 }
 
@@ -68,19 +89,69 @@ function chatFromFirestore(doc: FirebaseFirestore.DocumentSnapshot): ProjectChat
     if (!doc.exists) return null;
     const data = doc.data()!;
     
-    // Safety check for timestamps
-    const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
-    const updatedAt = data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date();
-
     return {
         id: doc.id,
         projectId: data.projectId,
         userId: data.userId,
         title: data.title || 'Untitled Chat',
         messageCount: data.messageCount || 0,
-        createdAt,
-        updatedAt,
+        createdAt: toProjectDate(data.createdAt),
+        updatedAt: toProjectDate(data.updatedAt),
     };
+}
+
+function canReadProject(project: Project, userId: string): boolean {
+    return project.ownerId === userId
+        || project.isShared === true
+        || (Array.isArray(project.sharedWith) && project.sharedWith.includes(userId));
+}
+
+function canWriteProject(project: Project, userId: string): boolean {
+    return project.ownerId === userId && project.isArchived !== true;
+}
+
+function sortProjects(projects: Project[]): Project[] {
+    return [...projects].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+}
+
+function uniqueActiveProjects(projectGroups: Project[][]): Project[] {
+    const byId = new Map<string, Project>();
+
+    projectGroups.flat().forEach((project) => {
+        if (!project.isArchived) {
+            byId.set(project.id, project);
+        }
+    });
+
+    return sortProjects(Array.from(byId.values()));
+}
+
+async function runProjectsQuery(
+    baseQuery: FirebaseFirestore.Query,
+    label: string,
+): Promise<Project[]> {
+    try {
+        const snapshot = await baseQuery.orderBy('updatedAt', 'desc').get();
+        return snapshot.docs
+            .map(doc => projectFromFirestore(doc))
+            .filter((p): p is Project => p !== null);
+    } catch (error) {
+        if (!isMissingIndexError(error)) {
+            throw error;
+        }
+
+        logger.warn('[projects] Missing index, falling back to in-memory sort', {
+            label,
+            error: getErrorMessage(error),
+        });
+
+        const snapshot = await baseQuery.get();
+        const projects = snapshot.docs
+            .map(doc => projectFromFirestore(doc))
+            .filter((p): p is Project => p !== null);
+
+        return sortProjects(projects);
+    }
 }
 
 // --- CRUD Operations ---
@@ -109,6 +180,9 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
         documentCount: 0,
         totalBytes: 0,
         chatCount: 0,
+        isShared: false,
+        sharedWith: [],
+        isArchived: false,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
     };
@@ -132,42 +206,23 @@ export async function getProjects(): Promise<Project[]> {
     try {
         const user = await requireUser();
         const db = getDb();
+        const collection = db.collection(PROJECTS_COLLECTION);
 
-        const snapshot = await db.collection(PROJECTS_COLLECTION)
-            .where('ownerId', '==', user.uid)
-            .orderBy('updatedAt', 'desc')
-            .get();
+        const [ownedProjects, sharedProjects, directlySharedProjects] = await Promise.all([
+            runProjectsQuery(collection.where('ownerId', '==', user.uid), 'owned'),
+            runProjectsQuery(collection.where('isShared', '==', true), 'shared'),
+            runProjectsQuery(collection.where('sharedWith', 'array-contains', user.uid), 'sharedWith'),
+        ]);
 
-        return snapshot.docs
-            .map(doc => projectFromFirestore(doc))
-            .filter((p): p is Project => p !== null);
-    } catch (error: any) {
-        // Handle auth errors gracefully - return empty array
-        if (error?.message?.includes('Unauthorized') || error?.message?.includes('No session')) {
-            console.log('[projects] User not authenticated, returning empty projects');
+        return uniqueActiveProjects([ownedProjects, sharedProjects, directlySharedProjects]);
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        if (message.includes('Unauthorized') || message.includes('No session')) {
+            logger.info('[projects] User not authenticated, returning empty projects');
             return [];
         }
-        // Handle missing composite index by falling back to unordered query
-        if (error?.code === 9 || error?.message?.includes('index')) {
-            console.error('Projects index missing, falling back to unordered query:', error.message);
-            try {
-                const user = await requireUser();
-                const db = getDb();
-                const snapshot = await db.collection(PROJECTS_COLLECTION)
-                    .where('ownerId', '==', user.uid)
-                    .get();
 
-                const projects = snapshot.docs
-                    .map(doc => projectFromFirestore(doc))
-                    .filter((p): p is Project => p !== null);
-
-                // Sort in memory
-                return projects.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-            } catch {
-                return [];
-            }
-        }
-        console.error('Failed to get projects:', error);
+        logger.error('[projects] Failed to get projects', { error: message });
         return [];
     }
 }
@@ -183,14 +238,16 @@ export async function getProject(projectId: string): Promise<Project | null> {
         const doc = await db.collection(PROJECTS_COLLECTION).doc(projectId).get();
         const project = projectFromFirestore(doc);
 
-        // Verify ownership
-        if (project && project.ownerId !== user.uid) {
+        if (project && (!canReadProject(project, user.uid) || project.isArchived)) {
             return null;
         }
 
         return project;
-    } catch (error: any) {
-        console.error('Failed to get project:', error);
+    } catch (error: unknown) {
+        logger.error('[projects] Failed to get project', {
+            projectId,
+            error: getErrorMessage(error),
+        });
         return null;
     }
 }
@@ -205,9 +262,9 @@ export async function updateProject(input: UpdateProjectInput): Promise<Project 
     const db = getDb();
     const projectRef = db.collection(PROJECTS_COLLECTION).doc(validated.projectId);
     
-    // Verify ownership
     const existing = await projectRef.get();
-    if (!existing.exists || existing.data()?.ownerId !== user.uid) {
+    const existingProject = projectFromFirestore(existing);
+    if (!existingProject || !canWriteProject(existingProject, user.uid)) {
         return null;
     }
     
@@ -231,6 +288,94 @@ export async function updateProject(input: UpdateProjectInput): Promise<Project 
 }
 
 /**
+ * Duplicate a readable project into the current user's workspace.
+ * Copies configuration only; documents and chat history stay with the source project.
+ */
+export async function duplicateProject(projectId: string): Promise<Project | null> {
+    const user = await requireUser();
+    const db = getDb();
+
+    const sourceRef = db.collection(PROJECTS_COLLECTION).doc(projectId);
+    const sourceDoc = await sourceRef.get();
+    const source = projectFromFirestore(sourceDoc);
+
+    if (!source || !canReadProject(source, user.uid) || source.isArchived) {
+        return null;
+    }
+
+    const copyRef = db.collection(PROJECTS_COLLECTION).doc();
+    const now = Timestamp.now();
+    const copyData = {
+        ownerId: user.uid,
+        name: `${source.name} Copy`.slice(0, 100),
+        description: source.description || '',
+        systemInstructions: source.systemInstructions || '',
+        color: source.color || PROJECT_COLORS[0],
+        icon: source.icon || 'Briefcase',
+        defaultModel: source.defaultModel || 'lite',
+        documentCount: 0,
+        totalBytes: 0,
+        chatCount: 0,
+        isShared: false,
+        sharedWith: [],
+        isArchived: false,
+        sourceProjectId: source.id,
+        createdAt: now,
+        updatedAt: now,
+    };
+
+    await copyRef.set(copyData);
+
+    logger.info('[projects] Project duplicated', {
+        sourceProjectId: source.id,
+        projectId: copyRef.id,
+        uid: user.uid,
+    });
+
+    revalidatePath('/dashboard/projects');
+
+    return {
+        id: copyRef.id,
+        ...copyData,
+        createdAt: now.toDate(),
+        updatedAt: now.toDate(),
+    };
+}
+
+/**
+ * Soft archive a project owned by the current user.
+ */
+export async function archiveProject(projectId: string): Promise<boolean> {
+    const user = await requireUser();
+    const db = getDb();
+
+    const projectRef = db.collection(PROJECTS_COLLECTION).doc(projectId);
+    const existing = await projectRef.get();
+    const project = projectFromFirestore(existing);
+
+    if (!project || !canWriteProject(project, user.uid)) {
+        return false;
+    }
+
+    await projectRef.update({
+        isArchived: true,
+        status: 'archived',
+        archivedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+    });
+
+    logger.info('[projects] Project archived', {
+        projectId,
+        uid: user.uid,
+    });
+
+    revalidatePath('/dashboard/projects');
+    revalidatePath(`/dashboard/projects/${projectId}`);
+
+    return true;
+}
+
+/**
  * Delete a project and all associated data
  */
 export async function deleteProject(projectId: string): Promise<boolean> {
@@ -240,7 +385,8 @@ export async function deleteProject(projectId: string): Promise<boolean> {
     const projectRef = db.collection(PROJECTS_COLLECTION).doc(projectId);
     const existing = await projectRef.get();
     
-    if (!existing.exists || existing.data()?.ownerId !== user.uid) {
+    const existingProject = projectFromFirestore(existing);
+    if (!existingProject || !canWriteProject(existingProject, user.uid)) {
         return false;
     }
     
@@ -371,7 +517,12 @@ export async function canCreateProject(userPlan: string = 'free'): Promise<boole
         .where('ownerId', '==', user.uid)
         .get();
     
-    return snapshot.size < limits.maxProjects;
+    const activeCount = snapshot.docs
+        .map(doc => projectFromFirestore(doc))
+        .filter((p): p is Project => p !== null && !p.isArchived)
+        .length;
+
+    return activeCount < limits.maxProjects;
 }
 
 /**
@@ -385,5 +536,8 @@ export async function getProjectCount(): Promise<number> {
         .where('ownerId', '==', user.uid)
         .get();
     
-    return snapshot.size;
+    return snapshot.docs
+        .map(doc => projectFromFirestore(doc))
+        .filter((p): p is Project => p !== null && !p.isArchived)
+        .length;
 }
