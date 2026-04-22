@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | Onboarding product tour + welcome thread (4.10.48-COD)
-**Recent work (2026-04-22):** Dashboard onboarding: 5-step product tour, pinned setup checklist on Inbox, auto-created Marty welcome thread for new orgs + seeded Thrive/SimplyPure/Ecstatic (`232895354`). Projects CRUD wired (`56ab4ad32`).
+**Current Status:** local verified | Goals adopt fix, visit notification auth, products draft status (4.10.48-COD)
+**Recent work (2026-04-22):** Goals adopt white screen fix + IncomingVisitNotification auth fix + products draft/active status toggle (`742768e87`). Dashboard onboarding product tour + welcome thread (`232895354`).
 
 ---
 
