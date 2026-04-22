@@ -18,6 +18,7 @@ import {
     Wind,
     Plus,
     Check,
+    type LucideIcon,
 } from 'lucide-react';
 import { CSSProperties, SyntheticEvent, useState } from 'react';
 import { PublicBrandTheme } from '@/lib/checkin/checkin-management-shared';
@@ -31,10 +32,14 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getCategoryIconName, getCategoryIconColor } from '@/lib/utils/product-image';
 import * as LucideIcons from 'lucide-react';
 
+function getLucideIcon(iconName: string): LucideIcon {
+    const icons = LucideIcons as unknown as Record<string, LucideIcon>;
+    return icons[iconName] || LucideIcons.Leaf;
+}
+
 function CategoryIconPlaceholder({ category, size = 'md' }: { category: string; size?: 'md' | 'lg' }) {
     const iconName = getCategoryIconName(category);
-    // @ts-ignore - Dynamic lucide icon access — established pattern (getCategoryIconName guarantees a valid name)
-    const Icon = LucideIcons[iconName] || LucideIcons.Leaf;
+    const Icon = getLucideIcon(iconName);
     const colorClass = getCategoryIconColor(category);
     const sizeClass = size === 'lg' ? 'h-20 w-20 opacity-40' : 'h-12 w-12';
     return <Icon className={`${sizeClass} ${colorClass}`} strokeWidth={1.5} />;
@@ -218,8 +223,7 @@ function ProductDetailModal({
                                 <div className="flex h-full w-full items-center justify-center bg-gray-50">
                                     {(() => {
                                         const iconName = getCategoryIconName(product.category);
-                                        // @ts-ignore
-                                        const CategoryIcon = LucideIcons[iconName] || LucideIcons.Leaf;
+                                        const CategoryIcon = getLucideIcon(iconName);
                                         const iconColor = getCategoryIconColor(product.category);
                                         return <CategoryIcon className={`h-20 w-20 ${iconColor} opacity-40`} strokeWidth={1.5} />;
                                     })()}

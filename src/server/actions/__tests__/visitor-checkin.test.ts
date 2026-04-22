@@ -244,10 +244,22 @@ function createFirestore(args?: {
 
       // Catch-all for new collections added after initial test creation
       return {
-        doc: (id: string) => makeDocRef('orders', id),
+        doc: (id: string) => ({
+          id,
+          get: jest.fn(async () => ({ id, exists: false, data: () => undefined })),
+          set: jest.fn(async () => {}),
+          update: jest.fn(async () => {}),
+          collection: jest.fn(() => ({
+            doc: jest.fn(() => ({
+              get: jest.fn(async () => ({ exists: false, data: () => undefined })),
+              set: jest.fn(async () => {}),
+              update: jest.fn(async () => {}),
+            })),
+          })),
+        }),
         where: (field: string, _op: string, val: unknown) =>
           makeQuery(orders, 'orders', [[field, val]]),
-        add: jest.fn(async (data: Record<string, unknown>) => {
+        add: jest.fn(async () => {
           return { id: `auto_${name}_${Math.random().toString(36).slice(2, 8)}` };
         }),
       };
@@ -753,13 +765,17 @@ describe('visitor check-in actions', () => {
     await Promise.resolve();
 
     expect(result.success).toBe(true);
-    expect(logger.warn).toHaveBeenCalledWith(
-      '[VisitorCheckin] Failed to dispatch customer signup event',
-      expect.objectContaining({
-        error: 'dispatch failed',
-        leadId: 'lead-4',
-      }),
+    const dispatchFailure = (logger.warn as jest.Mock).mock.calls.find(
+      ([message]) => message === '[PlaybookAssignment] Failed to dispatch event',
     );
+    expect(dispatchFailure).toBeDefined();
+    expect(dispatchFailure?.[1]).toMatchObject({
+      orgId: 'org_thrive_syracuse',
+      customerId: 'org_thrive_syracuse_phone_13155559999',
+      eventName: 'customer.signup',
+    });
+    expect(dispatchFailure?.[1].err).toEqual(expect.any(Error));
+    expect((dispatchFailure?.[1].err as Error).message).toBe('dispatch failed');
   });
 
   it('dispatches customer.checkin for returning leads without a full customer record', async () => {
@@ -1025,7 +1041,7 @@ describe('visitor check-in actions', () => {
 
 // ── Regression: 9ef66a10e bug fixes ──────────────────────────────────────────
 
-describe('regression: C1 — campaign enrollment uses deterministic doc ID (no transaction)', () => {
+describe('regression: C1 — enrollment moved to playbook-assignment-service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers().setSystemTime(Date.parse('2026-03-26T15:00:00.000Z'));
@@ -1036,12 +1052,12 @@ describe('regression: C1 — campaign enrollment uses deterministic doc ID (no t
 
   afterEach(() => jest.useRealTimers());
 
-  it('creates a weekly_campaign_subscribers doc with wsub_ prefix on first check-in with email consent', async () => {
+  it('creates a weekly_campaign_subscribers doc through playbook assignment', async () => {
     const state = createFirestore();
     (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
     (captureEmailLead as jest.Mock).mockResolvedValue({ success: true, leadId: 'l1', isNewLead: true });
 
-    await captureVisitorCheckin({
+    const result = await captureVisitorCheckin({
       orgId: 'org_thrive_syracuse',
       firstName: 'Nia',
       phone: '3155550303',
@@ -1057,6 +1073,7 @@ describe('regression: C1 — campaign enrollment uses deterministic doc ID (no t
     await Promise.resolve();
     await Promise.resolve();
 
+    expect(result.success).toBe(true);
     expect(state.weeklySubscribers.size).toBe(1);
     const [subId, subData] = Array.from(state.weeklySubscribers.entries())[0];
     expect(subId).toMatch(/^wsub_[0-9a-f]{16}$/);
@@ -1067,13 +1084,15 @@ describe('regression: C1 — campaign enrollment uses deterministic doc ID (no t
       status: 'active',
     });
     expect(logger.info).toHaveBeenCalledWith(
-      '[VisitorCheckin] Enrolled in weekly campaign',
-      expect.objectContaining({ orgId: 'org_thrive_syracuse', email: 'nia@example.com' }),
+      '[PlaybookAssignment] Enrolled in weekly campaign',
+      expect.objectContaining({
+        orgId: 'org_thrive_syracuse',
+        customerId: 'org_thrive_syracuse_phone_13155550303',
+      }),
     );
   });
 
   it('does not create a duplicate subscriber if the same email is already enrolled', async () => {
-    // Pre-seed subscriber with the deterministic ID that would be produced
     const { createHash } = await import('crypto');
     const subId = `wsub_${createHash('sha256').update('nia@example.com' + 'org_thrive_syracuse').digest('hex').slice(0, 16)}`;
     const state = createFirestore();
@@ -1101,11 +1120,10 @@ describe('regression: C1 — campaign enrollment uses deterministic doc ID (no t
     await Promise.resolve();
     await Promise.resolve();
 
-    // Still only one subscriber — dedup works
     expect(state.weeklySubscribers.size).toBe(1);
   });
 
-  it('skips enrollment when emailConsent is false', async () => {
+  it('skips weekly campaign enrollment when emailConsent is false', async () => {
     const state = createFirestore();
     (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
     (captureEmailLead as jest.Mock).mockResolvedValue({ success: true, leadId: 'l3', isNewLead: true });
@@ -1202,7 +1220,7 @@ describe('regression: H3 — visitId collision-safe format', () => {
 
   afterEach(() => jest.useRealTimers());
 
-  it('visitId includes a 6-char hex suffix to prevent millisecond collisions', async () => {
+  it('visitId uses a UUID v4 to prevent millisecond collisions', async () => {
     const state = createFirestore();
     (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
     (captureEmailLead as jest.Mock).mockResolvedValue({ success: true, leadId: 'l4', isNewLead: true });

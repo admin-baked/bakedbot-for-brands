@@ -4,9 +4,11 @@ import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 import { Product } from '@/types/products';
 
+export type InventoryStockStatus = 'In Stock' | 'Low Stock' | 'Out of Stock';
+
 export interface InventoryItem extends Product {
     stock: number;
-    status: 'In Stock' | 'Low Stock' | 'Out of Stock';
+    stockStatus: InventoryStockStatus;
     value: number; // stock * cost (or price if cost missing)
 }
 
@@ -54,12 +56,12 @@ export async function getInventoryData(brandId: string) {
         // Mock stock if missing for demo purposes, randomly 0-100
         const stock = typeof data.stock === 'number' ? data.stock : Math.floor(Math.random() * 100);
 
-        let status: 'In Stock' | 'Low Stock' | 'Out of Stock' = 'In Stock';
+        let stockStatus: InventoryStockStatus = 'In Stock';
         if (stock === 0) {
-            status = 'Out of Stock';
+            stockStatus = 'Out of Stock';
             stats.outOfStockCount++;
         } else if (stock < 20) {
-            status = 'Low Stock';
+            stockStatus = 'Low Stock';
             stats.lowStockCount++;
         }
 
@@ -71,7 +73,7 @@ export async function getInventoryData(brandId: string) {
         inventory.push({
             ...data,
             stock,
-            status,
+            stockStatus,
             value
         });
     });

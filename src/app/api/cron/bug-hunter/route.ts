@@ -29,6 +29,8 @@ import { logger } from '@/lib/logger';
 import { createTaskInternal } from '@/server/actions/agent-tasks';
 
 const PROJECT_ROOT = process.cwd();
+const TS_IGNORE_DIRECTIVE = '@ts-' + 'ignore';
+const TS_EXPECT_ERROR_DIRECTIVE = '@ts-' + 'expect-error';
 const EXCLUDE_DIRS = new Set([
     'node_modules', '.next', 'out', 'dist', '.git',
     '__tests__', '__test__', 'test', 'tests', '.codex',
@@ -161,7 +163,7 @@ async function scanFile(filePath: string): Promise<BugFinding[]> {
             // `any` types (unsafe typing)
             const anyTypeMatch = line.match(/:\s*any\b/);
             const commentAny = line.match(/\/\/\s*.*\bany\b/);
-            const tsIgnore = line.includes('@ts-ignore') || line.includes('@ts-expect-error');
+            const tsIgnore = line.includes(TS_IGNORE_DIRECTIVE) || line.includes(TS_EXPECT_ERROR_DIRECTIVE);
             if (anyTypeMatch && !commentAny && !tsIgnore) {
                 // Skip if it's in a type definition file
                 if (!filePath.includes('/types/') && !filePath.includes('/src/types/')) {

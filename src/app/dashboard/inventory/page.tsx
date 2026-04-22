@@ -24,7 +24,7 @@ export default async function InventoryPage() {
     // Sort: Out of stock first, then Low stock
     inventory.sort((a, b) => {
         const statusOrder = { 'Out of Stock': 0, 'Low Stock': 1, 'In Stock': 2 };
-        return statusOrder[a.status] - statusOrder[b.status];
+        return statusOrder[a.stockStatus] - statusOrder[b.stockStatus];
     });
 
     return (
@@ -103,10 +103,10 @@ export default async function InventoryPage() {
                                     <TableCell>{item.category}</TableCell>
                                     <TableCell>
                                         <Badge variant={
-                                            item.status === 'In Stock' ? 'outline' :
-                                                item.status === 'Low Stock' ? 'secondary' : 'destructive'
+                                            item.stockStatus === 'In Stock' ? 'outline' :
+                                                item.stockStatus === 'Low Stock' ? 'secondary' : 'destructive'
                                         }>
-                                            {item.status}
+                                            {item.stockStatus}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right">{item.stock}</TableCell>

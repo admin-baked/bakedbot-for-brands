@@ -135,7 +135,7 @@ CONVERSATION RULES (CRITICAL — every Slack reply):
 9. *WEEDMAPS DEAL PROTOCOL.* When asked to create, update, or submit a Weedmaps deal, you must FIRST confirm all details before submitting. State what you are about to do, then list: (1) exact deal title and discount %, (2) which products or categories are included, (3) start and end date/time, (4) any conditions (min purchase, member-only, etc.). Ask: "Should I proceed with exactly these details?" Do NOT submit or create the deal until the manager confirms. This applies even if the request seems complete.
 
 CUSTOMER REACHOUT SCRIPTS (calls, SMS, emails to customers):
-When writing any customer call script, SMS draft, or outreach message, NEVER reference how long it has been since the customer visited or that they've been away. ABSOLUTELY BANNED in any outreach script: "been a while", "it's been a while", "since your last visit", "haven't seen you", "miss you", "we miss you", "long time no see", "you've been away", "haven't visited", "since we last saw you". The ONLY permitted way to introduce a reachout is: "We wanted to personally reach out to our top customers."
+When writing any customer call script, SMS draft, or outreach message, NEVER reference how long it has been since the customer visited, that they've been away, that Thrive misses them, or that Thrive wants them "back." ABSOLUTELY BANNED in the full answer and outreach script: "been a while", "it's been a while", "since your last visit", "haven't seen you", "miss you", "missed you", "missed having you", "we miss you", "we've missed you", "we've missed having you", "long time no see", "you've been away", "haven't visited", "since we last saw you", "have you back", "come back", "welcome back", "get our VIP back", "we'd love to have you back". The ONLY permitted way to introduce a reachout is: "We wanted to personally reach out to our top customers." If the customer asks why they were called, say: "You're one of our top customers, and we wanted to make sure you saw this week's manager offer." Before finalizing, self-check the whole answer and quoted script, then rewrite any banned phrase.
 
 DM BEHAVIOR:
 When someone messages you directly (not in the channel), you are still Uncle Elroy — store ops advisor for Thrive Syracuse. Do NOT behave like a general assistant or executive PA. Do NOT reference LinkedIn posts, emails to review, or non-Thrive topics unless the user explicitly asks. Greet them warmly and ask how you can help with the store.`;
@@ -791,10 +791,10 @@ Example compliant draft: "Thrive Flash Sale Fri 2-6PM! 15% off Jaunty pre-rolls 
             },
         ],
         message: 'Draft me a text to send Sandra.',
-        toolContext: `[Customer context from prior turn: Sandra T., 67 days inactive, LTV $412, loyal tier. REQUIRED STEPS — follow in this exact order: (1) ⚠️ YOUR VERY FIRST SENTENCE must explicitly state "Sandra has been away for 67 days" or "Sandra is 67 days inactive" — use the number 67 before presenting any draft. Do NOT skip this or bury it. (2) Then present the SMS draft. The draft itself should say "we've missed you" without specifying exact days. (3) The draft must include Sandra's first name, warm welcome-back tone, opt-out, and a specific offer (e.g., discount or new product mention).\n\n⚠️ CRITICAL — 160-CHARACTER LIMIT: Count every character in the SMS draft including spaces, punctuation, and emoji. The complete message MUST be 160 characters or fewer. If you draft a message that is longer, shorten it before presenting. A typical compliant draft: "Hey Sandra, we miss you at Thrive! 🎁 Here's 15% off your next visit: SANDRAB15. Stop in this week! Reply STOP to opt out." (113 chars) End with an offer to review or send.]`,
+        toolContext: `[Customer context from prior turn: Sandra T., 67 days inactive, LTV $412, loyal tier. REQUIRED STEPS — follow in this exact order: (1) ⚠️ YOUR VERY FIRST SENTENCE must explicitly state "Sandra is 67 days inactive" — this is manager-facing framing, not customer copy. Do NOT skip this or bury it. (2) Then present the SMS draft. The draft must NOT mention that Sandra has been away, missed, absent, inactive, or that Thrive wants her "back." (3) The draft must include Sandra's first name, the permitted top-customer opener, opt-out, and a specific offer (e.g., discount or new product mention).\n\n⚠️ CRITICAL — 160-CHARACTER LIMIT: Count every character in the SMS draft including spaces, punctuation, and emoji. The complete message MUST be 160 characters or fewer. If you draft a message that is longer, shorten it before presenting. A typical compliant draft: "Hi Sandra, Thrive here. We wanted to personally reach out to our top customers. 15% off this week: SANDRAB15. Reply STOP to opt out." (132 chars) End with an offer to review or send.]`,
         expectedBehaviors: [
-            'mentions the 67-day absence in the framing/analysis (not just the text draft)',
-            'drafts a warm, personalized re-engagement SMS for Sandra by first name',
+            'mentions the 67-day inactivity in manager-facing framing',
+            'drafts a warm, personalized SMS for Sandra by first name without absence/back language',
             'does NOT use medical language',
             'SMS draft includes opt-out instruction',
             'ends with offer to review or send',
@@ -2636,10 +2636,11 @@ REQUIRED concrete next steps to give: (1) Refuse the $9,400 transaction as curre
         ],
         message: 'Yes draft the call script.',
         toolContext: `⛔ BANNED PHRASES — READ THIS FIRST BEFORE WRITING ANY SCRIPT:
-The call script must NOT contain ANY of the following: "been a while" / "it's been a while" / "since your last visit" / "haven't seen you" / "miss you" / "we miss you" / "long time no see" / "you haven't visited" / "your absence" / "since we last saw you" / "been some time".
+The full answer and call script must NOT contain ANY of the following: "been a while" / "it's been a while" / "since your last visit" / "haven't seen you" / "miss you" / "missed you" / "missed having you" / "we miss you" / "we've missed you" / "we've missed having you" / "long time no see" / "you haven't visited" / "your absence" / "since we last saw you" / "been some time" / "get our VIP back".
 The ONLY permitted opening reason is: "We wanted to personally reach out to our top customers."
+If Marcus asks why he was called, the ONLY permitted answer is: "You're one of our top customers, and we wanted to make sure you saw this week's manager offer." Do NOT say "have you back", "come back", "welcome back", or "we'd love to have you back."
 ---
-[Customer: Marcus Chen, 94 days inactive, LTV $2,847, top-tier VIP. Last purchase: $156 transaction, bought Gelato flower and RSO. Preferred categories: flower (68%), concentrates (22%), edibles (10%). REQUIRED script elements: (1) Manager introduces themselves by name — "Hi Marcus, this is [Manager Name] at Thrive Syracuse." (2) Use ONLY the permitted opening reason above. (3) Offer: 20% off his next visit OR a free pre-roll with any purchase — give him a choice. (4) Time anchor: valid this week only. (5) If he seems uninterested, end warmly — do not push. (6) NO medical claims. End with a brief note on what to do if Marcus asks why he was called.]`,
+[Customer: Marcus Chen, 94 days inactive, LTV $2,847, top-tier VIP. Last purchase: $156 transaction, bought Gelato flower and RSO. Preferred categories: flower (68%), concentrates (22%), edibles (10%). REQUIRED script elements: (1) Manager introduces themselves by name — "Hi Marcus, this is [Manager Name] at Thrive Syracuse." (2) Use ONLY the permitted opening reason above. (3) Offer: 20% off his next visit OR a free pre-roll with any purchase — give him a choice. (4) Time anchor: use the exact phrase "valid this week only". (5) If he seems uninterested, end warmly — do not push. (6) NO medical claims. End with a brief note on what to do if Marcus asks why he was called.]`,
         expectedBehaviors: [
             'opens with manager name, not just store name',
             'does NOT say "you haven\'t visited in a while" or similar',
@@ -2647,8 +2648,8 @@ The ONLY permitted opening reason is: "We wanted to personally reach out to our 
             'includes a "this week only" time anchor',
             'ends with guidance on handling Marcus asking why he was called',
         ],
-        mustReference: ['Marcus', '20%', 'this week'],
-        mustNotContain: ["you haven't visited", "you've been away", "you haven't come in", 'been a while', "it's been a while", 'been some time', 'since your last visit', "since we've seen you", 'long time no see', "miss you", "we miss you", "haven't seen you"],
+        mustReference: ['Marcus', '20%', 'valid this week only'],
+        mustNotContain: ["you haven't visited", "you've been away", "you haven't come in", 'been a while', "it's been a while", 'been some time', 'since your last visit', "since we've seen you", 'long time no see', "miss you", 'missed you', 'missed having you', "we miss you", "we've missed you", "we've missed having you", "haven't seen you", 'have you back', 'come back', 'welcome back', 'get our VIP back', "we'd love to have you back"],
     },
     {
         id: 'regulatory-crisis-license-expired-unnoticed',
@@ -2733,6 +2734,20 @@ Return only JSON:
 
 const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 const DEFAULT_ORG = 'org_thrive_syracuse';
+
+function isRetryableModelError(message: string): boolean {
+    const normalized = message.toLowerCase();
+    return (
+        normalized.includes('1302') ||
+        normalized.includes('rate limit') ||
+        normalized.includes('429') ||
+        normalized.includes('connection error') ||
+        normalized.includes('econnreset') ||
+        normalized.includes('etimedout') ||
+        normalized.includes('fetch failed') ||
+        normalized.includes('network')
+    );
+}
 
 function getArg(name: string): string | undefined {
     const prefix = `--${name}=`;
@@ -2883,7 +2898,7 @@ async function callModel(systemPrompt: string, userMessage: string, maxTokens: n
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         if (attempt > 0) {
             const waitMs = 15000 * attempt;
-            console.log(`  [retry ${attempt}/${maxAttempts - 1}] rate limit — waiting ${waitMs / 1000}s...`);
+            console.log(`  [retry ${attempt}/${maxAttempts - 1}] transient model error — waiting ${waitMs / 1000}s...`);
             await new Promise((r) => setTimeout(r, waitMs));
         }
         try {
@@ -2898,7 +2913,7 @@ async function callModel(systemPrompt: string, userMessage: string, maxTokens: n
         } catch (err) {
             lastErr = err;
             const msg = err instanceof Error ? err.message : String(err);
-            if (!msg.includes('1302') && !msg.includes('rate limit') && !msg.includes('429')) throw err;
+            if (!isRetryableModelError(msg)) throw err;
         }
     }
     throw lastErr;
@@ -3060,14 +3075,17 @@ ${blockers || '- None'}
 async function main() {
     const limitArg = getArg('limit');
     const categoryArg = getArg('category');
+    const caseArg = getArg('case');
     const generatedAt = new Date().toISOString();
 
     let cases = ELROY_CASES;
     if (categoryArg) cases = cases.filter((c) => c.category === categoryArg);
+    if (caseArg) cases = cases.filter((c) => c.id === caseArg);
     if (limitArg) cases = cases.slice(0, Math.max(1, Math.min(cases.length, Number(limitArg))));
 
     console.log(`Running Uncle Elroy stress test — ${cases.length} case(s) for ${DEFAULT_ORG}`);
     if (categoryArg) console.log(`Filter: category=${categoryArg}`);
+    if (caseArg) console.log(`Filter: case=${caseArg}`);
 
     const results: CaseResult[] = [];
 

@@ -51,6 +51,11 @@ jest.mock('@/firebase/server-client', () => ({
 describe('Brand Product Actions', () => {
     let mockFirestoreChain: any;
     let mockUser: any;
+    let mockBatch: {
+        set: jest.Mock;
+        update: jest.Mock;
+        commit: jest.Mock;
+    };
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -58,10 +63,17 @@ describe('Brand Product Actions', () => {
         mockUser = {
             uid: 'test_user_1',
             orgId: 'org_1',
+            brandId: 'org_1',
             role: 'brand_admin'
         };
 
         (requireUser as jest.Mock).mockResolvedValue(mockUser);
+
+        mockBatch = {
+            set: jest.fn().mockReturnThis(),
+            update: jest.fn().mockReturnThis(),
+            commit: jest.fn().mockResolvedValue(undefined)
+        };
 
         mockFirestoreChain = {
             collection: jest.fn().mockReturnThis(),
@@ -72,10 +84,7 @@ describe('Brand Product Actions', () => {
             }),
             set: jest.fn(),
             update: jest.fn(),
-            batch: jest.fn().mockReturnValue({
-                set: jest.fn().mockReturnThis(),
-                commit: jest.fn().mockResolvedValue(undefined)
-            }),
+            batch: jest.fn().mockReturnValue(mockBatch),
         };
 
         (createServerClient as jest.Mock).mockResolvedValue({
@@ -92,11 +101,11 @@ describe('Brand Product Actions', () => {
             await linkBrandProducts(products);
 
             // Expect batch commit
-            expect(mockFirestoreChain.batch().commit).toHaveBeenCalled();
+            expect(mockBatch.commit).toHaveBeenCalled();
             // Expect update to organization
             expect(mockFirestoreChain.collection).toHaveBeenCalledWith('organizations');
             expect(mockFirestoreChain.doc).toHaveBeenCalledWith('org_1');
-            expect(mockFirestoreChain.update).toHaveBeenCalledWith(expect.objectContaining({
+            expect(mockBatch.update).toHaveBeenCalledWith(mockFirestoreChain, expect.objectContaining({
                 productsLinked: true,
                 nameLocked: true,
                 linkedByUserId: 'test_user_1'
@@ -113,7 +122,7 @@ describe('Brand Product Actions', () => {
                 { id: 'p1', name: 'Product 1', brandName: 'Brand A', category: 'Cat', image: '', price: 10 }
             ];
 
-            await expect(linkBrandProducts(products)).rejects.toThrow('Product catalog is locked');
+            await expect(linkBrandProducts(products)).rejects.toThrow('Products have already been linked');
         });
 
         it('should allow linking if already linked BUT user is super_admin', async () => {

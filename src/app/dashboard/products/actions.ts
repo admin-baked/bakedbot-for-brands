@@ -132,7 +132,16 @@ export async function searchCannMenusProducts(brandName: string): Promise<Import
 
 export async function linkBrandProducts(products: ImportCandidate[]) {
   const user = await requireUser(['brand', 'super_user']);
-  const brandId = user.brandId;
+  const stringClaim = (value: unknown) => (
+    typeof value === 'string' && value.trim().length > 0 ? value : null
+  );
+  const role = stringClaim(user.role) ?? '';
+  const brandId =
+    stringClaim(user.brandId) ??
+    stringClaim(user.currentOrgId) ??
+    stringClaim((user as { orgId?: unknown }).orgId) ??
+    (role === 'brand' ? stringClaim(user.uid) : null);
+  const isSuperUser = role === 'super_user' || role === 'super_admin';
   
   if (!brandId) {
     throw new Error('No brand ID found for user');
@@ -144,7 +153,7 @@ export async function linkBrandProducts(products: ImportCandidate[]) {
   const orgData = orgDoc.data();
 
   // 1. One-Time Confirmation Check
-  if (orgData?.productsLinked && user.role !== 'super_user') {
+  if (orgData?.productsLinked && !isSuperUser) {
      throw new Error('Products have already been linked for this brand. Contact support for updates.');
   }
   
