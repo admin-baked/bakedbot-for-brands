@@ -114,7 +114,10 @@ export function getAdminFirestore() {
             try {
                 db.settings({ ignoreUndefinedProperties: true });
             } catch (error) {
-                console.warn('[Firebase Admin] Failed to apply Firestore settings', error);
+                const msg = error instanceof Error ? error.message : '';
+                if (!msg.includes('already been initialized')) {
+                    console.warn('[Firebase Admin] Failed to apply Firestore settings', error);
+                }
             }
             firestoreSettingsApplied = true;
         }

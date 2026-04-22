@@ -110,7 +110,14 @@ export function IncomingVisitNotification() {
                 const claimStr = (k: string) => (typeof claims[k] === 'string' ? (claims[k] as string) : null);
                 orgId = claimStr('orgId') || claimStr('currentOrgId') || claimStr('locationId') || claimStr('brandId');
 
-                // Super users can see all orgs — limit to most recent 20 sessions globally
+                const userRole = claimStr('role');
+                const isSuperUser = userRole === 'super_user' || userRole === 'super_admin';
+
+                if (!orgId && !isSuperUser) {
+                    logger.info('[IncomingVisitNotification] No orgId in claims — skipping listener');
+                    return;
+                }
+
                 const { firestore } = initializeFirebase();
 
                 const q = orgId
@@ -162,7 +169,12 @@ export function IncomingVisitNotification() {
                     dismissTimer.current = setTimeout(dismiss, 45_000);
 
                 }, (err) => {
-                    logger.warn('[IncomingVisitNotification] onSnapshot error', { err });
+                    const fireErr = err as { code?: string; message?: string };
+                    logger.warn('[IncomingVisitNotification] onSnapshot error', {
+                        code: fireErr.code,
+                        message: fireErr.message,
+                        orgId,
+                    });
                 });
             } catch (err) {
                 logger.warn('[IncomingVisitNotification] setup failed', { err });

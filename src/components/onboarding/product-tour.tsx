@@ -181,7 +181,7 @@ function TooltipCard({
     } else if (step.position === 'right') {
       setStyle({
         position: 'fixed',
-        top: Math.max(16, targetRect.top),
+        top: Math.max(16, Math.min(targetRect.top, window.innerHeight - cardHeight - 16)),
         left: Math.min(targetRect.right + 12, window.innerWidth - cardWidth - 16),
       });
     }
@@ -282,11 +282,28 @@ export function ProductTour() {
       return;
     }
 
-    const el = document.querySelector(step.selector);
-    if (el) {
-      setTargetRect(el.getBoundingClientRect());
-    } else {
+    const measureTarget = () => {
+      const el = document.querySelector(step.selector!);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        if (rect.height > 0 && rect.width > 0) {
+          setTargetRect(rect);
+          return true;
+        }
+      }
       setTargetRect(null);
+      return false;
+    };
+
+    if (!measureTarget()) {
+      const interval = setInterval(() => {
+        if (measureTarget()) clearInterval(interval);
+      }, 200);
+      const timeout = setTimeout(() => clearInterval(interval), 5000);
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
     }
   }, [currentStep, isActive, steps]);
 

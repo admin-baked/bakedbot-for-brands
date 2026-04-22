@@ -15,6 +15,7 @@ import {
   deleteGoal,
   achieveGoal,
 } from '@/server/actions/goals';
+import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 
 interface GoalsClientProps {
@@ -23,6 +24,7 @@ interface GoalsClientProps {
 }
 
 export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
+  const { toast } = useToast();
   const [goals, setGoals] = useState<OrgGoal[]>(initialGoals);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -96,12 +98,15 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
           };
           setGoals(prev => [newGoal, ...prev]);
           setDialogOpen(false);
+          toast({ title: 'Goal created', description: goalData.title });
           logger.info('Goal created successfully', { goalId: result.goalId });
           return true;
         }
+        toast({ title: 'Failed to create goal', description: result.error || 'Please try again.', variant: 'destructive' });
         logger.warn('Goal creation returned failure', { error: result.error });
         return false;
       } catch (error: unknown) {
+        toast({ title: 'Failed to create goal', description: 'Something went wrong. Please try again.', variant: 'destructive' });
         logger.error('Error creating goal:', error instanceof Error ? { message: error.message, stack: error.stack } : { error });
         return false;
       } finally {
@@ -116,6 +121,7 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
       await updateGoalStatus(orgId, goalId, status);
       setGoals(goals.map(g => (g.id === goalId ? { ...g, status } : g)));
     } catch (error: unknown) {
+      toast({ title: 'Failed to update goal', description: 'Please try again.', variant: 'destructive' });
       logger.error('Error updating goal status:', error instanceof Error ? { message: error.message, stack: error.stack } : { error });
     }
   };
@@ -125,6 +131,7 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
       await achieveGoal(orgId, goalId);
       setGoals(goals.map(g => (g.id === goalId ? { ...g, status: 'achieved', progress: 100 } : g)));
     } catch (error: unknown) {
+      toast({ title: 'Failed to mark goal achieved', description: 'Please try again.', variant: 'destructive' });
       logger.error('Error marking goal as achieved:', error instanceof Error ? { message: error.message, stack: error.stack } : { error });
     }
   };
@@ -134,6 +141,7 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
       await deleteGoal(orgId, goalId);
       setGoals(goals.filter(g => g.id !== goalId));
     } catch (error: unknown) {
+      toast({ title: 'Failed to delete goal', description: 'Please try again.', variant: 'destructive' });
       logger.error('Error deleting goal:', error instanceof Error ? { message: error.message, stack: error.stack } : { error });
     }
   };
