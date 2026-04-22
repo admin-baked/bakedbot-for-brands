@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | Brand Guide + Goals audit fixes (4.10.42-COD)
-**Recent work (2026-04-22):** Tightened Brand Guide extraction cleanup/sample limits, fixed Goals date coercion for Firestore/native dates, and verified focused Brand Guide `87/87` plus Goals `81/81`.
+**Current Status:** local verified | Inbox KPI + Creative audit fixes (4.10.44-COD)
+**Recent work (2026-04-22):** Added deterministic Pops Inbox customer-revenue answers from CRM/POS metrics, shared the canonical ARPC query detector, and refreshed Creative Center audit coverage for Studio/Assets, Remotion, Deck, and error states.
 
 ---
 

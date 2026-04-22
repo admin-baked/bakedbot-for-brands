@@ -18,6 +18,7 @@ import {
     getSegmentSummary,
     getCustomerEmailCoverage,
     getCustomerRevenueSummary,
+    isCustomerRevenueMetricQuestion,
     getTopCustomers,
     getAtRiskCustomers,
     getUpcomingBirthdays,
@@ -443,9 +444,7 @@ async function resolveOrgIdForToolContext(context: ToolContextLookup): Promise<s
 }
 
 function isCustomerRevenueQuestion(query: string, context: ToolContextLookup): boolean {
-    const text = `${query} ${nonEmptyString(context?.metric) ?? ''}`.toLowerCase();
-    return /\b(arpc|average revenue per customer|avg revenue per customer|revenue per customer|average ltv|avg ltv|average customer spend|customer revenue|customer spend)\b/.test(text)
-        || (/\b(average|avg)\b/.test(text) && /\b(revenue|ltv|spend|spent)\b/.test(text) && /\bcustomers?\b/.test(text));
+    return isCustomerRevenueMetricQuestion(query, nonEmptyString(context?.metric));
 }
 
 const commonPlaybookTools = {

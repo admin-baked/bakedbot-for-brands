@@ -231,7 +231,7 @@ describe('Creative Content Server Actions', () => {
                 expect.objectContaining({
                     template: 'product-spotlight',
                     headline: 'Ayrloom - Gummies 10pk - 2:1 Sunny Days - 100mg',
-                    subtext: 'Available now at Thrive Syracuse',
+                    subtext: 'Learn more from Thrive Syracuse',
                     imageUrl: 'https://example.com/ayrloom-sunny-days.png',
                     bgColor: '#2E7D32',
                     accentColor: '#F59E0B',

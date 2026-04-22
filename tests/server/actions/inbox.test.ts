@@ -43,6 +43,8 @@ jest.mock('@/lib/logger', () => ({
 
 jest.mock('@/server/tools/crm-tools', () => ({
     lookupCustomer: jest.fn(),
+    getCustomerRevenueSummary: jest.fn(),
+    isCustomerRevenueMetricQuestion: jest.fn((query: string) => /average revenue per customer/i.test(query)),
 }));
 
 jest.mock('@/server/actions/agent-vm', () => ({
@@ -135,7 +137,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { getServerSessionUser } from '@/server/auth/session';
 import { parseArtifactsFromContent } from '@/types/artifact';
 import { runAgentChat } from '@/app/dashboard/ceo/agents/actions';
-import { lookupCustomer } from '@/server/tools/crm-tools';
+import { getCustomerRevenueSummary, lookupCustomer } from '@/server/tools/crm-tools';
 import {
     createInboxThread,
     getInboxThreads,
@@ -659,7 +661,7 @@ describe('Inbox Server Actions', () => {
             }));
         });
 
-        it('hands off average revenue per customer questions to Pops from stale Ezal threads', async () => {
+        it('answers average revenue per customer questions from CRM data without invoking the agent planner', async () => {
             mockDocRef.get.mockResolvedValue({
                 exists: true,
                 data: () => ({
@@ -671,26 +673,32 @@ describe('Inbox Server Actions', () => {
                 }),
             });
 
-            (runAgentChat as jest.Mock).mockResolvedValue({
-                content: 'Average revenue per customer is $65.',
-                metadata: {},
+            (getCustomerRevenueSummary as jest.Mock).mockResolvedValue({
+                summary: '**Customer Revenue Summary**\n- Average revenue per customer: $65',
+                metrics: {
+                    trackedCustomers: 3126,
+                    averageRevenuePerCustomer: 65,
+                    source: 'customer_spending',
+                },
             });
 
-            (parseArtifactsFromContent as jest.Mock).mockReturnValue({
-                artifacts: [],
-                cleanedContent: 'Average revenue per customer is $65.',
-            });
+            const result = await runInboxAgentChat('thread-1', 'What is average revenue per customer?');
 
-            await runInboxAgentChat('thread-1', 'What is average revenue per customer?');
-
-            expect(runAgentChat).toHaveBeenCalledWith(
-                expect.stringContaining('What is average revenue per customer?'),
-                'pops',
-                expect.any(Object),
-            );
+            expect(result.success).toBe(true);
+            expect(result.message?.content).toContain('Average revenue per customer: $65');
+            expect(getCustomerRevenueSummary).toHaveBeenCalledWith('org-123');
+            expect(runAgentChat).not.toHaveBeenCalled();
             expect(mockDocRef.update).toHaveBeenCalledWith(expect.objectContaining({
                 primaryAgent: 'pops',
                 assignedAgents: ['ezal', 'pops'],
+            }));
+            expect(mockDocRef.update).toHaveBeenCalledWith(expect.objectContaining({
+                messages: expect.objectContaining({
+                    type: 'arrayUnion',
+                    item: expect.objectContaining({
+                        content: expect.stringContaining('Average revenue per customer: $65'),
+                    }),
+                }),
             }));
         });
 

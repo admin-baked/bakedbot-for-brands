@@ -2,6 +2,15 @@
 
 ---
 
+## Session 2026-04-22 - Inbox KPI Fast Path + Creative Audit (local)
+- **Inbox chat repair**: Pops now answers customer revenue questions such as "average revenue per customer" through a deterministic CRM/POS fast path instead of the fragile planner path that produced the mission-planning error.
+- **CRM metric reuse**: Shared the canonical customer-revenue query detector between Inbox and CEO agent default tools, with persisted message metadata for auditability.
+- **Creative Center audit coverage**: Updated tests for the current Studio/Assets flow, Remotion slideshow API calls, super-user Deck language, and generation error handling.
+- **Verification**: Focused Creative/Inbox/Claude tool suites passed `62/62`; Inbox rerun passed `27/27`; `check:structure`, `check:config`, and `git diff --check` passed; full `check:types` timed out after 6 minutes without diagnostics; bumped to `4.10.44-COD`.
+- See `sessions/2026-04-22-1152-inbox-creative-audit.md`
+
+---
+
 ## Session 2026-04-22 - Brand Guide + Goals Audit Fixes (local)
 - **Brand Guide utilities**: Placeholder filtering now uses exact/anchored matches instead of broad substring checks, so valid extracted names are not discarded accidentally.
 - **Brand Guide extractor**: Voice text samples now consistently enforce the intended 50-500 character range; extractor tests mock the current `callGroqOrClaude` wrapper and avoid live direct-fetch attempts.

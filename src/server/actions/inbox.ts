@@ -78,6 +78,17 @@ function getDb() {
     return getAdminFirestore();
 }
 
+function resolveThreadOrgId(thread: InboxThread, user: { currentOrgId?: unknown; orgId?: unknown; brandId?: unknown } | null): string | null {
+    const candidates = [
+        typeof thread.orgId === 'string' ? thread.orgId : '',
+        typeof user?.currentOrgId === 'string' ? user.currentOrgId : '',
+        typeof user?.orgId === 'string' ? user.orgId : '',
+        typeof user?.brandId === 'string' ? user.brandId : '',
+    ];
+
+    return candidates.find((candidate) => candidate && isValidDocumentId(candidate)) ?? null;
+}
+
 /**
  * Convert Firestore timestamp to Date
  */
@@ -1568,6 +1579,73 @@ export async function runInboxAgentChat(
 
         // Build context for the agent based on thread type
         const threadContext = await buildInboxThreadContext(thread);
+
+        if (!attachments?.length && resolvedAgent === 'pops') {
+            const { isCustomerRevenueMetricQuestion, getCustomerRevenueSummary } = await import('@/server/tools/crm-tools');
+
+            if (isCustomerRevenueMetricQuestion(userMessage)) {
+                const orgId = resolveThreadOrgId(thread, user as { currentOrgId?: unknown; orgId?: unknown; brandId?: unknown } | null);
+
+                if (orgId) {
+                    try {
+                        const revenueSummary = await getCustomerRevenueSummary(orgId);
+                        const source = typeof revenueSummary.metrics.source === 'string'
+                            ? revenueSummary.metrics.source
+                            : 'CRM revenue snapshot';
+                        const agentMessage: ChatMessage = {
+                            id: `msg-${Date.now()}`,
+                            type: 'agent',
+                            content: revenueSummary.summary,
+                            timestamp: new Date(),
+                            thinking: {
+                                isThinking: false,
+                                steps: [
+                                    {
+                                        id: 'customer-revenue-summary',
+                                        toolName: 'CRM Revenue',
+                                        description: `Calculated from ${source}.`,
+                                        status: 'completed',
+                                    },
+                                ],
+                                plan: [],
+                            },
+                            metadata: {
+                                type: 'session_context',
+                                agentName: 'Pops',
+                                brandId: orgId,
+                                data: {
+                                    metrics: revenueSummary.metrics,
+                                    source,
+                                },
+                            },
+                        };
+
+                        await addMessageToInboxThread(threadId, agentMessage);
+                        logger.info('[INBOX] Answered customer revenue KPI directly', {
+                            threadId,
+                            orgId,
+                            source,
+                        });
+
+                        return {
+                            success: true,
+                            message: agentMessage,
+                            artifacts: [],
+                        };
+                    } catch (error) {
+                        logger.warn('[INBOX] Customer revenue fast path failed; falling back to agent runner', {
+                            threadId,
+                            orgId,
+                            error: error instanceof Error ? error.message : String(error),
+                        });
+                    }
+                } else {
+                    logger.warn('[INBOX] Customer revenue fast path skipped without org context', {
+                        threadId,
+                    });
+                }
+            }
+        }
 
         // === REMOTE SIDECAR ROUTING ===
         // Route heavy research agents to remote Python sidecar if available

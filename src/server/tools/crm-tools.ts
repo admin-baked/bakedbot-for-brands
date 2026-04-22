@@ -438,6 +438,14 @@ type CustomerRevenueDoc = {
     lastOrderDate?: Date;
 };
 
+export function isCustomerRevenueMetricQuestion(query: string, metric?: unknown): boolean {
+    const metricText = typeof metric === 'string' ? metric : '';
+    const text = `${query} ${metricText}`.toLowerCase();
+
+    return /\b(arpc|average revenue per customer|avg revenue per customer|revenue per customer|average ltv|avg ltv|average customer spend|customer revenue|customer spend)\b/.test(text)
+        || (/\b(average|avg)\b/.test(text) && /\b(revenue|ltv|spend|spent)\b/.test(text) && /\bcustomers?\b/.test(text));
+}
+
 async function loadCustomerRevenueDocs(orgId: string): Promise<{ docs: CustomerRevenueDoc[]; source: 'customer_spending' | 'customers' }> {
     const firestore = getAdminFirestore();
 

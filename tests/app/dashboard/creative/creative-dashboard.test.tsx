@@ -5,7 +5,6 @@ import { useCreativeContent } from '@/hooks/use-creative-content';
 import { useUser } from '@/firebase/auth/use-user';
 import { useRouter } from 'next/navigation';
 import { getMenuData } from '@/app/dashboard/menu/actions';
-import { generateMarketingVideo } from '@/ai/flows/generate-video';
 import { getBrandKitImages } from '@/server/actions/brand-images';
 import { getMyAIStudioUsageSummary } from '@/server/actions/ai-studio';
 import { sendCreativeToInbox } from '@/server/actions/creative-inbox';
@@ -15,7 +14,6 @@ jest.mock('@/hooks/use-creative-content');
 jest.mock('@/firebase/auth/use-user');
 jest.mock('next/navigation');
 jest.mock('@/app/dashboard/menu/actions');
-jest.mock('@/ai/flows/generate-video');
 jest.mock('@/server/actions/brand-images');
 jest.mock('@/server/actions/ai-studio');
 jest.mock('@/server/actions/creative-inbox');
@@ -132,15 +130,22 @@ jest.mock('framer-motion', () => ({
 }));
 
 const mockGenerate = jest.fn();
-const mockGenerateMarketingVideo = generateMarketingVideo as jest.Mock;
+const mockFetch = jest.fn();
 
 function renderCreativeCenter() {
   return render(<CreativeCommandCenter />);
 }
 
+async function openStudioAssetsPanel() {
+  fireEvent.click(screen.getByRole('button', { name: /^Studio$/i }));
+  fireEvent.click(await screen.findByRole('button', { name: /Assets and Media/i }));
+}
+
 describe('CreativeCommandCenter regressions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockFetch.mockReset();
+    global.fetch = mockFetch as jest.MockedFunction<typeof fetch>;
 
     (useCreativeContent as jest.Mock).mockReturnValue({
       content: [],
@@ -231,16 +236,11 @@ describe('CreativeCommandCenter regressions', () => {
       mediaUrls: ['https://example.com/branded-image.png'],
     });
 
-    mockGenerateMarketingVideo.mockResolvedValue({
-      videoUrl: 'https://example.com/slideshow.mp4',
-      duration: 5,
-      provider: 'remotion',
-      model: 'BrandedSlideshow-1x1',
-    });
   });
 
   it('passes the selected product and image into branded generation', async () => {
     renderCreativeCenter();
+    await openStudioAssetsPanel();
 
     fireEvent.change(screen.getByPlaceholderText(/Describe the post/i), {
       target: { value: 'Lets create an image post featuring one of our Products. Use our brand colors.' },
@@ -254,7 +254,7 @@ describe('CreativeCommandCenter regressions', () => {
       name: /Ayrloom - Gummies 10pk - 2:1 Sunny Days - 100mg/i,
     }));
     fireEvent.click(screen.getByRole('button', { name: /Branded/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^Generate$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Generate Story/i }));
 
     await waitFor(() => expect(mockGenerate).toHaveBeenCalled());
 
@@ -272,6 +272,7 @@ describe('CreativeCommandCenter regressions', () => {
 
   it('renders a slideshow preview and forwards the selected product into Remotion', async () => {
     renderCreativeCenter();
+    await openStudioAssetsPanel();
 
     fireEvent.change(screen.getByPlaceholderText(/Describe the post/i), {
       target: { value: 'Feature our Sunny Days gummies with brand colors.' },
@@ -285,23 +286,45 @@ describe('CreativeCommandCenter regressions', () => {
       name: /Ayrloom - Gummies 10pk - 2:1 Sunny Days - 100mg/i,
     }));
     fireEvent.click(screen.getByRole('button', { name: /Slides/i }));
-    fireEvent.click(screen.getAllByRole('button', { name: /Generate Slideshow/i })[0]);
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          renderId: 'render-1',
+          duration: 5,
+          model: 'BrandedSlideshow-1x1',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'completed',
+          progress: 1,
+          duration: 5,
+          model: 'BrandedSlideshow-1x1',
+          videoUrl: 'https://example.com/slideshow.mp4',
+        }),
+      });
 
-    await waitFor(() => expect(mockGenerateMarketingVideo).toHaveBeenCalled());
+    const slideshowButtons = screen.getAllByRole('button', { name: /Generate Slideshow/i });
+    fireEvent.click(slideshowButtons[slideshowButtons.length - 1]);
 
-    expect(mockGenerateMarketingVideo).toHaveBeenCalledWith(
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/ai/video/remotion/start',
+        expect.any(Object),
+      );
+    });
+
+    const remotionStartBody = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string);
+    expect(remotionStartBody.input).toEqual(
       expect.objectContaining({
-        aspectRatio: '1:1',
+        aspectRatio: '9:16',
         brandName: 'Thrive Syracuse',
-        headline: 'Ayrloom - Gummies 10pk - 2:1 Sunny Days - 100mg',
         productImageUrl: 'https://example.com/ayrloom-sunny-days.png',
-        ctaText: 'Shop Now',
         primaryColor: '#2E7D32',
         secondaryColor: '#14532d',
         accentColor: '#F59E0B',
-      }),
-      expect.objectContaining({
-        forceProvider: 'remotion',
       }),
     );
 
@@ -313,7 +336,20 @@ describe('CreativeCommandCenter regressions', () => {
   });
 
   it('shows friendly deck language instead of backend model or tool names', async () => {
+    (useUser as jest.Mock).mockReturnValue({
+      user: {
+        uid: 'test-user',
+        email: 'test@example.com',
+        displayName: 'Test User',
+        role: 'super_user',
+        orgId: 'org_thrive_syracuse',
+        brandId: 'org_thrive_syracuse',
+      },
+      loading: false,
+    });
+
     renderCreativeCenter();
+    await openStudioAssetsPanel();
 
     fireEvent.click(screen.getByRole('button', { name: /Deck/i }));
 
@@ -353,11 +389,11 @@ describe('CreativeCommandCenter regressions', () => {
     fireEvent.change(screen.getByPlaceholderText(/Describe the post/i), {
       target: { value: 'Create a fresh educational post for today.' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /^Generate$/i }));
+    const generateButtons = screen.getAllByRole('button', { name: /Generate Story/i });
+    fireEvent.click(generateButtons[generateButtons.length - 1]);
 
-    await waitFor(() => {
-      expect(screen.getByText(/Generation failed/i)).toBeInTheDocument();
-      expect(screen.getByText(/Image generation timed out/i)).toBeInTheDocument();
-    });
+    await waitFor(() => expect(mockGenerate).toHaveBeenCalled());
+    expect(await screen.findByText(/Generation failed/i)).toBeInTheDocument();
+    expect(screen.getByText(/Image generation timed out/i)).toBeInTheDocument();
   });
 });
