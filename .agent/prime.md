@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | Inbox analytics routing + Pops ARPC fast path (4.10.38-COD)
-**Recent work (2026-04-22):** Fixed stale Inbox specialist routing for analytics/finance prompts, added Pops ARPC/customer revenue summaries from POS spending data, and guarded CRM detail questions to stay with Mrs. Parker.
+**Current Status:** local verified | Check-in flow streamline + dashboard mode cards (4.10.38-COD)
+**Recent work (2026-04-22):** Tablet check-in flow 8→5 screens (skip Returning Check + Offer for new customers); "Just Check Me In" prominent button on Mood screen; dashboard two-mode launcher cards (`c7c1ec988`).
 
 ---
 
