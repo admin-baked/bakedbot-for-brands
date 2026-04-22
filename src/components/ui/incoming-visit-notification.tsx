@@ -21,6 +21,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { collection, query, where, orderBy, onSnapshot, limit } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
 import { useAuth } from '@/hooks/use-auth';
+import { useFirebase } from '@/firebase/provider';
 import { markSessionRecognized } from '@/server/actions/staff/loyalty';
 import { logger } from '@/lib/logger';
 import type { VisitSession } from '@/types/club';
@@ -69,6 +70,7 @@ interface NotificationState {
 
 export function IncomingVisitNotification() {
     const { user } = useAuth();
+    const { auth } = useFirebase();
     const [notification, setNotification] = useState<NotificationState | null>(null);
     const [serving, setServing] = useState(false);
     const seenIds = useRef<Set<string>>(new Set());
@@ -98,11 +100,12 @@ export function IncomingVisitNotification() {
 
         const setup = async () => {
             try {
-                if (typeof user.getIdTokenResult !== 'function') {
-                    logger.warn('[IncomingVisitNotification] user.getIdTokenResult unavailable — skipping');
+                const firebaseUser = auth?.currentUser;
+                if (!firebaseUser) {
+                    logger.warn('[IncomingVisitNotification] auth.currentUser unavailable — skipping');
                     return;
                 }
-                const tokenResult = await user.getIdTokenResult();
+                const tokenResult = await firebaseUser.getIdTokenResult();
                 const claims = tokenResult.claims as Record<string, unknown>;
                 const claimStr = (k: string) => (typeof claims[k] === 'string' ? (claims[k] as string) : null);
                 orgId = claimStr('orgId') || claimStr('currentOrgId') || claimStr('locationId') || claimStr('brandId');
@@ -171,7 +174,7 @@ export function IncomingVisitNotification() {
             if (unsubscribe) unsubscribe();
             if (dismissTimer.current) clearTimeout(dismissTimer.current);
         };
-    }, [user, dismiss]);
+    }, [user, auth, dismiss]);
 
     return (
         <AnimatePresence>

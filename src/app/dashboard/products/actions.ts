@@ -231,6 +231,32 @@ export async function deleteProduct(productId: string) {
   }
 }
 
+export async function toggleProductStatus(productId: string, newStatus: 'active' | 'draft') {
+  const user = await requireUser(['brand', 'super_user', 'dispensary']);
+  const { firestore } = await createServerClient();
+
+  try {
+    const productRef = firestore.collection('products').doc(productId);
+    const doc = await productRef.get();
+
+    if (!doc.exists) return { error: true, message: 'Product not found' };
+
+    const data = doc.data();
+    if (user.role !== 'super_user') {
+      const ownerId = user.brandId || user.locationId || user.uid;
+      if (data?.brandId !== ownerId && data?.dispensaryId !== ownerId) {
+        return { error: true, message: 'Unauthorized' };
+      }
+    }
+
+    await productRef.update({ status: newStatus });
+    return { message: `Product ${newStatus === 'draft' ? 'moved to draft' : 'published'}` };
+  } catch (error) {
+    logger.error('Error toggling product status:', error instanceof Error ? error : new Error(String(error)));
+    return { error: true, message: 'Failed to update product status' };
+  }
+}
+
 import { makeProductRepo } from '@/server/repos/productRepo';
 
 export type ProductFormState = {
@@ -279,6 +305,7 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
   const mgPerServingStr = formData.get('mgPerServing') as string;
   const mgPerServing = mgPerServingStr ? parseFloat(mgPerServingStr) : undefined;
   const shippable = formData.get('shippable') === 'on';
+  const status = (formData.get('status') as string) === 'draft' ? 'draft' as const : 'active' as const;
 
   // SECURITY: Enforce brandId from session unless super_user
   let brandId = user.brandId || user.locationId || user.uid;
@@ -315,6 +342,7 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
     servings,
     mgPerServing,
     shippable,
+    status,
   };
 
   try {

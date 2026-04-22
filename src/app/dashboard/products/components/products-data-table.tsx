@@ -51,6 +51,7 @@ export function ProductsDataTable<TData extends Product, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [tierFilter, setTierFilter] = React.useState<string>('all');
+  const [statusFilter, setStatusFilter] = React.useState<string>('all');
   const [isSyncing, setIsSyncing] = React.useState(false);
   const [aiDialogOpen, setAiDialogOpen] = React.useState(false);
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
@@ -87,18 +88,27 @@ export function ProductsDataTable<TData extends Product, TValue>({
     ...columns,
   ], [columns]);
 
-  // Filter data by tier
+  // Filter data by status then tier
   const filteredData = React.useMemo(() => {
-    if (tierFilter === 'all') return data;
-    return data.filter(item => {
-      const price = (item as any).price || 0;
-      if (tierFilter === 'budget') return price < 30;
-      if (tierFilter === 'mid') return price >= 30 && price < 60;
-      if (tierFilter === 'premium') return price >= 60 && price < 100;
-      if (tierFilter === 'luxury') return price >= 100;
-      return true;
-    });
-  }, [data, tierFilter]);
+    let filtered = data;
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(item => {
+        const status = (item as any).status || 'active';
+        return status === statusFilter;
+      });
+    }
+    if (tierFilter !== 'all') {
+      filtered = filtered.filter(item => {
+        const price = (item as any).price || 0;
+        if (tierFilter === 'budget') return price < 30;
+        if (tierFilter === 'mid') return price >= 30 && price < 60;
+        if (tierFilter === 'premium') return price >= 60 && price < 100;
+        if (tierFilter === 'luxury') return price >= 100;
+        return true;
+      });
+    }
+    return filtered;
+  }, [data, tierFilter, statusFilter]);
 
   const table = useReactTable({
     data: filteredData,
@@ -163,6 +173,16 @@ export function ProductsDataTable<TData extends Product, TValue>({
     setAiDialogOpen(true);
   };
 
+  const statusCounts = React.useMemo(() => {
+    let active = 0;
+    let draft = 0;
+    data.forEach(item => {
+      if ((item as any).status === 'draft') draft++;
+      else active++;
+    });
+    return { all: data.length, active, draft };
+  }, [data]);
+
   const tierCounts = React.useMemo(() => {
     const counts: Record<string, number> = { all: data.length, budget: 0, mid: 0, premium: 0, luxury: 0 };
     data.forEach(item => {
@@ -194,7 +214,15 @@ export function ProductsDataTable<TData extends Product, TValue>({
 
   return (
     <div className="space-y-4">
-      {/* Tier Filter Tabs */}
+      {/* Status + Tier Filter Tabs */}
+      <div className="flex items-center gap-4">
+      <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+        <TabsList>
+          <TabsTrigger value="all">All ({statusCounts.all})</TabsTrigger>
+          <TabsTrigger value="active">Active ({statusCounts.active})</TabsTrigger>
+          <TabsTrigger value="draft" className="text-muted-foreground">Draft ({statusCounts.draft})</TabsTrigger>
+        </TabsList>
+      </Tabs>
       <Tabs value={tierFilter} onValueChange={setTierFilter}>
         <TabsList>
           <TabsTrigger value="all">All ({tierCounts.all})</TabsTrigger>
@@ -204,6 +232,7 @@ export function ProductsDataTable<TData extends Product, TValue>({
           <TabsTrigger value="luxury" className="text-amber-600">Luxury ({tierCounts.luxury})</TabsTrigger>
         </TabsList>
       </Tabs>
+      </div>
 
       {/* POS Sync Status — source of truth indicator */}
       {posConfig?.provider && (

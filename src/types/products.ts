@@ -143,6 +143,7 @@ export type Product = {
     lastSaleAt?: Date; // Most recent purchase timestamp
     trending?: boolean; // Auto-calculated: high velocity + recent sales
     lifecycleStatus?: 'active' | 'coming_soon' | 'discontinued'; // Product release status
+    status?: 'active' | 'draft';
 };
 
 export type Retailer = {

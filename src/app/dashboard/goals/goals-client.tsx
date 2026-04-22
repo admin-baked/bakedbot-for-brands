@@ -76,13 +76,13 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
   }, [initialGoals.length, handleSuggestGoals]);
 
   const handleCreateGoal = useCallback(
-    async (goalData: Omit<OrgGoal, 'id' | 'createdAt' | 'updatedAt' | 'lastProgressUpdatedAt'>) => {
+    async (goalData: Omit<OrgGoal, 'id' | 'createdAt' | 'updatedAt' | 'lastProgressUpdatedAt'>): Promise<boolean> => {
       setIsLoading(true);
       try {
         const result = await createGoal(orgId, {
           ...goalData,
           orgId,
-          createdBy: '', // Will be set in action
+          createdBy: '',
         });
 
         if (result.success && result.goalId) {
@@ -97,9 +97,13 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
           setGoals(prev => [newGoal, ...prev]);
           setDialogOpen(false);
           logger.info('Goal created successfully', { goalId: result.goalId });
+          return true;
         }
+        logger.warn('Goal creation returned failure', { error: result.error });
+        return false;
       } catch (error: unknown) {
         logger.error('Error creating goal:', error instanceof Error ? { message: error.message, stack: error.stack } : { error });
+        return false;
       } finally {
         setIsLoading(false);
       }
@@ -258,9 +262,14 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
                 key={idx}
                 goal={goal}
                 onAdopt={async () => {
-                  await handleCreateGoal({
+                  const metric = {
+                    ...goal.targetMetric,
+                    currentValue: goal.targetMetric.currentValue ?? 0,
+                    baselineValue: goal.targetMetric.baselineValue ?? 0,
+                  };
+                  const success = await handleCreateGoal({
                     orgId,
-                    createdBy: '', // Will be set in action
+                    createdBy: '',
                     title: goal.title,
                     description: goal.description,
                     category: goal.category,
@@ -273,14 +282,18 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
                     }[goal.timeframe] * 24 * 60 * 60 * 1000),
                     status: 'active',
                     progress: 0,
-                    metrics: [goal.targetMetric],
+                    metrics: [metric],
                     playbookIds: goal.suggestedPlaybookIds,
                     suggestedPlaybookIds: [],
                     milestones: [],
                   });
-                  setShowSuggestions(false);
-                  setSuggestedGoals([]);
-                  setSuggestionMeta(null);
+                  if (success) {
+                    setSuggestedGoals(prev => prev.filter((_, i) => i !== idx));
+                    if (suggestedGoals.length <= 1) {
+                      setShowSuggestions(false);
+                      setSuggestionMeta(null);
+                    }
+                  }
                 }}
               />
             ))}

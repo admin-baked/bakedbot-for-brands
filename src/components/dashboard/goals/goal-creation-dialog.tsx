@@ -39,7 +39,7 @@ import { cn } from '@/lib/utils';
 interface GoalCreationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateGoal: (goal: Omit<OrgGoal, 'id' | 'createdAt' | 'updatedAt' | 'lastProgressUpdatedAt'>) => Promise<void>;
+  onCreateGoal: (goal: Omit<OrgGoal, 'id' | 'createdAt' | 'updatedAt' | 'lastProgressUpdatedAt'>) => Promise<boolean | void>;
   isLoading?: boolean;
   suggestedGoals?: any[]; // From magic button
   orgId?: string;

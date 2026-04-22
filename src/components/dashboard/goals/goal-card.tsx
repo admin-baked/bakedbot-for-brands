@@ -40,7 +40,8 @@ export function GoalCard({
   const categoryInfo = getGoalCategoryInfo(goal.category);
 
   const now = new Date();
-  const daysRemaining = Math.floor((goal.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const endMs = goal.endDate instanceof Date ? goal.endDate.getTime() : new Date(goal.endDate as unknown as string).getTime();
+  const daysRemaining = Number.isFinite(endMs) ? Math.floor((endMs - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
   const isOverdue = daysRemaining < 0;
   const isUrgent = daysRemaining <= 3 && daysRemaining > 0;
 

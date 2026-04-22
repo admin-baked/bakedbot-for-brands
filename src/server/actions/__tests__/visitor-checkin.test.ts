@@ -20,7 +20,7 @@ jest.mock('@/lib/reviews/google-review-url', () => ({
 }));
 
 jest.mock('../email-capture', () => ({
-  captureEmailLead: jest.fn(),
+  captureEmailLead: jest.fn().mockResolvedValue({ success: true, leadId: 'default-lead', isNewLead: true }),
 }));
 
 jest.mock('@/server/services/customer-onboarding', () => ({
@@ -41,6 +41,10 @@ jest.mock('@/lib/logger', () => ({
     warn: jest.fn(),
     error: jest.fn(),
   },
+}));
+
+jest.mock('@/server/auth/auth', () => ({
+  requireUser: jest.fn().mockResolvedValue(null),
 }));
 
 type CollectionName = 'customers' | 'checkin_visits' | 'email_leads' | 'orders' | 'tenants' | 'weekly_campaign_subscribers';
@@ -151,6 +155,22 @@ function createFirestore(args?: {
 
   const firestore = {
     batch: jest.fn(() => batch),
+    runTransaction: jest.fn(async (fn: (tx: unknown) => Promise<void>) => {
+      const tx = {
+        set: jest.fn((ref: { id: string; __collectionName: CollectionName }, data: Record<string, unknown>) => {
+          getStore(ref.__collectionName).set(ref.id, data);
+        }),
+        update: jest.fn((ref: { id: string; __collectionName: CollectionName }, updates: Record<string, unknown>) => {
+          const current = getStore(ref.__collectionName).get(ref.id) ?? {};
+          getStore(ref.__collectionName).set(ref.id, { ...current, ...updates });
+        }),
+        get: jest.fn(async (ref: { id: string; __collectionName: CollectionName }) => {
+          const data = getStore(ref.__collectionName).get(ref.id);
+          return { id: ref.id, exists: data !== undefined, data: () => data };
+        }),
+      };
+      await fn(tx);
+    }),
     collection: jest.fn((name: string) => {
       if (name === 'customers') {
         return {
@@ -222,7 +242,15 @@ function createFirestore(args?: {
         };
       }
 
-      throw new Error(`Unexpected collection: ${name}`);
+      // Catch-all for new collections added after initial test creation
+      return {
+        doc: (id: string) => makeDocRef('orders', id),
+        where: (field: string, _op: string, val: unknown) =>
+          makeQuery(orders, 'orders', [[field, val]]),
+        add: jest.fn(async (data: Record<string, unknown>) => {
+          return { id: `auto_${name}_${Math.random().toString(36).slice(2, 8)}` };
+        }),
+      };
     }),
   };
 
@@ -1190,7 +1218,7 @@ describe('regression: H3 — visitId collision-safe format', () => {
     });
 
     expect(result.success).toBe(true);
-    // Format: {customerId}_visit_{timestamp}_{6-hex}
-    expect(result.visitId).toMatch(/^.+_visit_\d+_[0-9a-f]{6}$/);
+    // visitId is now a UUID v4 from crypto.randomUUID()
+    expect(result.visitId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   });
 });

@@ -4,7 +4,7 @@
 import { ColumnDef } from '@tanstack/react-table';
 import type { Product } from '@/types/domain';
 import Image from 'next/image';
-import { ArrowUpDown, MoreHorizontal, Pencil, Trash2, Check, X, Loader2 } from 'lucide-react';
+import { ArrowUpDown, MoreHorizontal, Pencil, Trash2, Check, X, Loader2, Eye, EyeOff } from 'lucide-react';
 import { calculateProductScore, getScoreColor } from '@/lib/scoring';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +32,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useState, useTransition } from 'react';
-import { deleteProduct } from '../actions';
+import { deleteProduct, toggleProductStatus } from '../actions';
 import { updateProductCost } from '@/app/dashboard/menu/actions';
 import { useToast } from '@/hooks/use-toast';
 
@@ -166,6 +166,34 @@ function DeleteAction({ productId, productName }: { productId: string; productNa
 }
 
 
+function StatusToggleAction({ product }: { product: Product }) {
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+  const isDraft = product.status === 'draft';
+
+  const handleToggle = () => {
+    startTransition(async () => {
+      const newStatus = isDraft ? 'active' : 'draft';
+      const result = await toggleProductStatus(product.id, newStatus);
+      if (result.error) {
+        toast({ variant: 'destructive', title: 'Error', description: result.message });
+      } else {
+        toast({ title: isDraft ? 'Published' : 'Moved to Draft', description: result.message });
+      }
+    });
+  };
+
+  return (
+    <DropdownMenuItem onClick={handleToggle} disabled={isPending}>
+      {isDraft ? (
+        <><Eye className="mr-2 h-4 w-4" /> Publish</>
+      ) : (
+        <><EyeOff className="mr-2 h-4 w-4" /> Move to Draft</>
+      )}
+    </DropdownMenuItem>
+  );
+}
+
 export const columns: ColumnDef<Product>[] = [
   {
     accessorKey: 'imageUrl',
@@ -197,6 +225,20 @@ export const columns: ColumnDef<Product>[] = [
           Product Name
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
+      );
+    },
+    cell: ({ row }) => {
+      const name = row.getValue('name') as string;
+      const isDraft = row.original.status === 'draft';
+      return (
+        <div className="flex items-center gap-2">
+          <span>{name}</span>
+          {isDraft && (
+            <Badge variant="outline" className="text-xs text-muted-foreground">
+              Draft
+            </Badge>
+          )}
+        </div>
       );
     },
   },
@@ -343,6 +385,7 @@ export const columns: ColumnDef<Product>[] = [
                   <Pencil className="mr-2 h-4 w-4" /> Edit product
                 </Link>
               </DropdownMenuItem>
+              <StatusToggleAction product={product} />
               <DropdownMenuSeparator />
               <DeleteAction productId={product.id} productName={product.name} />
             </DropdownMenuContent>

@@ -224,6 +224,8 @@ export async function fetchBrandPageData(brandParam: string) {
             }
         }
 
+        products = products.filter(p => (p.status || 'active') !== 'draft');
+
         // 4. Fetch retailers carrying this brand (with timeout to prevent page hanging)
         // Using live search from CannMenusService
         let retailers: Retailer[] = [];

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/firebase/client';
-import { Upload, Link as LinkIcon, Loader2, X, ImageIcon } from 'lucide-react';
+import { Upload, Link as LinkIcon, Loader2, X, ImageIcon, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 
 interface ProductImageUploadProps {
@@ -42,8 +42,14 @@ export function ProductImageUpload({
     const [imageUrl, setImageUrl] = useState(currentImageUrl);
     const [isUploading, setIsUploading] = useState(false);
     const [activeTab, setActiveTab] = useState<string>(initialImages.length > 0 ? 'url' : 'upload');
+    const [lastSavedUrl, setLastSavedUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
+
+    const showSaveIndicator = useCallback((url: string) => {
+        setLastSavedUrl(url);
+        setTimeout(() => setLastSavedUrl(null), 2500);
+    }, []);
 
     // Handle URL input change
     const handleUrlChange = (url: string) => {
@@ -56,6 +62,7 @@ export function ProductImageUpload({
                 setImages(newImages);
                 onImagesChange?.(newImages);
                 setImageUrl(''); // Clear input after adding
+                showSaveIndicator(url);
                 toast({
                     title: 'Image added',
                     description: 'Image URL has been added successfully.',
@@ -146,6 +153,7 @@ export function ProductImageUpload({
                 onImageChange(downloadUrl);
             }
 
+            showSaveIndicator(downloadUrl);
             toast({
                 title: 'Image uploaded',
                 description: 'Product image has been uploaded successfully.',
@@ -303,6 +311,11 @@ export function ProductImageUpload({
                                 {index === 0 && (
                                     <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
                                         Primary
+                                    </div>
+                                )}
+                                {lastSavedUrl === url && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-emerald-500/20 animate-in fade-in duration-300">
+                                        <CheckCircle2 className="h-8 w-8 text-emerald-500 drop-shadow-md" />
                                     </div>
                                 )}
                             </div>

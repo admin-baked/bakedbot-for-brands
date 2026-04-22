@@ -38,12 +38,15 @@ export function ProductForm({ product, userRole, brands = [], showBackButton = f
   );
 
   useEffect(() => {
-    // Only show toast for general (non-field) errors.
-    // Field errors are displayed inline by the form.
     if (state.message && state.error && !state.fieldErrors) {
       toast({
         variant: 'destructive',
         title: 'Error',
+        description: state.message,
+      });
+    } else if (state.message && !state.error) {
+      toast({
+        title: 'Saved',
         description: state.message,
       });
     }
@@ -125,8 +128,23 @@ export function ProductForm({ product, userRole, brands = [], showBackButton = f
                     Describe the image for AI-generated placeholders if no image is provided
                 </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex items-center space-x-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select name="status" defaultValue={product?.status || 'active'}>
+                        <SelectTrigger id="status">
+                            <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="draft">Draft</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                        Draft products are hidden from public menus
+                    </p>
+                </div>
+                <div className="flex items-center space-x-2 pt-8">
                     <input
                         type="checkbox"
                         id="featured"
