@@ -487,9 +487,14 @@ function matchesOrgPreset(
     return false;
   }
 
-  return normalizedPreset === normalizedBrandName
+  if (normalizedPreset === normalizedBrandName
     || normalizedBrandName.includes(normalizedPreset)
-    || normalizedPreset.includes(normalizedBrandName);
+    || normalizedPreset.includes(normalizedBrandName)) {
+    return true;
+  }
+
+  const presetWords = normalizedPreset.split(' ');
+  return presetWords.length > 0 && presetWords.every(w => normalizedBrandName.includes(w));
 }
 
 function getMediaAspectRatio(
@@ -1105,7 +1110,8 @@ export default function CreativeCommandCenter() {
     setTone(inferredContext === 'company' ? 'professional' : 'educational');
     setSocialSafetyMode('social-safe');
 
-    const matchedPreset = visibleOrgPresets[0] ?? null;
+    const matchedPreset = visibleOrgPresets.find(p => matchesOrgPreset(p, brandGuide?.brandName))
+      ?? (visibleOrgPresets.length === 1 ? visibleOrgPresets[0] : null);
 
     if (matchedPreset) {
       setSelectedOrgPresetId(matchedPreset.id);
