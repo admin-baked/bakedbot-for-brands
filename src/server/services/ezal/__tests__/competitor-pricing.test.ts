@@ -74,6 +74,10 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+jest.mock('@/server/services/proactive-runtime-diagnostics', () => ({
+  recordProactiveRuntimeDiagnostic: jest.fn().mockResolvedValue(undefined),
+}));
+
 // Mock data
 const mockCompetitiveProducts = [
   {

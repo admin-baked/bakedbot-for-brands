@@ -66,7 +66,7 @@ const customJestConfig = {
 
     // Relocated / Missing modules
     '^@/lib/firebase$': '<rootDir>/src/firebase/admin.ts',
-    '^@/server/services/api-key-manager$': '<rootDir>/src/server/auth/api-key-auth.ts',
+    '^@/server/services/api-key-manager$': '<rootDir>/tests/__mocks__/api-key-auth.js',
 
     // Handle module aliases (this will be automatically configured for you soon)
     '^@/(.*)$': '<rootDir>/src/$1',

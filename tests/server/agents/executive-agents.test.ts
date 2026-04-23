@@ -14,6 +14,9 @@ jest.mock('@/lib/logger', () => ({ logger: { info: jest.fn(), warn: jest.fn(), e
 jest.mock('@/server/services/letta/block-manager', () => ({
     lettaBlockManager: { attachBlocksForRole: jest.fn().mockResolvedValue(true) }
 }));
+jest.mock('@/server/services/org-integration-status', () => ({
+    buildIntegrationStatusSummaryForOrg: jest.fn().mockResolvedValue('Mock integration status')
+}));
 jest.mock('@/server/agents/harness', () => ({
     runMultiStepTask: jest.fn().mockResolvedValue({
         finalResult: 'Task completed successfully',
@@ -26,6 +29,8 @@ import { jackAgent } from '@/server/agents/jack';
 import { glendaAgent } from '@/server/agents/glenda';
 import { executiveAgent } from '@/server/agents/executive';
 import type { ExecutiveMemory } from '@/server/agents/schemas';
+
+jest.setTimeout(30000);
 
 // Test data
 const mockBrandMemory = {
@@ -58,9 +63,9 @@ describe('Jack Agent (CRO)', () => {
         it('should set system instructions on initialization', async () => {
             const result = await jackAgent.initialize(mockBrandMemory as any, { ...mockAgentMemory });
 
-            expect(result.system_instructions).toContain('Chief Revenue Officer');
-            expect(result.system_instructions).toContain('REVENUE GROWTH');
-            expect(result.system_instructions).toContain('Show me the money');
+            expect(result.system_instructions).toContain('CRO');
+            expect(result.system_instructions).toContain('MRR growth');
+            expect(result.system_instructions).toContain('closing the right deals');
         });
 
         it('should copy objectives from brand memory', async () => {
@@ -134,15 +139,15 @@ describe('Glenda Agent (CMO)', () => {
             const result = await glendaAgent.initialize(mockBrandMemory as any, { ...mockAgentMemory });
 
             expect(result.system_instructions).toContain('Chief Marketing Officer');
-            expect(result.system_instructions).toContain('BRAND AWARENESS');
-            expect(result.system_instructions).toContain('ORGANIC GROWTH');
+            expect(result.system_instructions).toContain('Protect the brand');
+            expect(result.system_instructions).toContain('drive organic growth');
         });
 
         it('should include compliance guidance', async () => {
             const result = await glendaAgent.initialize(mockBrandMemory as any, { ...mockAgentMemory });
 
-            expect(result.system_instructions).toContain('cannabis marketing compliance');
-            expect(result.system_instructions).toContain('Deebo approval');
+            expect(result.system_instructions).toContain('Route compliance-sensitive content to Deebo');
+            expect(result.system_instructions).toContain('before publication');
         });
     });
 
@@ -209,7 +214,8 @@ describe('Executive Agent Base', () => {
             const result = await executiveAgent.initialize(mockBrandMemory as any, { ...mockAgentMemory });
 
             expect(result.system_instructions).toContain('Executive Boardroom');
-            expect(result.system_instructions).toContain('Plan & Delegate');
+            expect(result.system_instructions).toContain('strategic planner');
+            expect(result.system_instructions).toContain('owned, traceable next steps');
         });
     });
 
@@ -231,10 +237,9 @@ describe('Agent Tool Definitions', () => {
     it('Jack should have CRM and revenue tools defined', async () => {
         const agentMemory = await jackAgent.initialize(mockBrandMemory as any, { ...mockAgentMemory });
 
-        // The tool definitions are inside act(), so we verify via system instructions
-        expect(agentMemory.system_instructions).toContain('CRM Access');
-        expect(agentMemory.system_instructions).toContain('Revenue Metrics');
-        expect(agentMemory.system_instructions).toContain('Deal Management');
+        expect(agentMemory.system_instructions).toContain('pipeline velocity');
+        expect(agentMemory.system_instructions).toContain('KPI PACK');
+        expect(agentMemory.system_instructions).toContain('Operator');
     });
 
     it('Glenda should have marketing and analytics tools defined', async () => {

@@ -252,9 +252,41 @@ jest.mock('next/navigation', () => ({
     notFound: jest.fn(),
 }));
 
+// Mock next/server — NextRequest/NextResponse for API route tests
+jest.mock('next/server', () => {
+    class MockNextRequest {
+        constructor(input, init = {}) {
+            const url = typeof input === 'string' ? input : input?.url || 'http://localhost:3000/';
+            this._url = url;
+            this.method = (init.method || 'GET').toUpperCase();
+            this.headers = new Map(Object.entries(init.headers || {}));
+            this.body = init.body || null;
+            this.nextUrl = new URL(url);
+            this.cookies = { get: jest.fn(), getAll: jest.fn(() => []), set: jest.fn(), delete: jest.fn(), has: jest.fn(() => false) };
+            this.geo = {};
+            this.ip = '127.0.0.1';
+        }
+        get url() { return this._url; }
+        set url(v) { this._url = v; this.nextUrl = new URL(v); }
+        async json() { return typeof this.body === 'string' ? JSON.parse(this.body) : this.body; }
+        async text() { return typeof this.body === 'string' ? this.body : JSON.stringify(this.body ?? ''); }
+    }
+    const MockNextResponse = {
+        json: (body, init) => ({ status: init?.status || 200, headers: new Map(), json: async () => body, body }),
+        redirect: (url) => ({ status: 307, headers: new Map([['location', String(url)]]) }),
+        next: () => ({ status: 200 }),
+    };
+    return { NextRequest: MockNextRequest, NextResponse: MockNextResponse };
+});
+
+// Auth mocks: NOT set globally — individual test files mock @/server/auth/auth
+// and @/server/auth/api-key-auth themselves. Global mocks here would conflict
+// with per-test factories that need specific return values.
+
 // Mock the internal Genkit instance creator to bypass Proxy issues in tests
 jest.mock('@/ai/genkit', () => ({
     ai: {
+        generate: jest.fn().mockResolvedValue({ text: () => 'mock response', output: () => null }),
         definePrompt: jest.fn(() => jest.fn()),
         defineFlow: jest.fn(() => jest.fn()),
         defineTool: jest.fn((_config, impl) => impl),
