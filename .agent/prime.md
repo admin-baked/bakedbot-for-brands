@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | Stress test fixes: notification auth, tour viewport, goal toasts, checklist collapse (4.10.48-COD)
-**Recent work (2026-04-22):** Stress test bug fixes — notification orgId guard, tour viewport clamp, goal adopt toasts, checklist collapse, Elroy outreach ban list (`a61e3873a`, `5c8e8b090`).
+**Current Status:** local verified | Goals error fix, Creative Center preset matching, test infra (4.10.48-COD)
+**Recent work (2026-04-23):** Goals suggest error logging + toast, Creative Center preset matching by brand guide name, test infrastructure overhaul (`8e4d6131a`, `0546befc9`, `4d946bd09`).
 
 ---
 
