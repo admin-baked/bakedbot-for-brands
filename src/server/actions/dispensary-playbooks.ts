@@ -502,3 +502,51 @@ export async function getTierPlaybooksWithStatus(orgId: string) {
 
     return { playbooks: playbooksWithStatus, tierId, activeCount: activeIds.length };
 }
+
+// ─── Audience Counts ────────────────────────────────────────────────────────
+
+export interface PlaybookAudienceCounts {
+    emailCustomers: number;
+    weeklySubscribers: number;
+    totalCustomers: number;
+}
+
+export async function getPlaybookAudienceCounts(orgId: string): Promise<PlaybookAudienceCounts> {
+    try {
+        const user = await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'brand', 'brand_admin', 'super_user']);
+        if (!isUserAuthorizedForOrg(user as unknown as Record<string, unknown>, orgId)) {
+            return { emailCustomers: 0, weeklySubscribers: 0, totalCustomers: 0 };
+        }
+
+        const db = getAdminFirestore();
+
+        const [totalSnap, emailSnap, weeklySnap] = await Promise.all([
+            db.collection('customers')
+                .where('orgId', '==', orgId)
+                .select()
+                .get(),
+            db.collection('customers')
+                .where('orgId', '==', orgId)
+                .where('email', '!=', null)
+                .select()
+                .get(),
+            db.collection('weekly_campaign_subscribers')
+                .where('orgId', '==', orgId)
+                .where('status', '==', 'active')
+                .select()
+                .get(),
+        ]);
+
+        return {
+            totalCustomers: totalSnap.size,
+            emailCustomers: emailSnap.size,
+            weeklySubscribers: weeklySnap.size,
+        };
+    } catch (error) {
+        logger.warn('[PlaybookAudience] Failed to get counts', {
+            orgId,
+            err: error instanceof Error ? error.message : String(error),
+        });
+        return { emailCustomers: 0, weeklySubscribers: 0, totalCustomers: 0 };
+    }
+}

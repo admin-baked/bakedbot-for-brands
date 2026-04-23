@@ -37,8 +37,9 @@ import {
     toggleDispensaryPlaybookAssignment,
     activateAllTierPlaybooks,
     updatePlaybookAssignmentConfig,
+    getPlaybookAudienceCounts,
 } from '@/server/actions/dispensary-playbooks';
-import type { PlaybookCustomConfig } from '@/server/actions/dispensary-playbooks';
+import type { PlaybookCustomConfig, PlaybookAudienceCounts } from '@/server/actions/dispensary-playbooks';
 import { PlaybookEditSheet } from '../../playbooks/components/playbook-edit-sheet';
 import type { DeliveryConfig } from '../../playbooks/components/playbook-edit-sheet';
 import { CustomPlaybookEditorSheet } from '../../playbooks/components/custom-playbook-editor-sheet';
@@ -179,9 +180,10 @@ interface PlaybookCardProps {
     isToggling: boolean;
     onConfigure: (playbook: PlaybookDefinition) => void;
     customScheduleLabel?: string;
+    audienceCount?: number;
 }
 
-function PlaybookCard({ playbook, isActive, onToggle, isToggling, onConfigure, customScheduleLabel }: PlaybookCardProps) {
+function PlaybookCard({ playbook, isActive, onToggle, isToggling, onConfigure, customScheduleLabel, audienceCount }: PlaybookCardProps) {
     const agent = AGENT_CONFIG[playbook.agent];
     const display = AGENT_DISPLAY[playbook.agent];
     const AgentIcon = agent.icon;
@@ -240,6 +242,12 @@ function PlaybookCard({ playbook, isActive, onToggle, isToggling, onConfigure, c
                         className="scale-90"
                     />
                     <span className="text-sm font-medium text-foreground">{triggerLabel}</span>
+                    {typeof audienceCount === 'number' && audienceCount > 0 && (
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                            <Users className="inline h-3 w-3 mr-0.5 -mt-px" />
+                            {audienceCount.toLocaleString()}
+                        </span>
+                    )}
                 </div>
                 <span className={cn(
                     'text-xs font-bold px-2 py-1 rounded-md uppercase',
@@ -270,6 +278,8 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
     const [customConfigs, setCustomConfigs] = useState<Record<string, PlaybookCustomConfig>>({});
     const [editingPlaybook, setEditingPlaybook] = useState<PlaybookDefinition | null>(null);
 
+    const [audienceCounts, setAudienceCounts] = useState<PlaybookAudienceCounts | null>(null);
+
     // Custom playbooks state
     const [customPlaybooks, setCustomPlaybooks] = useState<Playbook[]>([]);
     const [editorOpen, setEditorOpen] = useState(false);
@@ -279,14 +289,16 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
     useEffect(() => {
         async function load() {
             try {
-                const [data, customResult] = await Promise.all([
+                const [data, customResult, counts] = await Promise.all([
                     getDispensaryPlaybookAssignments(orgId),
                     listCustomPlaybooks(orgId),
+                    getPlaybookAudienceCounts(orgId),
                 ]);
 
                 setActiveIds(new Set(data.activeIds));
                 setTierId(data.tierId);
                 setCustomConfigs(data.customConfigs);
+                setAudienceCounts(counts);
 
                 // Get tier playbooks from config
                 const tierIds = new Set(getPlaybookIdsForTier(data.tierId));
@@ -440,6 +452,13 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
         });
         setEditingPlaybook(null);
     };
+
+    function getAudienceCountForPlaybook(playbook: PlaybookDefinition): number | undefined {
+        if (!audienceCounts) return undefined;
+        const hasEmail = playbook.channels.includes('email');
+        if (hasEmail) return audienceCounts.emailCustomers;
+        return audienceCounts.totalCustomers;
+    }
 
     // Group playbooks by agent
     const groupedPlaybooks = tierPlaybooks.reduce<Record<string, PlaybookDefinition[]>>((acc, p) => {
@@ -631,6 +650,7 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
                                                         ? 'Custom schedule'
                                                         : undefined
                                                 }
+                                                audienceCount={getAudienceCountForPlaybook(playbook)}
                                             />
                                         </motion.div>
                                     ))}
