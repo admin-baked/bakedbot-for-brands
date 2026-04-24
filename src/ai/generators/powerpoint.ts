@@ -1,4 +1,4 @@
-'use server';
+import 'server-only';
 
 /**
  * PowerPoint generator — deck scripting + presentation rendering + Firebase Storage upload.
