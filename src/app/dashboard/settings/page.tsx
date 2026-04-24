@@ -4,7 +4,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe, Code, Download, Store, Users, Palette, Bot, Plug, Sparkles, Target, Wallet, Mail } from 'lucide-react';
+import { Globe, Code, Download, Store, Users, Palette, Bot, Plug, Sparkles, Target, Wallet, Mail, MessageSquare } from 'lucide-react';
 import DomainSettingsTab from './components/domain-tab';
 import EmbedGeneratorTab from './components/embed-tab';
 import WordPressPluginTab from './components/wordpress-tab';
@@ -144,6 +144,10 @@ export default function SettingsPage() {
               Billing
             </TabsTrigger>
           )}
+          <TabsTrigger value="sms">
+            <MessageSquare className="mr-2 h-4 w-4" />
+            SMS
+          </TabsTrigger>
           {(hasBrandAdminAccess || hasDispensaryAdminAccess) && (
             <TabsTrigger value="payments">
               <Wallet className="mr-2 h-4 w-4" />
@@ -254,6 +258,25 @@ export default function SettingsPage() {
 
         <TabsContent value="payments" className="space-y-4">
           <PaymentsTab />
+        </TabsContent>
+
+        <TabsContent value="sms" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-primary" />
+                SMS / 10DLC Registration
+              </CardTitle>
+              <CardDescription>
+                Collect brand and campaign data for 10DLC registration with The Campaign Registry. Fill in the form and submit — we'll email you a copy for manual entry with your SMS provider.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild>
+                <Link href="/dashboard/settings/sms-registration">Open SMS Registration Form →</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="billing" className="space-y-4">
