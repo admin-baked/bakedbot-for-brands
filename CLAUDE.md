@@ -19,7 +19,7 @@ npm run ci:health
 If `ci:health` shows red: **fix the CI failure before doing any new work.** Don't push on top of a broken build.
 If `check:types` fails: **fix type errors before any other work.**
 
-**Current Status:** local verified | Test infra round 2 — 236→118 failing suites (73410d409) | **Last update:** 2026-04-23
+**Current Status:** local verified | Test infra round 3 — 118→~0 failing suites (0ce0bc73d) | **Last update:** 2026-04-24
 
 ---
 

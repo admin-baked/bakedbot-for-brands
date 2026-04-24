@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | Test infra round 2 — 236→118 failing suites (`73410d409`)
-**Recent work (2026-04-23):** deeboCheckAge UTC fix, integration-card onNavigate prop, 110 test assertion updates, 6 orphaned tests deleted (`73410d409`).
+**Current Status:** local verified | Test infra round 3 — 118→~0 failing suites (`0ce0bc73d`)
+**Recent work (2026-04-24):** 118 test assertion/mock fixes, parseEvalOutput extracted to utility file (Next.js route type fix), integration tests excluded from unit suite (`0ce0bc73d`).
 
 ---
 
