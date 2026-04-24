@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | Thrive Syracuse analytics audit + delivery live tab + category normalization (`a132ae18c`)
-**Recent work (2026-04-24):** Thrive Syracuse Analytics now uses the live delivery panel, shared category normalization, aligned org-scoped pricing analytics, and clearer light-theme chart/empty states across Orders, Products, Pricing, and Upsells (`a132ae18c`).
+**Current Status:** local verified | SMS/10DLC registration form + SES email + super user admin view (`b1b0093ca`)
+**Recent work (2026-04-24):** SMS/10DLC registration form in Settings; SES email to martez@bakedbot.ai on submit; super user admin view at /dashboard/admin/sms-registrations (`b1b0093ca`).
 
 ---
 

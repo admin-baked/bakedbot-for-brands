@@ -19,7 +19,7 @@ npm run ci:health
 If `ci:health` shows red: **fix the CI failure before doing any new work.** Don't push on top of a broken build.
 If `check:types` fails: **fix type errors before any other work.**
 
-**Current Status:** local verified | Thrive Syracuse analytics audit + delivery live tab + category normalization (`a132ae18c`) | **Last update:** 2026-04-24
+**Current Status:** local verified | SMS/10DLC registration form + SES email + super user admin view (`b1b0093ca`) | **Last update:** 2026-04-24
 
 ---
 
