@@ -13,6 +13,7 @@ import { getActorOrgId } from '@/server/auth/org-context';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getMarketBenchmarks } from '@/server/services/market-benchmarks';
 import { loadCatalogAnalyticsProducts, toAnalyticsDate, type CatalogAnalyticsProduct } from '@/server/services/catalog-analytics-source';
+import { normalizeAnalyticsCategory } from '@/server/services/analytics-category';
 import { buildSlowMoverAudit, getSlowMoverThresholdsFromBenchmarks } from '@/server/services/slow-mover-audit';
 import type { MarketBenchmarks } from '@/types/market-benchmarks';
 import { logger } from '@/lib/logger';
@@ -368,7 +369,7 @@ function buildVelocitySeries(
     // Use actual 7-day and 30-day run rates to derive a deterministic trend.
     const catMap: Record<string, { olderDailyRevenue: number; recentDailyRevenue: number }> = {};
     for (const p of products) {
-        const cat = normalizeCat(p.category);
+        const cat = normalizeAnalyticsCategory(p.category);
         const recentDailyUnits = p.salesLast7Days > 0
             ? p.salesLast7Days / 7
             : p.salesVelocity > 0
@@ -411,19 +412,6 @@ function buildVelocitySeries(
     return series;
 }
 
-function normalizeCat(cat: string): string {
-    if (!cat) return 'Other';
-    const c = cat.toLowerCase();
-    if (c.includes('flower') || c.includes('bud')) return 'Flower';
-    if (c.includes('vape') || c.includes('cartridge') || c.includes('cart')) return 'Vape';
-    if (c.includes('edible') || c.includes('gummy') || c.includes('chocolate')) return 'Edibles';
-    if (c.includes('pre-roll') || c.includes('preroll') || c.includes('joint')) return 'Pre-Rolls';
-    if (c.includes('concentrate') || c.includes('wax') || c.includes('shatter') || c.includes('dab')) return 'Concentrates';
-    if (c.includes('tincture') || c.includes('oil') || c.includes('capsule')) return 'Tinctures';
-    if (c.includes('topical') || c.includes('cream') || c.includes('lotion')) return 'Topicals';
-    return cat.charAt(0).toUpperCase() + cat.slice(1);
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // 6A-1: getProductsAnalytics
 // ─────────────────────────────────────────────────────────────────────────────
@@ -452,7 +440,7 @@ export async function getProductsAnalytics(
                 const contributionMarginPct = revenue > 0 ? grossProfit / revenue : 0;
                 const action: SkuProfit['actionRecommendation'] =
                     contributionMarginPct < 0.05 ? 'rationalize' : 'reprice';
-                return { productId: p.id, name: p.name, category: normalizeCat(p.category), revenue, contributionMarginPct, actionRecommendation: action };
+                return { productId: p.id, name: p.name, category: normalizeAnalyticsCategory(p.category), revenue, contributionMarginPct, actionRecommendation: action };
             })
             .filter(s => s.contributionMarginPct < 0.15 && s.revenue > 0)
             .sort((a, b) => b.revenue - a.revenue)
@@ -482,7 +470,7 @@ export async function getProductsAnalytics(
         // Category mix by revenue
         const catRevMap: Record<string, number> = {};
         for (const p of products) {
-            const cat = normalizeCat(p.category);
+            const cat = normalizeAnalyticsCategory(p.category);
             catRevMap[cat] = (catRevMap[cat] ?? 0) + (p.salesLast30Days ?? 0) * p.price;
         }
         const totalRev = Object.values(catRevMap).reduce((s, v) => s + v, 0);
@@ -661,7 +649,7 @@ export async function getMenuAnalytics(
         interface CatAgg { revenue: number; gpSum: number; units: number; stock: number; skuCount: number; }
         const catAgg: Record<string, CatAgg> = {};
         for (const p of products) {
-            const cat = normalizeCat(p.category);
+            const cat = normalizeAnalyticsCategory(p.category);
             if (!catAgg[cat]) catAgg[cat] = { revenue: 0, gpSum: 0, units: 0, stock: 0, skuCount: 0 };
             const soldUnits = p.salesLast30Days ?? 0;
             const revenue = soldUnits * p.price;
@@ -689,7 +677,7 @@ export async function getMenuAnalytics(
         const skuRationalizationFlags = slowMoverAudit.items.map((item) => ({
             productId: item.productId,
             name: item.name,
-            category: normalizeCat(item.category),
+            category: normalizeAnalyticsCategory(item.category),
             daysSinceLastSale: item.daysSinceLastSale,
             velocity: item.salesVelocity,
             action: item.action,

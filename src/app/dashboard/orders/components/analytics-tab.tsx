@@ -1,26 +1,25 @@
 'use client';
 
-/**
- * OrdersAnalyticsTab
- *
- * Dashboard analytics widgets for orders:
- * 1. Basket Size Trend (line, 30d)
- * 2. Discount Rate Trend (line, 30d, dual benchmark reference lines) — THE KEY CHART
- * 3. Units Per Transaction Trend (line, 30d)
- * 4. Peak Hour Heatmap (custom grid: 7 days × 18 hours)
- * 5. Online vs In-Store Split (donut, hidden when both 0)
- */
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    LineChart, Line, PieChart, Pie, Cell,
-    XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer,
+    CartesianGrid,
+    Cell,
+    Legend,
+    Line,
+    LineChart,
+    Pie,
+    PieChart,
+    ReferenceLine,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
 } from 'recharts';
 import { AlertTriangle, MessageSquare } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getOrdersAnalytics, type OrdersAnalyticsData } from '@/server/actions/dispensary-analytics';
 
@@ -30,19 +29,28 @@ interface Props {
 
 const CHART_HEIGHT = 200;
 const DOW_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const AXIS_TICK_STYLE = { fontSize: 10, fill: 'hsl(var(--muted-foreground))' };
+const GRID_STROKE = 'hsl(var(--border))';
+const TOOLTIP_STYLE = {
+    backgroundColor: 'hsl(var(--background))',
+    border: '1px solid hsl(var(--border))',
+    borderRadius: 8,
+    fontSize: 11,
+    color: 'hsl(var(--foreground))',
+};
 
 function AskPopsButton({ message }: { message: string }) {
     return (
         <Button
             variant="ghost"
             size="sm"
-            className="text-xs text-muted-foreground hover:text-primary gap-1"
+            className="gap-1 text-xs text-muted-foreground hover:text-primary"
             onClick={() => {
                 window.location.href = `/dashboard/inbox?message=${encodeURIComponent(message)}`;
             }}
         >
             <MessageSquare className="h-3 w-3" />
-            Ask Pops →
+            Ask Pops
         </Button>
     );
 }
@@ -52,7 +60,7 @@ function WidgetSkeleton() {
         <Card>
             <CardHeader>
                 <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-3 w-64 mt-1" />
+                <Skeleton className="mt-1 h-3 w-64" />
             </CardHeader>
             <CardContent>
                 <Skeleton className="h-[200px] w-full" />
@@ -61,7 +69,22 @@ function WidgetSkeleton() {
     );
 }
 
-/** Intensity color for heatmap cell */
+function EmptyOrdersState() {
+    return (
+        <Card>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Orders Analytics</CardTitle>
+                <CardDescription className="text-xs">
+                    We have not seen detailed order events for the last 30 days in this workspace yet.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="py-8 text-sm text-muted-foreground">
+                Once completed order events are flowing, basket size, discount rate, peak-hour demand, and channel split will populate here.
+            </CardContent>
+        </Card>
+    );
+}
+
 function heatColor(count: number, max: number): string {
     if (max === 0 || count === 0) return 'rgba(100,116,139,0.15)';
     const pct = count / max;
@@ -71,48 +94,50 @@ function heatColor(count: number, max: number): string {
     return 'rgba(34,197,94,1)';
 }
 
-/** Peak Hour Heatmap: 7 columns (Mon-Sun) × hours (6am-11pm) */
 function PeakHourHeatmap({ data }: { data: OrdersAnalyticsData['peakHourHeatmap'] }) {
-    const maxCount = Math.max(...data.map(d => d.transactionCount), 1);
-
-    // Group by hour
-    const hours = Array.from(new Set(data.map(d => d.hour))).sort((a, b) => a - b);
+    const maxCount = Math.max(...data.map((row) => row.transactionCount), 1);
+    const hours = Array.from(new Set(data.map((row) => row.hour))).sort((left, right) => left - right);
 
     return (
         <div className="overflow-x-auto">
             <div className="inline-block min-w-full">
-                {/* Day headers */}
-                <div className="flex ml-12 mb-1">
-                    {DOW_LABELS.map(d => (
-                        <div key={d} className="w-8 text-center text-xs text-muted-foreground">{d}</div>
+                <div className="mb-1 ml-12 flex">
+                    {DOW_LABELS.map((label) => (
+                        <div key={label} className="w-8 text-center text-xs text-muted-foreground">
+                            {label}
+                        </div>
                     ))}
                 </div>
-                {/* Hour rows */}
-                {hours.map(hour => {
+                {hours.map((hour) => {
                     const label = hour === 12 ? '12pm' : hour < 12 ? `${hour}am` : `${hour - 12}pm`;
                     return (
-                        <div key={hour} className="flex items-center mb-0.5">
-                            <div className="w-12 text-xs text-muted-foreground text-right pr-2">{label}</div>
-                            {[0, 1, 2, 3, 4, 5, 6].map(dow => {
-                                const cell = data.find(d => d.hour === hour && d.dayOfWeek === dow);
+                        <div key={hour} className="mb-0.5 flex items-center">
+                            <div className="w-12 pr-2 text-right text-xs text-muted-foreground">{label}</div>
+                            {[0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => {
+                                const cell = data.find(
+                                    (row) => row.hour === hour && row.dayOfWeek === dayOfWeek,
+                                );
                                 const count = cell?.transactionCount ?? 0;
                                 return (
                                     <div
-                                        key={dow}
-                                        className="w-8 h-3.5 rounded-sm mx-px"
+                                        key={dayOfWeek}
+                                        className="mx-px h-3.5 w-8 rounded-sm"
                                         style={{ backgroundColor: heatColor(count, maxCount) }}
-                                        title={`${DOW_LABELS[dow]} ${label}: ${count} txns`}
+                                        title={`${DOW_LABELS[dayOfWeek]} ${label}: ${count} txns`}
                                     />
                                 );
                             })}
                         </div>
                     );
                 })}
-                {/* Legend */}
-                <div className="flex items-center gap-1 mt-2 ml-12">
+                <div className="mt-2 ml-12 flex items-center gap-1">
                     <span className="text-xs text-muted-foreground">Low</span>
-                    {[0.1, 0.35, 0.6, 0.85, 1].map(pct => (
-                        <div key={pct} className="w-4 h-3 rounded-sm" style={{ backgroundColor: heatColor(pct * 10, 10) }} />
+                    {[0.1, 0.35, 0.6, 0.85, 1].map((pct) => (
+                        <div
+                            key={pct}
+                            className="h-3 w-4 rounded-sm"
+                            style={{ backgroundColor: heatColor(pct * 10, 10) }}
+                        />
                     ))}
                     <span className="text-xs text-muted-foreground">High</span>
                 </div>
@@ -129,22 +154,27 @@ export function OrdersAnalyticsTab({ orgId }: Props) {
     useEffect(() => {
         let cancelled = false;
         setLoading(true);
-        getOrdersAnalytics(orgId).then(result => {
+        getOrdersAnalytics(orgId).then((result) => {
             if (cancelled) return;
             if (result.success && result.data) {
                 setData(result.data);
+                setError(null);
             } else {
                 setError(result.error ?? 'Failed to load analytics');
             }
             setLoading(false);
         });
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+        };
     }, [orgId]);
 
     if (loading) {
         return (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {Array.from({ length: 4 }).map((_, i) => <WidgetSkeleton key={i} />)}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, index) => (
+                    <WidgetSkeleton key={index} />
+                ))}
             </div>
         );
     }
@@ -158,20 +188,35 @@ export function OrdersAnalyticsTab({ orgId }: Props) {
         );
     }
 
-    const hasOnlineData = data.onlineVsInStoreSplit.some(d => d.value > 0);
+    const hasOnlineData = data.onlineVsInStoreSplit.some((row) => row.value > 0);
+    const hasBasketTrend = data.basketSizeTrend.some((row) => row.avgBasket > 0);
+    const hasUptTrend = data.uptTrend.some((row) => row.avgUnitsPerTransaction > 0);
+    const hasDiscountTrend = data.discountRateTrend.some((row) => row.discountRate > 0);
+    const hasHeatmapData = data.peakHourHeatmap.some((row) => row.transactionCount > 0);
+    const hasAnyOrderSignals =
+        hasBasketTrend ||
+        hasUptTrend ||
+        hasDiscountTrend ||
+        hasHeatmapData ||
+        hasOnlineData;
+
+    if (!hasAnyOrderSignals) {
+        return <EmptyOrdersState />;
+    }
+
     const donutColors = ['#3b82f6', '#22c55e'];
 
     return (
         <div className="space-y-4">
-            {/* Row 1: Basket Size + Units Per Transaction */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* 1. Basket Size Trend */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <Card>
                     <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-3">
                             <div>
                                 <CardTitle className="text-sm">Avg Basket Size</CardTitle>
-                                <CardDescription className="text-xs">30-day rolling average transaction value</CardDescription>
+                                <CardDescription className="text-xs">
+                                    30-day rolling average transaction value
+                                </CardDescription>
                             </div>
                             <AskPopsButton message="How can I increase my average basket size?" />
                         </div>
@@ -179,23 +224,33 @@ export function OrdersAnalyticsTab({ orgId }: Props) {
                     <CardContent>
                         <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
                             <LineChart data={data.basketSizeTrend} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                                <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.5)' }} tickLine={false} axisLine={false} interval={6} />
-                                <YAxis tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.5)' }} tickLine={false} axisLine={false} width={36} tickFormatter={v => `$${v}`} />
-                                <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 11 }} formatter={(v: number) => [`$${v.toFixed(2)}`, 'Avg Basket']} />
+                                <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.45} />
+                                <XAxis dataKey="date" tick={AXIS_TICK_STYLE} tickLine={false} axisLine={false} interval={6} />
+                                <YAxis
+                                    tick={AXIS_TICK_STYLE}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    width={36}
+                                    tickFormatter={(value) => `$${value}`}
+                                />
+                                <Tooltip
+                                    contentStyle={TOOLTIP_STYLE}
+                                    formatter={(value: number) => [`$${value.toFixed(2)}`, 'Avg Basket']}
+                                />
                                 <Line type="monotone" dataKey="avgBasket" stroke="#3b82f6" strokeWidth={2} dot={false} />
                             </LineChart>
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
 
-                {/* 3. Units Per Transaction Trend */}
                 <Card>
                     <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-3">
                             <div>
                                 <CardTitle className="text-sm">Units Per Transaction</CardTitle>
-                                <CardDescription className="text-xs">Average items per order (30 days)</CardDescription>
+                                <CardDescription className="text-xs">
+                                    Average items per order (30 days)
+                                </CardDescription>
                             </div>
                             <AskPopsButton message="What bundle or upsell strategies would help increase units per transaction?" />
                         </div>
@@ -203,75 +258,81 @@ export function OrdersAnalyticsTab({ orgId }: Props) {
                     <CardContent>
                         <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
                             <LineChart data={data.uptTrend} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                                <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.5)' }} tickLine={false} axisLine={false} interval={6} />
-                                <YAxis tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.5)' }} tickLine={false} axisLine={false} width={28} />
-                                <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 11 }} formatter={(v: number) => [v.toFixed(1), 'Units/Txn']} />
-                                <Line type="monotone" dataKey="avgUnitsPerTransaction" stroke="#22c55e" strokeWidth={2} dot={false} />
+                                <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.45} />
+                                <XAxis dataKey="date" tick={AXIS_TICK_STYLE} tickLine={false} axisLine={false} interval={6} />
+                                <YAxis tick={AXIS_TICK_STYLE} tickLine={false} axisLine={false} width={28} />
+                                <Tooltip
+                                    contentStyle={TOOLTIP_STYLE}
+                                    formatter={(value: number) => [value.toFixed(1), 'Units/Txn']}
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="avgUnitsPerTransaction"
+                                    stroke="#22c55e"
+                                    strokeWidth={2}
+                                    dot={false}
+                                />
                             </LineChart>
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Row 2: Discount Rate (full-width — THE key chart) */}
             <Card>
                 <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
                         <div>
                             <CardTitle className="text-sm">Discount Rate Trend</CardTitle>
                             <CardDescription className="text-xs">
-                                Your discount rate vs national average ({(data.industryDiscountBenchmark * 100).toFixed(1)}%) and your market target ({(data.marketDiscountTarget * 100).toFixed(1)}%)
+                                Your discount rate versus national and market benchmarks
                             </CardDescription>
                         </div>
-                        <AskPopsButton message="My discount rate is trending high — what's driving it and how do I bring it down without losing customers?" />
+                        <AskPopsButton message="My discount rate is trending high. What is driving it and how do I bring it down without losing customers?" />
                     </div>
                 </CardHeader>
                 <CardContent>
+                    <div className="mb-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1">
+                            <span className="h-2 w-2 rounded-full bg-red-500" />
+                            National avg {(data.industryDiscountBenchmark * 100).toFixed(1)}%
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1">
+                            <span className="h-2 w-2 rounded-full bg-amber-500" />
+                            Market target {(data.marketDiscountTarget * 100).toFixed(1)}%
+                        </span>
+                    </div>
                     <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
                         <LineChart data={data.discountRateTrend} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                            <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.5)' }} tickLine={false} axisLine={false} interval={6} />
+                            <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.45} />
+                            <XAxis dataKey="date" tick={AXIS_TICK_STYLE} tickLine={false} axisLine={false} interval={6} />
                             <YAxis
-                                tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.5)' }}
+                                tick={AXIS_TICK_STYLE}
                                 tickLine={false}
                                 axisLine={false}
                                 width={36}
-                                tickFormatter={v => `${(v * 100).toFixed(0)}%`}
+                                tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
                             />
                             <Tooltip
-                                contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 11 }}
-                                formatter={(v: number) => [`${(v * 100).toFixed(1)}%`, 'Discount Rate']}
+                                contentStyle={TOOLTIP_STYLE}
+                                formatter={(value: number) => [`${(value * 100).toFixed(1)}%`, 'Discount Rate']}
                             />
-                            {/* National avg — dashed red */}
-                            <ReferenceLine
-                                y={data.industryDiscountBenchmark}
-                                stroke="#ef4444"
-                                strokeDasharray="4 4"
-                                label={{ value: 'National avg', fill: '#ef4444', fontSize: 9, position: 'insideTopRight' }}
-                            />
-                            {/* Market target — dashed amber */}
-                            <ReferenceLine
-                                y={data.marketDiscountTarget}
-                                stroke="#f59e0b"
-                                strokeDasharray="4 4"
-                                label={{ value: 'Your market target', fill: '#f59e0b', fontSize: 9, position: 'insideBottomRight' }}
-                            />
+                            <ReferenceLine y={data.industryDiscountBenchmark} stroke="#ef4444" strokeDasharray="4 4" />
+                            <ReferenceLine y={data.marketDiscountTarget} stroke="#f59e0b" strokeDasharray="4 4" />
                             <Line type="monotone" dataKey="discountRate" stroke="#a855f7" strokeWidth={2} dot={false} name="Discount Rate" />
                         </LineChart>
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
 
-            {/* Row 3: Peak Heatmap + Online Split */}
             <div className={cn('grid gap-4', hasOnlineData ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1')}>
-                {/* 4. Peak Hour Heatmap */}
                 <Card className={hasOnlineData ? 'lg:col-span-2' : ''}>
                     <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-3">
                             <div>
                                 <CardTitle className="text-sm">Peak Hours Heatmap</CardTitle>
-                                <CardDescription className="text-xs">Transaction intensity by hour of day and day of week</CardDescription>
+                                <CardDescription className="text-xs">
+                                    Transaction intensity by hour of day and day of week
+                                </CardDescription>
                             </div>
                             <AskPopsButton message="Based on my peak hours, when should I run flash promotions and staff heavier?" />
                         </div>
@@ -281,11 +342,10 @@ export function OrdersAnalyticsTab({ orgId }: Props) {
                     </CardContent>
                 </Card>
 
-                {/* 5. Online vs In-Store (only if data exists) */}
                 {hasOnlineData && (
                     <Card>
                         <CardHeader className="pb-2">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-3">
                                 <div>
                                     <CardTitle className="text-sm">Online vs In-Store</CardTitle>
                                     <CardDescription className="text-xs">Order channel split</CardDescription>
@@ -304,11 +364,11 @@ export function OrdersAnalyticsTab({ orgId }: Props) {
                                         outerRadius={80}
                                         paddingAngle={3}
                                     >
-                                        {data.onlineVsInStoreSplit.map((_, i) => (
-                                            <Cell key={i} fill={donutColors[i % donutColors.length]} />
+                                        {data.onlineVsInStoreSplit.map((_, index) => (
+                                            <Cell key={index} fill={donutColors[index % donutColors.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 11 }} />
+                                    <Tooltip contentStyle={TOOLTIP_STYLE} />
                                     <Legend wrapperStyle={{ fontSize: 10 }} />
                                 </PieChart>
                             </ResponsiveContainer>

@@ -10,6 +10,7 @@ import { getDispensaryRetailerId, getLocationId } from '@/app/dashboard/orders/o
 import { getOrdersFromAlleaves } from '@/app/dashboard/orders/actions';
 import { ANALYTICS_ORDER_STATUSES } from '@/app/dashboard/orders/order-utils';
 import { toNonNegativeNumber } from '@/server/services/catalog-analytics-source';
+import { normalizeAnalyticsCategory } from '@/server/services/analytics-category';
 
 const ANALYTICS_ALLOWED_ROLES = ['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user', 'super_admin'] as const;
 const DISPENSARY_ANALYTICS_ROLES = ['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender'] as const;
@@ -298,7 +299,7 @@ function getItemName(item: AnalyticsOrderItem): string {
 }
 
 function getItemCategory(item: AnalyticsOrderItem): string {
-  return getItemText(item, ['category', 'productCategory', 'type']) ?? 'Uncategorized';
+  return normalizeAnalyticsCategory(getItemText(item, ['category', 'productCategory', 'type']));
 }
 
 function getItemRevenue(item: AnalyticsOrderItem): number {

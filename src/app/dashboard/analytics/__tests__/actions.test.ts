@@ -336,6 +336,29 @@ describe('getAnalyticsData — brand role', () => {
     expect(categories['Edibles']).toBe(10);  // 10 * 1
   });
 
+  it('normalizes category variants before building salesByCategory', async () => {
+    const docs = [
+      makeOrderDoc({
+        items: [
+          { productId: 'p1', name: 'Lemon Haze', price: 12, qty: 1, category: 'pre rolls' },
+          { productId: 'p2', name: 'Blue Dream', price: 15, qty: 1, category: 'Pre-Rolls' },
+        ],
+        totals: { subtotal: 27, tax: 2, discount: 0, total: 29 },
+      }),
+    ];
+    const firestore = buildFirestore({
+      returnDocsWhen: (f) => f.some((x) => x.field === 'brandId'),
+      docs,
+    });
+    (createServerClient as jest.Mock).mockResolvedValue({ firestore });
+
+    const result = await getAnalyticsData('brand-acme');
+
+    expect(result.salesByCategory).toEqual([
+      { category: 'Pre-Rolls', revenue: 27 },
+    ]);
+  });
+
   it('handles orders with missing item arrays and numeric string totals', async () => {
     const docs = [
       makeOrderDoc({

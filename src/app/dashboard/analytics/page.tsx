@@ -7,6 +7,7 @@ import { DEFAULT_WIDGETS } from '@/lib/analytics-constants';
 import AnalyticsDashboard from './components/analytics-dashboard';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getActorOrgId } from '@/server/auth/org-context';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,11 +74,11 @@ export default async function DashboardAnalyticsPage() {
     redirect('/signin');
   }
 
-  const orgId =
-    (user as any).brandId ||
-    (user as any).currentOrgId ||
-    (user as any).orgId ||
-    '';
+  const orgId = getActorOrgId(user as {
+    currentOrgId?: string | null;
+    orgId?: string | null;
+    brandId?: string | null;
+  }) ?? '';
 
   const userRole = (user as any).role ?? 'brand';
 

@@ -273,6 +273,51 @@ describe('dispensary analytics', () => {
     expect(result.data.priceTierDistribution.every((row) => Number.isFinite(row.revenuePct))).toBe(true);
   });
 
+  it('collapses category variants into one canonical analytics label', async () => {
+    (getAdminFirestore as jest.Mock).mockReturnValue(makeFirestoreMock({
+      orgProducts: [
+        {
+          id: 'prod-pre-roll-1',
+          data: {
+            name: 'Lemon Haze 1g',
+            category: 'pre rolls',
+            price: 12,
+            stock: 4,
+            salesLast7Days: 2,
+            salesLast30Days: 10,
+            salesVelocity: 0.3,
+          },
+        },
+        {
+          id: 'prod-pre-roll-2',
+          data: {
+            name: 'Blue Dream 1g',
+            category: 'Pre-Rolls',
+            price: 15,
+            stock: 6,
+            salesLast7Days: 3,
+            salesLast30Days: 12,
+            salesVelocity: 0.4,
+          },
+        },
+      ],
+    }));
+
+    const result = await getMenuAnalytics('org-1');
+
+    expect(result.success).toBe(true);
+    if (!result.success || !result.data) {
+      throw new Error('Expected menu analytics data');
+    }
+
+    const categories = result.data.categoryPerformance.map((row) => row.category);
+    expect(categories).toEqual(['Pre-Rolls']);
+    expect(result.data.categoryPerformance[0]).toMatchObject({
+      revenue: 300,
+      skuCount: 2,
+    });
+  });
+
   it('falls back to orgId orders and reads nested totals for order analytics', async () => {
     (getAdminFirestore as jest.Mock).mockReturnValue(makeFirestoreMock({
       orgOrders: [

@@ -61,8 +61,29 @@ const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
 
 type TimeRange = '7d' | '14d' | '30d';
 
-export function PricingAnalyticsTab() {
+interface PricingAnalyticsTabProps {
+  orgId?: string;
+}
+
+function ChartEmptyState({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex h-full min-h-[300px] flex-col items-center justify-center px-6 text-center">
+      <TrendingUp className="mb-3 h-8 w-8 text-muted-foreground/60" />
+      <p className="text-sm font-medium">{title}</p>
+      <p className="mt-1 max-w-sm text-xs text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+export function PricingAnalyticsTab({ orgId }: PricingAnalyticsTabProps = {}) {
   const { dispensaryId } = useDispensaryId();
+  const resolvedOrgId = orgId && orgId.trim().length > 0 ? orgId : dispensaryId;
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -75,7 +96,14 @@ export function PricingAnalyticsTab() {
   >([]);
 
   const fetchData = async (showRefresh = false) => {
-    if (!dispensaryId) return;
+    if (!resolvedOrgId) {
+      setAnalytics(null);
+      setTimeSeriesData([]);
+      setCompetitorAlerts([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
 
     try {
       if (showRefresh) setRefreshing(true);
@@ -85,9 +113,9 @@ export function PricingAnalyticsTab() {
 
       // Fetch all data in parallel
       const [analyticsData, performanceResult, alertsResult] = await Promise.all([
-        getPricingAnalytics(dispensaryId),
-        getRulePerformanceData(dispensaryId, days),
-        getCompetitorPriceAlerts(dispensaryId),
+        getPricingAnalytics(resolvedOrgId),
+        getRulePerformanceData(resolvedOrgId, days),
+        getCompetitorPriceAlerts(resolvedOrgId),
       ]);
 
       setAnalytics(analyticsData);
@@ -103,7 +131,7 @@ export function PricingAnalyticsTab() {
 
   useEffect(() => {
     fetchData();
-  }, [dispensaryId, timeRange]);
+  }, [resolvedOrgId, timeRange]);
 
   if (loading) {
     return <AnalyticsLoadingSkeleton />;
@@ -124,6 +152,20 @@ export function PricingAnalyticsTab() {
       </Card>
     );
   }
+
+  const hasTimeSeriesData = timeSeriesData.some(
+    (row) => row.revenue > 0 || row.applications > 0
+  );
+  const meaningfulRulePerformance = analytics.rulePerformance.filter(
+    (rule) => rule.timesApplied > 0 || Math.abs(rule.revenue) > 0.01
+  );
+  const ruleDistributionData = meaningfulRulePerformance
+    .filter((rule) => rule.timesApplied > 0)
+    .slice(0, 5)
+    .map((rule) => ({
+      name: rule.ruleName,
+      value: rule.timesApplied,
+    }));
 
   return (
     <div className="space-y-6">
@@ -161,50 +203,57 @@ export function PricingAnalyticsTab() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={timeSeriesData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={(val) => {
-                      const date = new Date(val);
-                      return `${date.getMonth() + 1}/${date.getDate()}`;
-                    }}
-                    className="text-xs"
-                  />
-                  <YAxis
-                    tickFormatter={(val) => `$${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
-                    className="text-xs"
-                  />
-                  <Tooltip
-                    content={({ active, payload, label }) => {
-                      if (!active || !payload?.length) return null;
-                      return (
-                        <div className="bg-background border rounded-lg p-3 shadow-lg">
-                          <p className="text-sm font-medium mb-2">{label}</p>
-                          {payload.map((entry, i) => (
-                            <p key={i} className="text-sm" style={{ color: entry.color }}>
-                              {entry.name}: ${Number(entry.value).toFixed(2)}
-                            </p>
-                          ))}
-                        </div>
-                      );
-                    }}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="revenue"
-                    name="Revenue"
-                    stroke={COLORS.revenue}
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            {hasTimeSeriesData ? (
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={timeSeriesData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(val) => {
+                        const date = new Date(val);
+                        return `${date.getMonth() + 1}/${date.getDate()}`;
+                      }}
+                      className="text-xs"
+                    />
+                    <YAxis
+                      tickFormatter={(val) => `$${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
+                      className="text-xs"
+                    />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null;
+                        return (
+                          <div className="bg-background border rounded-lg p-3 shadow-lg">
+                            <p className="text-sm font-medium mb-2">{label}</p>
+                            {payload.map((entry, i) => (
+                              <p key={i} className="text-sm" style={{ color: entry.color }}>
+                                {entry.name}: ${Number(entry.value).toFixed(2)}
+                              </p>
+                            ))}
+                          </div>
+                        );
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="revenue"
+                      name="Revenue"
+                      stroke={COLORS.revenue}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <ChartEmptyState
+                title="No live pricing revenue yet"
+                description="We have not observed active dynamic pricing revenue in this window. Once rules are applied to live menu pricing, the daily revenue trend will populate here."
+              />
+            )}
           </CardContent>
         </Card>
 
@@ -220,44 +269,51 @@ export function PricingAnalyticsTab() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={timeSeriesData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={(val) => {
-                      const date = new Date(val);
-                      return `${date.getMonth() + 1}/${date.getDate()}`;
-                    }}
-                    className="text-xs"
-                  />
-                  <YAxis className="text-xs" />
-                  <Tooltip
-                    content={({ active, payload, label }) => {
-                      if (!active || !payload?.length) return null;
-                      return (
-                        <div className="bg-background border rounded-lg p-3 shadow-lg">
-                          <p className="text-sm font-medium mb-2">{label}</p>
-                          {payload.map((entry, i) => (
-                            <p key={i} className="text-sm" style={{ color: entry.color }}>
-                              {entry.name}: {entry.value}
-                            </p>
-                          ))}
-                        </div>
-                      );
-                    }}
-                  />
-                  <Legend />
-                  <Bar
-                    dataKey="applications"
-                    name="Updates"
-                    fill={COLORS.applications}
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {hasTimeSeriesData ? (
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={timeSeriesData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(val) => {
+                        const date = new Date(val);
+                        return `${date.getMonth() + 1}/${date.getDate()}`;
+                      }}
+                      className="text-xs"
+                    />
+                    <YAxis className="text-xs" />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null;
+                        return (
+                          <div className="bg-background border rounded-lg p-3 shadow-lg">
+                            <p className="text-sm font-medium mb-2">{label}</p>
+                            {payload.map((entry, i) => (
+                              <p key={i} className="text-sm" style={{ color: entry.color }}>
+                                {entry.name}: {entry.value}
+                              </p>
+                            ))}
+                          </div>
+                        );
+                      }}
+                    />
+                    <Legend />
+                    <Bar
+                      dataKey="applications"
+                      name="Updates"
+                      fill={COLORS.applications}
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <ChartEmptyState
+                title="No pricing updates observed"
+                description="This view tracks actual pricing changes by day. It will light up once dynamic pricing starts changing live product prices in this workspace."
+              />
+            )}
           </CardContent>
         </Card>
       </div>
@@ -276,9 +332,9 @@ export function PricingAnalyticsTab() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {analytics.rulePerformance.length > 0 ? (
+            {meaningfulRulePerformance.length > 0 ? (
               <div className="space-y-4">
-                {analytics.rulePerformance.slice(0, 5).map((rule, index) => (
+                {meaningfulRulePerformance.slice(0, 5).map((rule, index) => (
                   <div
                     key={rule.ruleId}
                     className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
@@ -376,7 +432,7 @@ export function PricingAnalyticsTab() {
       </div>
 
       {/* Rule Distribution Pie Chart */}
-      {analytics.rulePerformance.length > 0 && (
+      {ruleDistributionData.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -392,10 +448,7 @@ export function PricingAnalyticsTab() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={analytics.rulePerformance.slice(0, 5).map((r) => ({
-                      name: r.ruleName,
-                      value: r.timesApplied,
-                    }))}
+                    data={ruleDistributionData}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
@@ -407,7 +460,7 @@ export function PricingAnalyticsTab() {
                     }
                     labelLine={false}
                   >
-                    {analytics.rulePerformance.slice(0, 5).map((_, index) => (
+                    {ruleDistributionData.map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={PIE_COLORS[index % PIE_COLORS.length]}
