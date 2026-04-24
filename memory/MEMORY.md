@@ -2,11 +2,23 @@
 
 ---
 
+## Session 2026-04-24 - Thrive Analytics Audit (local)
+- **Delivery analytics activation**: Analytics now uses the real delivery analytics panel instead of the fake "Coming Soon" placeholder, with location-aware fallback messaging for non-dispensary scopes.
+- **Category normalization**: Shared analytics category normalization now collapses raw variants like `pre rolls` and `Pre-Rolls` into canonical buckets across Overview, Menu, and product analytics.
+- **Cross-tab analytics cleanup**: Orders, Products, Pricing, and Upsells now render readable light-theme charts and explicit empty states instead of blank-looking panels or misleading near-zero visualizations.
+- **Context alignment**: Dashboard Analytics now resolves the active org through the canonical actor context and passes that org into pricing analytics so Thrive Syracuse tabs stay in the same workspace.
+- **Verification**: focused analytics suites passed `49/49`; `npm run -s check:types` passed.
+- **Ship note**: bumped to `4.10.54-COD`; code landed in `a132ae18c`.
+- See `sessions/2026-04-24-1139-thrive-analytics-audit.md`
+
+---
+
 ## Session 2026-04-24 - Creative Audit + Rerun9 Green (local)
 - **Verification hardening**: Updated onboarding, gauntlet, and Ezal test seams to mock current entitlement, Context OS, and handoff side effects instead of timing out on real service initialization.
 - **Creative Center UX**: Thrive Syracuse's Creative Center now makes failed generation recoverable by telling the user their caption is preserved, offering a direct Inbox fallback, and clarifying when approval is blocking scheduling.
 - **Perf spec alignment**: Sidebar render-budget assertions now use a CI-safe threshold that still catches meaningful regressions without false-red JSDOM timing noise.
-- **Verification**: targeted repaired suites passed `98/98`; full Jest rerun9 passed `956/956` executed suites (`10,070` tests passed, `14` suites skipped); `check:all` passed with pre-existing advisory repo-rule notes only.
+- **Verification**: targeted repaired suites passed `98/98`; full Jest rerun9 passed `956/956` executed suites (`10,070` tests passed, `14` suites skipped); `check:all` and post-bump `check:types` passed with pre-existing advisory repo-rule notes only.
+- **Ship note**: bumped to `4.10.51-COD`; code landed in `49d877db1` and the follow-on session-note push landed in `1fffa38e4`.
 - See `sessions/2026-04-24-0855-creative-audit-rerun9.md`
 
 ---

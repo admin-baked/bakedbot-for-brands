@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | Brand guide video live + Creative Center approval UX (`49d877db1`)
-**Recent work (2026-04-24):** Brand guide onboarding video uploaded to GCS + VideoPlayer MDX component + Help Docs embed; Creative Center approval CTA guidance + error recovery (`49d877db1`).
+**Current Status:** local verified | Thrive Syracuse analytics audit + delivery live tab + category normalization (`a132ae18c`)
+**Recent work (2026-04-24):** Thrive Syracuse Analytics now uses the live delivery panel, shared category normalization, aligned org-scoped pricing analytics, and clearer light-theme chart/empty states across Orders, Products, Pricing, and Upsells (`a132ae18c`).
 
 ---
 
