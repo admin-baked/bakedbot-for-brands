@@ -70,6 +70,7 @@ import { mirrorBrandAssetFromUrl } from '@/server/actions/brand-assets';
 import { generateBrandImagesForNewAccount } from '@/server/actions/brand-images';
 import { createOrgProfileFromWizard } from '@/server/actions/org-profile';
 import { createBrandGuideViaApi } from './create-brand-guide-client';
+import { OnboardingCoachingCard } from '@/components/dashboard/onboarding-coaching-card';
 import type { OrgProfile } from '@/types/org-profile';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -228,6 +229,9 @@ export function BrandGuideClient({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Onboarding video coaching card — auto-hides once step is marked complete */}
+      <OnboardingCoachingCard stepId="brand-guide" />
+
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold">Brand Guide</h1>
