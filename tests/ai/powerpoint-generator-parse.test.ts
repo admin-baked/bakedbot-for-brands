@@ -1,4 +1,4 @@
-import { parseDeckScriptResponse } from '@/ai/generators/powerpoint';
+import { parseDeckScriptResponse } from '@/ai/generators/powerpoint-utils';
 
 describe('parseDeckScriptResponse', () => {
     it('parses fenced json output from GLM', () => {
