@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | Test infra round 3 — 118→~0 failing suites (`0ce0bc73d`)
-**Recent work (2026-04-24):** 118 test assertion/mock fixes, parseEvalOutput extracted to utility file (Next.js route type fix), integration tests excluded from unit suite (`0ce0bc73d`).
+**Current Status:** local verified | Brand guide video live + Creative Center approval UX (`49d877db1`)
+**Recent work (2026-04-24):** Brand guide onboarding video uploaded to GCS + VideoPlayer MDX component + Help Docs embed; Creative Center approval CTA guidance + error recovery (`49d877db1`).
 
 ---
 
