@@ -84,16 +84,20 @@ export function VersionHistoryTab({ brandId, brandGuide }: VersionHistoryTabProp
     }
   };
 
-  const formatDate = (date: Date | { seconds: number; nanoseconds: number }): string => {
+  const formatDate = (date: Date | { seconds: number; nanoseconds: number } | string): string => {
     let jsDate: Date;
 
-    if (date instanceof Date) {
+    if (typeof date === 'string') {
+      jsDate = new Date(date);
+    } else if (date instanceof Date) {
       jsDate = date;
-    } else if ('seconds' in date) {
+    } else if (typeof date === 'object' && date !== null && 'seconds' in date) {
       jsDate = new Date(date.seconds * 1000);
     } else {
       return 'Unknown date';
     }
+
+    if (isNaN(jsDate.getTime())) return 'Unknown date';
 
     return jsDate.toLocaleDateString('en-US', {
       year: 'numeric',
