@@ -35,6 +35,7 @@ import {
     BookOpen,
     BookMarked,
     MessageSquarePlus,
+    MessageSquare,
     History,
     Trash2,
     ChevronRight,
@@ -342,6 +343,14 @@ export function SuperAdminSidebar() {
                                         <Link href="/dashboard/admin/org-provisioning">
                                             <Zap />
                                             <span>Org Provisioning</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/admin/sms-registrations')}>
+                                        <Link href="/dashboard/admin/sms-registrations">
+                                            <MessageSquare />
+                                            <span>SMS Registrations</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
