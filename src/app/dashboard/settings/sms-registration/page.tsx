@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
     MessageSquare, Building2, User, Megaphone, Key,
-    Copy, Check, Loader2, ChevronLeft, Mail,
+    Copy, Check, Loader2, ChevronLeft,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -117,9 +117,7 @@ export default function SmsRegistrationPage() {
     const [data, setData] = useState<SmsRegistrationData>({ ...EMPTY_SMS_REGISTRATION });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [emailing, setEmailing] = useState(false);
     const [saved, setSaved] = useState(false);
-    const [emailSent, setEmailSent] = useState(false);
     const [copied, setCopied] = useState(false);
     const [, startTransition] = useTransition();
 
@@ -151,19 +149,13 @@ export default function SmsRegistrationPage() {
     function submitReady() {
         if (!orgId) return;
         setSaving(true);
-        setEmailing(true);
         startTransition(async () => {
             const updated = { ...data, status: 'ready' as const };
             await saveSmsRegistration(orgId, updated);
-            const emailResult = await emailSmsRegistration(orgId, updated);
+            emailSmsRegistration(orgId, updated).catch(() => {});
             setSaving(false);
-            setEmailing(false);
             setData(updated);
             setSaved(true);
-            if (emailResult.success) {
-                setEmailSent(true);
-                setTimeout(() => setEmailSent(false), 5000);
-            }
             setTimeout(() => setSaved(false), 3000);
         });
     }
@@ -387,17 +379,16 @@ export default function SmsRegistrationPage() {
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
                     {saved && <span className="text-xs text-emerald-600 flex items-center gap-1"><Check className="h-3.5 w-3.5" />Saved</span>}
-                    {emailSent && <span className="text-xs text-blue-600 flex items-center gap-1"><Mail className="h-3.5 w-3.5" />Emailed to martez@bakedbot.ai</span>}
                     <Button onClick={submitReady} disabled={!isReady || saving} className="gap-2">
-                        {emailing ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
-                        Save &amp; Email Me
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                        Submit Registration
                     </Button>
                 </div>
             </div>
 
             {!isReady && (
                 <p className="text-xs text-muted-foreground">
-                    Fill in all required fields <span className="text-destructive">*</span> to email the registration data.
+                    Fill in all required fields <span className="text-destructive">*</span> to submit.
                 </p>
             )}
         </div>
