@@ -8,6 +8,12 @@ jest.mock('@/ai/claude', () => ({
     executeWithTools: jest.fn(),
     isClaudeAvailable: jest.fn().mockReturnValue(true)
 }));
+jest.mock('@/server/services/context-os', () => ({
+    DecisionLogService: {
+        createDecisionFromGauntlet: jest.fn().mockReturnValue({ task: 'verification' }),
+        logDecision: jest.fn().mockResolvedValue('decision_1'),
+    },
+}));
 
 describe('Gauntlet Integration: Deebo Evaluator', () => {
     beforeEach(() => {

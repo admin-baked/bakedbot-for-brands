@@ -18,6 +18,12 @@ jest.mock('next/cache', () => ({
 jest.mock('@/server/repos/brandRepo', () => ({
     makeBrandRepo: jest.fn().mockReturnValue({ create: jest.fn() }),
 }));
+jest.mock('@/lib/ai-studio/entitlements', () => ({
+    provisionAIStudioForOrg: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@/server/services/ai-studio-billing-service', () => ({
+    grantManualAIStudioCredits: jest.fn().mockResolvedValue({ applied: false }),
+}));
 jest.mock('@/lib/notifications/email-service', () => ({
     emailService: {
         sendWelcomeEmail: jest.fn().mockResolvedValue(true),

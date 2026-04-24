@@ -112,9 +112,9 @@ function renderPanel(props: Partial<React.ComponentProps<typeof DeeboComplianceP
 
 // Helper — find the green Publish/Schedule action button (NOT "Publishing Schedule" header)
 function getPublishCTA() {
-  // The CTA is a <button> whose text starts with "Publish" or "Schedule for"
+  // The CTA is a <button> whose text starts with the publish/schedule action label.
   return screen.getAllByRole('button').find(
-    btn => /^(Publish Now|Schedule for|Publishing\.\.\.)/.test(btn.textContent ?? ''),
+    btn => /^(Publish Now|Schedule for|Publishing\.\.\.|Complete approval to)/.test(btn.textContent ?? ''),
   );
 }
 
@@ -397,6 +397,26 @@ describe('DeeboCompliancePanel', () => {
       const btn = getPublishCTA();
       expect(btn).toBeDefined();
       expect(btn!.textContent).toMatch(/Schedule for/);
+    });
+
+    it('shows approval guidance in the CTA when approval is still pending', () => {
+      renderPanel({
+        content: makeContent({
+          approvalState: {
+            levels: [{ level: 1, name: 'Deebo Compliance Approval' }],
+            currentLevel: 1,
+            approvals: [],
+            status: 'pending_approval',
+            nextRequiredRoles: ['brand_admin'],
+          },
+        }),
+        date: new Date('2026-03-01T12:00:00Z'),
+      });
+
+      const btn = getPublishCTA();
+      expect(btn).toBeDefined();
+      expect(btn!.textContent).toMatch(/Complete approval to schedule/);
+      expect(btn).toBeDisabled();
     });
 
     it('publish CTA is disabled when content is null', () => {

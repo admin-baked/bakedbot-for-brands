@@ -349,6 +349,11 @@ export function DeeboCompliancePanel({
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Publishing...
                 </>
+              ) : !approvalReady ? (
+                <>
+                  <ShieldAlert className="w-4 h-4 mr-2" />
+                  {date ? 'Complete approval to schedule' : 'Complete approval to publish'}
+                </>
               ) : date ? (
                 <>
                   <Send className="w-4 h-4 mr-2" />
@@ -366,7 +371,9 @@ export function DeeboCompliancePanel({
               <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2.5">
                 <p className="text-[11px] font-medium text-blue-300">{pendingApprovalLabel} still needs to finish</p>
                 <p className="text-[10px] text-blue-200/80 mt-1 leading-relaxed">
-                  Publishing is locked until the active approval lane is completed.
+                  {failedChecks.length > 0
+                    ? "Accept Deebo's safe version or request a revision, then finish the active approval lane."
+                    : 'Publishing is locked until the active approval lane is completed.'}
                 </p>
               </div>
             )}

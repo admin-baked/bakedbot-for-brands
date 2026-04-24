@@ -102,6 +102,25 @@ export const components = {
     </div>
   ),
 
+  // Native video player for GCS/CDN MP4 files
+  VideoPlayer: ({ src, title, poster }: { src: string; title: string; poster?: string }) => (
+    <div className="mb-6 rounded-lg overflow-hidden shadow-lg bg-black">
+      <video
+        src={src}
+        title={title}
+        poster={poster}
+        controls
+        preload="metadata"
+        className="w-full max-h-[480px]"
+      >
+        <p className="text-sm text-white p-4">
+          Your browser does not support video playback.{' '}
+          <a href={src} className="underline">Download the video</a>.
+        </p>
+      </video>
+    </div>
+  ),
+
   StepByStep: ({ steps }: { steps: string[] }) => (
     <ol className="space-y-6 mb-6">
       {steps.map((step, i) => (

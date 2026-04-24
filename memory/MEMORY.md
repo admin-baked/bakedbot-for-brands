@@ -2,6 +2,15 @@
 
 ---
 
+## Session 2026-04-24 - Creative Audit + Rerun9 Green (local)
+- **Verification hardening**: Updated onboarding, gauntlet, and Ezal test seams to mock current entitlement, Context OS, and handoff side effects instead of timing out on real service initialization.
+- **Creative Center UX**: Thrive Syracuse's Creative Center now makes failed generation recoverable by telling the user their caption is preserved, offering a direct Inbox fallback, and clarifying when approval is blocking scheduling.
+- **Perf spec alignment**: Sidebar render-budget assertions now use a CI-safe threshold that still catches meaningful regressions without false-red JSDOM timing noise.
+- **Verification**: targeted repaired suites passed `98/98`; full Jest rerun9 passed `956/956` executed suites (`10,070` tests passed, `14` suites skipped); `check:all` passed with pre-existing advisory repo-rule notes only.
+- See `sessions/2026-04-24-0855-creative-audit-rerun9.md`
+
+---
+
 ## Session 2026-04-22 - Analytics Hardening (local)
 - **Analytics data resilience**: Overview metrics now tolerate missing order item arrays and string/currency-formatted totals without crashing.
 - **Dispensary visibility**: Super-user/admin Analytics views can use retailerId and Alleaves fallback paths for dispensary orgs, matching operator views.

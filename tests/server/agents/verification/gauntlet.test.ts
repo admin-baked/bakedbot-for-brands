@@ -7,6 +7,12 @@ import { VerificationContext } from '@/server/agents/verification/types';
 jest.mock('@/ai/claude', () => ({
     executeWithTools: jest.fn()
 }));
+jest.mock('@/server/services/context-os', () => ({
+    DecisionLogService: {
+        createDecisionFromGauntlet: jest.fn().mockReturnValue({ task: 'verification' }),
+        logDecision: jest.fn().mockResolvedValue('decision_1'),
+    },
+}));
 
 import { executeWithTools } from '@/ai/claude';
 

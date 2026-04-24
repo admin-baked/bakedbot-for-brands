@@ -19,6 +19,23 @@ jest.mock('@/server/agents/harness', () => ({
         };
     })
 }));
+jest.mock('@/server/intuition/handoff', () => ({
+    sendHandoff: jest.fn().mockResolvedValue({ id: 'handoff_1' }),
+}));
+jest.mock('@/server/services/org-profile', () => ({
+    getOrgProfileWithFallback: jest.fn().mockResolvedValue(null),
+    buildEzalContextBlock: jest.fn().mockReturnValue(''),
+}));
+jest.mock('@/server/services/market-benchmarks', () => ({
+    getMarketBenchmarks: jest.fn().mockResolvedValue(null),
+    buildBenchmarkContextBlock: jest.fn().mockReturnValue(''),
+}));
+jest.mock('@/server/services/org-integration-status', () => ({
+    buildIntegrationStatusSummaryForOrg: jest.fn().mockResolvedValue('Mock integration status'),
+}));
+jest.mock('@/server/services/letta/block-manager', () => ({
+    lettaBlockManager: { attachBlocksForRole: jest.fn().mockResolvedValue(true) }
+}));
 
 describe('Ezal Agent Implementation', () => {
     const mockBrandMemory: Partial<BrandDomainMemory> = {

@@ -3664,15 +3664,33 @@ export default function CreativeCommandCenter() {
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-[200px]">
                     {generationError}
                   </p>
+                  <p className="text-[11px] text-muted-foreground/90 mt-2 leading-relaxed max-w-[240px]">
+                    {currentContent
+                      ? "Your caption is still saved. Retry the media pass or send the draft to Inbox while Craig takes another swing."
+                      : "Try again, or switch formats if the generator keeps timing out on this prompt."}
+                  </p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => { setGenerationError(null); handleGenerate(); }}
-                  className="border-red-500/30 text-red-500 hover:bg-red-500/10 hover:border-red-500 text-xs"
-                >
-                  Try Again
-                </Button>
+                <div className="flex flex-col sm:flex-row items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setGenerationError(null); handleGenerate(); }}
+                    className="border-red-500/30 text-red-500 hover:bg-red-500/10 hover:border-red-500 text-xs"
+                  >
+                    Try Again
+                  </Button>
+                  {currentContent && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleSendToInbox}
+                      className="text-xs text-foreground hover:bg-muted"
+                    >
+                      <ArrowUpRight className="w-3.5 h-3.5 mr-1.5" />
+                      Send draft to Inbox
+                    </Button>
+                  )}
+                </div>
               </div>
 
             ) : isImagePreviewMode && currentContent ? (
