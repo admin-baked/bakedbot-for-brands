@@ -162,7 +162,7 @@ describe('requireCronSecret', () => {
       process.env.CRON_SECRET = 'test-secret';
     });
 
-    it('returns NextResponse with proper JSON error format on 500', async () => {
+    it('returns NextResponse with proper error status on 500', async () => {
       delete process.env.CRON_SECRET;
 
       const req = new NextRequest('http://localhost/api/cron/test');
@@ -170,17 +170,22 @@ describe('requireCronSecret', () => {
       const result = await requireCronSecret(req);
 
       expect(result).not.toBeNull();
-      expect(result?.headers.get('content-type')).toContain('application/json');
+      expect(result?.status).toBe(500);
+      // NextResponse.json() returns a JSON body; verify via .json()
+      const body = await result?.json();
+      expect(body).toHaveProperty('error');
     });
 
-    it('returns NextResponse with proper JSON error format on 401', async () => {
+    it('returns NextResponse with proper error status on 401', async () => {
       const req = new NextRequest('http://localhost/api/cron/test', {
         headers: { authorization: 'Bearer wrong' },
       });
 
       const result = await requireCronSecret(req);
 
-      expect(result?.headers.get('content-type')).toContain('application/json');
+      expect(result?.status).toBe(401);
+      const body = await result?.json();
+      expect(body).toHaveProperty('error');
     });
   });
 

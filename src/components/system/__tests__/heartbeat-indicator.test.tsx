@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { HeartbeatIndicator } from '../heartbeat-indicator';
 
 // Mock fetch globally
@@ -19,6 +19,7 @@ function createMockResponse(data: any) {
 describe('HeartbeatIndicator', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        jest.useRealTimers();
     });
 
     describe('Size variants', () => {
@@ -35,9 +36,9 @@ describe('HeartbeatIndicator', () => {
 
             await waitFor(() => {
                 expect(mockFetch).toHaveBeenCalledWith('/api/system/health');
+                expect(screen.getByLabelText('Heartbeat details')).toBeInTheDocument();
             });
 
-            // Verify component rendered
             expect(container.querySelector('.relative')).toBeInTheDocument();
         });
 
@@ -70,7 +71,7 @@ describe('HeartbeatIndicator', () => {
                 })
             );
 
-            render(<HeartbeatIndicator size="large" showLabel={true} />);
+            render(<HeartbeatIndicator size="large" showLabel={true} showTooltip={false} />);
 
             await waitFor(() => {
                 expect(screen.getByText('System Healthy')).toBeInTheDocument();
@@ -88,7 +89,7 @@ describe('HeartbeatIndicator', () => {
                 })
             );
 
-            render(<HeartbeatIndicator showLabel={true} />);
+            render(<HeartbeatIndicator showLabel={true} showTooltip={false} />);
 
             await waitFor(() => {
                 expect(screen.getByText('System Healthy')).toBeInTheDocument();
@@ -104,7 +105,7 @@ describe('HeartbeatIndicator', () => {
                 })
             );
 
-            render(<HeartbeatIndicator showLabel={true} />);
+            render(<HeartbeatIndicator showLabel={true} showTooltip={false} />);
 
             await waitFor(() => {
                 expect(screen.getByText('Heartbeat Delayed')).toBeInTheDocument();
@@ -120,7 +121,7 @@ describe('HeartbeatIndicator', () => {
                 })
             );
 
-            render(<HeartbeatIndicator showLabel={true} />);
+            render(<HeartbeatIndicator showLabel={true} showTooltip={false} />);
 
             await waitFor(() => {
                 expect(screen.getByText('System Error')).toBeInTheDocument();
@@ -136,7 +137,7 @@ describe('HeartbeatIndicator', () => {
                 })
             );
 
-            render(<HeartbeatIndicator showLabel={true} />);
+            render(<HeartbeatIndicator showLabel={true} showTooltip={false} />);
 
             await waitFor(() => {
                 expect(screen.getByText('Status Unknown')).toBeInTheDocument();
@@ -202,7 +203,7 @@ describe('HeartbeatIndicator', () => {
         it('shows error state when fetch fails', async () => {
             mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-            render(<HeartbeatIndicator showLabel={true} />);
+            render(<HeartbeatIndicator showLabel={true} showTooltip={false} />);
 
             await waitFor(() => {
                 expect(screen.getByText('System Error')).toBeInTheDocument();
@@ -216,7 +217,7 @@ describe('HeartbeatIndicator', () => {
                 json: async () => ({}),
             } as any);
 
-            render(<HeartbeatIndicator showLabel={true} />);
+            render(<HeartbeatIndicator showLabel={true} showTooltip={false} />);
 
             await waitFor(() => {
                 expect(screen.getByText('System Error')).toBeInTheDocument();
@@ -225,7 +226,8 @@ describe('HeartbeatIndicator', () => {
     });
 
     describe('Polling', () => {
-        it('calls fetch initially and does not setup polling by default', async () => {
+        it('calls fetch initially and polls every 30 seconds', async () => {
+            jest.useFakeTimers();
             mockFetch.mockResolvedValue(
                 createMockResponse({
                     pulse: 'alive',
@@ -238,6 +240,14 @@ describe('HeartbeatIndicator', () => {
 
             await waitFor(() => {
                 expect(mockFetch).toHaveBeenCalledTimes(1);
+            });
+
+            await act(async () => {
+                jest.advanceTimersByTime(30000);
+            });
+
+            await waitFor(() => {
+                expect(mockFetch).toHaveBeenCalledTimes(2);
             });
         });
     });

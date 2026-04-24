@@ -16,6 +16,12 @@ jest.mock('@/server/agents/agent-definitions', () => ({
     AGENT_CRAIG: 'craig',
     AGENT_CAPABILITIES: [],
 }));
+jest.mock('@/server/services/org-integration-status', () => ({
+    buildIntegrationStatusSummaryForOrg: jest.fn().mockResolvedValue('All integrations active'),
+}));
+jest.mock('@/server/services/agent-learning-loop', () => ({
+    makeLearningLoopToolsImpl: jest.fn().mockReturnValue({}),
+}));
 
 describe('Glenda Agent (CMO)', () => {
     it('should initialize with marketing-focused instructions', async () => {
@@ -23,21 +29,21 @@ describe('Glenda Agent (CMO)', () => {
             brand_profile: { name: 'Test Brand' },
             priority_objectives: []
         };
-        const agentMemory = { agent_id: 'glenda' };
+        const agentMemory = { agent_id: 'glenda' } as any;
 
-        const result = await glendaAgent.initialize(brandMemory as any, agentMemory as any);
+        const result = await glendaAgent.initialize(brandMemory as any, agentMemory);
 
-        expect(result.system_instructions).toContain('Chief Marketing Officer (CMO)');
-        expect(result.system_instructions).toContain('BRAND AUTHORITY');
+        // joinPromptSections overwrites system_instructions; final text starts with:
+        // "You are Glenda, the Chief Marketing Officer for Test Brand."
+        expect(result.system_instructions).toContain('Chief Marketing Officer');
+        expect(result.system_instructions).toContain('Test Brand');
     });
 
     it('should react to new product launch', async () => {
-        // Assuming Glenda checks for new products in orient
-        // Note: I need to verify Glenda's implementation, but following the pattern:
-        const agentMemory = { 
+        const agentMemory = {
              marketing_calendar: [{ type: 'launch', date: 'tomorrow', status: 'pending' }]
         };
-        
+
         // Basic check if she has an orient function
         expect(typeof glendaAgent.orient).toBe('function');
     });

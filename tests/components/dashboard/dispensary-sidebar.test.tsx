@@ -25,7 +25,26 @@ jest.mock('@/hooks/use-user-role', () => ({
     useUserRole: () => ({
         orgId: 'dispensary_test-org',
         role: 'dispensary',
+        isSuperUser: false,
     }),
+}));
+
+// Mock plan info hook (non-free plan so all nav items render)
+jest.mock('@/hooks/use-plan-info', () => ({
+    usePlanInfo: () => ({
+        isFree: false,
+        tierId: 'pro',
+    }),
+}));
+
+// Mock roles helper
+jest.mock('@/types/roles', () => ({
+    getInviteAllowedRoles: () => ['dispensary_admin', 'dispensary_staff', 'budtender'],
+}));
+
+// Mock AgentOwnerBadge
+jest.mock('@/components/dashboard/agent-owner-badge', () => ({
+    AgentOwnerBadge: () => null,
 }));
 
 // Mock shadcn/ui sidebar components
@@ -107,13 +126,15 @@ describe('DispensarySidebar', () => {
     });
 
     describe('Navigation Groups', () => {
-        it('renders Workspace group with Inbox, Projects, and Playbooks', () => {
+        it('renders Workspace group with Inbox, Email Threads, Projects, Playbooks, and Drive', () => {
             render(<DispensarySidebar />);
 
             expect(screen.getByText('Workspace')).toBeInTheDocument();
             expect(screen.getByText('Inbox')).toBeInTheDocument();
+            expect(screen.getByText('Email Threads')).toBeInTheDocument();
             expect(screen.getByText('Projects')).toBeInTheDocument();
             expect(screen.getByText('Playbooks')).toBeInTheDocument();
+            expect(screen.getByText('Drive')).toBeInTheDocument();
         });
 
         it('renders Menu & Inventory group with core dispensary items', () => {
@@ -121,9 +142,12 @@ describe('DispensarySidebar', () => {
 
             expect(screen.getByText('Menu & Inventory')).toBeInTheDocument();
             expect(screen.getByText('Menu')).toBeInTheDocument();
+            expect(screen.getByText('Products')).toBeInTheDocument();
             expect(screen.getByText('Carousels')).toBeInTheDocument();
+            expect(screen.getByText('Hero Banners')).toBeInTheDocument();
             expect(screen.getByText('Bundles')).toBeInTheDocument();
             expect(screen.getByText('Orders')).toBeInTheDocument();
+            expect(screen.getByText('Delivery')).toBeInTheDocument();
         });
 
         it('renders Customers group with CRM items', () => {
@@ -141,6 +165,7 @@ describe('DispensarySidebar', () => {
 
             expect(screen.getByText('Marketing')).toBeInTheDocument();
             expect(screen.getByText('Brand Guide')).toBeInTheDocument();
+            expect(screen.getByText('Brands We Carry')).toBeInTheDocument();
             expect(screen.getByText('Creative Center')).toBeInTheDocument();
             expect(screen.getByText('Vibe Studio')).toBeInTheDocument();
             expect(screen.getByText('Campaigns')).toBeInTheDocument();
@@ -152,7 +177,7 @@ describe('DispensarySidebar', () => {
             expect(screen.getByText('Intelligence')).toBeInTheDocument();
             expect(screen.getByText('Competitive Intel')).toBeInTheDocument();
             expect(screen.getByText('Deep Research')).toBeInTheDocument();
-            expect(screen.getByText('BETA')).toBeInTheDocument();
+            expect(screen.getByText('Profitability')).toBeInTheDocument();
         });
 
         it('renders Admin group as collapsible with settings and invite', () => {
@@ -162,6 +187,7 @@ describe('DispensarySidebar', () => {
             expect(screen.getByText('App Store')).toBeInTheDocument();
             expect(screen.getByText('Custom Domains')).toBeInTheDocument();
             expect(screen.getByText('Settings')).toBeInTheDocument();
+            expect(screen.getByText('Email Warm-up')).toBeInTheDocument();
             expect(screen.getByText('Invite Team Member')).toBeInTheDocument();
         });
     });
@@ -286,7 +312,7 @@ describe('DispensarySidebar', () => {
         });
     });
 
-    describe('Beta Badges', () => {
+    describe('Badge Labels', () => {
         it('shows BETA badge on Deep Research', () => {
             render(<DispensarySidebar />);
 

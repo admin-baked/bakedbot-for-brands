@@ -1,6 +1,6 @@
 /**
  * Unit Tests for SEO KPIs Data Service
- * 
+ *
  * Tests:
  * - Page count calculations
  * - Claim metrics
@@ -26,6 +26,23 @@ jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn(() => Promise.resolve({ firestore: mockFirestore }))
 }));
 
+// Mock Search Console service
+jest.mock('@/server/services/growth/search-console', () => ({
+    searchConsoleService: {
+        getSiteSummary: jest.fn().mockResolvedValue({
+            clicks: 0, impressions: 0, ctr: 0, avgPosition: 0,
+            dateRange: { start: '2026-01-01', end: '2026-01-28' }
+        }),
+        getTopQueries: jest.fn().mockResolvedValue({
+            queries: [], totalClicks: 0, totalImpressions: 0, avgPosition: 0,
+            dateRange: { start: '2026-01-01', end: '2026-01-28' }
+        }),
+    },
+    SearchConsoleService: jest.fn(),
+}));
+
+const emptySnapshot = { docs: [], forEach: jest.fn() };
+
 describe('SEO KPIs Data Service', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -33,18 +50,19 @@ describe('SEO KPIs Data Service', () => {
 
     describe('fetchSeoKpis', () => {
         it('should count pages by type', async () => {
-            // Mock counts
+            // Mock counts (7 total: zip, configDisp, topLevelDisp, configBrand, topLevelBrand, city, state)
             mockCount
                 .mockResolvedValueOnce({ data: () => ({ count: 100 }) }) // zip
-                .mockResolvedValueOnce({ data: () => ({ count: 50 }) })  // dispensary
-                .mockResolvedValueOnce({ data: () => ({ count: 25 }) })  // brand
-                .mockResolvedValueOnce({ data: () => ({ count: 10 }) }) // city
+                .mockResolvedValueOnce({ data: () => ({ count: 50 }) })  // configDisp
+                .mockResolvedValueOnce({ data: () => ({ count: 50 }) })  // topLevelDisp
+                .mockResolvedValueOnce({ data: () => ({ count: 25 }) })  // configBrand
+                .mockResolvedValueOnce({ data: () => ({ count: 25 }) })  // topLevelBrand
+                .mockResolvedValueOnce({ data: () => ({ count: 10 }) })  // city
                 .mockResolvedValueOnce({ data: () => ({ count: 5 }) });  // state
 
             // Mock page data for claim/health calculations
-            mockGet
-                .mockResolvedValueOnce({ docs: [], forEach: jest.fn() }) // dispensary pages
-                .mockResolvedValueOnce({ docs: [], forEach: jest.fn() }); // brand pages
+            // 4 claim queries + 1 zipDocs query = 5 get() calls
+            mockGet.mockResolvedValue(emptySnapshot);
 
             const kpis = await fetchSeoKpis();
 
@@ -57,36 +75,47 @@ describe('SEO KPIs Data Service', () => {
         });
 
         it('should calculate claim metrics', async () => {
-            // Mock counts
+            // Mock counts (7 total)
             mockCount
-                .mockResolvedValueOnce({ data: () => ({ count: 10 }) })
-                .mockResolvedValueOnce({ data: () => ({ count: 20 }) })
-                .mockResolvedValueOnce({ data: () => ({ count: 10 }) })
-                .mockResolvedValueOnce({ data: () => ({ count: 5 }) })
-                .mockResolvedValueOnce({ data: () => ({ count: 2 }) });
+                .mockResolvedValueOnce({ data: () => ({ count: 10 }) })  // zip
+                .mockResolvedValueOnce({ data: () => ({ count: 20 }) })  // configDisp
+                .mockResolvedValueOnce({ data: () => ({ count: 20 }) })  // topLevelDisp
+                .mockResolvedValueOnce({ data: () => ({ count: 10 }) })  // configBrand
+                .mockResolvedValueOnce({ data: () => ({ count: 10 }) })  // topLevelBrand
+                .mockResolvedValueOnce({ data: () => ({ count: 5 }) })   // city
+                .mockResolvedValueOnce({ data: () => ({ count: 2 }) });  // state
 
-            // Mock dispensary pages with some claimed
-            const dispDocs = [
-                { data: () => ({ claimedBy: 'user1' }) },
-                { data: () => ({ claimedBy: null }) },
-                { data: () => ({}) }
+            // Mock 4 claim doc queries + 1 zipDocs query
+            const configDispDocs = [
+                { id: 'disp1', data: () => ({ claimedBy: 'user1' }) },
+                { id: 'disp2', data: () => ({ claimedBy: null }) },
+                { id: 'disp3', data: () => ({}) }
             ];
-
-            // Mock brand pages with some claimed
-            const brandDocs = [
-                { data: () => ({ claimedBy: 'brand1' }) },
-                { data: () => ({}) }
+            const topLevelDispDocs: any[] = [];
+            const configBrandDocs = [
+                { id: 'brand1', data: () => ({ claimedBy: 'brand1' }) },
+                { id: 'brand2', data: () => ({}) }
             ];
+            const topLevelBrandDocs: any[] = [];
 
             mockGet
                 .mockResolvedValueOnce({
-                    docs: dispDocs,
-                    forEach: (cb: any) => dispDocs.forEach(cb)
+                    docs: configDispDocs,
+                    forEach: (cb: any) => configDispDocs.forEach(cb)
                 })
                 .mockResolvedValueOnce({
-                    docs: brandDocs,
-                    forEach: (cb: any) => brandDocs.forEach(cb)
-                });
+                    docs: topLevelDispDocs,
+                    forEach: (cb: any) => topLevelDispDocs.forEach(cb)
+                })
+                .mockResolvedValueOnce({
+                    docs: configBrandDocs,
+                    forEach: (cb: any) => configBrandDocs.forEach(cb)
+                })
+                .mockResolvedValueOnce({
+                    docs: topLevelBrandDocs,
+                    forEach: (cb: any) => topLevelBrandDocs.forEach(cb)
+                })
+                .mockResolvedValueOnce(emptySnapshot); // zipDocs for freshness
 
             const kpis = await fetchSeoKpis();
 
@@ -96,7 +125,7 @@ describe('SEO KPIs Data Service', () => {
 
         it('should return Search Console placeholder when not configured', async () => {
             mockCount.mockResolvedValue({ data: () => ({ count: 0 }) });
-            mockGet.mockResolvedValue({ docs: [], forEach: jest.fn() });
+            mockGet.mockResolvedValue(emptySnapshot);
 
             const kpis = await fetchSeoKpis();
 

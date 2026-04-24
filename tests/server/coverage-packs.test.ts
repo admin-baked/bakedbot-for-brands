@@ -43,11 +43,14 @@ describe('Coverage Packs', () => {
             expect(limits[3]).toBe(-1); // Unlimited
         });
 
-        it('should have increasing prices', () => {
+        it('should have increasing prices except enterprise (custom pricing)', () => {
             const prices = COVERAGE_PACK_TIERS.map(t => t.pricePerMonth);
-            for (let i = 1; i < prices.length; i++) {
+            // First 3 tiers have increasing prices
+            for (let i = 1; i < prices.length - 1; i++) {
                 expect(prices[i]).toBeGreaterThan(prices[i - 1]);
             }
+            // Enterprise tier is custom pricing ($0)
+            expect(prices[prices.length - 1]).toBe(0);
         });
     });
 
@@ -164,11 +167,13 @@ describe('Coverage Packs', () => {
             expect(value.additionalZips).toBe(75);
         });
 
-        it('should handle upgrade to unlimited', () => {
-            const value = calculateUpgradeValue('enterprise', 'unlimited', 1000);
+        it('should handle upgrade to enterprise (unlimited)', () => {
+            // Upgrading from growth(249, 100 ZIPs) to enterprise(0, unlimited)
+            const value = calculateUpgradeValue('growth', 'enterprise', 1000);
 
-            expect(value.additionalZips).toBe(1000); // All uncovered
-            expect(value.priceIncrease).toBe(400); // 999 - 599
+            expect(value.additionalZips).toBe(1000); // All uncovered (enterprise zipLimit=-1 means unlimited)
+            // Enterprise is custom pricing ($0), so price diff is negative
+            expect(value.priceIncrease).toBe(-249); // 0 - 249
         });
 
         it('should handle no current tier (new customer)', () => {

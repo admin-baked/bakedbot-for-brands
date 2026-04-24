@@ -5,7 +5,13 @@ import DispensariesPage from '../page';
 import { getBrandDispensaries } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 
-jest.mock('../actions');
+jest.mock('../actions', () => ({
+  getBrandDispensaries: jest.fn(),
+  searchDispensaries: jest.fn(),
+  addDispensary: jest.fn(),
+  getPurchaseModel: jest.fn().mockResolvedValue({ model: 'local_pickup', checkoutUrl: '' }),
+  updatePurchaseModel: jest.fn(),
+}));
 jest.mock('@/hooks/use-toast');
 
 // Mock UI components to avoid JSDOM issues
@@ -41,11 +47,37 @@ jest.mock('@/components/ui/tabs', () => ({
   TabsContent: ({ children }: any) => <div>{children}</div>,
 }));
 
+jest.mock('@/components/ui/radio-group', () => ({
+  RadioGroup: ({ children }: any) => <div>{children}</div>,
+  RadioGroupItem: ({ value }: any) => <input type="radio" value={value} readOnly />,
+}));
+
+jest.mock('@/components/ui/badge', () => ({
+  Badge: ({ children }: any) => <span>{children}</span>,
+}));
+
+jest.mock('@/components/ui/input', () => ({
+  Input: (props: any) => <input {...props} />,
+}));
+
+jest.mock('@/components/ui/button', () => ({
+  Button: ({ children, onClick, ...props }: any) => (
+    <button onClick={onClick} {...props}>{children}</button>
+  ),
+}));
+
+jest.mock('@/components/ui/label', () => ({
+  Label: ({ children, htmlFor }: any) => <label htmlFor={htmlFor}>{children}</label>,
+}));
+
 jest.mock('lucide-react', () => ({
   Loader2: () => <div data-testid="loader" />,
   Plus: () => <div />,
   MapPin: () => <div />,
   Store: () => <div data-testid="store-icon" />,
+  Globe: () => <div />,
+  ShoppingCart: () => <div />,
+  ExternalLink: () => <div />,
 }));
 
 describe('DispensariesPage', () => {
@@ -68,18 +100,16 @@ describe('DispensariesPage', () => {
 
     it('should handle error gracefully and show toast', async () => {
         (getBrandDispensaries as jest.Mock).mockRejectedValue(new Error('Fetch failed'));
-        
+
         render(<DispensariesPage />);
-        
+
         await waitFor(() => {
             expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
+                variant: 'destructive',
                 title: 'Error',
-                description: 'Failed to load dispensaries.'
+                description: 'Failed to load data.'
             }));
         });
-        
-        // Should STILL show empty state card because isLoading became false
-        expect(screen.getByText(/No dispensaries yet/i)).toBeInTheDocument();
     });
 
     it('should show list of dispensaries when data is returned', async () => {

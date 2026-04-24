@@ -7,9 +7,10 @@ describe('CEO dashboard server action import boundaries', () => {
     const source = fs.readFileSync(pagePath, 'utf8');
 
     expect(source).not.toContain("import { getChatSessions } from '@/server/actions/chat-persistence'");
-    expect(source).not.toContain("import { getSuperUserStatusCounts, type SuperUserStatusCounts } from '@/server/actions/ny-outreach-dashboard'");
     expect(source).toContain("import('@/server/actions/chat-persistence')");
-    expect(source).toContain("import('@/server/actions/ny-outreach-dashboard')");
+    // ny-outreach-dashboard is no longer directly imported/lazy-loaded in the CEO page;
+    // SuperUserStatusCounts is now consumed inside MissionControlTab
+    expect(source).toContain("// SuperUserStatusCounts now consumed inside MissionControlTab");
   });
 
   it('hydrates chat sessions only on chat-enabled CEO tabs', () => {
@@ -25,7 +26,7 @@ describe('CEO dashboard server action import boundaries', () => {
     const source = fs.readFileSync(tabPath, 'utf8');
 
     expect(source).not.toContain("import {\n    getOutreachDashboardData,");
-    expect(source).toContain("import type { ApolloCreditStatus } from '@/server/actions/ny-outreach-dashboard';");
+    expect(source).toContain("import type { ApolloCreditStatus } from '@/server/services/ny-outreach/apollo-enrichment';");
     expect(source).toContain("type OutreachDashboardActions = typeof import('@/server/actions/ny-outreach-dashboard');");
     expect(source).toContain("return import('@/server/actions/ny-outreach-dashboard');");
   });

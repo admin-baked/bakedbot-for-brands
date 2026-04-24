@@ -35,10 +35,13 @@ jest.mock('@/lib/config/quick-start-cards', () => ({
 }));
 
 describe('QuickStartCards', () => {
-    it('returns null for owner role', () => {
+    it('renders empty card list for owner role (no matching cards)', () => {
         (useUserRole as jest.Mock).mockReturnValue({ role: 'owner' });
-        const { container } = render(<QuickStartCards />);
-        expect(container).toBeEmptyDOMElement();
+        render(<QuickStartCards />);
+        // Component renders with 'Quick Start' header but no matching role cards
+        expect(screen.getByText('Quick Start')).toBeInTheDocument();
+        expect(screen.queryByText('Dispensary Card')).not.toBeInTheDocument();
+        expect(screen.queryByText('Brand Card')).not.toBeInTheDocument();
     });
 
     it('renders dispensary cards for dispensary role', () => {

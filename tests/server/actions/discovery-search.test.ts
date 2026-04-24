@@ -12,7 +12,18 @@ jest.mock('@/server/services/firecrawl', () => ({
 }));
 
 jest.mock('@/server/auth/auth', () => ({
-    requireUser: jest.fn().mockResolvedValue({ uid: 'test-user', email: 'test@example.com' })
+    requireUser: jest.fn().mockResolvedValue({
+        uid: 'test-user',
+        email: 'test@example.com',
+        role: 'super_user',
+        currentOrgId: 'org-123',
+    })
+}));
+
+jest.mock('@/server/auth/actor-context', () => ({
+    isSuperRole: jest.fn((role) => role === 'super_user'),
+    isValidOrgId: jest.fn((id) => typeof id === 'string' && id.length > 0),
+    resolveActorOrgId: jest.fn((user) => user?.currentOrgId || user?.orgId || null),
 }));
 
 // Define mocks at module level

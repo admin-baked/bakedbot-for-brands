@@ -67,7 +67,8 @@ jest.mock('../../actions/playbooks', () => ({
             description: 'Test description',
             agent: 'General',
             category: 'onboarding',
-            steps: [{ action: 'test', details: 'test step' }]
+            steps: [{ action: 'test', details: 'test step' }],
+            triggers: []
         }
     }),
     createPlaybook: jest.fn().mockResolvedValue({ success: true, playbook: { id: 'pb-123', name: 'Test Playbook', description: 'Test description', agent: 'General', category: 'onboarding', steps: [{ action: 'test' }] } })

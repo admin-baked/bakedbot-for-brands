@@ -13,6 +13,9 @@ jest.mock('@/hooks/use-user', () => ({
 jest.mock('@/hooks/use-brand-guide', () => ({
     useBrandGuide: jest.fn(),
 }));
+jest.mock('@/server/actions/onboarding-progress', () => ({
+    getCompletedOnboardingSteps: jest.fn().mockResolvedValue([]),
+}));
 
 jest.mock('next/link', () => ({
     __esModule: true,
@@ -27,6 +30,7 @@ jest.mock('lucide-react', () => ({
     CheckCircle: () => <div data-testid="icon-check" />,
     Clock: () => <div data-testid="icon-clock" />,
     ChevronRight: () => <div data-testid="icon-chevron" />,
+    ChevronDown: () => <div data-testid="icon-chevron-down" />,
     X: () => <div data-testid="icon-close" />,
     Store: () => <div data-testid="icon-store" />,
     Bot: () => <div data-testid="icon-bot" />,
@@ -60,9 +64,20 @@ describe('SetupChecklist', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         localStorage.clear();
-        global.fetch = jest.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({ linkedDispensary: null, posConnected: false }),
+        global.fetch = jest.fn().mockImplementation((url: string) => {
+            if (url === '/api/user/linked-dispensary') {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ linkedDispensary: null, posConnected: false }),
+                });
+            }
+            if (url === '/api/user/competitive-intel-activation') {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ run: null }),
+                });
+            }
+            return Promise.resolve({ ok: true, json: async () => ({}) });
         }) as unknown as typeof fetch;
         (useUser as jest.Mock).mockReturnValue({
             userData: {},
@@ -74,7 +89,7 @@ describe('SetupChecklist', () => {
         });
     });
 
-    it('renders the brand checklist around a creative-center first win', () => {
+    it('renders the brand checklist around a creative-center first win', async () => {
         (useUserRole as jest.Mock).mockReturnValue({
             role: 'brand',
             isBrandRole: true,
@@ -97,19 +112,18 @@ describe('SetupChecklist', () => {
 
         render(<SetupChecklist />);
 
-        expect(screen.getByText('Complete your setup')).toBeInTheDocument();
-        expect(screen.getByText('0 of 6 tasks complete. Start with Creative Center.')).toBeInTheDocument();
+        expect(await screen.findByText('Complete your setup')).toBeInTheDocument();
         expect(screen.getByText('Build your Brand Guide')).toBeInTheDocument();
         expect(screen.getByText('Create your first social draft')).toBeInTheDocument();
         expect(screen.getByText('Put your first post on the calendar')).toBeInTheDocument();
         expect(screen.getByText('Launch your Welcome Playbook')).toBeInTheDocument();
         expect(screen.getByText('Learn Inbox, Playbooks, and Agents')).toBeInTheDocument();
-        expect(screen.getByText('Set up Competitive Intelligence')).toBeInTheDocument();
+        expect(screen.getByText('Launch Competitive Intelligence Reports')).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /Create your first social draft/i })).toHaveAttribute(
             'href',
             '/dashboard/creative',
         );
-        expect(screen.getByRole('link', { name: /Set up Competitive Intelligence/i })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: /Launch Competitive Intelligence Reports/i })).toHaveAttribute(
             'href',
             '/dashboard/competitive-intel',
         );
@@ -135,16 +149,23 @@ describe('SetupChecklist', () => {
             brandGuide: { completenessScore: 82 },
             loading: false,
         });
-        (global.fetch as jest.Mock).mockResolvedValue({
-            ok: true,
-            json: async () => ({ linkedDispensary: { id: 'dispensary-1' }, posConnected: true }),
+        (global.fetch as jest.Mock).mockImplementation((url: string) => {
+            if (url === '/api/user/linked-dispensary') {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ linkedDispensary: { id: 'dispensary-1' }, posConnected: true }),
+                });
+            }
+            if (url === '/api/user/competitive-intel-activation') {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ run: null }),
+                });
+            }
+            return Promise.resolve({ ok: true, json: async () => ({}) });
         });
 
         render(<SetupChecklist />);
-
-        await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalledWith('/api/user/linked-dispensary');
-        });
 
         expect(await screen.findByText('Launch your Welcome Playbook')).toBeInTheDocument();
         expect(screen.getByText('Launch Check-In with Tablet')).toBeInTheDocument();
@@ -152,7 +173,7 @@ describe('SetupChecklist', () => {
         expect(Number(screen.getByTestId('progress').getAttribute('data-value'))).toBeGreaterThan(0);
     });
 
-    it('stores dismissal under the versioned checklist key', () => {
+    it('stores dismissal under the versioned checklist key', async () => {
         (useUserRole as jest.Mock).mockReturnValue({
             role: 'brand',
             isBrandRole: true,
@@ -162,7 +183,9 @@ describe('SetupChecklist', () => {
 
         render(<SetupChecklist />);
 
-        fireEvent.click(screen.getByRole('button', { name: /dismiss/i }));
+        // Wait for component to finish loading (competitiveIntelLoaded)
+        const dismissBtn = await screen.findByRole('button', { name: /dismiss/i });
+        fireEvent.click(dismissBtn);
 
         expect(localStorage.getItem(dismissKey)).toBe('true');
         expect(screen.queryByTestId('card')).not.toBeInTheDocument();

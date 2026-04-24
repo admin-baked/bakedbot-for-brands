@@ -446,7 +446,7 @@ describe('makeJinaToolsImpl', () => {
             const impl = makeJinaToolsImpl();
             const output = await impl.search_web({ query: 'nothing found' });
 
-            expect(output).toBe('No results found. Try a different query.');
+            expect(output).toBe('No current web results available for this query.');
         });
 
         it('returns no-results message on fetch error', async () => {
@@ -455,7 +455,7 @@ describe('makeJinaToolsImpl', () => {
             const impl = makeJinaToolsImpl();
             const output = await impl.search_web({ query: 'failing query' });
 
-            expect(output).toBe('No results found. Try a different query.');
+            expect(output).toBe('No current web results available for this query.');
         });
     });
 

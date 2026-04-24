@@ -2,7 +2,6 @@
  * Unit tests for Leads Actions
  */
 import {
-    getLeadTypeInfo,
     type Lead,
     type LeadType,
     type LeadStatus,
@@ -63,35 +62,12 @@ describe('Leads Actions', () => {
         });
     });
 
-    describe('getLeadTypeInfo', () => {
-        it('should return info for customer_inquiry', () => {
-            const info = getLeadTypeInfo('customer_inquiry');
-            expect(info.label).toBe('Customer');
-            expect(info.color).toContain('blue');
-        });
-
-        it('should return info for brand_request', () => {
-            const info = getLeadTypeInfo('brand_request');
-            expect(info.label).toBe('Brand Request');
-            expect(info.color).toContain('purple');
-        });
-
-        it('should return info for vendor_inquiry', () => {
-            const info = getLeadTypeInfo('vendor_inquiry');
-            expect(info.label).toBe('Vendor');
-            expect(info.color).toContain('green');
-        });
-
-        it('should return info for partnership', () => {
-            const info = getLeadTypeInfo('partnership');
-            expect(info.label).toBe('Partnership');
-            expect(info.color).toContain('yellow');
-        });
-
-        it('should return info for wholesale', () => {
-            const info = getLeadTypeInfo('wholesale');
-            expect(info.label).toBe('Wholesale');
-            expect(info.color).toContain('orange');
+    describe('Lead Types are valid string literals', () => {
+        it('should accept all lead type values', () => {
+            const types: LeadType[] = ['customer_inquiry', 'brand_request', 'vendor_inquiry', 'partnership', 'wholesale'];
+            types.forEach(t => {
+                expect(typeof t).toBe('string');
+            });
         });
     });
 

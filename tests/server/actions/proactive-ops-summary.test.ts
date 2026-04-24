@@ -176,7 +176,7 @@ describe('buildSafeProactiveOpsSummary', () => {
             },
         ];
 
-        jest.useFakeTimers().setSystemTime(now);
+        jest.useFakeTimers().setSystemTime(Date.parse(now.toISOString()));
 
         const summary = buildSafeProactiveOpsSummary({
             settings,

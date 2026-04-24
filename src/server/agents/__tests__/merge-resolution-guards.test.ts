@@ -10,6 +10,15 @@ const AGENT_FILES = [
   'mrsParker.ts',
 ] as const;
 
+// Subset of agents that wire semantic search through semanticSearchEntityId
+const SEMANTIC_SEARCH_AGENTS = [
+  'executive.ts',
+  'glenda.ts',
+  'jack.ts',
+  'leo.ts',
+  'mrsParker.ts',
+] as const;
+
 function readAgentSource(fileName: (typeof AGENT_FILES)[number]): string {
   const filePath = path.join(process.cwd(), 'src/server/agents', fileName);
   return fs.readFileSync(filePath, 'utf8');
@@ -24,7 +33,7 @@ describe('agent merge-resolution guards', () => {
     expect(source).not.toMatch(/^>>>>>>> /m);
   });
 
-  it.each(AGENT_FILES)('%s wires semantic search tools through semanticSearchEntityId', (fileName) => {
+  it.each(SEMANTIC_SEARCH_AGENTS)('%s wires semantic search tools through semanticSearchEntityId', (fileName) => {
     const source = readAgentSource(fileName);
 
     expect(source).toContain('const semanticSearchEntityId =');
@@ -50,10 +59,11 @@ describe('agent merge-resolution guards', () => {
     expect(actPreamble).not.toContain("const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || 'unknown';")
   });
 
-  it('dayday keeps typed tools signature in act()', () => {
+  it('dayday uses untyped tools parameter in act()', () => {
     const source = readAgentSource('dayday.ts');
 
-    expect(source).toContain('async act(brandMemory, agentMemory, targetId, tools: DayDayTools, stimulus?: string)');
+    // dayday was refactored to use _tools (untyped) instead of typed DayDayTools
+    expect(source).toContain('async act(_brandMemory, agentMemory, targetId, _tools, stimulus)');
   });
 
   it('executive keeps typed tools signature in act()', () => {

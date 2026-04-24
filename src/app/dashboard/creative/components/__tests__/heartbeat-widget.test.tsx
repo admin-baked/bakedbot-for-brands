@@ -65,15 +65,17 @@ describe('HeartbeatWidget', () => {
   });
 
   it('dismisses suggestion when X is clicked', () => {
-    render(
+    const { container } = render(
       <HeartbeatWidget
         suggestions={mockSuggestions}
         {...mockHandlers}
       />
     );
 
-    const dismissButtons = screen.getAllByRole('button', { name: '' });
-    // First dismiss button
+    // Dismiss buttons are plain <button> elements (not ShadCN Button)
+    // They are the small round buttons with class containing 'rounded-full'
+    const dismissButtons = container.querySelectorAll('button.rounded-full');
+    expect(dismissButtons.length).toBeGreaterThan(0);
     fireEvent.click(dismissButtons[0]);
 
     expect(mockHandlers.onDismiss).toHaveBeenCalledWith('sug_1');
@@ -139,28 +141,28 @@ describe('HeartbeatWidget', () => {
   });
 
   it('applies correct styling for high priority', () => {
-    render(
+    const { container } = render(
       <HeartbeatWidget
         suggestions={[mockSuggestions[0]]}
         {...mockHandlers}
       />
     );
 
-    // Check for high priority border/background class presence
-    const suggestionCard = screen.getByText('Flash Sale Opportunity').closest('div');
-    expect(suggestionCard).toHaveClass(/border-red/);
+    // The border class is on the outermost SuggestionCard div (border-red-200)
+    const styledDiv = container.querySelector('.border-red-200');
+    expect(styledDiv).toBeTruthy();
   });
 
   it('applies correct styling for medium priority', () => {
-    render(
+    const { container } = render(
       <HeartbeatWidget
         suggestions={[mockSuggestions[1]]}
         {...mockHandlers}
       />
     );
 
-    const suggestionCard = screen.getByText('New Product Launch').closest('div');
-    expect(suggestionCard).toHaveClass(/border-yellow/);
+    const styledDiv = container.querySelector('.border-yellow-200');
+    expect(styledDiv).toBeTruthy();
   });
 });
 

@@ -1,279 +1,221 @@
 /**
  * User Notification Service Tests
  *
- * Tests for email notifications on user approval/rejection/promotion
+ * Tests email notifications for user approval, rejection, and promotion.
  */
 
 import { UserNotificationService } from '@/server/services/user-notification';
+import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { auditLogStreaming } from '@/server/services/audit-log-streaming';
 
-// Mock dependencies
 jest.mock('@/firebase/admin', () => ({
     getAdminFirestore: jest.fn(),
-    getAdminAuth: jest.fn(),
 }));
 
-jest.mock('@/server/services/audit-log-streaming');
-jest.mock('@/lib/logger');
+jest.mock('@/lib/email/dispatcher', () => ({
+    sendGenericEmail: jest.fn(),
+}));
 
-global.fetch = jest.fn();
+jest.mock('@/server/services/audit-log-streaming', () => ({
+    auditLogStreaming: {
+        logAction: jest.fn(),
+    },
+}));
+
+jest.mock('@/lib/logger', () => ({
+    logger: {
+        info: jest.fn(),
+        error: jest.fn(),
+        warn: jest.fn(),
+    },
+}));
 
 describe('UserNotificationService', () => {
+    const mockSendGenericEmail = sendGenericEmail as jest.MockedFunction<typeof sendGenericEmail>;
+    const mockAuditLog = auditLogStreaming.logAction as jest.MockedFunction<typeof auditLogStreaming.logAction>;
+    const { getAdminFirestore } = require('@/firebase/admin') as {
+        getAdminFirestore: jest.Mock;
+    };
+
     let service: UserNotificationService;
-    let mockDb: any;
-    let mockCollection: any;
-    let mockQuery: any;
+    let mockUsersDocGet: jest.Mock;
+    let mockTenantDocGet: jest.Mock;
+    let mockUsersQueryGet: jest.Mock;
+    let usersCollection: {
+        doc: jest.Mock;
+        where: jest.Mock;
+    };
+    let tenantsCollection: {
+        doc: jest.Mock;
+    };
 
     beforeEach(() => {
         jest.clearAllMocks();
 
-        // Setup mock Firestore
-        mockQuery = {
+        mockUsersDocGet = jest.fn();
+        mockTenantDocGet = jest.fn();
+        mockUsersQueryGet = jest.fn();
+
+        const mockUsersQuery = {
             where: jest.fn().mockReturnThis(),
             limit: jest.fn().mockReturnThis(),
-            get: jest.fn(),
+            get: mockUsersQueryGet,
         };
 
-        mockCollection = {
-            doc: jest.fn().mockReturnValue({
-                get: jest.fn(),
-                update: jest.fn(),
+        usersCollection = {
+            doc: jest.fn(() => ({
+                get: mockUsersDocGet,
+            })),
+            where: jest.fn(() => mockUsersQuery),
+        };
+
+        tenantsCollection = {
+            doc: jest.fn(() => ({
+                get: mockTenantDocGet,
+            })),
+        };
+
+        getAdminFirestore.mockReturnValue({
+            collection: jest.fn((name: string) => {
+                if (name === 'users') return usersCollection;
+                if (name === 'tenants') return tenantsCollection;
+                throw new Error(`Unexpected collection: ${name}`);
             }),
-            where: jest.fn().mockReturnValue(mockQuery),
-        };
+        });
 
-        mockDb = {
-            collection: jest.fn().mockReturnValue(mockCollection),
-        };
+        mockSendGenericEmail.mockResolvedValue({
+            success: true,
+            messageId: 'msg-1',
+        });
 
-        const { getAdminFirestore } = require('@/firebase/admin');
-        getAdminFirestore.mockReturnValue(mockDb);
+        mockAuditLog.mockResolvedValue(undefined as never);
 
         service = new UserNotificationService();
-
-        // Mock fetch
-        (global.fetch as jest.Mock).mockResolvedValue({
-            ok: true,
-            json: async () => ({ success: true }),
-        });
     });
 
+    function seedUser(data?: Partial<{ email: string; name: string; orgId: string }>) {
+        mockUsersDocGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                email: 'user@example.com',
+                name: 'John Doe',
+                orgId: 'org123',
+                ...data,
+            }),
+        });
+    }
+
+    function seedTenant(data?: Partial<{ name: string; adminEmail: string }>) {
+        mockTenantDocGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                name: 'Test Org',
+                adminEmail: 'admin@test-org.com',
+                ...data,
+            }),
+        });
+    }
+
     describe('notifyUserApproved', () => {
-        it('should send approval email to user', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'John Doe',
-                    orgId: 'org123',
-                }),
-            });
-
-            mockQuery.get.mockResolvedValue({
-                empty: true,
-            });
-
-            mockCollection.doc().update.mockResolvedValue({});
+        it('sends approval emails to the user and org admin', async () => {
+            seedUser();
+            seedTenant();
 
             const result = await service.notifyUserApproved('user123', 'admin@example.com');
 
             expect(result).toBe(true);
-            expect(global.fetch).toHaveBeenCalled();
-
-            const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
-            expect(fetchCall[0]).toContain('mailjet.com');
+            expect(mockSendGenericEmail).toHaveBeenCalledTimes(2);
+            expect(mockSendGenericEmail).toHaveBeenNthCalledWith(
+                1,
+                expect.objectContaining({
+                    to: 'user@example.com',
+                    name: 'John Doe',
+                    subject: 'Welcome to BakedBot!',
+                    fromEmail: 'hello@bakedbot.ai',
+                })
+            );
+            expect(mockSendGenericEmail).toHaveBeenNthCalledWith(
+                2,
+                expect.objectContaining({
+                    to: 'admin@test-org.com',
+                    subject: '[Admin] Welcome to BakedBot!',
+                })
+            );
+            expect(mockAuditLog).toHaveBeenCalledWith(
+                'user_approval_notification_sent',
+                'admin@example.com',
+                'user123',
+                'user',
+                'success',
+                expect.objectContaining({ orgId: 'org123', recipientCount: 2 })
+            );
         });
 
-        it('should include user and org info in email', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'Jane Smith',
-                    orgId: 'org456',
-                }),
-            });
-
-            // Mock org doc
-            mockDb.collection = jest.fn((collName) => {
-                if (collName === 'tenants') {
-                    return {
-                        doc: jest.fn(() => ({
-                            get: jest.fn().mockResolvedValue({
-                                exists: true,
-                                data: () => ({ name: 'Test Org' }),
-                            }),
-                        })),
-                    };
-                }
-                return mockCollection;
-            });
-
-            mockQuery.get.mockResolvedValue({
-                empty: true,
-            });
+        it('includes the user and org in the approval email body', async () => {
+            seedUser({ name: 'Jane Smith', orgId: 'org456' });
+            seedTenant({ name: 'North Star' });
 
             await service.notifyUserApproved('user123', 'admin@example.com');
 
-            const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
-            const body = JSON.parse(fetchCall[1].body);
-            expect(body.Messages[0]['Html-part']).toContain('Jane Smith');
+            const payload = mockSendGenericEmail.mock.calls[0][0];
+            expect(payload.htmlBody).toContain('Jane Smith');
+            expect(payload.htmlBody).toContain('North Star');
+            expect(payload.htmlBody).toContain('Dashboard');
         });
 
-        it('should return false if user not found', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: false,
-            });
+        it('returns false when the user does not exist', async () => {
+            mockUsersDocGet.mockResolvedValue({ exists: false });
 
-            const result = await service.notifyUserApproved('nonexistent', 'admin@example.com');
+            const result = await service.notifyUserApproved('missing-user', 'admin@example.com');
 
             expect(result).toBe(false);
+            expect(mockSendGenericEmail).not.toHaveBeenCalled();
         });
 
-        it('should return false if Mailjet fails', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'John Doe',
-                    orgId: 'org123',
-                }),
-            });
-
-            mockQuery.get.mockResolvedValue({
-                empty: true,
-            });
-
-            (global.fetch as jest.Mock).mockResolvedValue({
-                ok: false,
-                status: 400,
-                json: async () => ({ error: 'Invalid email' }),
+        it('returns false when the user email send fails', async () => {
+            seedUser();
+            seedTenant();
+            mockSendGenericEmail.mockResolvedValueOnce({
+                success: false,
+                error: 'SES down',
             });
 
             const result = await service.notifyUserApproved('user123', 'admin@example.com');
 
             expect(result).toBe(false);
-        });
-
-        it('should return false if Mailjet credentials missing', async () => {
-            const originalEnv = process.env;
-            process.env = { ...originalEnv, MAILJET_API_KEY: undefined, MAILJET_API_SECRET: undefined };
-
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'John Doe',
-                    orgId: 'org123',
-                }),
-            });
-
-            mockQuery.get.mockResolvedValue({
-                empty: true,
-            });
-
-            const result = await service.notifyUserApproved('user123', 'admin@example.com');
-
-            expect(result).toBe(false);
-
-            process.env = originalEnv;
         });
     });
 
     describe('notifyUserRejected', () => {
-        it('should send rejection email with reason', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'John Doe',
-                    orgId: 'org123',
-                }),
-            });
+        it('includes the rejection reason in the email body', async () => {
+            seedUser({ name: 'Jane Smith' });
+            seedTenant();
 
-            mockQuery.get.mockResolvedValue({
-                empty: true,
-            });
-
-            const result = await service.notifyUserRejected('user123', 'admin@example.com', 'Verification failed');
+            const result = await service.notifyUserRejected(
+                'user123',
+                'admin@example.com',
+                'Background check did not pass'
+            );
 
             expect(result).toBe(true);
-            expect(global.fetch).toHaveBeenCalled();
-
-            const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
-            const body = JSON.parse(fetchCall[1].body);
-            expect(body.Messages[0]['Html-part']).toContain('Verification failed');
+            expect(mockSendGenericEmail).toHaveBeenCalledTimes(2);
+            expect(mockSendGenericEmail.mock.calls[0][0].htmlBody).toContain('Background check did not pass');
         });
 
-        it('should include rejection reason in email', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'Jane Smith',
-                    orgId: 'org456',
-                }),
-            });
-
-            mockQuery.get.mockResolvedValue({
-                empty: true,
-            });
-
-            const reason = 'Background check did not pass';
-            await service.notifyUserRejected('user123', 'admin@example.com', reason);
-
-            const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
-            const body = JSON.parse(fetchCall[1].body);
-            expect(body.Messages[0]['Html-part']).toContain(reason);
-        });
-
-        it('should handle rejection without reason', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'John Doe',
-                    orgId: 'org123',
-                }),
-            });
-
-            mockQuery.get.mockResolvedValue({
-                empty: true,
-            });
+        it('handles rejection without a reason', async () => {
+            seedUser();
+            seedTenant();
 
             const result = await service.notifyUserRejected('user123', 'admin@example.com');
 
             expect(result).toBe(true);
-        });
-
-        it('should return false if user not found', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: false,
-            });
-
-            const result = await service.notifyUserRejected('nonexistent', 'admin@example.com');
-
-            expect(result).toBe(false);
+            expect(mockSendGenericEmail.mock.calls[0][0].htmlBody).toContain('Application Update');
         });
     });
 
     describe('notifyUserPromoted', () => {
-        it('should send promotion email', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'John Doe',
-                }),
-            });
-
-            const result = await service.notifyUserPromoted('user123', 'admin@example.com', 'super_user');
-
-            expect(result).toBe(true);
-            expect(global.fetch).toHaveBeenCalled();
-        });
-
-        it('should include role in promotion email', async () => {
-            mockCollection.doc().get.mockResolvedValue({
+        it('sends the promotion email with the new role in the body', async () => {
+            mockUsersDocGet.mockResolvedValue({
                 exists: true,
                 data: () => ({
                     email: 'user@example.com',
@@ -281,206 +223,63 @@ describe('UserNotificationService', () => {
                 }),
             });
 
-            const newRole = 'brand_admin';
-            await service.notifyUserPromoted('user123', 'admin@example.com', newRole);
+            const result = await service.notifyUserPromoted('user123', 'admin@example.com', 'brand_admin');
 
-            const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
-            const body = JSON.parse(fetchCall[1].body);
-            expect(body.Messages[0]['Html-part']).toContain('promoted');
-            expect(body.Messages[0]['Html-part']).toContain('brand_admin');
+            expect(result).toBe(true);
+            expect(mockSendGenericEmail).toHaveBeenCalledTimes(1);
+            expect(mockSendGenericEmail).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    to: 'user@example.com',
+                    subject: "You've been promoted to Super User!",
+                    htmlBody: expect.stringContaining('brand_admin'),
+                })
+            );
         });
 
-        it('should return false if user not found', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: false,
-            });
+        it('returns false when the promoted user does not exist', async () => {
+            mockUsersDocGet.mockResolvedValue({ exists: false });
 
-            const result = await service.notifyUserPromoted('nonexistent', 'admin@example.com', 'super_user');
+            const result = await service.notifyUserPromoted('missing-user', 'admin@example.com', 'super_user');
 
             expect(result).toBe(false);
         });
     });
 
-    describe('sendEmailViaMailjet', () => {
-        it('should use correct Mailjet endpoint', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'John Doe',
-                    orgId: 'org123',
-                }),
+    describe('getOrgAdminEmail behavior', () => {
+        it('falls back to querying dispensary users when tenant adminEmail is missing', async () => {
+            seedUser();
+            seedTenant({ adminEmail: undefined as unknown as string });
+            mockUsersQueryGet.mockResolvedValue({
+                empty: false,
+                docs: [{ data: () => ({ email: 'dispensary@test-org.com' }) }],
             });
 
-            mockQuery.get.mockResolvedValue({
-                empty: true,
-            });
+            const result = await service.notifyUserApproved('user123', 'admin@example.com');
 
-            await service.notifyUserApproved('user123', 'admin@example.com');
-
-            const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
-            expect(fetchCall[0]).toBe('https://api.mailjet.com/v3.1/send');
-            expect(fetchCall[1].method).toBe('POST');
-        });
-
-        it('should include Mailjet authentication', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'John Doe',
-                    orgId: 'org123',
-                }),
-            });
-
-            mockQuery.get.mockResolvedValue({
-                empty: true,
-            });
-
-            await service.notifyUserApproved('user123', 'admin@example.com');
-
-            const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
-            expect(fetchCall[1].headers.Authorization).toMatch(/^Basic /);
-        });
-
-        it('should set correct content type', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'John Doe',
-                    orgId: 'org123',
-                }),
-            });
-
-            mockQuery.get.mockResolvedValue({
-                empty: true,
-            });
-
-            await service.notifyUserApproved('user123', 'admin@example.com');
-
-            const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
-            expect(fetchCall[1].headers['Content-Type']).toBe('application/json');
-        });
-    });
-
-    describe('getOrgAdminEmail', () => {
-        it('should query users collection for dispensary role', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'John Doe',
-                    orgId: 'org123',
-                }),
-            });
-
-            mockQuery.get.mockResolvedValue({
-                empty: true,
-            });
-
-            await service.notifyUserApproved('user123', 'admin@example.com');
-
-            // Should query for dispensary role
-            expect(mockQuery.where).toHaveBeenCalled();
-        });
-    });
-
-    describe('email templates', () => {
-        it('approval email should contain welcome message', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'John Doe',
-                    orgId: 'org123',
-                }),
-            });
-
-            mockQuery.get.mockResolvedValue({
-                empty: true,
-            });
-
-            await service.notifyUserApproved('user123', 'admin@example.com');
-
-            const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
-            const body = JSON.parse(fetchCall[1].body);
-            const html = body.Messages[0]['Html-part'];
-
-            expect(html).toContain('Welcome');
-            expect(html).toContain('approved');
-            expect(html).toContain('Dashboard');
-        });
-
-        it('rejection email should be professional', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'John Doe',
-                    orgId: 'org123',
-                }),
-            });
-
-            mockQuery.get.mockResolvedValue({
-                empty: true,
-            });
-
-            await service.notifyUserRejected('user123', 'admin@example.com', 'Test reason');
-
-            const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
-            const body = JSON.parse(fetchCall[1].body);
-            const html = body.Messages[0]['Html-part'];
-
-            expect(html).toContain('Application Update');
-            expect(html).toContain('Thank you');
-        });
-
-        it('promotion email should highlight new features', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'John Doe',
-                }),
-            });
-
-            await service.notifyUserPromoted('user123', 'admin@example.com', 'super_user');
-
-            const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
-            const body = JSON.parse(fetchCall[1].body);
-            const html = body.Messages[0]['Html-part'];
-
-            expect(html).toContain('Promoted');
-            expect(html).toContain('Analytics');
-            expect(html).toContain('User Management');
+            expect(result).toBe(true);
+            expect(usersCollection.where).toHaveBeenCalledWith('orgId', '==', 'org123');
+            const chainedWhere = usersCollection.where.mock.results[0].value.where;
+            expect(chainedWhere).toHaveBeenCalledWith('role', '==', 'dispensary');
+            expect(mockSendGenericEmail).toHaveBeenNthCalledWith(
+                2,
+                expect.objectContaining({ to: 'dispensary@test-org.com' })
+            );
         });
     });
 
     describe('error handling', () => {
-        it('should handle Firestore errors gracefully', async () => {
-            mockCollection.doc().get.mockRejectedValue(new Error('Firestore error'));
+        it('returns false on Firestore errors', async () => {
+            mockUsersDocGet.mockRejectedValue(new Error('Firestore error'));
 
             const result = await service.notifyUserApproved('user123', 'admin@example.com');
 
             expect(result).toBe(false);
         });
 
-        it('should handle network errors gracefully', async () => {
-            mockCollection.doc().get.mockResolvedValue({
-                exists: true,
-                data: () => ({
-                    email: 'user@example.com',
-                    name: 'John Doe',
-                    orgId: 'org123',
-                }),
-            });
-
-            mockQuery.get.mockResolvedValue({
-                empty: true,
-            });
-
-            (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+        it('returns false when the dispatcher rejects', async () => {
+            seedUser();
+            seedTenant();
+            mockSendGenericEmail.mockRejectedValueOnce(new Error('Network error'));
 
             const result = await service.notifyUserApproved('user123', 'admin@example.com');
 

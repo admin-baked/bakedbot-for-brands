@@ -28,7 +28,7 @@ jest.mock('@/lib/logger', () => ({
 describe('pricing dashboard actions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers().setSystemTime(new Date('2026-03-21T12:00:00Z'));
+    jest.useFakeTimers().setSystemTime(Date.parse('2026-03-21T12:00:00Z'));
   });
 
   afterEach(() => {

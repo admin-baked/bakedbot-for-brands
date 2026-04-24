@@ -15,6 +15,15 @@ jest.mock('@/lib/logger', () => ({
     },
 }));
 
+// Mock firebase admin auth — execute() calls getAdminAuth().getUser()
+jest.mock('@/firebase/admin', () => ({
+    getAdminAuth: jest.fn(() => ({
+        getUser: jest.fn().mockResolvedValue({
+            customClaims: { role: 'super_user' }
+        })
+    }))
+}));
+
 describe('EmailTool', () => {
     let tool: EmailTool;
     const mockContext: any = {
@@ -30,7 +39,8 @@ describe('EmailTool', () => {
     it('should have correct metadata', () => {
         expect(tool.id).toBe('email.send');
         expect(tool.name).toBe('Send Email');
-        expect(tool.description).toContain('connected Gmail');
+        // Description changed: no longer mentions "connected Gmail", now just says "Gmail when available"
+        expect(tool.description).toContain('Gmail');
     });
 
     it('should execute successfully for a single recipient', async () => {

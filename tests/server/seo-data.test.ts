@@ -90,10 +90,12 @@ describe('SEO Data Fetching', () => {
         });
 
         it('should return null if dispensary not found', async () => {
-            // Mock retailers query empty
+            // Mock retailers query by slug empty
             mockGet.mockResolvedValueOnce({ empty: true });
             // Mock retailers doc get not exists
             mockGet.mockResolvedValueOnce({ exists: false });
+            // Mock seo_pages_dispensary query empty
+            mockGet.mockResolvedValueOnce({ empty: true });
 
             const { retailer } = await fetchDispensaryPageData('non-existent');
             expect(retailer).toBeNull();

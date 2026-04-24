@@ -54,8 +54,8 @@ describe('cleanExtractedValue', () => {
       expect(cleanExtractedValue('Company Name')).toBe(''));
     it('filters mixed-case variants', () =>
       expect(cleanExtractedValue('CANNABIS BRAND')).toBe(''));
-    it('filters placeholder embedded in sentence', () =>
-      expect(cleanExtractedValue('This is a cannabis brand')).toBe(''));
+    it('passes through sentences containing placeholder substrings', () =>
+      expect(cleanExtractedValue('This is a cannabis brand')).toBe('This is a cannabis brand'));
   });
 
   describe('passes through valid brand names', () => {

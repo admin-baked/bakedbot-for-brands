@@ -36,15 +36,16 @@ describe('useUserRole', () => {
         expect(result.current.role).toBeNull();
     });
 
-    it('returns role from user object', () => {
+    it('returns role from user object (normalizes legacy "brand" to "brand_admin")', () => {
         (useUser as jest.Mock).mockReturnValue({
             user: { role: 'brand', email: 'brand@example.com' },
             isUserLoading: false,
         });
 
         const { result } = renderHook(() => useUserRole());
-        expect(result.current.role).toBe('brand');
-        expect(result.current.isRole('brand')).toBe(true);
+        // normalizeRole maps legacy 'brand' -> 'brand_admin'
+        expect(result.current.role).toBe('brand_admin');
+        expect(result.current.isRole('brand_admin')).toBe(true);
     });
 
     it('maps legacy super_admin as super_user for hasAnyRole checks', () => {

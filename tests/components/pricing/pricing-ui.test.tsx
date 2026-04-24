@@ -1,11 +1,15 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { PricingUI } from '@/app/pricing/pricing-ui';
 import '@testing-library/jest-dom';
 
 // Mock Lucide icons
 jest.mock('lucide-react', () => ({
     Check: () => <div data-testid="check-icon" />,
+    Info: () => <div data-testid="info-icon" />,
+    Sparkles: () => <div data-testid="sparkles-icon" />,
+    MapPin: () => <div data-testid="map-icon" />,
+    Zap: () => <div data-testid="zap-icon" />,
 }));
 
 // Mock Link
@@ -15,103 +19,120 @@ jest.mock('next/link', () => {
     );
 });
 
-// Mock Pricing Config
+// Mock Tooltip components
+jest.mock('@/components/ui/tooltip', () => ({
+    Tooltip: ({ children }: any) => <>{children}</>,
+    TooltipContent: ({ children }: any) => <div>{children}</div>,
+    TooltipProvider: ({ children }: any) => <>{children}</>,
+    TooltipTrigger: ({ children }: any) => <>{children}</>,
+}));
+
+// Mock Pricing Config with PUBLIC_PLANS structure
 jest.mock('@/lib/config/pricing', () => ({
-    DIRECTORY_PLANS: [
+    PUBLIC_PLANS: [
         {
-            id: "free",
-            name: "Free Listing",
+            id: 'free',
+            name: 'Free Check-In',
             price: 0,
-            priceDisplay: "$0",
-            period: "/ mo",
-            desc: "Best for: getting discovered",
-            features: ["Feature 1", "Feature 2"],
-            pill: "Create Free Listing",
+            priceDisplay: '$0',
+            period: '/ mo',
+            desc: 'Launch QR or tablet capture',
+            features: ['Tablet or QR customer capture', 'Welcome email starter flow'],
+            pill: 'Start Free',
             highlight: false,
-            tier: "directory"
+            tier: 'directory',
+            track: 'access',
+            salesMotion: 'self_serve',
+            ctaLabel: 'Start Free',
+            ctaHref: '/onboarding?plan=free',
         },
         {
-            id: "claim_pro",
-            name: "Claim Pro",
-            price: 99,
-            priceDisplay: "$99",
-            period: "/ mo",
-            desc: "Best for: operators",
-            features: ["Feature A", "Feature B"],
-            pill: "Claim Pro",
-            highlight: true,
-            tier: "directory"
-        }
-    ],
-    PLATFORM_PLANS: [
+            id: 'access_intel',
+            name: 'Access Intel',
+            price: 149,
+            priceDisplay: '$149',
+            period: '/ mo',
+            desc: 'Monitor competitor movement',
+            features: ['Competitor tracking', 'Weekly intelligence digest'],
+            pill: 'Start Access Intel',
+            highlight: false,
+            tier: 'directory',
+            track: 'access',
+            salesMotion: 'self_serve',
+            ctaLabel: 'Start Access Intel',
+            ctaHref: '/onboarding?plan=access_intel',
+            includedCredits: 500,
+        },
         {
-            id: "starter",
-            name: "Starter",
-            price: 99,
-            priceDisplay: "$99",
-            period: "/ mo",
-            desc: "Best for: single location",
-            features: ["Platform Feature 1"],
-            pill: "Choose Plan",
-            tier: "platform"
-        }
-    ],
-    ADDONS: [
-        { name: "Addon 1", price: 149, note: "Note 1", desc: "Desc 1" }
+            id: 'access_retention',
+            name: 'Access Retention',
+            price: 499,
+            priceDisplay: '$499',
+            period: '/ mo',
+            desc: 'Deploy a narrow welcome and retention stack',
+            features: ['Welcome Email Playbook', 'QR sign-up capture'],
+            pill: 'Start Access Retention',
+            highlight: true,
+            tier: 'directory',
+            track: 'access',
+            salesMotion: 'self_serve',
+            ctaLabel: 'Start Access Retention',
+            ctaHref: '/onboarding?plan=access_retention',
+            includedCredits: 2000,
+        },
+        {
+            id: 'operator_core',
+            name: 'Operator Core',
+            price: 1499,
+            priceDisplay: '$1,499',
+            period: '/ mo',
+            desc: 'Full managed execution',
+            features: ['Managed revenue motion', 'Weekly KPI reviews'],
+            pill: 'Talk to Us',
+            highlight: false,
+            tier: 'platform',
+            track: 'operator',
+            salesMotion: 'consultative',
+            ctaLabel: 'Talk to Us',
+            ctaHref: '/contact',
+        },
     ],
     OVERAGES: [
-        { k: "Metric 1", v: "Rate 1" }
-    ]
+        { k: 'AI Credits', v: '$0.005 / credit' },
+        { k: 'SMS', v: '$0.035 / msg' },
+    ],
+    ADDONS: [],
 }));
 
 describe('PricingUI', () => {
     it('renders the header correctly', () => {
         render(<PricingUI />);
-        expect(screen.getByText('Simple, Transparent Pricing')).toBeInTheDocument();
-        expect(screen.getByText(/Start with discovery \+ claiming/)).toBeInTheDocument();
+        expect(screen.getByText(/No Enterprise Sales Call Required/i)).toBeInTheDocument();
     });
 
-    it('renders Directory Plans by default', () => {
+    it('renders the first 4 public plans', () => {
         render(<PricingUI />);
-        // Title selector
-        expect(screen.getByRole('heading', { name: /Free Listing/i })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: /Claim Pro/i })).toBeInTheDocument();
-        
-        // Button/Link selector
-        expect(screen.getByRole('link', { name: /Create Free Listing/i })).toBeInTheDocument();
-        expect(screen.getAllByRole('link', { name: /Claim Pro/i })[0]).toBeInTheDocument();
+        expect(screen.getByText('Free Check-In')).toBeInTheDocument();
+        expect(screen.getByText('Access Intel')).toBeInTheDocument();
+        expect(screen.getByText('Access Retention')).toBeInTheDocument();
+        expect(screen.getByText('Operator Core')).toBeInTheDocument();
     });
 
-    it('switches to Platform Plans when tab is clicked', async () => {
+    it('renders plan CTA buttons', () => {
         render(<PricingUI />);
-        
-        const platformTab = screen.getByRole('tab', { name: /Platform Plans/i });
-        fireEvent.click(platformTab);
-
-        // Platform tab content might be lazy-loaded or animated
-        expect(await screen.findByText('Platform Plans (Core + Agent Workspace)')).toBeInTheDocument();
-        expect(await screen.findByRole('heading', { name: /Starter/i })).toBeInTheDocument();
-        expect(await screen.findByRole('link', { name: /Choose Plan/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /Start Free/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /Start Access Intel/i })).toBeInTheDocument();
     });
 
-    it('renders Add-ons in the platform tab', async () => {
+    it('renders plan prices', () => {
         render(<PricingUI />);
-        
-        const platformTab = screen.getByRole('tab', { name: /Platform Plans/i });
-        fireEvent.click(platformTab);
-
-        expect(await screen.findByText('Agent Workspace Add-ons')).toBeInTheDocument();
-        expect(await screen.findByText('Addon 1')).toBeInTheDocument();
-        expect(await screen.findByText('$149')).toBeInTheDocument();
+        expect(screen.getByText('$0')).toBeInTheDocument();
+        expect(screen.getByText('$149')).toBeInTheDocument();
+        expect(screen.getByText('$499')).toBeInTheDocument();
     });
 
-    it('renders checkout links correctly', () => {
+    it('renders overage info', () => {
         render(<PricingUI />);
-        
-        const freeLink = screen.getByRole('link', { name: 'Create Free Listing' });
-        expect(freeLink).toHaveAttribute('href', '/checkout/subscription?plan=free');
-
-        const proLinks = screen.getAllByRole('link', { name: /Claim Pro/i });
-        expect(proLinks[0]).toHaveAttribute('href', '/checkout/subscription?plan=claim_pro');
+        expect(screen.getByText('AI Credits')).toBeInTheDocument();
     });
 });

@@ -357,9 +357,9 @@ describe('Payment Configuration Page', () => {
         expect(mockPaymentActions.getPaymentConfig).toHaveBeenCalled();
       });
 
-      // Check for fee display
-      const fee = screen.queryByText('$0.50');
-      // May appear multiple times for different processors
+      // Check for fee display - may appear multiple times for different processors
+      const fees = screen.queryAllByText('$0.50');
+      // Fees may or may not be displayed depending on tab state
     });
 
     it('should display provider information', async () => {

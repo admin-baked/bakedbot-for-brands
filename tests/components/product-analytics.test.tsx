@@ -158,24 +158,16 @@ describe('Product Analytics UI', () => {
                 strainType: 'Sativa',
             };
 
-            const { container } = render(
+            render(
                 <OversizedProductCard
                     product={product}
                     primaryColor="#16a34a"
                 />
             );
 
-            // Trending badge should appear before strain badge
-            const badges = container.querySelectorAll('[class*="badge"]');
-            const trendingBadge = Array.from(badges).find(b =>
-                b.textContent?.includes('Trending')
-            );
-            const strainBadge = Array.from(badges).find(b =>
-                b.textContent?.includes('Sativa')
-            );
-
-            expect(trendingBadge).toBeDefined();
-            expect(strainBadge).toBeDefined();
+            // Both badges should be rendered
+            expect(screen.getByText('Trending')).toBeInTheDocument();
+            expect(screen.getByText('Sativa')).toBeInTheDocument();
         });
     });
 
@@ -349,16 +341,16 @@ describe('Product Analytics UI', () => {
                 thcPercent: 25,
             };
 
-            const { container } = render(
+            render(
                 <OversizedProductCard
                     product={productWithMultipleBadges}
                     primaryColor="#16a34a"
                 />
             );
 
-            // Should have different colored badges
-            const allBadges = container.querySelectorAll('[class*="Badge"]');
-            expect(allBadges.length).toBeGreaterThan(0);
+            // Multiple badges should be present
+            expect(screen.getByText('Trending')).toBeInTheDocument();
+            expect(screen.getByText('Indica')).toBeInTheDocument();
         });
     });
 

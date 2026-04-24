@@ -146,6 +146,7 @@ describe('getInsightsForOrg', () => {
             insights: expect.arrayContaining([
                 expect.objectContaining({ id: 'market-critical', category: 'market' }),
                 expect.objectContaining({ id: 'velocity-warning', category: 'velocity' }),
+                expect.objectContaining({ id: 'customer-old', category: 'customer' }),
                 expect.objectContaining({ id: 'customer-new', category: 'customer' }),
             ]),
         });
@@ -154,11 +155,13 @@ describe('getInsightsForOrg', () => {
             throw new Error('Expected proactive insights to succeed');
         }
 
+        // Dedup is by category:title, so CUSTOMER MIX and LOYALTY PERFORMANCE both survive
         expect(result.insights.map((insight) => insight.id)).toEqual([
             'market-critical',
             'velocity-warning',
+            'customer-old',
             'customer-new',
         ]);
-        expect(result.insights).toHaveLength(3);
+        expect(result.insights).toHaveLength(4);
     });
 });

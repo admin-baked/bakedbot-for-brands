@@ -120,12 +120,15 @@ describe('Mrs. Parker Agent (Harness)', () => {
       expect.objectContaining({
         userQuery: 'Analyze churn risk for VIPs',
         systemInstructions: 'SYSTEM',
-        tools: mockTools,
         model: 'googleai/gemini-3-pro-preview',
         maxIterations: 5,
         toolsDef: expect.arrayContaining([expect.objectContaining({ name: 'predictChurnRisk' })]),
       })
     );
+    // Verify original tools are included (may have additional shared tools merged in)
+    const callArgs = (runMultiStepTask as jest.Mock).mock.calls[0][0];
+    expect(callArgs.tools).toHaveProperty('predictChurnRisk');
+    expect(callArgs.tools).toHaveProperty('generateLoyaltyCampaign');
 
     expect(result.logEntry.action).toBe('mrs_parker_task_complete');
     expect(result.logEntry.result).toBe('All set.');

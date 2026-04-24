@@ -47,6 +47,11 @@ describe('CreativeQRCode', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        (generateCreativeQR as jest.Mock).mockResolvedValue({
+            success: true,
+            qrDataUrl: 'data:image/png;base64,default-qr',
+            qrSvg: '<svg>default</svg>',
+        });
     });
 
     it('should render QR code when data is provided', () => {
@@ -60,7 +65,9 @@ describe('CreativeQRCode', () => {
         render(<CreativeQRCode content={mockContent} showStats={true} />);
 
         expect(screen.getByText('42')).toBeInTheDocument(); // Scan count
-        expect(screen.getByText(/1\/27\/2026/)).toBeInTheDocument(); // Last scanned date
+        expect(
+            screen.getByText(new Date(mockContent.qrStats!.lastScanned!).toLocaleDateString())
+        ).toBeInTheDocument();
     });
 
     it('should hide statistics when showStats is false', () => {
@@ -78,7 +85,7 @@ describe('CreativeQRCode', () => {
     it('should show loading skeleton when generating', async () => {
         const contentWithoutQR = { ...mockContent, qrDataUrl: undefined };
         (generateCreativeQR as jest.Mock).mockImplementation(
-            () => new Promise((resolve) => setTimeout(resolve, 100))
+            () => new Promise(() => {})
         );
 
         render(<CreativeQRCode content={contentWithoutQR} />);

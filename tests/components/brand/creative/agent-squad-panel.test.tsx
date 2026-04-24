@@ -18,6 +18,26 @@ jest.mock('framer-motion', () => ({
     },
 }));
 
+// Mock agent registry
+jest.mock('@/lib/agents/registry', () => ({
+    AGENT_REGISTRY: {
+        craig: { name: 'Craig', title: 'Marketer', visual: { color: 'blue', emoji: '' }, image: null },
+        mrs_parker: { name: 'Mrs. Parker', title: 'Community Manager', visual: { color: 'pink', emoji: '' }, image: null },
+        deebo: { name: 'Deebo', title: 'Enforcer', visual: { color: 'red', emoji: '' }, image: null },
+    },
+}));
+
+// Mock AgentStatusIndicator
+jest.mock('@/components/ui/agent-status-indicator', () => ({
+    AgentStatusIndicator: () => <div data-testid="agent-status" />,
+    agentText: () => '',
+}));
+
+// Mock cn utility
+jest.mock('@/lib/utils', () => ({
+    cn: (...args: any[]) => args.filter(Boolean).join(' '),
+}));
+
 describe('AgentSquadPanel', () => {
     describe('Rendering', () => {
         it('renders panel title', () => {
@@ -28,14 +48,14 @@ describe('AgentSquadPanel', () => {
         it('renders all creative agents', () => {
             render(<AgentSquadPanel />);
             expect(screen.getByText('Craig')).toBeInTheDocument();
-            expect(screen.getByText('Nano Banana')).toBeInTheDocument();
+            expect(screen.getByText('Mrs. Parker')).toBeInTheDocument();
             expect(screen.getByText('Deebo')).toBeInTheDocument();
         });
 
         it('renders agent roles', () => {
             render(<AgentSquadPanel />);
             expect(screen.getByText('Marketer')).toBeInTheDocument();
-            expect(screen.getByText('Visual Artist')).toBeInTheDocument();
+            expect(screen.getByText('Community Manager')).toBeInTheDocument();
             expect(screen.getByText('Enforcer')).toBeInTheDocument();
         });
     });
@@ -46,9 +66,9 @@ describe('AgentSquadPanel', () => {
             expect(screen.getByText('Ready')).toBeInTheDocument();
         });
 
-        it('shows Idle status for idle agents', () => {
+        it('shows Offline status for offline agents', () => {
             render(<AgentSquadPanel />);
-            expect(screen.getByText('Idle')).toBeInTheDocument();
+            expect(screen.getByText('Offline')).toBeInTheDocument();
         });
 
         it('shows Working status for working agents', () => {

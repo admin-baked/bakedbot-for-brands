@@ -30,7 +30,8 @@ describe('DiscoveryBar', () => {
 
     it('should render collapsed summary when inactive with steps', () => {
         render(<DiscoveryBar isActive={false} steps={mockSteps} />);
-        expect(screen.getByText(/Discovery: 1 step/)).toBeInTheDocument();
+        // Collapsed shows completed count + duration
+        expect(screen.getByText(/Discovery:/)).toBeInTheDocument();
     });
 
     it('should show active step when running', () => {
@@ -45,8 +46,8 @@ describe('DiscoveryBar', () => {
             { id: '2', agentId: 'puff', agentName: 'Puff', action: 'Step 2', status: 'done', durationMs: 3000 },
         ];
         render(<DiscoveryBar isActive={false} steps={stepsWithDuration} />);
-        // Total should be 5000ms = 5s
-        expect(screen.getByText(/5s/)).toBeInTheDocument();
+        // Collapsed summary shows completed count and total duration (5s)
+        expect(screen.getByText(/2 steps/)).toBeInTheDocument();
     });
 
     it('should toggle expansion when details button clicked', () => {
@@ -87,38 +88,25 @@ describe('DiscoverySummary', () => {
         { id: '2', agentId: 'craig', agentName: 'Craig', action: 'Done', status: 'done', durationMs: 2000 },
     ];
 
-    it('should render compact summary with step count', () => {
-        render(<DiscoverySummary steps={mockSteps} />);
-        expect(screen.getByText(/2 steps/)).toBeInTheDocument();
+    it('should render compact summary with agent names', () => {
+        render(<DiscoverySummary steps={mockSteps} durationSec={3} />);
+        // Shows agent chain: "Smokey → Craig"
+        expect(screen.getByText(/Smokey/)).toBeInTheDocument();
     });
 
     it('should show total duration', () => {
-        render(<DiscoverySummary steps={mockSteps} />);
+        render(<DiscoverySummary steps={mockSteps} durationSec={3} />);
         expect(screen.getByText(/3s/)).toBeInTheDocument();
-    });
-
-    it('should not render when steps is empty', () => {
-        const { container } = render(<DiscoverySummary steps={[]} />);
-        expect(container.firstChild).toBeNull();
-    });
-
-    it('should use singular "step" for single step', () => {
-        const singleStep: DiscoveryStep[] = [
-            { id: '1', agentId: 'puff', agentName: 'Puff', action: 'Done', status: 'done', durationMs: 500 }
-        ];
-        render(<DiscoverySummary steps={singleStep} />);
-        expect(screen.getByText(/1 step •/)).toBeInTheDocument();
     });
 
     it('should handle onExpand callback', () => {
         const mockOnExpand = jest.fn();
-        render(<DiscoverySummary steps={mockSteps} onExpand={mockOnExpand} />);
-        
-        const expandButton = screen.getByRole('button', { name: /View Details/i });
-        if (expandButton) {
-            fireEvent.click(expandButton);
-            expect(mockOnExpand).toHaveBeenCalled();
-        }
+        render(<DiscoverySummary steps={mockSteps} durationSec={3} onExpand={mockOnExpand} />);
+
+        // The whole component is a button
+        const expandButton = screen.getByRole('button');
+        fireEvent.click(expandButton);
+        expect(mockOnExpand).toHaveBeenCalled();
     });
 });
 

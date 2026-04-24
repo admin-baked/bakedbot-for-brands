@@ -31,7 +31,7 @@ describe('RetailerCard', () => {
         render(<RetailerCard retailer={mockRetailer} isPartner={false} zipCode="90001" />);
         const claimLink = screen.getByText(/Own this business/i);
         expect(claimLink).toBeInTheDocument();
-        expect(claimLink.getAttribute('href')).toContain('/for-brands?retailerId=r1');
+        expect(claimLink.getAttribute('href')).toContain('/claim?id=r1');
     });
 
     it('tracks "claim_listing_click" when claim link is clicked', () => {

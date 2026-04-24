@@ -64,9 +64,9 @@ jest.mock('firebase-admin/firestore', () => ({
     },
 }));
 
-// Mock fetch for Mailjet
-const mockFetch = jest.fn().mockResolvedValue({ ok: true });
-global.fetch = mockFetch as any;
+jest.mock('@/lib/email/dispatcher', () => ({
+    sendGenericEmail: jest.fn(),
+}));
 
 // Use require() instead of import — import is hoisted above process.env assignments
 // but require() runs in place, so env vars are set by the time the module loads
@@ -82,6 +82,9 @@ import { HEALTH_THRESHOLDS } from '@/types/system-health';
 
 // Get mock references
 const { __mocks } = require('@/firebase/admin');
+const { sendGenericEmail } = require('@/lib/email/dispatcher') as {
+    sendGenericEmail: jest.Mock;
+};
 const {
     mockAlertSet, mockAlertAdd, mockAlertDocGet, mockAlertDoc,
     mockAlertWhere, mockAlertCollection,
@@ -91,6 +94,10 @@ describe('Health Alerts Service', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockCooldownEmpty = true;
+        sendGenericEmail.mockResolvedValue({
+            success: true,
+            messageId: 'ses-message-1',
+        });
     });
 
     const createMockAlert = (overrides: Partial<SystemHealthAlert> = {}): SystemHealthAlert => ({
@@ -124,23 +131,20 @@ describe('Health Alerts Service', () => {
             const result = await sendAlertNotification(alert, ['admin@bakedbot.ai']);
 
             expect(result).toBe(false);
-            expect(mockFetch).not.toHaveBeenCalled();
+            expect(sendGenericEmail).not.toHaveBeenCalled();
         });
 
-        it('should send email via Mailjet when not on cooldown', async () => {
+        it('should send email via the dispatcher when not on cooldown', async () => {
             mockCooldownEmpty = true;
             const alert = createMockAlert();
             const result = await sendAlertNotification(alert, ['admin@bakedbot.ai']);
 
             expect(result).toBe(true);
-            expect(mockFetch).toHaveBeenCalledWith(
-                'https://api.mailjet.com/v3.1/send',
+            expect(sendGenericEmail).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    method: 'POST',
-                    headers: expect.objectContaining({
-                        'Content-Type': 'application/json',
-                    }),
-                }),
+                    to: 'admin@bakedbot.ai',
+                    communicationType: 'transactional',
+                })
             );
         });
 
@@ -158,16 +162,16 @@ describe('Health Alerts Service', () => {
             );
         });
 
-        it('should return false when Mailjet returns error', async () => {
-            mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+        it('should return false when the dispatcher returns an error', async () => {
+            sendGenericEmail.mockResolvedValueOnce({ success: false, error: 'SES failure' });
             const alert = createMockAlert();
             const result = await sendAlertNotification(alert, ['admin@bakedbot.ai']);
 
             expect(result).toBe(false);
         });
 
-        it('should return false when fetch throws', async () => {
-            mockFetch.mockRejectedValueOnce(new Error('Network error'));
+        it('should return false when the dispatcher throws', async () => {
+            sendGenericEmail.mockRejectedValueOnce(new Error('Network error'));
             const alert = createMockAlert();
             const result = await sendAlertNotification(alert, ['admin@bakedbot.ai']);
 
@@ -185,9 +189,9 @@ describe('Health Alerts Service', () => {
             const alert = createMockAlert({ type: 'latency', severity: 'critical' });
             await sendAlertNotification(alert, ['test@test.com']);
 
-            const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-            expect(body.Messages[0].Subject).toContain('CRITICAL');
-            expect(body.Messages[0].Subject).toContain('latency');
+            const payload = sendGenericEmail.mock.calls[0][0];
+            expect(payload.subject).toContain('CRITICAL');
+            expect(payload.subject).toContain('latency');
         });
 
         it('should send to multiple recipients', async () => {
@@ -195,10 +199,15 @@ describe('Health Alerts Service', () => {
             const recipients = ['admin1@test.com', 'admin2@test.com'];
             await sendAlertNotification(alert, recipients);
 
-            const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-            expect(body.Messages[0].To).toHaveLength(2);
-            expect(body.Messages[0].To[0].Email).toBe('admin1@test.com');
-            expect(body.Messages[0].To[1].Email).toBe('admin2@test.com');
+            expect(sendGenericEmail).toHaveBeenCalledTimes(2);
+            expect(sendGenericEmail).toHaveBeenNthCalledWith(
+                1,
+                expect.objectContaining({ to: 'admin1@test.com' })
+            );
+            expect(sendGenericEmail).toHaveBeenNthCalledWith(
+                2,
+                expect.objectContaining({ to: 'admin2@test.com' })
+            );
         });
     });
 
@@ -321,7 +330,7 @@ describe('Health Alerts Service', () => {
             const alerts = [createMockAlert()];
             await processAlertNotifications(alerts);
 
-            expect(mockFetch).not.toHaveBeenCalled();
+            expect(sendGenericEmail).not.toHaveBeenCalled();
         });
 
         it('should not send when no recipients configured', async () => {
@@ -341,7 +350,7 @@ describe('Health Alerts Service', () => {
             const alerts = [createMockAlert()];
             await processAlertNotifications(alerts);
 
-            expect(mockFetch).not.toHaveBeenCalled();
+            expect(sendGenericEmail).not.toHaveBeenCalled();
         });
 
         it('should send notifications for critical and warning alerts', async () => {
@@ -370,7 +379,7 @@ describe('Health Alerts Service', () => {
             await processAlertNotifications(alerts);
 
             // critical + warning should be sent (2 calls), info should not
-            expect(mockFetch).toHaveBeenCalledTimes(2);
+            expect(sendGenericEmail).toHaveBeenCalledTimes(2);
         });
 
         it('should handle empty alerts array gracefully', async () => {

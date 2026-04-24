@@ -134,7 +134,7 @@ describe('Campaign Open Tracking', () => {
 
 describe('Campaign Click Tracking', () => {
     it('returns 302 redirect when url param is provided', async () => {
-        const destination = 'https://example.com/promo';
+        const destination = 'https://bakedbot.ai/promo';
         const req = makeRequest(
             `/api/track/campaign/click?rid=r1&cid=c1&url=${encodeURIComponent(destination)}`,
         );
@@ -143,8 +143,8 @@ describe('Campaign Click Tracking', () => {
         expect(res.status).toBe(302);
     });
 
-    it('redirect location matches the url param', async () => {
-        const destination = 'https://example.com/promo';
+    it('redirect location matches the url param when domain is allowed', async () => {
+        const destination = 'https://bakedbot.ai/promo';
         const req = makeRequest(
             `/api/track/campaign/click?rid=r1&cid=c1&url=${encodeURIComponent(destination)}`,
         );

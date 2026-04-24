@@ -1,18 +1,46 @@
 
 import { createClaimWithSubscription, getOrganizationForClaim } from '@/server/actions/createClaimSubscription';
-import { PRICING_PLANS } from '@/lib/config/pricing';
 import { createServerClient } from '@/firebase/server-client';
 
 // Mock dependencies
 jest.mock('@/firebase/server-client', () => ({
-    createServerClient: jest.fn()
+    createServerClient: jest.fn(),
+    setUserRole: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('@/lib/logger', () => ({
     logger: {
         info: jest.fn(),
+        warn: jest.fn(),
         error: jest.fn()
     }
+}));
+
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn().mockResolvedValue({
+        uid: 'user_test',
+        email: 'john@example.com',
+        email_verified: true,
+    }),
+}));
+
+jest.mock('@/lib/feature-flags', () => ({
+    isCompanyPlanCheckoutEnabled: jest.fn().mockReturnValue(true),
+}));
+
+jest.mock('@/lib/plans', () => ({
+    computeMonthlyAmount: jest.fn().mockReturnValue(0),
+    COVERAGE_PACKS: {},
+}));
+
+jest.mock('@/lib/config/pricing', () => ({
+    PRICING_PLANS: [],
+    findPricingPlan: jest.fn().mockReturnValue({ id: 'free', name: 'Free', price: 0 }),
+}));
+
+jest.mock('@/lib/payments/authorize-net', () => ({
+    createCustomerProfile: jest.fn(),
+    createSubscriptionFromProfile: jest.fn(),
 }));
 
 describe('Claim Flow Actions', () => {
@@ -99,16 +127,16 @@ describe('Claim Flow Actions', () => {
             planId: 'claim_pro' as any
         };
 
-        it('should validate orgId if provided - missing org', async () => {
+        it('should treat missing orgId as new claim (not fail)', async () => {
              mockSnapshot.exists = false;
-             
+
              const result = await createClaimWithSubscription({
                  ...baseInput,
                  orgId: 'missing_id'
              });
 
-             expect(result.success).toBe(false);
-             expect(result.error).toContain('Organization not found');
+             // Source now logs a warning and proceeds as a new claim instead of failing
+             expect(result.success).toBe(true);
         });
 
         it('should validate orgId if provided - already claimed', async () => {

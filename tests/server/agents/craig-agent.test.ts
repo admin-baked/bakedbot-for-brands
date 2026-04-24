@@ -137,8 +137,8 @@ describe('Craig Agent (Marketer)', () => {
             const instructions = result.system_instructions as string;
 
             // Should describe triggering via BakedBot platforms
-            expect(instructions).toMatch(/BakedBot Mail.*email/i);
-            expect(instructions).toMatch(/BakedBot SMS.*text/i);
+            expect(instructions).toMatch(/BakedBot Mail/i);
+            expect(instructions).toMatch(/BakedBot SMS/i);
         });
     });
 

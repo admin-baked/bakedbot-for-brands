@@ -1,10 +1,20 @@
 
-import { disableValidation } from '@/ai/genkit'; // Helper to bypass schema validation if needed
+// Mock Firecrawl SDK FIRST (before any other mock, hoisted)
+const mockScrape = jest.fn();
+const MockFirecrawlApp = jest.fn().mockImplementation(() => ({
+    scrape: mockScrape
+}));
 
-// Mock genkit
-jest.mock('genkit', () => ({
-  __esModule: true,
-  tool: jest.fn((config, fn) => fn)
+jest.mock('@mendable/firecrawl-js', () => ({
+    __esModule: true,
+    default: MockFirecrawlApp,
+}));
+
+// Mock genkit / ai — defineTool returns the handler fn directly
+jest.mock('@/ai/genkit', () => ({
+  ai: {
+    defineTool: jest.fn((_config: any, fn: any) => fn),
+  }
 }));
 
 // Mock dependencies
@@ -18,20 +28,10 @@ jest.mock('@/server/services/firecrawl', () => ({
   }
 }));
 
-// Mock Firecrawl SDK
-const mockScrape = jest.fn();
-jest.mock('@mendable/firecrawl-js', () => {
-    return {
-        default: jest.fn().mockImplementation(() => ({
-            scrape: mockScrape
-        }))
-    };
-});
-
 // Import tools after mocks
-import { 
-    firecrawlScrapeMenu, 
-    firecrawlScrapeWithActions 
+import {
+    firecrawlScrapeMenu,
+    firecrawlScrapeWithActions
 } from '../firecrawl-mcp';
 
 // Access mocked discovery
@@ -47,7 +47,7 @@ describe('Firecrawl MCP Tools', () => {
     describe('firecrawlScrapeMenu', () => {
         it('should return error if not configured', async () => {
             (discovery.isConfigured as jest.Mock).mockReturnValue(false);
-            const result = await firecrawlScrapeMenu({ url: 'https://example.com' });
+            const result = await firecrawlScrapeMenu({ url: 'https://example.com', waitMs: 5000 });
             expect(result).toHaveProperty('error');
         });
 
@@ -57,7 +57,7 @@ describe('Firecrawl MCP Tools', () => {
                 markdown: 'Menu content with Flower $50'
             });
 
-            const result = await firecrawlScrapeMenu({ url: 'https://example.com/menu' });
+            const result = await firecrawlScrapeMenu({ url: 'https://example.com/menu', waitMs: 5000 });
 
             expect(mockScrape).toHaveBeenCalledWith(
                 'https://example.com/menu',
@@ -82,14 +82,14 @@ describe('Firecrawl MCP Tools', () => {
             });
 
             const actions = [
-                { type: 'wait', milliseconds: 1000 },
-                { type: 'click', selector: '.btn' }
+                { type: 'wait' as const, milliseconds: 1000 },
+                { type: 'click' as const, selector: '.btn' }
             ];
 
-            // @ts-ignore test stub passes partial options shape
             const result = await firecrawlScrapeWithActions({
-                url: 'https://example.com', 
-                actions: actions as any 
+                url: 'https://example.com',
+                actions: actions as any,
+                format: 'markdown'
             });
 
             expect(mockScrape).toHaveBeenCalledWith(

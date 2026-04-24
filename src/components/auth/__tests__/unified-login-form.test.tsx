@@ -3,12 +3,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { UnifiedLoginForm } from '../unified-login-form';
 import '@testing-library/jest-dom';
 
-// Mock useRouter
+// Mock useRouter and useSearchParams
 const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
     useRouter: () => ({
         push: mockPush,
     }),
+    useSearchParams: () => new URLSearchParams(),
 }));
 
 // Mock Firebase
@@ -27,6 +28,8 @@ jest.mock('firebase/auth', () => ({
     createUserWithEmailAndPassword: jest.fn(() => Promise.resolve({ user: { uid: '123', getIdToken: () => Promise.resolve('token'), getIdTokenResult: () => Promise.resolve({ claims: { role: 'brand' } }) } })),
     GoogleAuthProvider: jest.fn(),
     signInWithPopup: jest.fn(() => Promise.resolve({ user: { uid: '123', getIdToken: () => Promise.resolve('token'), getIdTokenResult: () => Promise.resolve({ claims: { role: 'brand' } }) } })),
+    signInWithRedirect: jest.fn(() => Promise.resolve()),
+    getRedirectResult: jest.fn(() => Promise.resolve(null)),
     getAdditionalUserInfo: jest.fn(() => ({ isNewUser: false })),
 }));
 
@@ -35,6 +38,20 @@ jest.mock('@/hooks/use-toast', () => ({
     useToast: () => ({
         toast: jest.fn(),
     }),
+}));
+
+// Mock logger
+jest.mock('@/lib/logger', () => ({
+    logger: {
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+    },
+}));
+
+// Mock Spinner
+jest.mock('@/components/ui/spinner', () => ({
+    Spinner: ({ className }: { className?: string }) => <div data-testid="spinner" className={className} />,
 }));
 
 // Mock API fetch for session creation

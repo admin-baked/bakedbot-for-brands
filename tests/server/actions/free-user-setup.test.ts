@@ -105,11 +105,11 @@ describe('Free User Setup Actions', () => {
             const calls = (quickSetupCompetitor as jest.Mock).mock.calls;
             expect(calls).toHaveLength(3);
             
-            // Each call should have frequencyMinutes = 1440 (daily)
+            // Each call should have frequencyMinutes = 10080 (weekly, scout plan default)
             calls.forEach(call => {
                 expect(call[1]).toMatchObject({
-                    frequencyMinutes: 1440,
-                    planId: 'free',
+                    frequencyMinutes: 10080,
+                    planId: 'scout',
                 });
             });
         });

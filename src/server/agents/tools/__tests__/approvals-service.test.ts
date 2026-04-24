@@ -6,27 +6,43 @@ jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn().mockImplementation(async () => ({
         firestore: {
             collection: jest.fn().mockReturnThis(),
-            doc: jest.fn().mockImplementation((id) => ({
+            doc: jest.fn().mockImplementation((path) => ({
                 get: jest.fn().mockResolvedValue({
-                    exists: id === 'existing-key',
-                    data: () => ({ status: 'success', data: { cached: true } })
+                    exists: typeof path === 'string' && path.includes('existing-key'),
+                    data: () => ({ result: { cached: true }, timestamp: Date.now(), expiresAt: Date.now() + 86400000 })
                 }),
-                set: jest.fn().mockResolvedValue(true)
+                set: jest.fn().mockResolvedValue(true),
+                collection: jest.fn().mockReturnValue({
+                    doc: jest.fn().mockReturnValue({
+                        set: jest.fn().mockResolvedValue(true)
+                    })
+                })
             })),
-            add: jest.fn().mockResolvedValue({ id: 'new-approval-id' })
+            add: jest.fn().mockResolvedValue({ id: 'new-approval-id' }),
+            batch: jest.fn().mockReturnValue({
+                set: jest.fn(),
+                commit: jest.fn().mockResolvedValue(true)
+            })
         }
     }))
+}));
+
+// Mock uuid
+jest.mock('uuid', () => ({
+    v4: jest.fn().mockReturnValue('mock-uuid-123')
 }));
 
 describe('Approvals Service', () => {
     describe('createApprovalRequest', () => {
         it('should create approval request and return id', async () => {
-            const result = await createApprovalRequest({
-                tenantId: 'tenant-1',
-                toolName: 'marketing.send',
-                payload: { campaignId: 'camp-1' },
-                requestedBy: 'user-1'
-            });
+            // New signature: (tenantId, toolName, inputs, actorId, actorRole)
+            const result = await createApprovalRequest(
+                'tenant-1',
+                'marketing.send',
+                { campaignId: 'camp-1' },
+                'user-1',
+                'brand'
+            );
 
             expect(result).toHaveProperty('id');
             expect(result.id).toBeDefined();
@@ -42,7 +58,8 @@ describe('Approvals Service', () => {
         it('should return cached result for existing key', async () => {
             const result = await checkIdempotency('existing-key');
             expect(result).toBeDefined();
-            expect(result?.data).toEqual({ cached: true });
+            // The service returns the full doc data which has { result, timestamp, expiresAt }
+            expect(result?.result).toEqual({ cached: true });
         });
     });
 

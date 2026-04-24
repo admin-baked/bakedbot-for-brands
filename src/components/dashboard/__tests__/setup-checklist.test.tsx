@@ -24,6 +24,7 @@ jest.mock('next/link', () => ({
 jest.mock('lucide-react', () => ({
     CheckCircle: () => <div data-testid="check-circle" />,
     Clock: () => <div data-testid="clock-icon" />,
+    ChevronDown: () => <div data-testid="chevron-down-icon" />,
     ChevronRight: () => <div data-testid="chevron-icon" />,
     X: () => <div data-testid="x-icon" />,
     Store: () => <div data-testid="store-icon" />,

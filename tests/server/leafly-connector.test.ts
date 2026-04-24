@@ -109,7 +109,7 @@ describe('Leafly Connector Service', () => {
     });
 
     describe('Apify Integration', () => {
-        it('should trigger single store scan', async () => {
+        it('should trigger single store discovery', async () => {
             const mockRunResponse = {
                 id: 'run_abc123',
                 status: 'RUNNING',
@@ -123,15 +123,15 @@ describe('Leafly Connector Service', () => {
 
             mockChain.mockSet.mockResolvedValueOnce(undefined);
 
-            const { triggerSingleStoreScan } = await import('@/server/services/leafly-connector');
+            const { triggerSingleStoreDiscovery } = await import('@/server/services/leafly-connector');
 
-            const run = await triggerSingleStoreScan('https://leafly.com/dispensary-info/test-store');
+            const run = await triggerSingleStoreDiscovery('https://leafly.com/dispensary-info/test-store');
 
             expect(mockFetch).toHaveBeenCalled();
             expect(run.id).toBe('run_abc123');
         });
 
-        it('should trigger state scan', async () => {
+        it('should trigger state discovery', async () => {
             const mockRunResponse = {
                 id: 'run_state_123',
                 status: 'RUNNING',
@@ -145,9 +145,9 @@ describe('Leafly Connector Service', () => {
 
             mockChain.mockSet.mockResolvedValueOnce(undefined);
 
-            const { triggerStateScan } = await import('@/server/services/leafly-connector');
+            const { triggerStateDiscovery } = await import('@/server/services/leafly-connector');
 
-            const run = await triggerStateScan('michigan', 25);
+            const run = await triggerStateDiscovery('michigan', 25);
 
             expect(mockFetch).toHaveBeenCalled();
             expect(run.id).toBe('run_state_123');
@@ -159,9 +159,9 @@ describe('Leafly Connector Service', () => {
                 text: async () => 'API Error: Rate Limited',
             } as Response);
 
-            const { triggerSingleStoreScan } = await import('@/server/services/leafly-connector');
+            const { triggerSingleStoreDiscovery } = await import('@/server/services/leafly-connector');
 
-            await expect(triggerSingleStoreScan('https://leafly.com/test'))
+            await expect(triggerSingleStoreDiscovery('https://leafly.com/test'))
                 .rejects.toThrow('Apify API error');
         });
     });

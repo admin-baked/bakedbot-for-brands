@@ -77,11 +77,10 @@ describe('User Approval Actions', () => {
         const result = await approveUser(uid);
 
         // Verify requireUser was called with correct roles
-        expect(requireUser).toHaveBeenCalledWith(['owner', 'super_user']);
+        expect(requireUser).toHaveBeenCalledWith(['super_user']);
 
         // Verify Firestore update
         expect(mockFirestore.collection).toHaveBeenCalledWith('users');
-        expect(mockFirestore.collection('users').doc).toHaveBeenCalledWith(uid);
         expect(mockUserDoc.update).toHaveBeenCalledWith(expect.objectContaining({
             approvalStatus: 'approved',
             status: 'active'
@@ -95,7 +94,7 @@ describe('User Approval Actions', () => {
         const uid = 'user-rejected-123';
         const result = await rejectUser(uid);
 
-        expect(requireUser).toHaveBeenCalledWith(['owner', 'super_user']);
+        expect(requireUser).toHaveBeenCalledWith(['super_user']);
 
         expect(mockUserDoc.update).toHaveBeenCalledWith(expect.objectContaining({
             approvalStatus: 'rejected',

@@ -91,6 +91,7 @@ describe('Super Admin Config', () => {
                 'martez@bakedbot.ai',
                 'jack@bakedbot.ai',
                 'vib@cannmenus.com',
+                'rishabh@bakedbot.ai',
             ];
 
             // In non-production, dev persona is also included
@@ -120,64 +121,21 @@ describe('Super Admin Config', () => {
             }
         });
 
-        it('should have exactly 4 emails in non-production (3 prod + 1 dev)', async () => {
+        it('should have exactly 5 emails in non-production (4 prod + 1 dev)', async () => {
             // In test/development environment
             if (process.env.NODE_ENV !== 'production') {
                 const { SUPER_ADMIN_EMAILS } = await import('../super-admin-config');
-                expect(SUPER_ADMIN_EMAILS.length).toBe(4);
+                expect(SUPER_ADMIN_EMAILS.length).toBe(5);
             }
         });
     });
 });
 
 describe('Super Admin Session Management', () => {
-    // Mock localStorage for browser environment tests
-    let localStorageMock: { [key: string]: string } = {};
-
+    // Use jsdom's built-in localStorage (available in Jest test environment)
     beforeEach(() => {
-        localStorageMock = {};
-
-        // Create localStorage mock functions that actually modify localStorageMock
-        const getItemMock = (key: string) => localStorageMock[key] || null;
-        const setItemMock = (key: string, value: string) => {
-            localStorageMock[key] = value;
-        };
-        const removeItemMock = (key: string) => {
-            delete localStorageMock[key];
-        };
-
-        // Mock window and localStorage
-        Object.defineProperty(global, 'window', {
-            value: {
-                localStorage: {
-                    getItem: getItemMock,
-                    setItem: setItemMock,
-                    removeItem: removeItemMock,
-                },
-            },
-            writable: true,
-            configurable: true,
-        });
-
-        // Also set localStorage directly on global for compatibility
-        Object.defineProperty(global, 'localStorage', {
-            value: {
-                getItem: getItemMock,
-                setItem: setItemMock,
-                removeItem: removeItemMock,
-            },
-            writable: true,
-            configurable: true,
-        });
-
+        localStorage.clear();
         jest.resetModules();
-    });
-
-    afterEach(() => {
-        // @ts-ignore - cleanup mock
-        delete global.window;
-        // @ts-ignore - cleanup mock
-        delete global.localStorage;
     });
 
     it('should validate email against whitelist when setting session', async () => {
@@ -198,10 +156,10 @@ describe('Super Admin Session Management', () => {
         const result = setSuperAdminSession('jack@bakedbot.ai');
         expect(result).toBe(true);
 
-        const storedValue = localStorageMock[SUPER_ADMIN_SESSION_KEY];
+        const storedValue = localStorage.getItem(SUPER_ADMIN_SESSION_KEY);
         expect(storedValue).toBeDefined();
 
-        const stored = JSON.parse(storedValue);
+        const stored = JSON.parse(storedValue!);
         expect(stored.email).toBe('jack@bakedbot.ai');
         expect(stored.timestamp).toBeDefined();
         expect(typeof stored.timestamp).toBe('number');
@@ -213,10 +171,10 @@ describe('Super Admin Session Management', () => {
         const result = setSuperAdminSession('MARTEZ@BAKEDBOT.AI');
         expect(result).toBe(true);
 
-        const storedValue = localStorageMock[SUPER_ADMIN_SESSION_KEY];
+        const storedValue = localStorage.getItem(SUPER_ADMIN_SESSION_KEY);
         expect(storedValue).toBeDefined();
 
-        const stored = JSON.parse(storedValue);
+        const stored = JSON.parse(storedValue!);
         expect(stored.email).toBe('martez@bakedbot.ai');
     });
 });

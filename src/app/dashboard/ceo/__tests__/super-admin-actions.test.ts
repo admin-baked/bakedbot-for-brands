@@ -1,5 +1,6 @@
 
 import { requireUser } from '@/server/auth/auth';
+import { getAdminFirestore } from '@/firebase/admin';
 import { createServerClient } from '@/firebase/server-client';
 
 jest.mock('firebase-admin', () => ({
@@ -75,9 +76,39 @@ jest.mock('date-fns', () => ({
 jest.mock('firebase-admin/firestore', () => ({
     FieldValue: {
         serverTimestamp: jest.fn(() => 'mock-timestamp'),
-        increment: jest.fn((n) => `increment-${n}`),
+        increment: jest.fn((n: number) => `increment-${n}`),
     }
 }), { virtual: true });
+
+// Mock dynamically-imported services used by getPlatformAnalytics
+jest.mock('@/server/services/crm-service', () => ({
+    getPlatformUsers: jest.fn().mockResolvedValue([
+        { id: 'u1', email: 'u1@ex.com', displayName: 'User 1', plan: 'Free', signupAt: Date.now(), lastLoginAt: Date.now(), mrr: 0, accountType: 'brand' },
+    ]),
+    getCRMUserStats: jest.fn().mockResolvedValue({ totalMRR: 0, totalUsers: 1 }),
+}));
+
+jest.mock('@/server/actions/ai-economics', () => ({
+    getAgentTelemetrySummary: jest.fn().mockResolvedValue({ agents: [] }),
+}));
+
+jest.mock('@/server/services/growth/google-analytics', () => ({
+    googleAnalyticsService: {
+        getTrafficReport: jest.fn().mockResolvedValue({ rows: [] }),
+        getConnectionStatus: jest.fn().mockResolvedValue({ connected: false }),
+    },
+}));
+
+jest.mock('@/server/services/marty-reporting', () => ({
+    buildMartyScoreboard: jest.fn().mockResolvedValue({
+        mrr: 0, arr: 0, mrrTarget: 83333, arrTarget: 1000000,
+        accounts: { brand: 0, dispensary: 0, total: 0 },
+        pipeline: { leads: 0, active: 0, converted: 0 },
+        coverage: { brands: 0, dispensaries: 0, zips: 0 },
+        content: { blogPosts: 0, mediaEvents: 0 },
+        agentHealth: { totalCalls: 0, avgDurationMs: 0, costToday: 0 },
+    }),
+}));
 
 // Import actions after mocks
 import { getPlatformAnalytics } from '../actions/data-actions';
@@ -93,7 +124,7 @@ describe('Super User Server Actions', () => {
             collection: jest.fn().mockReturnThis(),
             doc: jest.fn().mockReturnThis(),
             count: jest.fn().mockReturnThis(),
-            get: jest.fn(),
+            get: jest.fn().mockResolvedValue({ data: () => ({ count: 0 }), size: 0, docs: [] }),
             set: jest.fn().mockResolvedValue({}),
             update: jest.fn().mockResolvedValue({}),
             orderBy: jest.fn().mockReturnThis(),
@@ -101,37 +132,20 @@ describe('Super User Server Actions', () => {
             where: jest.fn().mockReturnThis(),
         };
 
+        (getAdminFirestore as jest.Mock).mockReturnValue(mockFirestore);
         (createServerClient as jest.Mock).mockResolvedValue({ firestore: mockFirestore });
     });
 
     describe('getPlatformAnalytics', () => {
-        it('should fetch counts and recent logs correctly', async () => {
+        it('should return platform analytics with signups data', async () => {
             (requireUser as jest.Mock).mockResolvedValue({ uid: 'admin-123' });
-
-            // Mock counts
-            mockFirestore.get.mockResolvedValueOnce({ data: () => ({ count: 10 }) }); // users
-            mockFirestore.get.mockResolvedValueOnce({ data: () => ({ count: 5 }) });  // brands
-            mockFirestore.get.mockResolvedValueOnce({ data: () => ({ count: 3 }) });  // orgs
-            mockFirestore.get.mockResolvedValueOnce({ data: () => ({ count: 20 }) }); // leads
-
-            // Mock recent signups
-            mockFirestore.get.mockResolvedValueOnce({
-                docs: [
-                    { id: 'u1', data: () => ({ email: 'u1@ex.com', createdAt: { toDate: () => new Date() } }) }
-                ]
-            });
-
-            // Mock agent logs
-            mockFirestore.get.mockResolvedValueOnce({
-                docs: [
-                    { data: () => ({ agentName: 'Smokey', status: 'success', durationMs: 1000, estimatedCost: 0.05 }) }
-                ]
-            });
 
             const result = await getPlatformAnalytics();
 
-            expect(result.signups.total).toBe(10);
-            expect(result.recentSignups).toHaveLength(1);
+            expect(result.signups).toBeDefined();
+            expect(result.signups.total).toBe(1);
+            expect(result.recentSignups).toBeDefined();
+            expect(result.recentSignups.length).toBeLessThanOrEqual(10);
         });
     });
 

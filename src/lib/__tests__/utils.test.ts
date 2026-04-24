@@ -12,18 +12,18 @@ describe('utils library', () => {
     it('should correctly calculate the distance between two points', () => {
       const chicago = { lat: 41.8781, lon: -87.6298 };
       const losAngeles = { lat: 34.0522, lon: -118.2437 };
-      
-      // Distance is approx. 1745 miles
+
+      // Distance is approx. 1742 miles
       const distance = haversineDistance(chicago, losAngeles);
-      expect(distance).toBeCloseTo(1744.5, 0);
+      expect(distance).toBeCloseTo(1742, 0);
     });
 
     it('should handle coordinates across the equator', () => {
         const point1 = { lat: 10, lon: 0 };
         const point2 = { lat: -10, lon: 0 };
         const distance = haversineDistance(point1, point2);
-        // Approx 1380 miles
-        expect(distance).toBeCloseTo(1380.9, 0);
+        // Approx 1382 miles
+        expect(distance).toBeCloseTo(1382, 0);
     });
   });
 

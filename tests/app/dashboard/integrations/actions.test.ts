@@ -11,7 +11,6 @@ jest.mock('@/server/services/permissions');
 
 describe('saveIntegrationConfig', () => {
     let mockSet: jest.Mock;
-    let mockUpdate: jest.Mock;
     let mockGet: jest.Mock;
     let mockDoc: jest.Mock;
     let mockCollection: jest.Mock;
@@ -20,12 +19,10 @@ describe('saveIntegrationConfig', () => {
         jest.clearAllMocks();
 
         mockSet = jest.fn();
-        mockUpdate = jest.fn();
         mockGet = jest.fn();
         
         const mockDocObj = {
             set: mockSet,
-            update: mockUpdate,
             get: mockGet
         };
         mockDoc = jest.fn().mockReturnValue(mockDocObj);
@@ -59,13 +56,13 @@ describe('saveIntegrationConfig', () => {
         // Verify Location update
         expect(mockCollection).toHaveBeenCalledWith('locations');
         expect(mockDoc).toHaveBeenCalledWith('loc_999');
-        expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
             posConfig: expect.objectContaining({
                 provider: 'dutchie',
                 storeId: '555',
                 status: 'active'
             })
-        }));
+        }), { merge: true });
 
         // Verify Legacy update
         expect(mockCollection).toHaveBeenCalledWith('dispensaries');
@@ -92,8 +89,8 @@ describe('saveIntegrationConfig', () => {
         await saveIntegrationConfig('jane', config);
 
         expect(mockDoc).toHaveBeenCalledWith('loc_from_org');
-        expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
             posConfig: expect.objectContaining({ provider: 'jane' })
-        }));
+        }), { merge: true });
     });
 });

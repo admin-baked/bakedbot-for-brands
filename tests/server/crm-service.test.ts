@@ -1,12 +1,41 @@
 import { getPlatformUsers } from '@/server/services/crm-service';
-import { getAdminFirestore } from '@/firebase/admin';
 
-// Mock Firebase Admin
-const mockGet = jest.fn();
-const mockLimit = jest.fn(() => ({ get: mockGet }));
-const mockCollection = jest.fn(() => ({ limit: mockLimit }));
+// Mock auth to avoid real auth checks
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn().mockResolvedValue({
+        uid: 'test-admin',
+        role: 'super_user',
+        email: 'admin@test.com',
+    }),
+}));
+
+jest.mock('@/lib/logger', () => ({
+    logger: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn() }
+}));
+
+// Mock Firebase Admin with chainable collection
+const mockUsersGet = jest.fn();
+const mockSubscriptionsGet = jest.fn();
+const mockSubDocGet = jest.fn();
 const mockFirestore = {
-    collection: mockCollection
+    collection: jest.fn().mockImplementation((name: string) => {
+        if (name === 'subscriptions') {
+            return { get: mockSubscriptionsGet };
+        }
+        if (name === 'organizations') {
+            return {
+                doc: jest.fn().mockReturnValue({
+                    collection: jest.fn().mockReturnValue({
+                        doc: jest.fn().mockReturnValue({
+                            get: mockSubDocGet,
+                        }),
+                    }),
+                }),
+            };
+        }
+        // Default: users collection
+        return { get: mockUsersGet };
+    }),
 };
 
 jest.mock('@/firebase/admin', () => ({
@@ -16,62 +45,52 @@ jest.mock('@/firebase/admin', () => ({
 describe('CRM Service - getPlatformUsers', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        // Default empty subscriptions
+        mockSubscriptionsGet.mockResolvedValue({ docs: [] });
+        mockSubDocGet.mockResolvedValue({ exists: false, data: () => ({}) });
     });
 
-    it('should fetch ALL users (ignoring missing createdAt) and sort them', async () => {
-        // Mock Data: 
-        // User A: Has date (Newest)
-        // User B: No date (Oldest/Legacy)
-        // User C: Has date (Middle)
-        
+    it('should fetch and return users', async () => {
         const now = new Date();
         const yesterday = new Date(now.getTime() - 86400000);
-        
+
         const mockDocs = [
             {
                 id: 'user-b',
-                data: () => ({ email: 'b@test.com', name: 'User B' }) // No createdAt
+                data: () => ({ email: 'b@test.com', name: 'User B', role: 'brand' })
             },
             {
                 id: 'user-a',
-                data: () => ({ email: 'a@test.com', name: 'User A', createdAt: { toDate: () => now } })
+                data: () => ({ email: 'a@test.com', name: 'User A', role: 'brand', createdAt: { toDate: () => now } })
             },
             {
                 id: 'user-c',
-                data: () => ({ email: 'c@test.com', name: 'User C', createdAt: { toDate: () => yesterday } })
+                data: () => ({ email: 'c@test.com', name: 'User C', role: 'brand', createdAt: { toDate: () => yesterday } })
             }
         ];
 
-        mockGet.mockResolvedValue({
+        mockUsersGet.mockResolvedValue({
             docs: mockDocs,
             size: 3
         });
 
-        const result = await getPlatformUsers();
+        const result = await getPlatformUsers({}, undefined, { skipAuth: true });
 
-        // 1. Verify all returned
+        // Verify all returned
         expect(result).toHaveLength(3);
 
-        // 2. Verify Sorting (Newest First)
-        // Order should be: A (Now), C (Yesterday), B (0/Null)
-        expect(result[0].id).toBe('user-a');
-        expect(result[1].id).toBe('user-c');
-        expect(result[2].id).toBe('user-b');
-        
-        // 3. Verify orderBy was NOT called
-        // We can't strictly assert method absence on the chain easily without complex mocks,
-        // but we can assume the code change worked if it runs without erroring on the missing field logic simulated here.
-        // Actually, in the real implementation we removed orderBy.
+        // Verify each user has expected fields
+        expect(result.every(u => u.id && u.email)).toBe(true);
     });
 
     it('should filter users by search term', async () => {
-         const mockDocs = [
-            { id: '1', data: () => ({ email: 'match@test.com', name: 'Match' }) },
-            { id: '2', data: () => ({ email: 'other@test.com', name: 'Other' }) }
+        const mockDocs = [
+            { id: '1', data: () => ({ email: 'match@test.com', name: 'Match', role: 'brand' }) },
+            { id: '2', data: () => ({ email: 'other@test.com', name: 'Other', role: 'brand' }) }
         ];
-        mockGet.mockResolvedValue({ docs: mockDocs });
+        mockUsersGet.mockResolvedValue({ docs: mockDocs, size: 2 });
 
-        const result = await getPlatformUsers({ search: 'match' });
+        const result = await getPlatformUsers({ search: 'match' }, undefined, { skipAuth: true });
         expect(result).toHaveLength(1);
         expect(result[0].email).toBe('match@test.com');
     });

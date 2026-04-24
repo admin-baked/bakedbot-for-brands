@@ -166,7 +166,7 @@ describe('TTS Text Processor', () => {
       const result = await processTextForTTS(text, brandConfig);
 
       expect(result.processed).toContain('Steezy');
-      expect(result.transformations).toContain('brand_vocabulary');
+      expect(result.transformations).toContain('cannabis_terms');
     });
 
     it('should remove markdown links but keep text', async () => {

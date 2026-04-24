@@ -1,127 +1,128 @@
-
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import BrandDashboardClient from '@/app/dashboard/brand/dashboard-client';
 import { getBrandDashboardData } from '@/app/dashboard/brand/actions';
 
-// Mock dependencies
+jest.mock('lucide-react', () => ({
+    Activity: () => <span data-testid="icon-activity" />,
+    Globe: () => <span data-testid="icon-globe" />,
+    CheckCircle: () => <span data-testid="icon-check-circle" />,
+    AlertCircle: () => <span data-testid="icon-alert-circle" />,
+    Clock: () => <span data-testid="icon-clock" />,
+    Inbox: () => <span data-testid="icon-inbox" />,
+}));
+
 jest.mock('@/app/dashboard/brand/actions', () => ({
     getBrandDashboardData: jest.fn(),
 }));
 
-jest.mock('@/components/ui/tabs', () => ({
-    Tabs: ({ children, onValueChange, value }: any) => (
-        <div data-testid="tabs" data-value={value} onClick={(e: any) => {
-            const val = e.target.getAttribute('data-value');
-            if (val) onValueChange(val);
-        }}>
-            {children}
-        </div>
-    ),
-    TabsList: ({ children }: any) => <div>{children}</div>,
-    TabsTrigger: ({ children, value }: any) => (
-        <button data-testid={`tab-${value}`} data-value={value}>
-            {children}
-        </button>
-    ),
-    TabsContent: ({ children }: any) => <div>{children}</div>,
-}));
-
-jest.mock('@/components/dashboard/modular/modular-dashboard', () => ({
-    ModularDashboard: ({ isEditable, role }: any) => (
-        <div data-testid="modular-dashboard" data-editable={isEditable} data-role={role}>
-            ModularDashboard
-        </div>
-    ),
-}));
-
-jest.mock('@/components/dashboard/setup-health', () => ({
-    SetupHealth: () => <div data-testid="setup-health">SetupHealth</div>,
-}));
-
-jest.mock('@/components/dashboard/quick-start-cards', () => ({
-    QuickStartCards: () => <div data-testid="quick-start-cards">QuickStartCards</div>,
-}));
-
-jest.mock('@/components/dashboard/task-feed', () => ({
-    TaskFeed: () => <div data-testid="task-feed">TaskFeed</div>,
+jest.mock('@/components/dashboard/sync-toggle', () => ({
+    SyncToggle: jest.fn(() => <div data-testid="sync-toggle">Sync Toggle</div>),
 }));
 
 jest.mock('@/components/dashboard/data-import-dropdown', () => ({
-    DataImportDropdown: () => <div data-testid="data-import">DataImport</div>,
+    DataImportDropdown: jest.fn(() => <div data-testid="data-import">Data Import</div>),
 }));
 
-// Mock localStorage
-const localStorageMock = (function() {
-    let store: Record<string, string> = {};
-    return {
-        getItem: (key: string) => store[key] || null,
-        setItem: (key: string, value: string) => { store[key] = value.toString(); },
-        clear: () => { store = {}; }
-    };
-})();
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+jest.mock('@/components/dashboard/setup-checklist', () => ({
+    SetupChecklist: jest.fn(() => <div data-testid="setup-checklist">Setup Checklist</div>),
+}));
+
+jest.mock('@/components/dashboard/managed-pages-list', () => ({
+    ManagedPagesList: jest.fn(() => <div data-testid="managed-pages">Managed Pages</div>),
+}));
+
+jest.mock('@/app/dashboard/brand/components/brand-kpi-grid', () => ({
+    BrandKPIs: jest.fn(() => <div data-testid="brand-kpis">Brand KPIs</div>),
+}));
+
+jest.mock('@/app/dashboard/brand/components/brand-chat-widget', () => ({
+    BrandChatWidget: jest.fn(() => <div data-testid="brand-chat">Brand Chat</div>),
+}));
+
+jest.mock('@/app/dashboard/brand/components/brand-right-sidebar', () => ({
+    BrandRightRail: jest.fn(() => <div data-testid="brand-right-rail">Right Rail</div>),
+}));
+
+jest.mock('@/app/dashboard/brand/components/brand-playbooks-list', () => ({
+    BrandPlaybooksList: jest.fn(() => <div data-testid="playbooks-list">Playbooks List</div>),
+}));
+
+jest.mock('@/components/ui/sheet', () => ({
+    Sheet: ({ children, open }: any) => (
+        <div data-testid="sheet" data-open={String(open)}>
+            {open ? children : null}
+        </div>
+    ),
+    SheetContent: ({ children }: any) => <div data-testid="sheet-content">{children}</div>,
+    SheetHeader: ({ children }: any) => <div data-testid="sheet-header">{children}</div>,
+    SheetTitle: ({ children }: any) => <h2 data-testid="sheet-title">{children}</h2>,
+    SheetDescription: ({ children }: any) => <p data-testid="sheet-description">{children}</p>,
+}));
 
 describe('BrandDashboardClient Views', () => {
     const brandId = 'test-brand';
 
     beforeEach(() => {
         jest.clearAllMocks();
-        localStorageMock.clear();
-        (getBrandDashboardData as jest.Mock).mockResolvedValue({ some: 'data' });
+        (getBrandDashboardData as jest.Mock).mockResolvedValue({
+            meta: { name: 'Test Brand', state: 'IL' },
+            sync: { products: 50, competitors: 5, lastSynced: Date.now() },
+            alerts: { critical: 0 },
+            coverage: { value: 12 },
+        });
     });
 
-    it('renders Command Center (HQ) by default', async () => {
+    it('renders the current brand dashboard shell and widgets', async () => {
         render(<BrandDashboardClient brandId={brandId} />);
 
         await waitFor(() => {
-            expect(screen.getByTestId('setup-health')).toBeInTheDocument();
-            expect(screen.getByTestId('quick-start-cards')).toBeInTheDocument();
-            expect(screen.getByTestId('task-feed')).toBeInTheDocument();
+            expect(screen.getByText('Brand Console')).toBeInTheDocument();
+            expect(getBrandDashboardData).toHaveBeenCalledWith(brandId);
         });
 
-        const modular = screen.getByTestId('modular-dashboard');
-        expect(modular).toBeInTheDocument();
-        expect(modular.getAttribute('data-editable')).toBe('false');
+        expect(screen.getByTestId('brand-dashboard-client')).toBeInTheDocument();
+        expect(screen.getByTestId('data-import')).toBeInTheDocument();
+        expect(screen.getByTestId('sync-toggle')).toBeInTheDocument();
+        expect(screen.getByTestId('setup-checklist')).toBeInTheDocument();
+        expect(screen.getByTestId('brand-kpis')).toBeInTheDocument();
+        expect(screen.getByTestId('brand-chat')).toBeInTheDocument();
+        expect(screen.getByTestId('managed-pages')).toBeInTheDocument();
+        expect(screen.getByTestId('playbooks-list')).toBeInTheDocument();
+        expect(screen.getByTestId('brand-right-rail')).toBeInTheDocument();
     });
 
-    it('switches to Classic view', async () => {
-        render(<BrandDashboardClient brandId={brandId} />);
-
-        const classicTrigger = screen.getByTestId('tab-classic');
-        fireEvent.click(classicTrigger);
-
-        await waitFor(() => {
-            expect(screen.queryByTestId('setup-health')).not.toBeInTheDocument();
-        });
-        expect(screen.getByTestId('modular-dashboard')).toBeInTheDocument();
-        
-        expect(localStorageMock.getItem(`dash_view_${brandId}`)).toBe('classic');
-    });
-
-    it('switches to Customize view', async () => {
-        render(<BrandDashboardClient brandId={brandId} />);
-
-        const customizeTrigger = screen.getByTestId('tab-customize');
-        fireEvent.click(customizeTrigger);
-
-        await waitFor(() => {
-            const modular = screen.getByTestId('modular-dashboard');
-            expect(modular.getAttribute('data-editable')).toBe('true');
-        });
-        
-        // Customize view should not persist to localStorage as the 'default'
-        expect(localStorageMock.getItem(`dash_view_${brandId}`)).not.toBe('customize');
-    });
-
-    it('persists view preference from localStorage', async () => {
-        localStorageMock.setItem(`dash_view_${brandId}`, 'classic');
-        
+    it('displays loaded brand metadata in the header and sticky footer', async () => {
         render(<BrandDashboardClient brandId={brandId} />);
 
         await waitFor(() => {
-            expect(screen.queryByTestId('setup-health')).not.toBeInTheDocument();
+            expect(screen.getByText('Test Brand')).toBeInTheDocument();
+            expect(screen.getByText('0 critical alerts')).toBeInTheDocument();
+            expect(screen.getByText('12 active retailers')).toBeInTheDocument();
+            expect(screen.getByText('System Healthy')).toBeInTheDocument();
         });
-        expect(screen.getByTestId('modular-dashboard')).toBeInTheDocument();
+    });
+
+    it('opens the review queue sheet', async () => {
+        render(<BrandDashboardClient brandId={brandId} />);
+
+        fireEvent.click(await screen.findByText('Review Queue'));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('sheet')).toHaveAttribute('data-open', 'true');
+            expect(screen.getByText('All caught up!')).toBeInTheDocument();
+            expect(screen.getByText('No items need your review right now.')).toBeInTheDocument();
+        });
+    });
+
+    it('falls back to the brand id badge when live data is unavailable', async () => {
+        (getBrandDashboardData as jest.Mock).mockResolvedValue(null);
+
+        render(<BrandDashboardClient brandId={brandId} />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Brand Console')).toBeInTheDocument();
+            expect(screen.getByText(/Brand Mode/i)).toBeInTheDocument();
+        });
     });
 });

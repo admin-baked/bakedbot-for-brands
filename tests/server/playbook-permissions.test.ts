@@ -54,7 +54,7 @@ describe('Playbook Permissions', () => {
         
         const result = await updatePlaybook('brand1', 'pb123', { name: 'New Name' });
         expect(result.success).toBe(false);
-        expect(result.error).toContain('Permission denied');
+        expect(result.error).toContain('Unauthorized');
     });
 
     it('allows edit for Super Admin on any playbook', async () => {

@@ -111,12 +111,23 @@ jest.mock('@/components/ui/alert', () => ({
   AlertDescription: ({ children }: any) => <div>{children}</div>,
 }));
 
+jest.mock('@/components/ui/badge', () => ({
+  Badge: ({ children }: any) => <span>{children}</span>,
+}));
+
 jest.mock('lucide-react', () => ({
   Globe: () => <div />,
   CheckCircle2: () => <div />,
   XCircle: () => <div />,
   Loader2: () => <div />,
   ExternalLink: () => <div />,
+  Lock: () => <div />,
+  AlertCircle: () => <div />,
+  Check: () => <div />,
+  Building2: () => <div />,
+  Store: () => <div />,
+  Target: () => <div />,
+  MapPin: () => <div />,
 }));
 
 describe('BrandSetupTab', () => {
@@ -138,9 +149,9 @@ describe('BrandSetupTab', () => {
         const slugInput = screen.getByTestId('slug-input');
         fireEvent.change(slugInput, { target: { value: 'my-new-slug' } });
         
-        // Wait for debounced check
+        // Wait for debounced check (now takes slug + brandId)
         await waitFor(() => {
-            expect(checkSlugAvailability).toHaveBeenCalledWith('my-new-slug');
+            expect(checkSlugAvailability).toHaveBeenCalledWith('my-new-slug', 'brand-123');
         });
         
         await waitFor(() => {

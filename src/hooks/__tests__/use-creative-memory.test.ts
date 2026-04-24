@@ -59,9 +59,15 @@ describe('useCreativeMemory', () => {
   it('records template use and updates favorites', async () => {
     const { result } = renderHook(() => useCreativeMemory('user123', null));
 
+    // Each recordTemplateUse depends on current preferences state,
+    // so separate act() calls are needed to avoid stale closures.
     await act(async () => {
       await result.current.recordTemplateUse('template_1');
+    });
+    await act(async () => {
       await result.current.recordTemplateUse('template_2');
+    });
+    await act(async () => {
       await result.current.recordTemplateUse('template_1');
     });
 
@@ -74,11 +80,12 @@ describe('useCreativeMemory', () => {
   it('limits favorite templates to 10', async () => {
     const { result } = renderHook(() => useCreativeMemory('user123', null));
 
-    await act(async () => {
-      for (let i = 0; i < 15; i++) {
+    // Separate act() calls to avoid stale closure on preferences
+    for (let i = 0; i < 15; i++) {
+      await act(async () => {
         await result.current.recordTemplateUse(`template_${i}`);
-      }
-    });
+      });
+    }
 
     expect(result.current.preferences?.favoriteTemplates).toHaveLength(10);
   });
@@ -86,7 +93,7 @@ describe('useCreativeMemory', () => {
   it('suggests tone based on platform history', async () => {
     const { result } = renderHook(() => useCreativeMemory('user123', null));
 
-    // Record multiple generations with 'playful' tone on Instagram
+    // Separate act() calls to avoid stale closure on preferences
     await act(async () => {
       await result.current.recordGeneration({
         templateId: 'template_1',
@@ -95,6 +102,8 @@ describe('useCreativeMemory', () => {
         tone: 'playful',
         approved: true,
       });
+    });
+    await act(async () => {
       await result.current.recordGeneration({
         templateId: 'template_2',
         platform: 'instagram',
@@ -102,6 +111,8 @@ describe('useCreativeMemory', () => {
         tone: 'playful',
         approved: true,
       });
+    });
+    await act(async () => {
       await result.current.recordGeneration({
         templateId: 'template_3',
         platform: 'facebook',
@@ -118,8 +129,8 @@ describe('useCreativeMemory', () => {
   it('suggests templates based on approval history', async () => {
     const { result } = renderHook(() => useCreativeMemory('user123', null));
 
+    // Separate act() calls to avoid stale closure on preferences
     await act(async () => {
-      // Approved template
       await result.current.recordGeneration({
         templateId: 'good_template',
         platform: 'instagram',
@@ -127,7 +138,8 @@ describe('useCreativeMemory', () => {
         tone: 'friendly',
         approved: true,
       });
-      // Rejected template
+    });
+    await act(async () => {
       await result.current.recordGeneration({
         templateId: 'bad_template',
         platform: 'instagram',
@@ -145,8 +157,11 @@ describe('useCreativeMemory', () => {
   it('clears history', async () => {
     const { result } = renderHook(() => useCreativeMemory('user123', null));
 
+    // Separate act() calls to avoid stale closure on preferences
     await act(async () => {
       await result.current.recordTemplateUse('template_1');
+    });
+    await act(async () => {
       await result.current.recordGeneration({
         templateId: 'template_1',
         platform: 'instagram',

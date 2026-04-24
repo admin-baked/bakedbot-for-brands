@@ -59,15 +59,15 @@ describe('Slug Management', () => {
       expect(mockGet).toHaveBeenCalled();
     });
 
-    it('returns available: true when user owns the slug (ownership fix 916a5cd3)', async () => {
+    it('returns available: true when brandId owns the slug', async () => {
       (createSlug as jest.Mock).mockReturnValue('thrivesyracuse');
 
-      // Mock brands doc exists with user's orgId
+      // Mock brands doc exists with matching brandId
       mockGet
-        .mockResolvedValueOnce({ exists: true, data: () => ({ originalBrandId: 'org-test-123' }) }) // brands doc
-        .mockResolvedValueOnce({ exists: true, data: () => ({ orgId: 'org-test-123' }) }); // user doc
+        .mockResolvedValueOnce({ exists: true, data: () => ({ originalBrandId: 'org-test-123' }) });
 
-      const result = await checkSlugAvailability('thrivesyracuse');
+      // checkSlugAvailability now takes optional brandId param for ownership check
+      const result = await checkSlugAvailability('thrivesyracuse', 'org-test-123');
 
       expect(result.available).toBe(true);
       expect(result.suggestion).toBeUndefined();
@@ -78,38 +78,12 @@ describe('Slug Management', () => {
 
       // Mock brands doc exists with different orgId
       mockGet
-        .mockResolvedValueOnce({ exists: true, data: () => ({ originalBrandId: 'org-different-456' }) }) // brands doc
-        .mockResolvedValueOnce({ exists: true, data: () => ({ orgId: 'org-test-123' }) }); // user doc
+        .mockResolvedValueOnce({ exists: true, data: () => ({ originalBrandId: 'org-different-456' }) });
 
       const result = await checkSlugAvailability('thrivesyracuse');
 
       expect(result.available).toBe(false);
       expect(result.suggestion).toMatch(/^thrivesyracuse-\d+$/);
-    });
-
-    it('checks availability even when unauthenticated (soft fail on requireUser)', async () => {
-      (createSlug as jest.Mock).mockReturnValue('thrivesyracuse');
-      (requireUser as jest.Mock).mockRejectedValueOnce(new Error('Unauthorized'));
-      mockGet.mockResolvedValue({ exists: false });
-
-      const result = await checkSlugAvailability('thrivesyracuse');
-
-      expect(result.available).toBe(true);
-      // Verify Firestore was still checked even though user auth failed
-      expect(mockCollection).toHaveBeenCalledWith('brands');
-    });
-
-    it('handles user doc not existing (fallback to uid)', async () => {
-      (createSlug as jest.Mock).mockReturnValue('thrivesyracuse');
-
-      mockGet
-        .mockResolvedValueOnce({ exists: true, data: () => ({ originalBrandId: 'test-user-123' }) }) // brands doc
-        .mockResolvedValueOnce({ exists: false, data: () => undefined }); // user doc doesn't exist
-
-      const result = await checkSlugAvailability('thrivesyracuse');
-
-      // User owns it via uid fallback
-      expect(result.available).toBe(true);
     });
 
     it('handles no brandData in existing document', async () => {
@@ -297,16 +271,16 @@ describe('Slug Management', () => {
       expect(mockDoc).toHaveBeenCalledWith('test');
     });
 
-    it('accesses users collection when checking ownership', async () => {
+    it('checks brands doc data for ownership without user lookup', async () => {
       (createSlug as jest.Mock).mockReturnValue('test');
       mockGet
-        .mockResolvedValueOnce({ exists: true, data: () => ({ originalBrandId: 'org-123' }) })
-        .mockResolvedValueOnce({ exists: true, data: () => ({ orgId: 'org-123' }) });
+        .mockResolvedValueOnce({ exists: true, data: () => ({ originalBrandId: 'org-123' }) });
 
-      await checkSlugAvailability('test');
+      const result = await checkSlugAvailability('test', 'org-123');
 
-      expect(mockCollection).toHaveBeenCalledWith('users');
-      expect(mockDoc).toHaveBeenCalledWith('test-user-123');
+      // Source no longer checks users collection — ownership is via brandId param
+      expect(result.available).toBe(true);
+      expect(mockCollection).toHaveBeenCalledWith('brands');
     });
 
     it('accesses organizations collection when reserving', async () => {

@@ -97,7 +97,7 @@ describe('Foot Traffic Actions', () => {
             expect(mockFirestore.batch).toHaveBeenCalled(); // Should commit batch
         });
 
-        it('should survive product discovery failure', async () => {
+        it('should return error on product discovery failure', async () => {
             // Mock Geo Data
             (getZipCodeCoordinates as jest.Mock).mockResolvedValue({ lat: 34.05, lng: -118.25, city: 'Los Angeles', state: 'CA' });
             (getRetailersByZipCode as jest.Mock).mockResolvedValue([]);
@@ -107,9 +107,8 @@ describe('Foot Traffic Actions', () => {
 
             const result = await seedSeoPageAction({ zipCode: '90002' });
 
-            // Should still succeed, just with 0 products
-            expect(result).not.toHaveProperty('error', true);
-            expect(mockFirestore.collection).toHaveBeenCalledWith('foot_traffic');
+            // Source catches the error and returns { message, error: true }
+            expect(result.error).toBe(true);
         });
     });
 
@@ -129,16 +128,17 @@ describe('Foot Traffic Actions', () => {
             mockFirestore.get.mockResolvedValue({ docs: mockDocs });
 
             const pages = await getSeoPagesAction();
-            expect(pages).toHaveLength(2); // Mock returns same list for both queries in this simple mock
+            // dedupeById collapses identical IDs from multiple sources into 1
+            expect(pages).toHaveLength(1);
             expect(pages[0].zipCode).toBe('90001');
         });
     });
 
     describe('deleteSeoPageAction', () => {
-        it('should delete a page via batch', async () => {
+        it('should delete a page via Promise.allSettled', async () => {
             const result = await deleteSeoPageAction('90001');
-            // Expect 2 delete calls (zip_pages + seo_pages)
-            expect(mockFirestore.delete).toHaveBeenCalledTimes(2);
+            // Source now deletes from 5 locations via Promise.allSettled
+            expect(mockFirestore.delete).toHaveBeenCalledTimes(5);
             expect(result).toEqual({ message: 'Successfully deleted page for 90001' });
         });
     });

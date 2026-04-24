@@ -65,17 +65,21 @@ describe('Dispensary Dashboard Actions', () => {
                     }
                 })
                 .mockResolvedValueOnce({ // 8. userProfile
-                    data: () => ({ currentOrgId: 'org1' }) 
+                    data: () => ({ currentOrgId: 'org1' })
                 })
-                .mockResolvedValueOnce({ // 9. orgDoc
-                    exists: true, 
-                    data: () => ({ name: 'Org Name', state: 'MI' }) 
+                .mockResolvedValueOnce({ // 9. orgDoc (first fetch for name/state)
+                    exists: true,
+                    data: () => ({ name: 'Org Name', state: 'MI' })
                 })
-                .mockResolvedValueOnce({ // 10. productsCount
-                    data: () => ({ count: 100 }) 
+                .mockResolvedValueOnce({ // 10. orgDoc (second fetch for website)
+                    exists: true,
+                    data: () => ({ name: 'Org Name', state: 'MI' })
                 })
-                .mockResolvedValueOnce({ // 11. competitorsCount
-                    data: () => ({ count: 50 }) 
+                .mockResolvedValueOnce({ // 11. productsCount
+                    data: () => ({ count: 100 })
+                })
+                .mockResolvedValueOnce({ // 12. competitorsCount
+                    data: () => ({ count: 50 })
                 });
 
             const result = await getDispensaryDashboardData('disp1');

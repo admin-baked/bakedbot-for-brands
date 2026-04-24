@@ -1,5 +1,5 @@
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { AgentPlayground } from '../agent-playground';
 import '@testing-library/jest-dom';
 
@@ -22,26 +22,28 @@ describe('AgentPlayground', () => {
     expect(screen.getByText('Smokey Chat')).toBeInTheDocument();
   });
 
-  it('displays the correct Smokey agent icon', () => {
+  it('renders the default dispensary prompts', () => {
     render(<AgentPlayground />);
-    const img = screen.getByAltText('Smokey Agent');
-    expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute('src', '/assets/agents/smokey-main.png');
+    expect(screen.getByText('Spy on competitor pricing near me')).toBeInTheDocument();
+    expect(screen.getByText('Scan my site for compliance risks')).toBeInTheDocument();
+    expect(screen.getByText('Show me how Smokey sells products')).toBeInTheDocument();
+    expect(screen.getAllByText('See pricing & ROI breakdown')).toHaveLength(1);
   });
 
-  it('renders default suggestions', () => {
+  it('switches to the brand prompts', () => {
     render(<AgentPlayground />);
-    expect(screen.getByText('Hire a Market Scout (audit my competition)')).toBeInTheDocument();
-    expect(screen.getByText('Send Deebo (compliance check)')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Brand' }));
+
+    expect(screen.getByText('Find dispensaries to carry my products')).toBeInTheDocument();
+    expect(screen.getByText('Draft a campaign in 30 seconds')).toBeInTheDocument();
+    expect(screen.getByText('See where my brand appears online')).toBeInTheDocument();
+    expect(screen.getAllByText('See pricing & ROI breakdown')).toHaveLength(1);
   });
 
-  it('renders the chat input and send button', () => {
+  it('renders the current public chat input and demo badge', () => {
     render(<AgentPlayground />);
-    const input = screen.getByPlaceholderText('Ask about BakedBot...');
-    expect(input).toBeInTheDocument();
-    
-    // Check for "Puff" / "Standard" chips based on text
-    expect(screen.getByText('Puff')).toBeInTheDocument();
-    expect(screen.getByText('Standard')).toBeInTheDocument();
+
+    expect(screen.getByPlaceholderText('Ask Smokey anything...')).toBeInTheDocument();
+    expect(screen.getByText('Demo')).toBeInTheDocument();
   });
 });

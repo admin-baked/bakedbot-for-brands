@@ -8,20 +8,74 @@ import { CollaborationService, createCollaborationSession } from '../collaborati
 
 // Mock Firebase Realtime Database
 jest.mock('firebase/database', () => ({
+  __resetMockDb: jest.fn(),
   getDatabase: jest.fn(() => ({})),
-  ref: jest.fn(() => ({})),
-  set: jest.fn(() => Promise.resolve()),
-  update: jest.fn(() => Promise.resolve()),
-  onValue: jest.fn(() => jest.fn()),
+  ref: jest.fn((_: unknown, path: string) => ({ path })),
+  set: jest.fn(),
+  update: jest.fn(),
+  onValue: jest.fn(),
   off: jest.fn(),
-  push: jest.fn(() => ({ key: 'test_key' })),
-  remove: jest.fn(() => Promise.resolve()),
+  push: jest.fn(),
+  remove: jest.fn(),
 }));
+
+const firebaseDatabaseMock = jest.requireMock('firebase/database') as {
+  __resetMockDb: jest.Mock;
+  set: jest.Mock;
+  update: jest.Mock;
+  onValue: jest.Mock;
+  push: jest.Mock;
+  remove: jest.Mock;
+};
+
+beforeAll(() => {
+  let keyCounter = 0;
+  let store = new Map<string, unknown>();
+
+  firebaseDatabaseMock.__resetMockDb.mockImplementation(() => {
+    keyCounter = 0;
+    store = new Map<string, unknown>();
+  });
+
+  firebaseDatabaseMock.set.mockImplementation(async (target: { path: string }, value: unknown) => {
+    store.set(target.path, value);
+  });
+
+  firebaseDatabaseMock.update.mockImplementation(async (target: { path: string }, value: Record<string, unknown>) => {
+    const current = (store.get(target.path) as Record<string, unknown> | undefined) ?? {};
+    store.set(target.path, { ...current, ...value });
+  });
+
+  firebaseDatabaseMock.onValue.mockImplementation((
+    target: { path: string },
+    callback: (snapshot: { val: () => unknown }) => void,
+  ) => {
+    callback({
+      val: () => store.get(target.path) ?? null,
+    });
+    return jest.fn();
+  });
+
+  firebaseDatabaseMock.push.mockImplementation((target: { path: string }) => {
+    keyCounter += 1;
+    const key = `test_key_${keyCounter}`;
+    return {
+      key,
+      path: `${target.path}/${key}`,
+    };
+  });
+
+  firebaseDatabaseMock.remove.mockImplementation(async (target: { path: string }) => {
+    store.delete(target.path);
+  });
+});
 
 describe('CollaborationService', () => {
   let service: CollaborationService;
 
   beforeEach(() => {
+    firebaseDatabaseMock.__resetMockDb();
+    jest.clearAllMocks();
     service = new CollaborationService('session_123', 'user_123', 'Test User');
   });
 
@@ -190,6 +244,11 @@ describe('CollaborationService', () => {
 });
 
 describe('createCollaborationSession', () => {
+  beforeEach(() => {
+    firebaseDatabaseMock.__resetMockDb();
+    jest.clearAllMocks();
+  });
+
   it('should create new session', async () => {
     const sessionId = await createCollaborationSession('project_123', 'user_123');
 

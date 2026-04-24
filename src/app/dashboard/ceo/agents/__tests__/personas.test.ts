@@ -46,9 +46,10 @@ describe('Agent Personas Configuration', () => {
         // Legacy agents use tools array
         expect(PERSONAS.wholesale_analyst.tools).toContain('all');
 
-        // New Squad uses skills system (or may have legacy tools too)
-        // Check for skills as primary, fallback to tools for backwards compatibility
-        expect(PERSONAS.smokey.skills).toContain('domain/cannmenus');
+        // Smokey uses skills (no legacy tools), CannMenus moved to Ezal
+        expect(PERSONAS.smokey.skills).toContain('core/search');
+        // Ezal has domain/cannmenus
+        expect(PERSONAS.ezal.skills).toContain('domain/cannmenus');
         expect(PERSONAS.craig.tools).toContain('gmail_action');
         expect(PERSONAS.pops.tools).toContain('sheets_action');
         expect(PERSONAS.ezal.tools).toContain('web_search');

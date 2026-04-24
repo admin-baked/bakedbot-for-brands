@@ -62,6 +62,20 @@ jest.mock('next/headers', () => ({
     })
 }));
 
+// Mock requireUser
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn(() => Promise.resolve({
+        uid: 'test-user-123',
+        email: 'john@test.com',
+        email_verified: true,
+    })),
+}));
+
+// Mock feature flags
+jest.mock('@/lib/feature-flags', () => ({
+    isCompanyPlanCheckoutEnabled: jest.fn(() => true),
+}));
+
 // Mock pricing config
 jest.mock('@/lib/config/pricing', () => {
     const PRICING_PLANS = [

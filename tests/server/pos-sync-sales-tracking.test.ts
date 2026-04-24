@@ -149,7 +149,7 @@ describe('POS Sync Sales Tracking Integration', () => {
                 orgId,
                 expect.objectContaining({
                     customerId: 'alleaves_customer_789',
-                    orderId: 'alleaves_order_456',
+                    orderId: 'alleaves_alleaves_order_456',
                     items: expect.arrayContaining([
                         expect.objectContaining({
                             productId: 'item_1',

@@ -11,6 +11,8 @@ import {
     createCarouselArtifactToolDef,
     createBundleArtifactToolDef,
     createCreativeArtifactToolDef,
+    createQRCodeArtifactToolDef,
+    createBlogPostArtifactToolDef,
     inboxToolDefs,
     smokeyInboxToolDefs,
     moneyMikeInboxToolDefs,
@@ -252,10 +254,12 @@ describe('Inbox Tools', () => {
         });
 
         it('should export combined inbox tool definitions', () => {
-            expect(inboxToolDefs).toHaveLength(3);
+            expect(inboxToolDefs).toHaveLength(5);
             expect(inboxToolDefs).toContain(createCarouselArtifactToolDef);
             expect(inboxToolDefs).toContain(createBundleArtifactToolDef);
             expect(inboxToolDefs).toContain(createCreativeArtifactToolDef);
+            expect(inboxToolDefs).toContain(createQRCodeArtifactToolDef);
+            expect(inboxToolDefs).toContain(createBlogPostArtifactToolDef);
         });
 
         it('should export agent-specific tool sets', () => {
@@ -265,8 +269,10 @@ describe('Inbox Tools', () => {
             expect(moneyMikeInboxToolDefs).toHaveLength(1);
             expect(moneyMikeInboxToolDefs).toContain(createBundleArtifactToolDef);
 
-            expect(craigInboxToolDefs).toHaveLength(1);
+            expect(craigInboxToolDefs).toHaveLength(3);
             expect(craigInboxToolDefs).toContain(createCreativeArtifactToolDef);
+            expect(craigInboxToolDefs).toContain(createQRCodeArtifactToolDef);
+            expect(craigInboxToolDefs).toContain(createBlogPostArtifactToolDef);
         });
     });
 

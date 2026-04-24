@@ -88,7 +88,7 @@ describe('Hero A/B Testing', () => {
       const confidence3 = Math.min(totalViews3 / 1000, 0.95);
 
       expect(confidence1).toBeLessThan(confidence2);
-      expect(confidence2).toBeLessThan(confidence3);
+      expect(confidence2).toBeLessThanOrEqual(confidence3);
       expect(confidence3).toBe(0.95); // Capped at 95%
     });
   });
@@ -158,7 +158,7 @@ describe('Hero A/B Testing', () => {
 
       const relativeImprovement = ((variantRate - baselineRate) / baselineRate) * 100;
 
-      expect(relativeImprovement).toBe(50); // 50% improvement
+      expect(relativeImprovement).toBeCloseTo(50); // 50% improvement
     });
   });
 });

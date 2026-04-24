@@ -68,6 +68,7 @@ describe('Dynamic Pricing Actions', () => {
             doc: jest.fn().mockReturnThis(),
             where: jest.fn().mockReturnThis(),
             orderBy: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockReturnThis(),
             set: jest.fn().mockResolvedValue(undefined),
             get: jest.fn()
         };
@@ -296,6 +297,7 @@ describe('Dynamic Price Calculation with Competitor Data', () => {
             doc: jest.fn().mockReturnThis(),
             where: jest.fn().mockReturnThis(),
             orderBy: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockReturnThis(),
             set: jest.fn().mockResolvedValue(undefined),
             update: jest.fn().mockResolvedValue(undefined),
             get: jest.fn()

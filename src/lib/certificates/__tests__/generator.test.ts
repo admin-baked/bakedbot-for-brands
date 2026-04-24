@@ -44,7 +44,7 @@ describe('Certificate Generator', () => {
             const result = checkCertificateEligibility(progress);
 
             expect(result.eligible).toBe(false);
-            expect(result.reasons).toContain(expect.stringContaining('30 completed challenges'));
+            expect(result.reasons).toContainEqual(expect.stringContaining('30 completed challenges'));
         });
 
         it('should fail if approval rate below 70%', () => {
@@ -56,7 +56,7 @@ describe('Certificate Generator', () => {
             const result = checkCertificateEligibility(progress);
 
             expect(result.eligible).toBe(false);
-            expect(result.reasons).toContain(expect.stringContaining('70% approval rate'));
+            expect(result.reasons).toContainEqual(expect.stringContaining('70% approval rate'));
         });
 
         it('should fail if less than 3 peer reviews completed', () => {
@@ -67,7 +67,7 @@ describe('Certificate Generator', () => {
             const result = checkCertificateEligibility(progress);
 
             expect(result.eligible).toBe(false);
-            expect(result.reasons).toContain(expect.stringContaining('3 peer reviews'));
+            expect(result.reasons).toContainEqual(expect.stringContaining('3 peer reviews'));
         });
 
         it('should fail if status is dropped', () => {
@@ -78,7 +78,7 @@ describe('Certificate Generator', () => {
             const result = checkCertificateEligibility(progress);
 
             expect(result.eligible).toBe(false);
-            expect(result.reasons).toContain(expect.stringContaining('dropped'));
+            expect(result.reasons).toContainEqual(expect.stringContaining('dropped'));
         });
 
         it('should fail if status is paused', () => {
@@ -89,7 +89,7 @@ describe('Certificate Generator', () => {
             const result = checkCertificateEligibility(progress);
 
             expect(result.eligible).toBe(false);
-            expect(result.reasons).toContain(expect.stringContaining('paused'));
+            expect(result.reasons).toContainEqual(expect.stringContaining('paused'));
         });
 
         it('should return multiple reasons when multiple requirements not met', () => {

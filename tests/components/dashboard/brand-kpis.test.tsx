@@ -36,29 +36,30 @@ describe('BrandKPIs Component', () => {
         expect(screen.getByText('Compliance')).toBeInTheDocument();
     });
 
-    it('displays data freshness indicators', () => {
+    it('displays data freshness indicators with default Live values', () => {
         renderWithContext(<BrandKPIs />);
 
-        // Check for "2m ago", "1h ago", etc based on the stub data in the component
-        expect(screen.getByText('2m ago')).toBeInTheDocument();
-        expect(screen.getByText('1h ago')).toBeInTheDocument();
-        expect(screen.getByText('5m ago')).toBeInTheDocument();
-        expect(screen.getByText('12m ago')).toBeInTheDocument();
+        // When no data prop passed, all freshness labels default to 'Live' or 'Real-time'
+        const liveElements = screen.getAllByText('Live');
+        expect(liveElements.length).toBeGreaterThanOrEqual(4);
         expect(screen.getByText('Real-time')).toBeInTheDocument();
     });
 
-    it('displays trend indicators', () => {
-        renderWithContext(<BrandKPIs />);
+    it('displays trend indicators from passed data', () => {
+        renderWithContext(<BrandKPIs data={{
+            coverage: { value: 12, trend: '+2' },
+            velocity: { value: 8, trend: '+5%' },
+        }} />);
 
         expect(screen.getByText('+2')).toBeInTheDocument();
         expect(screen.getByText('+5%')).toBeInTheDocument();
-        expect(screen.getByText('-16')).toBeInTheDocument();
     });
 
-    it('shows compliance status correctly', () => {
-        renderWithContext(<BrandKPIs />);
+    it('shows compliance status correctly from passed data', () => {
+        renderWithContext(<BrandKPIs data={{
+            compliance: { approved: 8, blocked: 1 },
+        }} />);
 
-        // Based on stats.compliance.approved = 8 and blocked = 1
         expect(screen.getByText('8')).toBeInTheDocument();
         expect(screen.getByText('1 Blocked')).toBeInTheDocument();
     });

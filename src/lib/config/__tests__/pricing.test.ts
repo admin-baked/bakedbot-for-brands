@@ -4,8 +4,11 @@
 
 import {
     PRICING_PLANS,
-    DIRECTORY_PLANS,
-    PLATFORM_PLANS,
+    PUBLIC_PLANS,
+    GRANDFATHERED_PLANS,
+    HISTORIC_COMPAT_PLANS,
+    ACCESS_PLANS,
+    OPERATOR_PLANS,
     PricingPlan,
     LEGACY_PLAN_ALIASES,
     findPricingPlan,
@@ -13,8 +16,8 @@ import {
 
 describe('PricingPlan Interface', () => {
     it('should have all required properties', () => {
-        const plan: PricingPlan = PLATFORM_PLANS[0];
-        
+        const plan: PricingPlan = PUBLIC_PLANS[0];
+
         expect(plan).toHaveProperty('id');
         expect(plan).toHaveProperty('name');
         expect(plan).toHaveProperty('price');
@@ -24,42 +27,47 @@ describe('PricingPlan Interface', () => {
         expect(plan).toHaveProperty('features');
         expect(plan).toHaveProperty('pill');
         expect(plan).toHaveProperty('tier');
+        expect(plan).toHaveProperty('track');
+        expect(plan).toHaveProperty('salesMotion');
+        expect(plan).toHaveProperty('ctaLabel');
+        expect(plan).toHaveProperty('ctaHref');
     });
 
     it('should support optional scarcity property', () => {
         const planWithScarcity: PricingPlan = {
-            ...PLATFORM_PLANS[0],
+            ...PUBLIC_PLANS[0],
             scarcity: 'Only 50 spots left'
         };
-        
+
         expect(planWithScarcity.scarcity).toBe('Only 50 spots left');
     });
 
     it('should allow scarcity to be undefined', () => {
-        const planWithoutScarcity: PricingPlan = PLATFORM_PLANS[0];
-        
+        const planWithoutScarcity: PricingPlan = PUBLIC_PLANS[0];
+
         expect(planWithoutScarcity.scarcity).toBeUndefined();
     });
 });
 
 describe('Pricing Plans Collections', () => {
-    it('should have directory plans in DIRECTORY_PLANS array', () => {
-        // Note: growth plan is in DIRECTORY_PLANS but has tier: "platform"
-        // This is intentional - it's grouped with directory plans but priced as platform
-        expect(DIRECTORY_PLANS.length).toBeGreaterThan(0);
-        expect(DIRECTORY_PLANS.some(plan => plan.id === 'scout')).toBe(true);
-        expect(DIRECTORY_PLANS.some(plan => plan.id === 'pro')).toBe(true);
-        expect(DIRECTORY_PLANS.some(plan => plan.id === 'growth')).toBe(true);
+    it('should have public plans with expected IDs', () => {
+        expect(PUBLIC_PLANS.length).toBeGreaterThan(0);
+        expect(PUBLIC_PLANS.some(plan => plan.id === 'free')).toBe(true);
+        expect(PUBLIC_PLANS.some(plan => plan.id === 'access_intel')).toBe(true);
+        expect(PUBLIC_PLANS.some(plan => plan.id === 'operator_core')).toBe(true);
     });
 
-    it('should have platform plans with correct tier', () => {
-        PLATFORM_PLANS.forEach(plan => {
-            expect(plan.tier).toBe('platform');
+    it('should split access and operator plans correctly', () => {
+        ACCESS_PLANS.forEach(plan => {
+            expect(plan.track).toBe('access');
+        });
+        OPERATOR_PLANS.forEach(plan => {
+            expect(plan.track).toBe('operator');
         });
     });
 
     it('should combine all plans in PRICING_PLANS', () => {
-        expect(PRICING_PLANS.length).toBe(DIRECTORY_PLANS.length + PLATFORM_PLANS.length);
+        expect(PRICING_PLANS.length).toBe(PUBLIC_PLANS.length + GRANDFATHERED_PLANS.length + HISTORIC_COMPAT_PLANS.length);
     });
 
     it('should have unique plan IDs', () => {
@@ -79,17 +87,18 @@ describe('Pricing Plans Collections', () => {
 });
 
 describe('Launch Pricing Features', () => {
-    it('should have launch badge on platform plans', () => {
-        const launchPlans = PLATFORM_PLANS.filter(p => p.badge === 'Launch');
-        expect(launchPlans.length).toBeGreaterThanOrEqual(0);
+    it('should have badge on some platform plans', () => {
+        const badgedPlans = PUBLIC_PLANS.filter(p => p.badge);
+        expect(badgedPlans.length).toBeGreaterThanOrEqual(0);
     });
 
-    it('should have priceLater for launch pricing', () => {
-        const starterPlan = PLATFORM_PLANS.find(p => p.id === 'starter');
-        if (starterPlan?.badge === 'Launch') {
-            expect(starterPlan.priceLater).toBeDefined();
-            expect(starterPlan.priceLater).toBeGreaterThan(starterPlan.price!);
-        }
+    it('should have priceLater for plans with launch badge', () => {
+        const launchPlans = PUBLIC_PLANS.filter(p => p.badge === 'Launch');
+        launchPlans.forEach(plan => {
+            if (plan.priceLater) {
+                expect(plan.priceLater).toBeGreaterThan(plan.price!);
+            }
+        });
     });
 });
 
@@ -100,10 +109,6 @@ describe('Legacy Plan Aliases', () => {
 
     it('maps founders_claim to pro', () => {
         expect(LEGACY_PLAN_ALIASES['founders_claim']).toBe('pro');
-    });
-
-    it('maps free to scout', () => {
-        expect(LEGACY_PLAN_ALIASES['free']).toBe('scout');
     });
 
     it('maps growth_5 to growth', () => {
@@ -118,12 +123,10 @@ describe('Legacy Plan Aliases', () => {
         expect(LEGACY_PLAN_ALIASES['pro_25']).toBe('growth');
     });
 
-    it('maps custom_25 to custom_25', () => {
-        expect(LEGACY_PLAN_ALIASES['custom_25']).toBe('custom_25');
-    });
-
-    it('maps enterprise to empire', () => {
-        expect(LEGACY_PLAN_ALIASES['enterprise']).toBe('empire');
+    it('does not have removed aliases (free, custom_25, enterprise)', () => {
+        expect(LEGACY_PLAN_ALIASES['free']).toBeUndefined();
+        expect(LEGACY_PLAN_ALIASES['custom_25']).toBeUndefined();
+        expect(LEGACY_PLAN_ALIASES['enterprise']).toBeUndefined();
     });
 });
 
@@ -156,6 +159,20 @@ describe('findPricingPlan', () => {
             expect(plan?.id).toBe('empire');
             expect(plan?.price).toBeNull();
         });
+
+        it('finds free plan by direct ID (now a public plan)', () => {
+            const plan = findPricingPlan('free');
+            expect(plan).toBeDefined();
+            expect(plan?.id).toBe('free');
+            expect(plan?.price).toBe(0);
+        });
+
+        it('finds enterprise plan by direct ID (now a public plan)', () => {
+            const plan = findPricingPlan('enterprise');
+            expect(plan).toBeDefined();
+            expect(plan?.id).toBe('enterprise');
+            expect(plan?.price).toBeNull();
+        });
     });
 
     describe('legacy alias resolution', () => {
@@ -172,13 +189,6 @@ describe('findPricingPlan', () => {
             expect(plan?.id).toBe('pro');
         });
 
-        it('resolves free to scout plan', () => {
-            const plan = findPricingPlan('free');
-            expect(plan).toBeDefined();
-            expect(plan?.id).toBe('scout');
-            expect(plan?.price).toBe(0);
-        });
-
         it('resolves growth_5 to growth plan', () => {
             const plan = findPricingPlan('growth_5');
             expect(plan).toBeDefined();
@@ -189,12 +199,6 @@ describe('findPricingPlan', () => {
             const plan = findPricingPlan('scale_10');
             expect(plan).toBeDefined();
             expect(plan?.id).toBe('growth');
-        });
-
-        it('resolves enterprise to empire plan', () => {
-            const plan = findPricingPlan('enterprise');
-            expect(plan).toBeDefined();
-            expect(plan?.id).toBe('empire');
         });
 
         it('resolves custom_25 to custom_25 plan', () => {

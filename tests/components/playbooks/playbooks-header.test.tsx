@@ -6,6 +6,20 @@ import { PlaybooksHeader, PlaybookFilterCategory } from '@/app/dashboard/playboo
 jest.mock('lucide-react', () => ({
     Search: () => <div data-testid="icon-search" />,
     Plus: () => <div data-testid="icon-plus" />,
+    TrendingUp: () => <div data-testid="icon-trending-up" />,
+}));
+
+// Mock Next.js Link
+jest.mock('next/link', () => ({
+    __esModule: true,
+    default: ({ children, href }: { children: React.ReactNode; href: string }) => (
+        <a href={href}>{children}</a>
+    ),
+}));
+
+// Mock cn utility
+jest.mock('@/lib/utils', () => ({
+    cn: (...args: any[]) => args.filter(Boolean).join(' '),
 }));
 
 describe('PlaybooksHeader', () => {

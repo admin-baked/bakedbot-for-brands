@@ -231,16 +231,28 @@ export async function deeboCheckMessage(params: { orgId: string, channel: string
 }
 
 export function deeboCheckAge(dob: Date | string, jurisdiction: string) {
-  // Stub: 21+ check
   const birthDate = new Date(dob);
-  const ageDifMs = Date.now() - birthDate.getTime();
-  const ageDate = new Date(ageDifMs);
-  const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+  const minAge = 21;
 
-  if (age < 21) {
-    return { allowed: false, reason: "Must be 21+", minAge: 21 };
+  if (Number.isNaN(birthDate.getTime())) {
+    return { allowed: false, reason: 'Invalid date of birth.', minAge };
   }
-  return { allowed: true, minAge: 21 };
+
+  const today = new Date();
+  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+  const monthDelta = today.getUTCMonth() - birthDate.getUTCMonth();
+  const hasBirthdayPassed =
+    monthDelta > 0 || (monthDelta === 0 && today.getUTCDate() >= birthDate.getUTCDate());
+
+  if (!hasBirthdayPassed) {
+    age -= 1;
+  }
+
+  if (age < minAge) {
+    return { allowed: false, reason: 'Must be 21+', minAge };
+  }
+
+  return { allowed: true, minAge };
 }
 
 export function deeboCheckStateAllowed(state: string) {

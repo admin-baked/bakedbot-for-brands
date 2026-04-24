@@ -1,45 +1,38 @@
 
 import { leaflinkAction } from '../leaflink';
-import { getAdminFirestore } from '@/firebase/admin';
 
-// Mock dependencies
-jest.mock('@/firebase/admin', () => ({
-    getAdminFirestore: jest.fn()
+// Mock auth
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn().mockResolvedValue({ uid: 'test-user', role: 'brand' }),
 }));
+
+// Mock token storage — leaflinkAction now calls getLeafLinkKey(uid)
+jest.mock('@/server/integrations/leaflink/token-storage', () => ({
+    getLeafLinkKey: jest.fn(),
+}));
+
+import { getLeafLinkKey } from '@/server/integrations/leaflink/token-storage';
 
 // Mock global fetch
 global.fetch = jest.fn();
 
 describe('leaflinkAction', () => {
-    const mockDb = {
-        collection: jest.fn().mockReturnThis(),
-        doc: jest.fn().mockReturnThis(),
-        get: jest.fn()
-    };
-
     beforeEach(() => {
         jest.clearAllMocks();
-        (getAdminFirestore as jest.Mock).mockReturnValue(mockDb);
     });
 
     it('should fail if authentication is missing', async () => {
         // Mock missing API key
-        mockDb.get.mockResolvedValue({
-            data: () => ({}) // No apiKey
-        });
+        (getLeafLinkKey as jest.Mock).mockResolvedValue(null);
 
         const result = await leaflinkAction({ action: 'list_orders' });
         expect(result.success).toBe(false);
-        expect(result.error).toContain('Authentication required');
+        expect(result.error).toContain('not connected');
     });
 
     it('should list orders successfully', async () => {
-        // Mock valid API key
-        mockDb.get.mockResolvedValue({
-            data: () => ({ apiKey: 'test-key' })
-        });
+        (getLeafLinkKey as jest.Mock).mockResolvedValue('test-key');
 
-        // Mock fetch response
         (global.fetch as jest.Mock).mockResolvedValue({
             ok: true,
             json: async () => ({
@@ -64,9 +57,7 @@ describe('leaflinkAction', () => {
     });
 
     it('should list products successfully', async () => {
-        mockDb.get.mockResolvedValue({
-            data: () => ({ apiKey: 'test-key' })
-        });
+        (getLeafLinkKey as jest.Mock).mockResolvedValue('test-key');
 
         (global.fetch as jest.Mock).mockResolvedValue({
             ok: true,
@@ -83,9 +74,7 @@ describe('leaflinkAction', () => {
     });
 
     it('should update inventory successfully', async () => {
-        mockDb.get.mockResolvedValue({
-            data: () => ({ apiKey: 'test-key' })
-        });
+        (getLeafLinkKey as jest.Mock).mockResolvedValue('test-key');
 
         (global.fetch as jest.Mock).mockResolvedValue({
             ok: true,
@@ -113,9 +102,7 @@ describe('leaflinkAction', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-        mockDb.get.mockResolvedValue({
-            data: () => ({ apiKey: 'test-key' })
-        });
+        (getLeafLinkKey as jest.Mock).mockResolvedValue('test-key');
 
         (global.fetch as jest.Mock).mockResolvedValue({
             ok: false,

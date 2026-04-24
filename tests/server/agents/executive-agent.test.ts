@@ -61,7 +61,7 @@ describe('Executive Agent Implementation', () => {
 
         it('should set system instructions', async () => {
             const memory = await executiveAgent.initialize(mockBrandMemory as any, { ...mockAgentMemory });
-            expect(memory.system_instructions).toContain('Executive Boardroom Member');
+            expect(memory.system_instructions).toContain('Executive Boardroom');
         });
     });
 
@@ -108,7 +108,7 @@ describe('Executive Agent Implementation', () => {
             );
             
             expect(result.logEntry.action).toBe('monitor_growth');
-            expect(result.logEntry.metadata.objective).toBe('100k_mrr');
+            expect(result.logEntry.metadata.objective).toBe('83333_mrr_pace');
         });
 
          it('should fall back to idle for unknown target', async () => {

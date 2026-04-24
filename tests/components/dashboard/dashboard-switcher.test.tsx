@@ -242,17 +242,17 @@ describe('DashboardSwitcher', () => {
             expect(mockReplace).not.toHaveBeenCalled();
         });
 
-        it('renders BudtenderDashboardClient for budtender role', async () => {
+        it('redirects budtender role to /dashboard/inbox (dispensary role)', async () => {
             mockRole = 'budtender';
             mockUser = { email: 'bud@example.com', uid: 'bud-uid' };
 
             render(<DashboardSwitcher />);
 
             await waitFor(() => {
-                expect(screen.getByTestId('budtender-dashboard')).toBeInTheDocument();
+                expect(mockReplace).toHaveBeenCalledWith('/dashboard/inbox');
             });
 
-            expect(mockReplace).not.toHaveBeenCalled();
+            expect(screen.getByText('Redirecting to Inbox...')).toBeInTheDocument();
         });
     });
 

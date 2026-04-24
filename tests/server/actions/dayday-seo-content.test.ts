@@ -18,6 +18,14 @@ jest.mock('@/ai/genkit', () => ({
     }
 }));
 
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn().mockResolvedValue({
+        uid: 'test-admin',
+        role: 'super_user',
+        email: 'admin@test.com',
+    }),
+}));
+
 // VertexAI mocked via moduleNameMapper in jest.config.js -> tests/__mocks__/genkit-vertexai.js
 // So usage in SUT resolves to that mock.
 // We don't need to mock it again here.
@@ -119,12 +127,13 @@ describe('Day Day SEO Content Actions', () => {
 
     describe('batchOptimizePages', () => {
         it('should process multiple pages', async () => {
-            const doc1 = { ...mockDoc, id: 'page_1' };
-            const doc2 = { ...mockDoc, id: 'page_2' };
-            
+            const doc1 = { ...mockDoc, id: 'page_1', data: jest.fn().mockReturnValue({ zipCode: '90210', city: 'Beverly Hills', state: 'CA' }) };
+            const doc2 = { ...mockDoc, id: 'page_2', data: jest.fn().mockReturnValue({ zipCode: '90211', city: 'Beverly Hills', state: 'CA' }) };
+
+            // Use 'brand' type which queries top-level collection (not subcollection)
             mockCollection.get.mockResolvedValue({ docs: [doc1, doc2] });
 
-            const result = await batchOptimizePages('zip', 10);
+            const result = await batchOptimizePages('brand', 10);
 
             expect(result.optimized).toBe(2);
             expect(result.errors).toBe(0);

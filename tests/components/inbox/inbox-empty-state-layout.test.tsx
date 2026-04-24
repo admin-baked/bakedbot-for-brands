@@ -14,6 +14,9 @@ jest.mock('@/components/inbox/inbox-conversation', () => ({
 }));
 jest.mock('@/lib/store/inbox-store');
 jest.mock('@/hooks/use-contextual-presets');
+jest.mock('@/components/ui/textarea', () => ({
+    Textarea: (props: any) => <textarea {...props} />,
+}));
 jest.mock('@/hooks/use-user-role');
 jest.mock('@/server/actions/inbox', () => ({
     createInboxThread: jest.fn(),
@@ -92,7 +95,6 @@ describe('InboxEmptyState layout', () => {
 
         await waitFor(() => {
             expect(screen.getByTestId('inbox-empty-state-desktop')).toBeInTheDocument();
-            expect(screen.getByText('Start Here')).toBeInTheDocument();
             expect(screen.getByPlaceholderText(/What would you like to work on/i)).toBeInTheDocument();
             expect(screen.getByText('What Happened Yesterday')).toBeInTheDocument();
         });

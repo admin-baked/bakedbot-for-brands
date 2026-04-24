@@ -24,6 +24,17 @@ jest.mock('@/lib/logger', () => ({
     },
 }));
 
+jest.mock('@/server/services/media-tracking', () => ({
+    withImageTracking: jest.fn(async (_t, _u, _p, _pr, fn) => {
+        const result = await fn();
+        return { ...result, trackingEvent: {} };
+    }),
+    withVideoTracking: jest.fn(async (_t, _u, _p, _pr, _dur, fn) => {
+        const result = await fn();
+        return { ...result, trackingEvent: {} };
+    }),
+}));
+
 import { getServerSessionUser } from '@/server/auth/session';
 import { generateImageFromPrompt } from '@/ai/flows/generate-social-image';
 import { generateMarketingVideo } from '@/ai/flows/generate-video';

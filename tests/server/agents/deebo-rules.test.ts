@@ -112,7 +112,7 @@ describe('Deebo Compliance Rules', () => {
       const result = await deebo.checkContent('NY', 'retail', 'Use our product for guaranteed relief');
 
       expect(result.status).toBe('fail');
-      expect(result.violations).toContain(expect.stringContaining('guaranteed relief'));
+      expect(result.violations).toContainEqual(expect.stringContaining('guaranteed relief'));
     });
 
     it('fails with CA rule violation for "treat disease"', async () => {
@@ -126,14 +126,14 @@ describe('Deebo Compliance Rules', () => {
       const result = await deebo.checkContent('IL', 'retail', 'Prevent illness with our CBD');
 
       expect(result.status).toBe('fail');
-      expect(result.violations).toContain(expect.stringContaining('prevent illness'));
+      expect(result.violations).toContainEqual(expect.stringContaining('prevent illness'));
     });
 
     it('fails with WA rule violation for "cure"', async () => {
       const result = await deebo.checkContent('WA', 'retail', 'Cure your pain naturally');
 
       expect(result.status).toBe('fail');
-      expect(result.violations).toContain(expect.stringContaining('cure'));
+      expect(result.violations).toContainEqual(expect.stringContaining('cure'));
     });
 
     it('returns fail immediately on regex violation (no LLM call)', async () => {
@@ -215,7 +215,7 @@ describe('Deebo Compliance Rules', () => {
       const result = await deebo.checkContent('NY', 'retail', 'Content');
 
       expect(result.status).toBe('fail');
-      expect(result.violations).toContain('Compliance check failed due to system error');
+      expect(result.violations).toContainEqual(expect.stringContaining('Compliance check failed due to system error'));
     });
 
     it('logs error when LLM fails', async () => {
@@ -241,7 +241,12 @@ describe('Deebo Compliance Rules', () => {
     });
 
     it('allows users exactly 21 years old', () => {
-      const birthDate = new Date(Date.now() - 21 * 365 * 24 * 60 * 60 * 1000);
+      const today = new Date();
+      const birthDate = new Date(Date.UTC(
+        today.getUTCFullYear() - 21,
+        today.getUTCMonth(),
+        today.getUTCDate()
+      ));
 
       const result = deeboCheckAge(birthDate, 'NY');
 

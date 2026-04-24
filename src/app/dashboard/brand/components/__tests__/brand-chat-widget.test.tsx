@@ -15,6 +15,17 @@ jest.mock('@/firebase/auth/use-user', () => ({
     useUser: () => mockUseUser()
 }));
 
+// Mock useDynamicPrompts to return controlled suggestions
+const mockDynamicPrompts = ['Create a loyalty re-engagement SMS sequence', 'Draft a campaign in 30 seconds', 'Get my SEO visibility report', 'What is their brand voice compared to ours?'];
+jest.mock('@/hooks/use-dynamic-prompts', () => ({
+    useDynamicPrompts: () => ({ prompts: mockDynamicPrompts, loading: false })
+}));
+
+// Mock the config
+jest.mock('@/lib/chat/role-chat-config', () => ({
+    BRAND_CHAT_CONFIG: { promptSuggestions: [] }
+}));
+
 // Mock PuffChat to verify props
 const mockPuffChat = jest.fn();
 jest.mock('@/app/dashboard/ceo/components/puff-chat', () => ({
@@ -82,12 +93,12 @@ describe('BrandChatWidget', () => {
 
             render(<BrandChatWidget />);
 
-            // Verify promptSuggestions are passed for brand-specific queries
+            // Verify promptSuggestions are passed from useDynamicPrompts
             expect(mockPuffChat).toHaveBeenCalledWith(
                 expect.objectContaining({
                     promptSuggestions: expect.arrayContaining([
-                        expect.stringContaining('velocity'),
-                        expect.stringContaining('pricing'),
+                        expect.stringContaining('loyalty'),
+                        expect.stringContaining('campaign'),
                     ])
                 })
             );

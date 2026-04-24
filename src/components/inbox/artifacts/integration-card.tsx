@@ -9,17 +9,19 @@ import { INTEGRATION_METADATA } from '@/types/service-integrations';
 interface Props {
   artifact: InboxArtifact;
   className?: string;
+  onNavigate?: (url: string) => void;
 }
 
-export function InboxIntegrationCard({ artifact, className }: Props) {
+export function InboxIntegrationCard({ artifact, className, onNavigate }: Props) {
   const data = artifact.data as IntegrationRequest;
   const metadata = INTEGRATION_METADATA[data.provider];
+  const navigate = onNavigate ?? ((url: string) => window.location.assign(url));
 
   const handleConnect = () => {
     if (data.authMethod === 'oauth') {
       const service = data.provider;
       const returnTo = data.threadId ? `/dashboard/inbox?thread=${data.threadId}` : '/dashboard/inbox';
-      window.location.href = `/api/auth/google?service=${service}&redirect=${encodeURIComponent(returnTo)}`;
+      navigate(`/api/auth/google?service=${service}&redirect=${encodeURIComponent(returnTo)}`);
     }
   };
 

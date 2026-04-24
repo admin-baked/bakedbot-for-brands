@@ -2,7 +2,7 @@
  * Tests for NavigationProgress component
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { NavigationProgress } from '../navigation-progress';
 import { usePathname, useSearchParams } from 'next/navigation';
 
@@ -44,14 +44,14 @@ describe('NavigationProgress', () => {
     let progressBar = container.querySelector('[role="progressbar"]');
     expect(progressBar).toBeInTheDocument();
 
-    // Fast-forward time by 150ms
-    jest.advanceTimersByTime(150);
+    // Fast-forward time by 150ms and flush React state updates
+    await act(() => {
+      jest.advanceTimersByTime(150);
+    });
 
     // Should be hidden after timeout
-    await waitFor(() => {
-      progressBar = container.querySelector('[role="progressbar"]');
-      expect(progressBar).not.toBeInTheDocument();
-    });
+    progressBar = container.querySelector('[role="progressbar"]');
+    expect(progressBar).not.toBeInTheDocument();
   });
 
   it('shows progress bar when pathname changes', () => {

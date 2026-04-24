@@ -14,9 +14,30 @@ jest.mock('lucide-react', () => ({
     Plus: () => <div data-testid="icon-plus" />,
 }));
 
+// Mock Next.js Link
+jest.mock('next/link', () => ({
+    __esModule: true,
+    default: ({ children, href }: { children: React.ReactNode; href: string }) => (
+        <a href={href}>{children}</a>
+    ),
+}));
+
+// Mock CannMenusAttribution
+jest.mock('@/components/ui/cannmenus-attribution', () => ({
+    CannMenusAttribution: () => <div data-testid="cannmenus-attribution" />,
+}));
+
 describe('CompetitiveIntelSnapshot Component', () => {
+    const mockIntel = {
+        competitorsTracked: 6,
+        pricePosition: { delta: '+6%', status: 'above' },
+        undercutters: 3,
+        promoActivity: { competitorCount: 5, ownCount: 1 },
+        shelfShareTrend: { added: 2, dropped: 1, delta: '+1' },
+    };
+
     it('renders the header and section titles', () => {
-        render(<CompetitiveIntelSnapshot />);
+        render(<CompetitiveIntelSnapshot intel={mockIntel} />);
 
         expect(screen.getByText('Competitive Intel (Ezal)')).toBeInTheDocument();
         expect(screen.getByText('Live Feed')).toBeInTheDocument();
@@ -24,8 +45,8 @@ describe('CompetitiveIntelSnapshot Component', () => {
         expect(screen.getByText('Price Index')).toBeInTheDocument();
     });
 
-    it('displays the correct intel stats from stub', () => {
-        render(<CompetitiveIntelSnapshot />);
+    it('displays the correct intel stats from data', () => {
+        render(<CompetitiveIntelSnapshot intel={mockIntel} />);
 
         // Competitors count
         expect(screen.getByText('6')).toBeInTheDocument();
@@ -47,14 +68,15 @@ describe('CompetitiveIntelSnapshot Component', () => {
     });
 
     it('has a link to the intelligence page', () => {
-        render(<CompetitiveIntelSnapshot />);
+        render(<CompetitiveIntelSnapshot intel={mockIntel} />);
         const link = screen.getByRole('link', { name: /View Intel/i });
         expect(link).toHaveAttribute('href', '/dashboard/intelligence');
     });
 
-    it('has a link to settings via the plus button', () => {
+    it('renders default zeros when no intel data passed', () => {
         render(<CompetitiveIntelSnapshot />);
-        const plusLink = screen.getByRole('link', { name: '' }); // The icon button has no text but has Link
-        expect(plusLink).toHaveAttribute('href', '/dashboard/settings?tab=brand');
+        // Should render with default 0 values
+        expect(screen.getByText('Competitive Intel (Ezal)')).toBeInTheDocument();
+        expect(screen.getByText('0 Retailers')).toBeInTheDocument();
     });
 });

@@ -152,7 +152,7 @@ describe('extractCalendarParams', () => {
         beforeEach(() => {
             // Mock Date to ensure consistent test results
             jest.useFakeTimers();
-            jest.setSystemTime(new Date('2026-02-10T14:00:00Z'));
+            jest.setSystemTime(new Date('2026-02-10T14:00:00Z').getTime());
         });
 
         afterEach(() => {
@@ -223,7 +223,7 @@ describe('extractCalendarParams', () => {
     describe('List events action', () => {
         beforeEach(() => {
             jest.useFakeTimers();
-            jest.setSystemTime(new Date('2026-02-10T14:00:00Z'));
+            jest.setSystemTime(new Date('2026-02-10T14:00:00Z').getTime());
         });
 
         afterEach(() => {

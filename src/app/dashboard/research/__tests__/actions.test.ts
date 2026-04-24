@@ -9,6 +9,7 @@ jest.mock('@/server/services/research-service', () => ({
         createTask: jest.fn(),
         getTask: jest.fn(),
         getTasksByBrand: jest.fn(),
+        getTasksByUser: jest.fn(),
         getReport: jest.fn()
     }
 }));
@@ -16,6 +17,22 @@ jest.mock('@/server/services/research-service', () => ({
 // Mock revalidatePath
 jest.mock('next/cache', () => ({
     revalidatePath: jest.fn()
+}));
+
+// Mock auth
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn().mockResolvedValue({
+        uid: 'user-123',
+        brandId: 'brand-456',
+        currentOrgId: 'brand-456',
+        role: 'brand',
+        email: 'test@example.com'
+    })
+}));
+
+// Mock logger
+jest.mock('@/lib/logger', () => ({
+    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() }
 }));
 
 import { 
@@ -37,32 +54,25 @@ describe('Research Actions', () => {
     describe('createResearchTaskAction', () => {
         it('should create a task and return success with taskId', async () => {
             mockResearchService.createTask.mockResolvedValue('task-abc123');
-            
-            const result = await createResearchTaskAction(
-                'user-123',
-                'brand-456',
-                'Analyze competitor pricing'
-            );
-            
+
+            const result = await createResearchTaskAction('Analyze competitor pricing');
+
             expect(result.success).toBe(true);
             expect(result.taskId).toBe('task-abc123');
             expect(mockResearchService.createTask).toHaveBeenCalledWith(
                 'user-123',
                 'brand-456',
-                'Analyze competitor pricing'
+                'Analyze competitor pricing',
+                'test@example.com'
             );
             expect(revalidatePath).toHaveBeenCalledWith('/dashboard/research');
         });
 
         it('should return error on failure', async () => {
             mockResearchService.createTask.mockRejectedValue(new Error('Database error'));
-            
-            const result = await createResearchTaskAction(
-                'user-123',
-                'brand-456',
-                'Some query'
-            );
-            
+
+            const result = await createResearchTaskAction('Some query');
+
             expect(result.success).toBe(false);
             expect(result.error).toBe('Database error');
         });
@@ -95,9 +105,9 @@ describe('Research Actions', () => {
                 }
             ];
             mockResearchService.getTasksByBrand.mockResolvedValue(mockTasks);
-            
-            const result = await getResearchTasksAction('brand-456');
-            
+
+            const result = await getResearchTasksAction();
+
             expect(result.success).toBe(true);
             expect(result.tasks).toHaveLength(2);
             expect(mockResearchService.getTasksByBrand).toHaveBeenCalledWith('brand-456');
@@ -105,9 +115,9 @@ describe('Research Actions', () => {
 
         it('should return error on failure', async () => {
             mockResearchService.getTasksByBrand.mockRejectedValue(new Error('Query failed'));
-            
-            const result = await getResearchTasksAction('brand-456');
-            
+
+            const result = await getResearchTasksAction();
+
             expect(result.success).toBe(false);
             expect(result.error).toBe('Query failed');
         });

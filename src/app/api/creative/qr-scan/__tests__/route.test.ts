@@ -76,9 +76,10 @@ describe('POST /api/creative/qr-scan', () => {
             headers: {
                 'Content-Type': 'application/json',
                 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)',
+                'x-forwarded-for': '10.0.1.1',
             },
             body: JSON.stringify({
-                contentId: mockContentId,
+                contentId: 'content-track-success',
             }),
         });
 
@@ -111,9 +112,10 @@ describe('POST /api/creative/qr-scan', () => {
             headers: {
                 'Content-Type': 'application/json',
                 'User-Agent': 'Instagram 123.0.0.0 (iPhone; iOS 15_0)',
+                'x-forwarded-for': '10.0.1.2',
             },
             body: JSON.stringify({
-                contentId: mockContentId,
+                contentId: 'content-detect-platform',
             }),
         });
 
@@ -128,9 +130,10 @@ describe('POST /api/creative/qr-scan', () => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'x-forwarded-for': '10.0.1.3',
             },
             body: JSON.stringify({
-                contentId: mockContentId,
+                contentId: 'content-platform-override',
                 platform: 'tiktok',
             }),
         });
@@ -141,11 +144,18 @@ describe('POST /api/creative/qr-scan', () => {
     });
 
     it('should return 404 if content not found', async () => {
-        mockGet.mockResolvedValue({ exists: false });
+        // Override doc() to return a mock where get returns { exists: false }
+        mockFirestore.doc = jest.fn(() => ({
+            get: jest.fn().mockResolvedValue({ exists: false }),
+            update: mockUpdate,
+        }));
 
         const request = new NextRequest('http://localhost/api/creative/qr-scan', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-forwarded-for': '10.0.1.4',
+            },
             body: JSON.stringify({
                 contentId: 'non-existent-id',
             }),
@@ -198,9 +208,12 @@ describe('POST /api/creative/qr-scan', () => {
     it('should increment scan count', async () => {
         const request = new NextRequest('http://localhost/api/creative/qr-scan', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-forwarded-for': '10.0.1.5',
+            },
             body: JSON.stringify({
-                contentId: mockContentId,
+                contentId: 'content-increment-count',
             }),
         });
 
@@ -216,9 +229,10 @@ describe('POST /api/creative/qr-scan', () => {
             headers: {
                 'Content-Type': 'application/json',
                 'User-Agent': 'Mozilla/5.0 (Android 10; Mobile)',
+                'x-forwarded-for': '10.0.1.6',
             },
             body: JSON.stringify({
-                contentId: mockContentId,
+                contentId: 'content-platform-tracking',
             }),
         });
 
@@ -231,9 +245,12 @@ describe('POST /api/creative/qr-scan', () => {
     it('should track scans by location when provided', async () => {
         const request = new NextRequest('http://localhost/api/creative/qr-scan', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-forwarded-for': '10.0.1.7',
+            },
             body: JSON.stringify({
-                contentId: mockContentId,
+                contentId: 'content-location-tracking',
                 location: 'US',
             }),
         });
@@ -249,9 +266,12 @@ describe('POST /api/creative/qr-scan', () => {
 
         const request = new NextRequest('http://localhost/api/creative/qr-scan', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-forwarded-for': '10.0.0.100',  // unique IP to avoid rate limit from prior tests
+            },
             body: JSON.stringify({
-                contentId: mockContentId,
+                contentId: 'unique-content-for-error-test',
             }),
         });
 
@@ -268,10 +288,10 @@ describe('POST /api/creative/qr-scan', () => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-real-ip': '203.0.113.1',
+                'x-real-ip': '203.0.113.99',  // unique IP to avoid rate limit
             },
             body: JSON.stringify({
-                contentId: mockContentId,
+                contentId: 'unique-content-for-ip-test',
             }),
         });
 
@@ -284,9 +304,10 @@ describe('POST /api/creative/qr-scan', () => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'x-forwarded-for': '10.0.0.200',  // unique IP to avoid rate limit
             },
             body: JSON.stringify({
-                contentId: mockContentId,
+                contentId: 'unique-content-for-missing-headers-test',
             }),
         });
 

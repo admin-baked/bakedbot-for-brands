@@ -243,7 +243,10 @@ describe('Admin User Actions', () => {
             const result = await resendInvitation('resend@example.com');
 
             expect(result.success).toBe(true);
-            expect(mockAuth.generatePasswordResetLink).toHaveBeenCalledWith('resend@example.com');
+            expect(mockAuth.generatePasswordResetLink).toHaveBeenCalledWith(
+                'resend@example.com',
+                expect.objectContaining({ handleCodeInApp: true })
+            );
             expect(emailService.sendInvitationEmail).toHaveBeenCalled();
         });
 
