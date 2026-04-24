@@ -20,9 +20,11 @@ import {
     getSmsRegistration,
     saveSmsRegistration,
     emailSmsRegistration,
-    type SmsRegistrationData,
-    EMPTY_SMS_REGISTRATION,
 } from '@/server/actions/sms-registration';
+import {
+    EMPTY_SMS_REGISTRATION,
+    type SmsRegistrationData,
+} from '@/server/actions/sms-registration-types';
 
 // ---------------------------------------------------------------------------
 // Layout helpers
@@ -108,6 +110,18 @@ API Key (post-registration): ${d.providerApiKey || '(pending)'}
 `;
 }
 
+function getErrorMessage(error: unknown, fallback: string): string {
+    if (error instanceof Error && error.message) {
+        return error.message;
+    }
+
+    if (typeof error === 'string' && error.trim()) {
+        return error;
+    }
+
+    return fallback;
+}
+
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
@@ -116,47 +130,97 @@ export default function SmsRegistrationPage() {
     const { orgId } = useUserRole();
     const [data, setData] = useState<SmsRegistrationData>({ ...EMPTY_SMS_REGISTRATION });
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+    const [activeAction, setActiveAction] = useState<'draft' | 'submit' | null>(null);
     const [saved, setSaved] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [, startTransition] = useTransition();
+    const saving = activeAction !== null;
 
     useEffect(() => {
         if (!orgId) return;
-        getSmsRegistration(orgId).then((reg) => {
-            setData(reg);
-            setLoading(false);
-        });
+        setLoading(true);
+        setErrorMessage(null);
+        getSmsRegistration(orgId)
+            .then((reg) => {
+                setData(reg);
+            })
+            .catch((error: unknown) => {
+                setErrorMessage(getErrorMessage(error, 'Unable to load your SMS registration.'));
+            })
+            .finally(() => {
+                setLoading(false);
+            });
     }, [orgId]);
 
     function set<K extends keyof SmsRegistrationData>(key: K, value: SmsRegistrationData[K]) {
         setData((prev) => ({ ...prev, [key]: value }));
         setSaved(false);
+        setErrorMessage(null);
     }
 
     function saveDraft() {
         if (!orgId) return;
-        setSaving(true);
+        setActiveAction('draft');
+        setErrorMessage(null);
         startTransition(async () => {
-            await saveSmsRegistration(orgId, { ...data, status: 'draft' });
-            setSaving(false);
-            setData((prev) => ({ ...prev, status: 'draft' }));
-            setSaved(true);
-            setTimeout(() => setSaved(false), 3000);
+            try {
+                const result = await saveSmsRegistration(orgId, { ...data, status: 'draft' });
+                if (!result.success) {
+                    setErrorMessage(result.error ?? 'Unable to save draft.');
+                    return;
+                }
+
+                setData((prev) => ({ ...prev, status: 'draft' }));
+                setSaved(true);
+                setTimeout(() => setSaved(false), 3000);
+            } catch (error: unknown) {
+                setErrorMessage(getErrorMessage(error, 'Unable to save draft.'));
+            } finally {
+                setActiveAction(null);
+            }
         });
     }
 
     function submitReady() {
         if (!orgId) return;
-        setSaving(true);
+        setActiveAction('submit');
+        setErrorMessage(null);
         startTransition(async () => {
-            const updated = { ...data, status: 'ready' as const };
-            await saveSmsRegistration(orgId, updated);
-            emailSmsRegistration(orgId, updated).catch(() => {});
-            setSaving(false);
-            setData(updated);
-            setSaved(true);
-            setTimeout(() => setSaved(false), 3000);
+            try {
+                const readyRegistration = { ...data, status: 'ready' as const };
+                const saveReadyResult = await saveSmsRegistration(orgId, readyRegistration);
+                if (!saveReadyResult.success) {
+                    setErrorMessage(saveReadyResult.error ?? 'Unable to save registration.');
+                    return;
+                }
+
+                const emailResult = await emailSmsRegistration(orgId, readyRegistration);
+                if (!emailResult.success) {
+                    setData(readyRegistration);
+                    setErrorMessage(emailResult.error ?? 'Registration saved, but email delivery failed.');
+                    return;
+                }
+
+                const submittedRegistration = {
+                    ...readyRegistration,
+                    status: 'submitted' as const,
+                };
+                const saveSubmittedResult = await saveSmsRegistration(orgId, submittedRegistration);
+                if (!saveSubmittedResult.success) {
+                    setData(readyRegistration);
+                    setErrorMessage(saveSubmittedResult.error ?? 'Registration sent, but submit state could not be saved.');
+                    return;
+                }
+
+                setData(submittedRegistration);
+                setSaved(true);
+                setTimeout(() => setSaved(false), 3000);
+            } catch (error: unknown) {
+                setErrorMessage(getErrorMessage(error, 'Unable to submit registration.'));
+            } finally {
+                setActiveAction(null);
+            }
         });
     }
 
@@ -194,7 +258,7 @@ export default function SmsRegistrationPage() {
                     </Button>
                     <h1 className="text-2xl font-bold tracking-tight">SMS / 10DLC Registration</h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Brand and campaign data for 10DLC registration. Fill in all fields and submit — we'll email you a copy.
+                        Brand and campaign data for 10DLC registration. Fill in all fields and submit it to the BakedBot team for review.
                     </p>
                 </div>
                 <Badge variant={data.status === 'submitted' ? 'default' : data.status === 'ready' ? 'secondary' : 'outline'}>
@@ -373,18 +437,22 @@ export default function SmsRegistrationPage() {
                         {copied ? 'Copied!' : 'Copy All'}
                     </Button>
                     <Button variant="outline" onClick={saveDraft} disabled={saving}>
-                        {saving && !emailing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                        {activeAction === 'draft' ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
                         Save Draft
                     </Button>
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
                     {saved && <span className="text-xs text-emerald-600 flex items-center gap-1"><Check className="h-3.5 w-3.5" />Saved</span>}
                     <Button onClick={submitReady} disabled={!isReady || saving} className="gap-2">
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                        {activeAction === 'submit' ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
                         Submit Registration
                     </Button>
                 </div>
             </div>
+
+            {errorMessage && (
+                <p className="text-xs text-destructive">{errorMessage}</p>
+            )}
 
             {!isReady && (
                 <p className="text-xs text-muted-foreground">

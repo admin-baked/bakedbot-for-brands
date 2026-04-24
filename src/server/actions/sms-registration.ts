@@ -4,74 +4,10 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/server/auth/auth';
 import { sendSesEmail } from '@/lib/email/ses';
 import { logger } from '@/lib/logger';
-
-export interface SmsRegistrationData {
-    // Business Info
-    legalName: string;
-    dba: string;
-    ein: string;
-    entityType: string;
-    street: string;
-    city: string;
-    state: string;
-    zip: string;
-    website: string;
-    yearsInBusiness: string;
-    // Contact
-    contactFirstName: string;
-    contactLastName: string;
-    contactTitle: string;
-    contactEmail: string;
-    contactPhone: string;
-    // Campaign
-    useCase: string;
-    campaignName: string;
-    campaignDescription: string;
-    sampleMessage1: string;
-    sampleMessage2: string;
-    sampleMessage3: string;
-    optInMethod: string;
-    optInConfirmation: boolean;
-    ageGate: boolean;
-    // Provider
-    preferredAreaCode: string;
-    providerAccountEmail: string;
-    providerApiKey: string;
-    // Meta
-    submittedAt?: string;
-    status: 'draft' | 'ready' | 'submitted';
-}
-
-export const EMPTY_SMS_REGISTRATION: SmsRegistrationData = {
-    legalName: '',
-    dba: '',
-    ein: '',
-    entityType: 'LLC',
-    street: '',
-    city: '',
-    state: '',
-    zip: '',
-    website: '',
-    yearsInBusiness: '',
-    contactFirstName: '',
-    contactLastName: '',
-    contactTitle: '',
-    contactEmail: '',
-    contactPhone: '',
-    useCase: 'Marketing',
-    campaignName: '',
-    campaignDescription: '',
-    sampleMessage1: '',
-    sampleMessage2: '',
-    sampleMessage3: '',
-    optInMethod: '',
-    optInConfirmation: true,
-    ageGate: true,
-    preferredAreaCode: '',
-    providerAccountEmail: '',
-    providerApiKey: '',
-    status: 'draft',
-};
+import {
+    EMPTY_SMS_REGISTRATION,
+    type SmsRegistrationData,
+} from '@/server/actions/sms-registration-types';
 
 export async function getSmsRegistration(orgId: string): Promise<SmsRegistrationData> {
     await requireUser();
