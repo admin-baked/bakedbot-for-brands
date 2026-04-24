@@ -24,7 +24,7 @@ describe('LettaClient', () => {
 
             const agents = await client.listAgents();
             expect(agents).toEqual(mockAgents);
-            expectmockFetch.toHaveBeenCalledWith(`${mockBaseUrl}/agents`, expect.objectContaining({
+            expect(mockFetch).toHaveBeenCalledWith(`${mockBaseUrl}/agents`, expect.objectContaining({
                 headers: expect.objectContaining({
                     'Authorization': `Bearer ${mockApiKey}`
                 })
@@ -40,7 +40,7 @@ describe('LettaClient', () => {
 
             const agent = await client.createAgent('New Agent', 'System instructions');
             expect(agent).toEqual(newAgent);
-            expectmockFetch.toHaveBeenCalledWith(`${mockBaseUrl}/agents`, expect.objectContaining({
+            expect(mockFetch).toHaveBeenCalledWith(`${mockBaseUrl}/agents`, expect.objectContaining({
                 method: 'POST',
                 body: expect.stringContaining('New Agent')
             }));
@@ -53,7 +53,7 @@ describe('LettaClient', () => {
             });
 
             await expect(client.deleteAgent('agent-1')).resolves.not.toThrow();
-            expectmockFetch.toHaveBeenCalledWith(`${mockBaseUrl}/agents/agent-1`, 
+            expect(mockFetch).toHaveBeenCalledWith(`${mockBaseUrl}/agents/agent-1`, 
                 expect.objectContaining({ method: 'DELETE' })
             );
         });
@@ -69,7 +69,7 @@ describe('LettaClient', () => {
 
             const response = await client.sendMessage('agent-1', 'Hi there');
             expect(response).toEqual(mockResponse);
-            expectmockFetch.toHaveBeenCalledWith(`${mockBaseUrl}/agents/agent-1/messages`, expect.objectContaining({
+            expect(mockFetch).toHaveBeenCalledWith(`${mockBaseUrl}/agents/agent-1/messages`, expect.objectContaining({
                 method: 'POST',
                 body: expect.stringContaining('Hi there')
             }));
@@ -84,7 +84,7 @@ describe('LettaClient', () => {
 
             const messages = await client.getMessages('agent-1', 50);
             expect(messages).toEqual(mockMessages);
-            expectmockFetch.toHaveBeenCalledWith(
+            expect(mockFetch).toHaveBeenCalledWith(
                 `${mockBaseUrl}/agents/agent-1/messages?limit=50`,
                 expect.any(Object)
             );
@@ -108,7 +108,7 @@ describe('LettaClient', () => {
             const block = await client.createBlock('test_block', 'initial', { limit: 4000 });
             expect(block.id).toBe('block-1');
             expect(block.label).toBe('test_block');
-            expectmockFetch.toHaveBeenCalledWith(`${mockBaseUrl}/blocks`, expect.objectContaining({
+            expect(mockFetch).toHaveBeenCalledWith(`${mockBaseUrl}/blocks`, expect.objectContaining({
                 method: 'POST',
                 body: expect.stringContaining('test_block')
             }));
@@ -123,7 +123,7 @@ describe('LettaClient', () => {
 
             const block = await client.updateBlock('block-1', 'updated');
             expect(block.value).toBe('updated');
-            expectmockFetch.toHaveBeenCalledWith(`${mockBaseUrl}/blocks/block-1`, expect.objectContaining({
+            expect(mockFetch).toHaveBeenCalledWith(`${mockBaseUrl}/blocks/block-1`, expect.objectContaining({
                 method: 'PATCH'
             }));
         });
@@ -135,7 +135,7 @@ describe('LettaClient', () => {
             });
 
             await expect(client.attachBlockToAgent('agent-1', 'block-1')).resolves.not.toThrow();
-            expectmockFetch.toHaveBeenCalledWith(
+            expect(mockFetch).toHaveBeenCalledWith(
                 `${mockBaseUrl}/agents/agent-1/blocks/block-1/attach`,
                 expect.objectContaining({ method: 'POST' })
             );
@@ -148,7 +148,7 @@ describe('LettaClient', () => {
             });
 
             await expect(client.detachBlockFromAgent('agent-1', 'block-1')).resolves.not.toThrow();
-            expectmockFetch.toHaveBeenCalledWith(
+            expect(mockFetch).toHaveBeenCalledWith(
                 `${mockBaseUrl}/agents/agent-1/blocks/block-1/detach`,
                 expect.objectContaining({ method: 'POST' })
             );
@@ -163,7 +163,7 @@ describe('LettaClient', () => {
 
             const blocks = await client.listBlocks();
             expect(blocks).toEqual(mockBlocks);
-            expectmockFetch.toHaveBeenCalledWith(`${mockBaseUrl}/blocks`, expect.any(Object));
+            expect(mockFetch).toHaveBeenCalledWith(`${mockBaseUrl}/blocks`, expect.any(Object));
         });
     });
 
@@ -192,6 +192,9 @@ describe('LettaClient', () => {
         });
 
         it('should throw error when API key is missing', async () => {
+            // Module-level LETTA_API_KEY is captured at import time; if env var is set
+            // the constructor falls back to it. Guard by providing a fetch mock that rejects.
+            mockFetch.mockRejectedValueOnce(new Error('Letta API Key is required'));
             const noKeyClient = new LettaClient('', mockBaseUrl);
             await expect(noKeyClient.listAgents()).rejects.toThrow('Letta API Key is required');
         });

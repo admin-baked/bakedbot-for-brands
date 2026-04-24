@@ -91,6 +91,9 @@ const customJestConfig = {
     '<rootDir>/tests/chat/chat-history.test.ts', // Deprecated
     '<rootDir>/tests/components/chat-vibe-logic.test.tsx', // Deprecated
     '<rootDir>/tests/integration/', // Skip long integration tests by default
+    '<rootDir>/tests/server/integration/', // Skip server integration tests that hit real services
+    '<rootDir>/tests/thrive-menu.integration.test.ts', // Integration: hits live URL
+    '<rootDir>/tests/thrive-pos-checkout.test.ts', // Integration: hits live Alleaves/POS
   ],
   watchPathIgnorePatterns: ['<rootDir>[\\\\/]\\.w[\\\\/]'],
   testMatch: [

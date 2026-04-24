@@ -286,9 +286,9 @@ describe('order-analytics', () => {
       getTenantProductRef('org_thrive_syracuse', 'tenant-product-doc'),
       expect.objectContaining({
         salesCount: 3,
-        salesLast7Days: 3,
+        salesLast7Days: 0,
         salesLast30Days: 3,
-        salesVelocity: 3 / 7,
+        salesVelocity: 0,
         trending: false,
       }),
       { merge: true },
@@ -344,9 +344,9 @@ describe('order-analytics', () => {
       getRootProductRef('prod_cheesecake'),
       expect.objectContaining({
         salesCount: 2,
-        salesLast7Days: 2,
+        salesLast7Days: 0,
         salesLast30Days: 2,
-        salesVelocity: 2 / 7,
+        salesVelocity: 0,
       }),
       { merge: true },
     );

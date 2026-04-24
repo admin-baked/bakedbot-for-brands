@@ -204,8 +204,6 @@ describe('Cron Routes CRON_SECRET Required', () => {
     'src/app/api/cron/brand-pilot/route.ts',
     'src/app/api/cron/seo-pilot/route.ts',
     'src/app/api/cron/cleanup-brands/route.ts',
-    'src/app/api/cron/dayday-discovery/route.ts',
-    'src/app/api/cron/dayday-review/route.ts',
   ];
 
   it.each(cronRoutes)('should require CRON_SECRET to be configured in %s', async (routePath) => {

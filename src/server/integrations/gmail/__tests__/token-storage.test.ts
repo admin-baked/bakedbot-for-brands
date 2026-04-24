@@ -1,9 +1,13 @@
 import { saveGmailToken, getGmailToken } from '../token-storage';
 import { createServerClient } from '@/firebase/server-client';
+import { getAdminFirestore } from '@/firebase/admin';
 import { encrypt, decrypt } from '@/server/utils/encryption';
 // Mock dependencies with explicit factories to prevent module loading
 jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn()
+}));
+jest.mock('@/firebase/admin', () => ({
+    getAdminFirestore: jest.fn()
 }));
 jest.mock('@/server/utils/encryption', () => ({
     encrypt: jest.fn(),
@@ -24,6 +28,7 @@ describe('Gmail Token Storage', () => {
 
         // Setup Firestore chain
         (createServerClient as jest.Mock).mockResolvedValue({ firestore: mockFirestore });
+        (getAdminFirestore as jest.Mock).mockReturnValue(mockFirestore);
         mockFirestore.collection.mockReturnValue({ doc: mockDoc });
         mockDoc.mockReturnValue({
             collection: jest.fn().mockReturnValue({

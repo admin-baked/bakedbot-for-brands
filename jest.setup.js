@@ -47,15 +47,31 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
 }
 
 // Polyfill localStorage for jsdom (some tests use it directly)
-if (typeof window !== 'undefined' && !window.localStorage) {
+if (typeof window !== 'undefined') {
   const store = new Map();
-  window.localStorage = {
+  const localStorageMock = {
     getItem: (key) => store.get(key) ?? null,
     setItem: (key, value) => store.set(key, String(value)),
     removeItem: (key) => store.delete(key),
     clear: () => store.clear(),
     get length() { return store.size; },
     key: (index) => Array.from(store.keys())[index] ?? null,
+  };
+  try {
+    Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true });
+  } catch (_) {
+    // jsdom may already define it — replace it anyway
+    window.localStorage = localStorageMock;
+  }
+}
+
+// Polyfill ResizeObserver (used by @radix-ui/react-use-size and similar)
+if (typeof ResizeObserver === 'undefined') {
+  global.ResizeObserver = class ResizeObserver {
+    constructor(callback) { this._callback = callback; }
+    observe() {}
+    unobserve() {}
+    disconnect() {}
   };
 }
 

@@ -40,8 +40,6 @@ describe('incident-notifications', () => {
     });
 
     it('posts to #linus-incidents through the Slack bot when the channel is available', async () => {
-        mockFindChannelByName.mockResolvedValue({ id: 'C123', name: 'linus-incidents' });
-        mockJoinChannel.mockResolvedValue(undefined);
         mockPostMessage.mockResolvedValue({ sent: true, channel: 'C123', ts: '123.456' });
 
         const result = await postLinusIncidentSlack({
@@ -51,13 +49,13 @@ describe('incident-notifications', () => {
             incidentId: 'ticket_123',
         });
 
-        expect(mockFindChannelByName).toHaveBeenCalledWith('linus-incidents');
-        expect(mockJoinChannel).toHaveBeenCalledWith('C123');
         expect(mockPostMessage).toHaveBeenCalledWith(
-            'C123',
+            'linus-incidents',
             'incident',
             [{ type: 'section', text: { type: 'mrkdwn', text: 'test' } }],
         );
+        expect(mockFindChannelByName).not.toHaveBeenCalled();
+        expect(mockJoinChannel).not.toHaveBeenCalled();
         expect(result).toEqual({
             sent: true,
             channelId: 'C123',
@@ -69,8 +67,6 @@ describe('incident-notifications', () => {
     });
 
     it('posts in a thread when threadTs and channelName are provided', async () => {
-        mockFindChannelByName.mockResolvedValue({ id: 'C999', name: 'linus-cto' });
-        mockJoinChannel.mockResolvedValue(undefined);
         mockPostInThread.mockResolvedValue({ sent: true, channel: 'C999', ts: '999.001' });
 
         const result = await postLinusIncidentSlack({
@@ -82,19 +78,20 @@ describe('incident-notifications', () => {
             threadTs: '999.000',
         });
 
-        expect(mockFindChannelByName).toHaveBeenCalledWith('linus-cto');
         expect(mockPostInThread).toHaveBeenCalledWith(
-            'C999',
+            'linus-cto',
             '999.000',
             'threaded incident',
             [{ type: 'section', text: { type: 'mrkdwn', text: 'threaded' } }],
         );
+        expect(mockFindChannelByName).not.toHaveBeenCalled();
         expect(result.delivery).toBe('thread');
         expect(result.ts).toBe('999.001');
     });
 
     it('falls back to the incidents webhook when the Slack channel is unavailable', async () => {
         process.env.SLACK_WEBHOOK_INCIDENTS = 'https://hooks.slack.test/incident';
+        mockPostMessage.mockResolvedValue({ sent: false, error: 'channel_not_found' });
         mockFindChannelByName.mockResolvedValue(null);
         (global.fetch as unknown as jest.Mock).mockResolvedValue({ ok: true, status: 200 });
 
@@ -105,6 +102,12 @@ describe('incident-notifications', () => {
             incidentId: 'bug_123',
         });
 
+        expect(mockPostMessage).toHaveBeenCalledWith(
+            'linus-incidents',
+            'incident fallback',
+            [{ type: 'section', text: { type: 'mrkdwn', text: 'fallback' } }],
+        );
+        expect(mockFindChannelByName).toHaveBeenCalledWith('linus-incidents');
         expect(global.fetch).toHaveBeenCalledWith(
             'https://hooks.slack.test/incident',
             expect.objectContaining({

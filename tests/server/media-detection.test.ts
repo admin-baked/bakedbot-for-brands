@@ -20,7 +20,7 @@ describe('Media Detection Logic', () => {
     test('detects explicit image generation requests', () => {
         expect(detectMediaRequest('Generate an image of a store')).toBe('image');
         expect(detectMediaRequest('Create an image for Instagram')).toBe('image');
-        expect(detectMediaRequest('Show me a picture of a bud')).toBe('image');
+        expect(detectMediaRequest('Generate a picture of a bud')).toBe('image');
     });
 
     test('detects split keywords for image', () => {

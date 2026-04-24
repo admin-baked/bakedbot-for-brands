@@ -52,6 +52,10 @@ jest.mock('@/lib/notifications/blackleaf-service', () => ({
     }
 }));
 
+jest.mock('@/lib/email/dispatcher', () => ({
+    sendGenericEmail: jest.fn().mockResolvedValue(true)
+}));
+
 
 jest.mock('@/server/repos/talkTrackRepo', () => ({
     findTalkTrackByTrigger: jest.fn().mockImplementation(async (prompt) => {
@@ -136,7 +140,7 @@ describe('Unified Demo API - New Features', () => {
         expect(res.agent).toBe('moneymike');
         expect(res.items).toBeDefined();
         expect(res.items.length).toBeGreaterThan(0);
-        expect(res.items[0].title).toBe('National Discovery Pricing');
+        expect(res.items[0].title).toBe('💰 Pricing Tiers');
     });
 
     it('prioritizes image generation when "image" is in the prompt', async () => {
@@ -166,7 +170,7 @@ describe('Unified Demo API - New Features', () => {
         // Verify Email Sent
         expect(sendGenericEmail).toHaveBeenCalledWith(expect.objectContaining({
             to: 'test@example.com',
-            subject: expect.stringContaining('Market Scout Report')
+            subject: expect.stringContaining('BakedBot Market Scout Report')
         }));
 
         // Verify special response
@@ -193,66 +197,61 @@ describe('Unified Demo API - New Features', () => {
         expect(res.items[0].description).toContain('555-123-4567');
     });
 
-    it('intercepts "ezal research" triggers and returns the Ezal Talk Track', async () => {
+    it('routes competitor research prompts to Ezal smart responses', async () => {
         analyzeQuery.mockResolvedValue({ searchType: 'general' });
         const req = {
             json: async () => ({ prompt: 'Start ezal research on competitors', agent: 'hq' })
         } as any;
 
         const res = await POST(req);
-        // Expecting 'step-multi-vertical-research' or similar from Ezal track
-        expect(res.id).toBeDefined();
-        // The id returned is the step id, which we defined as 'step-multi-vertical-research' in talkTrackRepo.ts
-        expect(res.id).toBe('step-multi-vertical-research');
-        expect(res.message).toContain('Ezal Competitive Engine');
+        expect(res.agent).toBe('ezal');
+        expect(res.items[0].title).toContain('Competitive Intelligence');
+        expect(res.items[0].description).toContain('compete');
     });
 
-    it('intercepts "investor demo" trigger for Ezal Investor mode', async () => {
+    it('falls back to HQ demo content when no smart route matches', async () => {
         analyzeQuery.mockResolvedValue({ searchType: 'general' });
         const req = {
             json: async () => ({ prompt: 'show me an investor demo', agent: 'hq' })
         } as any;
 
         const res = await POST(req);
-        
-        expect(res.id).toBe('step-investor-demo');
-        expect(res.message).toContain('Investor Demo Mode Active');
+
+        expect(res.agent).toBe('hq');
+        expect(res.items[0].title).toBe('🤖 Agentic Commerce OS');
     });
 
-    it('intercepts "competitor intel" for Smokey Lead Gen', async () => {
+    it('routes competitor intel prompts to Ezal cards', async () => {
          analyzeQuery.mockResolvedValue({ searchType: 'general' });
          const req = {
              json: async () => ({ prompt: 'get me some competitor intel', agent: 'hq' })
          } as any;
  
          const res = await POST(req);
-         // Expecting 'step-lead-source' from Smokey track (first step)
-         // Wait, 'competitor intel' triggers 'smokey-competitive-outreach' track.
-         // First step in that track is 'step-lead-source'
-         expect(res.id).toBe('step-lead-source');
-         expect(res.message).toContain('found your lead sources');
+         expect(res.agent).toBe('ezal');
+         expect(res.items[0].title).toContain('Competitive Intelligence');
     });
-    it('intercepts "media outreach" trigger for Media Automation track', async () => {
-         analyzeQuery.mockResolvedValue({ searchType: 'general' });
+
+    it('keeps HQ as the fallback agent when HQ was explicitly requested', async () => {
+         analyzeQuery.mockResolvedValue({ searchType: 'marketing' });
          const req = {
              json: async () => ({ prompt: 'start media outreach', agent: 'hq' })
          } as any;
  
          const res = await POST(req);
-         // Expecting 'step-media-research'
-         expect(res.id).toBe('step-media-research');
-         expect(res.message).toContain('Daily Lead Research');
+         expect(res.agent).toBe('hq');
+         expect(res.items[0].title).toBe('🤖 Agentic Commerce OS');
     });
-    it('intercepts "monitor competitor pricing" trigger for Deal Scout track', async () => {
+
+    it('routes competitor pricing prompts to Ezal pricing intel cards', async () => {
          analyzeQuery.mockResolvedValue({ searchType: 'competitive' });
          const req = {
              json: async () => ({ prompt: 'Monitor competitor pricing and alert me when any competitor drops their prices more than 10%', agent: 'hq' })
          } as any;
  
          const res = await POST(req);
-         // Expecting 'step-deal-hunt'
-         expect(res.id).toBe('step-deal-hunt');
-         expect(res.message).toContain('Daily Deal Hunt');
+         expect(res.agent).toBe('ezal');
+         expect(res.items[0].title).toContain('Competitor Pricing Intel');
     });
 
 

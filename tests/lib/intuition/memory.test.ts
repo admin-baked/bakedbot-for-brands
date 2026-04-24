@@ -15,12 +15,12 @@ var mockCollection = jest.fn().mockReturnThis();
 var mockDoc = jest.fn().mockReturnThis();
 
 jest.mock('@/firebase/server-client', () => ({
-    createServerClient: jest.fn().mockResolvedValue({
+    createServerClient: jest.fn().mockImplementation(() => Promise.resolve({
         firestore: {
-            collection: mockCollection,
-            doc: mockDoc
+            collection: (...args: unknown[]) => mockCollection(...args),
+            doc: (...args: unknown[]) => mockDoc(...args),
         }
-    })
+    }))
 }));
 
 jest.mock('@/lib/logger', () => ({

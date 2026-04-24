@@ -7,6 +7,45 @@
 import { GET } from '@/app/api/ceo/audit-logs/stream/route';
 import { NextRequest } from 'next/server';
 
+// NextResponse needs constructor support (SSE streaming uses `new NextResponse(stream, {...})`)
+jest.mock('next/server', () => {
+    class MockNextResponse {
+        status: number;
+        headers: { get: (key: string) => string | null };
+        private _jsonBody: any;
+
+        constructor(body: any, init?: { status?: number; headers?: Record<string, string> }) {
+            this.status = init?.status || 200;
+            const headersMap = new Map(Object.entries(init?.headers || {}));
+            this.headers = { get: (key: string) => headersMap.get(key) ?? null };
+            this._jsonBody = null;
+        }
+
+        async json() {
+            return this._jsonBody;
+        }
+
+        static json(body: any, init?: { status?: number }) {
+            const res = new MockNextResponse(null, init);
+            res._jsonBody = body;
+            return res;
+        }
+    }
+
+    class MockNextRequest {
+        url: string;
+        method: string;
+        headers: Map<string, string>;
+        constructor(url: string, init?: any) {
+            this.url = url || '';
+            this.method = init?.method || 'GET';
+            this.headers = new Map(Object.entries(init?.headers || {}));
+        }
+    }
+
+    return { NextRequest: MockNextRequest, NextResponse: MockNextResponse };
+});
+
 // Mock dependencies
 jest.mock('@/server/auth/auth');
 jest.mock('@/server/services/audit-log-streaming');

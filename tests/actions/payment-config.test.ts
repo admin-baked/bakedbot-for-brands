@@ -4,17 +4,17 @@ import {
   getCurrentUserLocationId,
   PaymentConfig,
 } from '../../src/server/actions/payment-config';
-import { getAdminFirestore } from '@/firebase/admin';
-import { getAuth } from '@/server/auth/auth';
+import { createServerClient } from '@/firebase/server-client';
+import { requireUser } from '@/server/auth/auth';
 
-// Mock Firebase Admin
-jest.mock('@/firebase/admin', () => ({
-  getAdminFirestore: jest.fn(),
+// Mock Firebase Server Client
+jest.mock('@/firebase/server-client', () => ({
+  createServerClient: jest.fn(),
 }));
 
-// Mock Auth
+// Mock Auth - source uses requireUser
 jest.mock('@/server/auth/auth', () => ({
-  getAuth: jest.fn(),
+  requireUser: jest.fn(),
 }));
 
 // Mock Next Cache
@@ -22,15 +22,25 @@ jest.mock('next/cache', () => ({
   revalidatePath: jest.fn(),
 }));
 
+// Default super_user actor so auth/org checks pass
+const SUPER_USER = {
+  uid: 'user_123',
+  role: 'super_user',
+  orgId: null,
+  currentOrgId: null,
+  brandId: null,
+  locationId: null,
+};
+
 describe('Payment Config Actions', () => {
-  let mockFirestore: any;
   let mockCollection: jest.Mock;
   let mockDoc: jest.Mock;
   let mockSet: jest.Mock;
   let mockGet: jest.Mock;
   let mockUpdate: jest.Mock;
   let mockWhere: jest.Mock;
-  let mockDocs: jest.Mock;
+  let mockLimit: jest.Mock;
+  let mockLocRef: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -38,25 +48,29 @@ describe('Payment Config Actions', () => {
     mockSet = jest.fn().mockResolvedValue({});
     mockUpdate = jest.fn().mockResolvedValue({});
     mockGet = jest.fn();
-    mockDocs = jest.fn();
-    mockWhere = jest.fn();
+    mockWhere = jest.fn().mockReturnThis();
+    mockLimit = jest.fn().mockReturnThis();
 
-    mockDoc = jest.fn((id) => ({
-      set: mockSet,
+    // locationRef returned by doc()
+    mockLocRef = {
       get: mockGet,
       update: mockUpdate,
-    }));
-
-    mockCollection = jest.fn((name) => ({
-      doc: mockDoc,
-      where: mockWhere,
-    }));
-
-    mockFirestore = {
-      collection: mockCollection,
     };
 
-    (getAdminFirestore as jest.Mock).mockReturnValue(mockFirestore);
+    mockDoc = jest.fn(() => mockLocRef);
+
+    mockCollection = jest.fn(() => ({
+      doc: mockDoc,
+      where: mockWhere,
+      limit: mockLimit,
+      get: mockGet,
+    }));
+
+    (createServerClient as jest.Mock).mockResolvedValue({
+      firestore: { collection: mockCollection },
+    });
+
+    (requireUser as jest.Mock).mockResolvedValue(SUPER_USER);
   });
 
   describe('getPaymentConfig', () => {
@@ -65,12 +79,12 @@ describe('Payment Config Actions', () => {
         enabledMethods: ['dispensary_direct', 'cannpay'],
         defaultMethod: undefined,
         cannpay: { enabled: true, integratorId: 'test123', environment: 'sandbox' },
-        aeropay: { enabled: false },
+        aeropay: { enabled: false, merchantId: '', environment: 'sandbox' },
       };
 
       mockGet.mockResolvedValueOnce({
         exists: true,
-        data: () => mockConfig,
+        data: () => ({ orgId: null, paymentConfig: mockConfig }),
       });
 
       const result = await getPaymentConfig('loc_123');
@@ -80,15 +94,27 @@ describe('Payment Config Actions', () => {
       expect(mockDoc).toHaveBeenCalledWith('loc_123');
     });
 
-    it('should return empty config if location not found', async () => {
+    it('should return default config if location has no paymentConfig', async () => {
+      mockGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({ orgId: null }),
+      });
+
+      const result = await getPaymentConfig('loc_123');
+
+      expect(result.success).toBe(true);
+      expect(result.data?.enabledMethods).toContain('dispensary_direct');
+    });
+
+    it('should return error if location not found', async () => {
       mockGet.mockResolvedValueOnce({
         exists: false,
       });
 
       const result = await getPaymentConfig('loc_nonexistent');
 
-      expect(result.success).toBe(true);
-      expect(result.data?.enabledMethods).toEqual(['dispensary_direct']);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Location not found');
     });
 
     it('should handle Firestore errors gracefully', async () => {
@@ -97,19 +123,13 @@ describe('Payment Config Actions', () => {
       const result = await getPaymentConfig('loc_123');
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Failed to load payment configuration');
+      expect(result.error).toBeDefined();
     });
 
-    it('should include all payment methods in default config', async () => {
-      mockGet.mockResolvedValueOnce({
-        exists: false,
-      });
-
-      const result = await getPaymentConfig('loc_123');
-
-      expect(result.data?.enabledMethods).toContain('dispensary_direct');
-      expect(result.data?.cannpay).toBeDefined();
-      expect(result.data?.aeropay).toBeDefined();
+    it('should return error for invalid location ID', async () => {
+      const result = await getPaymentConfig('');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid location id');
     });
   });
 
@@ -118,8 +138,8 @@ describe('Payment Config Actions', () => {
       mockGet.mockResolvedValueOnce({
         exists: true,
         data: () => ({
-          enabledMethods: ['dispensary_direct'],
-          cannpay: { enabled: false },
+          orgId: null,
+          paymentConfig: { enabledMethods: ['dispensary_direct'], cannpay: { enabled: false } },
         }),
       });
 
@@ -130,15 +150,15 @@ describe('Payment Config Actions', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(mockSet).toHaveBeenCalled();
+      expect(mockUpdate).toHaveBeenCalled();
     });
 
     it('should disable a payment method', async () => {
       mockGet.mockResolvedValueOnce({
         exists: true,
         data: () => ({
-          enabledMethods: ['dispensary_direct', 'cannpay'],
-          cannpay: { enabled: true },
+          orgId: null,
+          paymentConfig: { enabledMethods: ['dispensary_direct', 'cannpay'], cannpay: { enabled: true } },
         }),
       });
 
@@ -149,14 +169,15 @@ describe('Payment Config Actions', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(mockSet).toHaveBeenCalled();
+      expect(mockUpdate).toHaveBeenCalled();
     });
 
     it('should never disable dispensary_direct', async () => {
       mockGet.mockResolvedValueOnce({
         exists: true,
         data: () => ({
-          enabledMethods: ['dispensary_direct'],
+          orgId: null,
+          paymentConfig: { enabledMethods: ['dispensary_direct'] },
         }),
       });
 
@@ -167,50 +188,50 @@ describe('Payment Config Actions', () => {
       });
 
       expect(result.success).toBe(true);
-      // Verify that dispensary_direct remains enabled
-      const callArgs = mockSet.mock.calls[0][0];
-      expect(callArgs.enabledMethods).toContain('dispensary_direct');
+      const callArgs = mockUpdate.mock.calls[0][0];
+      expect(callArgs.paymentConfig.enabledMethods).toContain('dispensary_direct');
     });
 
     it('should add method to enabledMethods array when enabling', async () => {
       mockGet.mockResolvedValueOnce({
         exists: true,
         data: () => ({
-          enabledMethods: ['dispensary_direct'],
-          cannpay: { enabled: false },
+          orgId: null,
+          paymentConfig: { enabledMethods: ['dispensary_direct'], cannpay: { enabled: false } },
         }),
       });
 
-      const result = await updatePaymentMethod({
+      await updatePaymentMethod({
         locationId: 'loc_123',
         method: 'cannpay',
         enabled: true,
       });
 
-      const callArgs = mockSet.mock.calls[0][0];
-      expect(callArgs.enabledMethods).toContain('cannpay');
+      const callArgs = mockUpdate.mock.calls[0][0];
+      expect(callArgs.paymentConfig.enabledMethods).toContain('cannpay');
     });
 
     it('should remove method from enabledMethods array when disabling', async () => {
       mockGet.mockResolvedValueOnce({
         exists: true,
         data: () => ({
-          enabledMethods: ['dispensary_direct', 'cannpay', 'aeropay'],
+          orgId: null,
+          paymentConfig: { enabledMethods: ['dispensary_direct', 'cannpay', 'aeropay'] },
         }),
       });
 
-      const result = await updatePaymentMethod({
+      await updatePaymentMethod({
         locationId: 'loc_123',
         method: 'cannpay',
         enabled: false,
       });
 
-      const callArgs = mockSet.mock.calls[0][0];
-      expect(callArgs.enabledMethods).not.toContain('cannpay');
-      expect(callArgs.enabledMethods).toContain('aeropay');
+      const callArgs = mockUpdate.mock.calls[0][0];
+      expect(callArgs.paymentConfig.enabledMethods).not.toContain('cannpay');
+      expect(callArgs.paymentConfig.enabledMethods).toContain('aeropay');
     });
 
-    it('should validate location ID', async () => {
+    it('should return error for invalid (empty) location ID', async () => {
       const result = await updatePaymentMethod({
         locationId: '',
         method: 'cannpay',
@@ -218,7 +239,7 @@ describe('Payment Config Actions', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Location ID');
+      expect(result.error).toContain('Invalid location id');
     });
 
     it('should validate method name', async () => {
@@ -241,38 +262,34 @@ describe('Payment Config Actions', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('update payment method');
+      expect(result.error).toBeDefined();
     });
 
-    it('should update method-specific config when enabling', async () => {
+    it('should update method-specific config when enabling cannpay', async () => {
       mockGet.mockResolvedValueOnce({
         exists: true,
         data: () => ({
-          enabledMethods: ['dispensary_direct'],
-          cannpay: { enabled: false },
+          orgId: null,
+          paymentConfig: { enabledMethods: ['dispensary_direct'], cannpay: { enabled: false } },
         }),
       });
 
-      const result = await updatePaymentMethod({
+      await updatePaymentMethod({
         locationId: 'loc_123',
         method: 'cannpay',
         enabled: true,
       });
 
-      const callArgs = mockSet.mock.calls[0][0];
-      expect(callArgs.cannpay?.enabled).toBe(true);
+      const callArgs = mockUpdate.mock.calls[0][0];
+      expect(callArgs.paymentConfig.cannpay?.enabled).toBe(true);
     });
   });
 
   describe('getCurrentUserLocationId', () => {
-    it('should return location ID from user claims', async () => {
-      (getAuth as jest.Mock).mockResolvedValueOnce({
-        currentUser: {
-          uid: 'user_123',
-          customClaims: {
-            locationId: 'loc_123',
-          },
-        },
+    it('should return location ID from user locationId claim', async () => {
+      (requireUser as jest.Mock).mockResolvedValueOnce({
+        ...SUPER_USER,
+        locationId: 'loc_123',
       });
 
       const result = await getCurrentUserLocationId();
@@ -281,49 +298,59 @@ describe('Payment Config Actions', () => {
       expect(result.locationId).toBe('loc_123');
     });
 
-    it('should return error if user is not authenticated', async () => {
-      (getAuth as jest.Mock).mockResolvedValueOnce({
-        currentUser: null,
-      });
+    it('should return error if requireUser throws', async () => {
+      (requireUser as jest.Mock).mockRejectedValueOnce(new Error('Not authenticated'));
 
       const result = await getCurrentUserLocationId();
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('authenticated');
+      expect(result.error).toBeDefined();
     });
 
-    it('should return error if location ID is not available', async () => {
-      (getAuth as jest.Mock).mockResolvedValueOnce({
-        currentUser: {
-          uid: 'user_123',
-          customClaims: {},
-        },
+    it('should look up location by orgId when no locationId claim', async () => {
+      (requireUser as jest.Mock).mockResolvedValueOnce({
+        ...SUPER_USER,
+        role: 'dispensary',
+        orgId: 'org_123',
+        locationId: null,
       });
 
+      // locations query returns a location
+      const mockLocSnap = {
+        empty: false,
+        docs: [{ id: 'loc_from_org' }],
+      };
+      mockGet.mockResolvedValueOnce(mockLocSnap);
+
       const result = await getCurrentUserLocationId();
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('location');
+      expect(result.success).toBe(true);
+      expect(result.locationId).toBe('loc_from_org');
     });
 
-    it('should handle auth errors gracefully', async () => {
-      (getAuth as jest.Mock).mockRejectedValueOnce(new Error('Auth error'));
+    it('should return error when no location found', async () => {
+      (requireUser as jest.Mock).mockResolvedValueOnce({
+        ...SUPER_USER,
+        role: 'dispensary',
+        orgId: null,
+        locationId: null,
+      });
+
+      // user doc lookup
+      mockGet.mockResolvedValueOnce({ data: () => ({}) });
 
       const result = await getCurrentUserLocationId();
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Failed');
+      expect(result.error).toContain('No location found');
     });
   });
 
   describe('Payment Method Transitions', () => {
     it('should handle enabling multiple methods in sequence', async () => {
-      // First enable cannpay
       mockGet.mockResolvedValueOnce({
         exists: true,
-        data: () => ({
-          enabledMethods: ['dispensary_direct'],
-        }),
+        data: () => ({ orgId: null, paymentConfig: { enabledMethods: ['dispensary_direct'] } }),
       });
 
       await updatePaymentMethod({
@@ -332,12 +359,9 @@ describe('Payment Config Actions', () => {
         enabled: true,
       });
 
-      // Then enable aeropay
       mockGet.mockResolvedValueOnce({
         exists: true,
-        data: () => ({
-          enabledMethods: ['dispensary_direct', 'cannpay'],
-        }),
+        data: () => ({ orgId: null, paymentConfig: { enabledMethods: ['dispensary_direct', 'cannpay'] } }),
       });
 
       const result = await updatePaymentMethod({
@@ -347,11 +371,11 @@ describe('Payment Config Actions', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(mockSet).toHaveBeenCalledTimes(2);
+      expect(mockUpdate).toHaveBeenCalledTimes(2);
     });
 
     it('should preserve other config when updating method', async () => {
-      const originalConfig: PaymentConfig = {
+      const originalPaymentConfig: PaymentConfig = {
         enabledMethods: ['dispensary_direct', 'cannpay'],
         defaultMethod: undefined,
         cannpay: {
@@ -359,12 +383,12 @@ describe('Payment Config Actions', () => {
           integratorId: 'test123',
           environment: 'sandbox',
         },
-        aeropay: { enabled: false },
+        aeropay: { enabled: false, merchantId: '', environment: 'sandbox' },
       };
 
       mockGet.mockResolvedValueOnce({
         exists: true,
-        data: () => originalConfig,
+        data: () => ({ orgId: null, paymentConfig: originalPaymentConfig }),
       });
 
       await updatePaymentMethod({
@@ -373,8 +397,8 @@ describe('Payment Config Actions', () => {
         enabled: true,
       });
 
-      const callArgs = mockSet.mock.calls[0][0];
-      expect(callArgs.cannpay).toEqual(originalConfig.cannpay);
+      const callArgs = mockUpdate.mock.calls[0][0];
+      expect(callArgs.paymentConfig.cannpay).toEqual(originalPaymentConfig.cannpay);
     });
   });
 
@@ -384,10 +408,10 @@ describe('Payment Config Actions', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should initialize enabledMethods if missing', async () => {
+    it('should return paymentConfig with enabledMethods when exists but config missing', async () => {
       mockGet.mockResolvedValueOnce({
         exists: true,
-        data: () => ({}), // Missing enabledMethods
+        data: () => ({ orgId: null }), // no paymentConfig field
       });
 
       const result = await getPaymentConfig('loc_123');
@@ -399,9 +423,7 @@ describe('Payment Config Actions', () => {
     it('should handle concurrent updates correctly', async () => {
       mockGet.mockResolvedValue({
         exists: true,
-        data: () => ({
-          enabledMethods: ['dispensary_direct'],
-        }),
+        data: () => ({ orgId: null, paymentConfig: { enabledMethods: ['dispensary_direct'] } }),
       });
 
       const promise1 = updatePaymentMethod({
@@ -418,7 +440,7 @@ describe('Payment Config Actions', () => {
 
       await Promise.all([promise1, promise2]);
 
-      expect(mockSet.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(mockUpdate.mock.calls.length).toBeGreaterThanOrEqual(2);
     });
   });
 });

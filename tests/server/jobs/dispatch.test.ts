@@ -1,136 +1,153 @@
 /**
  * Cloud Tasks Dispatch Tests
- * Tests for the agent job dispatch functionality with proper error handling
  *
  * @jest-environment node
  */
 
-// Mock googleapis
 const mockTasksCreate = jest.fn();
 const mockGetClient = jest.fn();
+const mockJobSet = jest.fn().mockResolvedValue(undefined);
+const mockJobUpdate = jest.fn().mockResolvedValue(undefined);
+const mockJobDoc = jest.fn(() => ({
+    set: mockJobSet,
+    update: mockJobUpdate,
+}));
+const mockCollection = jest.fn(() => ({
+    doc: mockJobDoc,
+}));
+const mockCreateServerClient = jest.fn();
 
 jest.mock('googleapis', () => ({
     google: {
         auth: {
             GoogleAuth: jest.fn().mockImplementation(() => ({
-                getClient: mockGetClient
-            }))
+                getClient: mockGetClient,
+            })),
         },
         cloudtasks: jest.fn().mockImplementation(() => ({
             projects: {
                 locations: {
                     queues: {
                         tasks: {
-                            create: mockTasksCreate
-                        }
-                    }
-                }
-            }
-        }))
-    }
+                            create: mockTasksCreate,
+                        },
+                    },
+                },
+            },
+        })),
+    },
 }));
 
-// Mock logger
+jest.mock('@/firebase/server-client', () => ({
+    createServerClient: (...args: unknown[]) => mockCreateServerClient(...args),
+}));
+
 jest.mock('@/lib/logger', () => ({
     logger: {
         error: jest.fn(),
         warn: jest.fn(),
-        info: jest.fn()
-    }
+        info: jest.fn(),
+    },
 }));
 
-// Mock secrets
 jest.mock('@/server/utils/secrets', () => ({
-    getSecret: jest.fn().mockResolvedValue(null)
+    getSecret: jest.fn().mockResolvedValue(null),
 }));
+
+import { google } from 'googleapis';
+import { dispatchAgentJob } from '@/server/jobs/dispatch';
+import { getCloudTasksClient, getQueuePath } from '@/server/jobs/client';
 
 describe('Cloud Tasks Dispatch', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+
         mockGetClient.mockResolvedValue({ credentials: {} });
         mockTasksCreate.mockResolvedValue({ data: { name: 'task-123' } });
+        mockCreateServerClient.mockResolvedValue({
+            firestore: {
+                collection: mockCollection,
+            },
+        });
+
+        delete process.env.FIREBASE_PROJECT_ID;
+        delete process.env.GCLOUD_PROJECT;
+        delete process.env.FIREBASE_REGION;
+        delete process.env.NEXT_PUBLIC_APP_URL;
     });
 
     describe('dispatchAgentJob', () => {
-        it('should return success when dispatch succeeds', async () => {
-            const { dispatchAgentJob } = await import('@/server/jobs/dispatch');
-
+        it('returns success when dispatch succeeds', async () => {
             const payload = {
                 userId: 'user-123',
                 userInput: 'Review Recent Signups',
                 persona: 'leo' as const,
                 options: {
-                    modelLevel: 'standard' as const
+                    modelLevel: 'standard' as const,
                 },
-                jobId: 'job-123'
+                jobId: 'job-123',
             };
 
             const result = await dispatchAgentJob(payload);
 
-            expect(result.success).toBe(true);
-            expect(result.taskId).toBe('task-123');
+            expect(result).toEqual({ success: true, taskId: 'task-123' });
+            expect(mockJobDoc).toHaveBeenCalledWith('job-123');
+            expect(mockJobSet).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    status: 'pending',
+                    userId: 'user-123',
+                    agentId: 'leo',
+                }),
+            );
         });
 
-        it('should return error object instead of throwing when Cloud Tasks create fails', async () => {
+        it('returns an error object and marks the job failed when task creation fails', async () => {
             mockTasksCreate.mockRejectedValue(new Error('Queue not found'));
 
-            const { dispatchAgentJob } = await import('@/server/jobs/dispatch');
-
             const payload = {
                 userId: 'user-123',
                 userInput: 'Test message',
                 persona: 'puff' as const,
                 options: {
-                    modelLevel: 'standard' as const
+                    modelLevel: 'standard' as const,
                 },
-                jobId: 'job-456'
+                jobId: 'job-456',
             };
 
             const result = await dispatchAgentJob(payload);
 
             expect(result.success).toBe(false);
-            expect(result.error).toContain('Cloud Tasks dispatch failed');
-            expect(result.error).toContain('Queue not found');
+            expect(result.error).toContain('Cloud Tasks dispatch failed: Queue not found');
+            expect(mockJobUpdate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    status: 'failed',
+                    error: 'Cloud Tasks dispatch failed: Queue not found',
+                }),
+            );
         });
 
-        it('should return error object when auth client initialization fails', async () => {
+        it('returns an error object when auth client initialization fails', async () => {
             mockGetClient.mockRejectedValue(new Error('Could not load default credentials'));
 
-            // Re-import to get fresh module with new mock behavior
-            jest.resetModules();
-
-            // Re-setup mocks after reset
-            jest.doMock('googleapis', () => ({
-                google: {
-                    auth: {
-                        GoogleAuth: jest.fn().mockImplementation(() => ({
-                            getClient: jest.fn().mockRejectedValue(new Error('Could not load default credentials'))
-                        }))
-                    },
-                    cloudtasks: jest.fn()
-                }
-            }));
-
-            const { dispatchAgentJob } = await import('@/server/jobs/dispatch');
-
             const payload = {
                 userId: 'user-123',
                 userInput: 'Test message',
                 persona: 'puff' as const,
                 options: {
-                    modelLevel: 'standard' as const
+                    modelLevel: 'standard' as const,
                 },
-                jobId: 'job-789'
+                jobId: 'job-789',
             };
 
             const result = await dispatchAgentJob(payload);
 
             expect(result.success).toBe(false);
-            expect(result.error).toBeDefined();
+            expect(result.error).toContain('Could not load default credentials');
+            expect(mockJobUpdate).toHaveBeenCalled();
         });
 
-        it('should include proper URL and headers in task request', async () => {
-            const { dispatchAgentJob } = await import('@/server/jobs/dispatch');
+        it('includes the proper URL and headers in the task request', async () => {
+            process.env.NEXT_PUBLIC_APP_URL = 'https://preview.bakedbot.ai';
 
             const payload = {
                 userId: 'user-123',
@@ -138,71 +155,61 @@ describe('Cloud Tasks Dispatch', () => {
                 persona: 'leo' as const,
                 options: {
                     modelLevel: 'genius' as const,
-                    brandId: 'brand-456'
+                    brandId: 'brand-456',
                 },
-                jobId: 'job-abc'
+                jobId: 'job-abc',
             };
 
             await dispatchAgentJob(payload);
 
-            expect(mockTasksCreate).toHaveBeenCalled();
-            const callArg = mockTasksCreate.mock.calls[0][0];
-            expect(callArg.requestBody.task.httpRequest.headers['Content-Type']).toBe('application/json');
-            expect(callArg.requestBody.task.httpRequest.httpMethod).toBe('POST');
+            expect(mockTasksCreate).toHaveBeenCalledTimes(1);
+            const request = mockTasksCreate.mock.calls[0][0];
+
+            expect(request.parent).toBe('projects/studio-567050101-bc6e8/locations/us-central1/queues/agent-queue');
+            expect(request.requestBody.task.httpRequest.url).toBe('https://preview.bakedbot.ai/api/jobs/agent');
+            expect(request.requestBody.task.httpRequest.headers['Content-Type']).toBe('application/json');
+            expect(request.requestBody.task.httpRequest.httpMethod).toBe('POST');
         });
     });
 
     describe('getCloudTasksClient', () => {
-        it('should initialize with correct scopes', async () => {
-            const { google } = await import('googleapis');
-            const { getCloudTasksClient } = await import('@/server/jobs/client');
-
+        it('initializes GoogleAuth with the cloud-platform scope', async () => {
             await getCloudTasksClient();
 
             expect(google.auth.GoogleAuth).toHaveBeenCalledWith({
-                scopes: ['https://www.googleapis.com/auth/cloud-platform']
+                scopes: ['https://www.googleapis.com/auth/cloud-platform'],
             });
+            expect(google.cloudtasks).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    version: 'v2',
+                    auth: { credentials: {} },
+                }),
+            );
         });
 
-        it('should throw with descriptive error when auth fails', async () => {
-            jest.resetModules();
+        it('throws a descriptive error when auth fails', async () => {
+            mockGetClient.mockRejectedValue(new Error('Auth failed'));
 
-            jest.doMock('googleapis', () => ({
-                google: {
-                    auth: {
-                        GoogleAuth: jest.fn().mockImplementation(() => ({
-                            getClient: jest.fn().mockRejectedValue(new Error('Auth failed'))
-                        }))
-                    },
-                    cloudtasks: jest.fn()
-                }
-            }));
-            jest.doMock('@/lib/logger', () => ({
-                logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn() }
-            }));
-
-            const { getCloudTasksClient } = await import('@/server/jobs/client');
-
-            await expect(getCloudTasksClient()).rejects.toThrow('Cloud Tasks client initialization failed');
+            await expect(getCloudTasksClient()).rejects.toThrow(
+                'Cloud Tasks client initialization failed: Auth failed',
+            );
         });
     });
 
     describe('getQueuePath', () => {
-        it('should construct correct queue path', async () => {
-            const { getQueuePath } = await import('@/server/jobs/client');
+        it('constructs the correct queue path', async () => {
+            process.env.GCLOUD_PROJECT = 'project-123';
+            process.env.FIREBASE_REGION = 'us-east1';
 
             const path = await getQueuePath('agent-queue');
 
-            expect(path).toMatch(/^projects\/.*\/locations\/.*\/queues\/agent-queue$/);
+            expect(path).toBe('projects/project-123/locations/us-east1/queues/agent-queue');
         });
 
-        it('should use default queue name when not specified', async () => {
-            const { getQueuePath } = await import('@/server/jobs/client');
-
+        it('uses the default queue name when none is specified', async () => {
             const path = await getQueuePath();
 
-            expect(path).toContain('/queues/default');
+            expect(path).toBe('projects/studio-567050101-bc6e8/locations/us-central1/queues/default');
         });
     });
 });
-

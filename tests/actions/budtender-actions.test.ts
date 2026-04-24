@@ -81,7 +81,7 @@ describe('Budtender Actions', () => {
             });
 
             const result = await getBudtenderDashboardData();
-            expect(result).toBeNull();
+            expect(result).toMatchObject({ dispensary: null, pendingOrders: [], menuCategories: [] });
         });
 
         it('should fetch dispensary info and pending orders', async () => {

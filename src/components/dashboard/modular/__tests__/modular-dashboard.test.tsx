@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ModularDashboard } from '../modular-dashboard';
 import * as persistence from '@/lib/dashboard/layout-persistence';
+import * as dashboardLayoutActions from '@/server/actions/dashboard-layout';
 import { useToast } from '@/hooks/use-toast';
 
 // Mock dependencies
@@ -16,6 +17,11 @@ jest.mock('@/lib/dashboard/layout-persistence', () => ({
     addWidgetToLayout: jest.fn(),
     removeWidgetFromLayout: jest.fn(),
     updateWidgetPositions: jest.fn(),
+}));
+
+jest.mock('@/server/actions/dashboard-layout', () => ({
+    saveDashboardLayout: jest.fn(),
+    getDashboardLayout: jest.fn(),
 }));
 
 // Mock widget registry
@@ -55,6 +61,13 @@ describe('ModularDashboard', () => {
     beforeEach(() => {
         (useToast as jest.Mock).mockReturnValue({ toast: mockToast });
         jest.clearAllMocks();
+        (dashboardLayoutActions.getDashboardLayout as jest.Mock).mockResolvedValue({
+            success: false,
+            layout: null,
+        });
+        (dashboardLayoutActions.saveDashboardLayout as jest.Mock).mockResolvedValue({
+            success: true,
+        });
 
         // Default mock implementation
         mockGetWidgetByType.mockReturnValue({
@@ -130,10 +143,13 @@ describe('ModularDashboard', () => {
         const saveBtn = await screen.findByText('Save Layout');
         fireEvent.click(saveBtn);
 
-        expect(persistence.saveLayout).toHaveBeenCalledWith('brand', defaultWidgets);
-        expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
-            title: 'Layout Saved'
-        }));
+        await waitFor(() => {
+            expect(persistence.saveLayout).toHaveBeenCalledWith('brand', defaultWidgets);
+            expect(dashboardLayoutActions.saveDashboardLayout).toHaveBeenCalledWith('brand', defaultWidgets);
+            expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
+                title: 'Layout Saved'
+            }));
+        });
     });
 
     it('resets layout when Reset button is clicked', async () => {

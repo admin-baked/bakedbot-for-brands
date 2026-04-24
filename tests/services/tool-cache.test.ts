@@ -4,12 +4,42 @@
  * Tests for in-memory caching layer with TTL-based invalidation
  */
 
+const mockGetCached = jest.fn();
+const mockSetCached = jest.fn();
+const mockInvalidateCache = jest.fn();
+const mockInvalidateCachePattern = jest.fn();
+
+jest.mock('@/lib/cache', () => ({
+    CachePrefix: {
+        TOOL: 'tool',
+    },
+    getCached: (...args: unknown[]) => mockGetCached(...args),
+    setCached: (...args: unknown[]) => mockSetCached(...args),
+    invalidateCache: (...args: unknown[]) => mockInvalidateCache(...args),
+    invalidateCachePattern: (...args: unknown[]) => mockInvalidateCachePattern(...args),
+}));
+
+jest.mock('@/lib/logger', () => ({
+    logger: {
+        debug: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+    },
+}));
+
 import { ToolCacheService, TOOL_CACHE_CONFIG } from '@/server/services/tool-cache';
 
 describe('ToolCacheService', () => {
     let cache: ToolCacheService;
 
     beforeEach(() => {
+        jest.useRealTimers();
+        jest.clearAllMocks();
+        mockGetCached.mockResolvedValue(null);
+        mockSetCached.mockResolvedValue(undefined);
+        mockInvalidateCache.mockResolvedValue(undefined);
+        mockInvalidateCachePattern.mockResolvedValue(undefined);
         cache = new ToolCacheService();
     });
 
@@ -41,18 +71,18 @@ describe('ToolCacheService', () => {
             jest.useFakeTimers();
             const fetcher = jest.fn(async () => ({ data: 'test' }));
 
-            // First call
-            await cache.withCache('test_key', fetcher, 1);
-            expect(fetcher).toHaveBeenCalledTimes(1);
+            try {
+                await cache.withCache('test_key', fetcher, 1);
+                expect(fetcher).toHaveBeenCalledTimes(1);
 
-            // Advance time by 2 seconds (past TTL)
-            jest.advanceTimersByTime(2000);
+                // L1 cache uses a fixed 30-second TTL.
+                jest.advanceTimersByTime(31_000);
 
-            // Second call should be a cache miss
-            await cache.withCache('test_key', fetcher, 1);
-            expect(fetcher).toHaveBeenCalledTimes(2);
-
-            jest.useRealTimers();
+                await cache.withCache('test_key', fetcher, 1);
+                expect(fetcher).toHaveBeenCalledTimes(2);
+            } finally {
+                jest.useRealTimers();
+            }
         });
 
         it('should use default TTL when not specified', async () => {
@@ -97,15 +127,15 @@ describe('ToolCacheService', () => {
             expect(fetcher).toHaveBeenCalledTimes(1);
 
             // Invalidate
-            cache.invalidate('test_key');
+            await cache.invalidate('test_key');
 
             // Next call should fetch again
             await cache.withCache('test_key', fetcher, 300);
             expect(fetcher).toHaveBeenCalledTimes(2);
         });
 
-        it('should handle invalidating non-existent entries', () => {
-            expect(() => cache.invalidate('nonexistent')).not.toThrow();
+        it('should handle invalidating non-existent entries', async () => {
+            await expect(cache.invalidate('nonexistent')).resolves.toBeUndefined();
         });
     });
 
@@ -119,7 +149,7 @@ describe('ToolCacheService', () => {
             await cache.withCache('system_getStats', () => Promise.resolve({ data: 'c' }), 300);
 
             // Invalidate platform entries
-            const count = cache.invalidatePattern('platform_');
+            const count = await cache.invalidatePattern('platform_');
 
             expect(count).toBe(2);
 
@@ -135,7 +165,7 @@ describe('ToolCacheService', () => {
             await cache.withCache('test_b', () => Promise.resolve({ data: 'b' }), 300);
             await cache.withCache('other_c', () => Promise.resolve({ data: 'c' }), 300);
 
-            const count = cache.invalidatePattern(/^test_/);
+            const count = await cache.invalidatePattern(/^test_/);
 
             expect(count).toBe(2);
         });
@@ -146,7 +176,7 @@ describe('ToolCacheService', () => {
             await cache.withCache('key1', () => Promise.resolve({ data: '1' }), 300);
             await cache.withCache('key2', () => Promise.resolve({ data: '2' }), 300);
 
-            const cleared = cache.clear();
+            const cleared = await cache.clear();
 
             expect(cleared).toBe(2);
         });
@@ -156,7 +186,7 @@ describe('ToolCacheService', () => {
             await cache.withCache('platform_brands', () => Promise.resolve({ data: 'b' }), 300);
             await cache.withCache('system_stats', () => Promise.resolve({ data: 'c' }), 300);
 
-            const cleared = cache.clear('platform');
+            const cleared = await cache.clear('platform');
 
             expect(cleared).toBe(2);
         });
@@ -178,7 +208,7 @@ describe('ToolCacheService', () => {
             expect(stats.totalHits).toBe(1);
             expect(stats.totalMisses).toBe(2);
             expect(stats.hitRate).toBeCloseTo(33.33, 1);
-            expect(stats.entries).toBe(2);
+            expect(stats.l1Entries).toBe(2);
         });
 
         it('should calculate hit rate correctly', async () => {

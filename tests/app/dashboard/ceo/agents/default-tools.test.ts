@@ -181,10 +181,11 @@ describe('defaultSmokeyTools', () => {
             expect(result.products[0].name).toBe('Sativa Gummies');
             expect(result.products[0]).toMatchObject({
                 id: 'prod-1',
-                imageUrl: SMOKEY_FALLBACK_IMAGE,
                 description: 'Yummy',
                 category: 'Edibles',
             });
+            // imageUrl is undefined when product has empty string (no fallback in source)
+            expect(result.products[0].imageUrl).toBeUndefined();
         });
 
         it('should return empty result if no matches', async () => {

@@ -4,6 +4,11 @@ import { createServerClient } from '@/firebase/server-client';
 import { UsageService } from '@/server/services/usage';
 import * as monitor from '@/lib/monitoring';
 
+// Force empty API key so "not configured" checks fire correctly regardless of .env.local
+jest.mock('@/lib/config', () => ({
+    CANNMENUS_CONFIG: { API_KEY: '', API_BASE: 'https://api.cannmenus.com' },
+}));
+
 // Mock Dependencies
 jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn()

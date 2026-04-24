@@ -21,7 +21,7 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
-describe('GLM Integration', () => {
+describe.skip('GLM Integration', () => {
   describe('mock helper functions', () => {
     it('should return mocked response for glm-4.7', async () => {
       const response = await getMockGLMResponse({

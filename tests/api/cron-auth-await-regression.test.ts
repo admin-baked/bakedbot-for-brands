@@ -3,7 +3,7 @@ import path from 'path';
 
 const cronRoutePaths = [
     'src/app/api/cron/collect-metrics/route.ts',
-    'src/app/api/cron/dayday-international-discovery/route.ts',
+    'src/app/api/cron/dayday/route.ts',
     'src/app/api/cron/pricing-alerts/route.ts',
     'src/app/api/cron/tick/route.ts',
 ];

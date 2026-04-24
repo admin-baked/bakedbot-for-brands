@@ -9,7 +9,11 @@ jest.mock('@/firebase/server-client', () => ({
 }));
 
 jest.mock('@/server/auth/auth', () => ({
-    requireUser: jest.fn(),
+    requireUser: jest.fn().mockResolvedValue({
+        uid: 'user-123',
+        email: 'test@example.com',
+        role: 'brand',
+    }),
 }));
 
 describe('Slug Management', () => {
@@ -44,7 +48,7 @@ describe('Slug Management', () => {
         });
 
         it('should return taken and suggestion for existing slugs', async () => {
-            mockFirestore.get.mockResolvedValue({ exists: true });
+            mockFirestore.get.mockResolvedValue({ exists: true, data: () => ({}) });
             const result = await checkSlugAvailability('taken-brand');
             expect(result.available).toBe(false);
             expect(result.suggestion).toBeDefined();
@@ -66,7 +70,7 @@ describe('Slug Management', () => {
         });
 
         it('should return error if slug is already taken', async () => {
-            mockFirestore.get.mockResolvedValue({ exists: true });
+            mockFirestore.get.mockResolvedValue({ exists: true, data: () => ({}) });
             const result = await reserveSlug('taken-brand', 'brand123');
             expect(result.success).toBe(false);
             expect(result.error).toContain('already taken');

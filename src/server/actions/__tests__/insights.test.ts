@@ -6,6 +6,7 @@ const mockGetActiveCustomerCount = jest.fn();
 const mockGetOrderStats = jest.fn();
 const mockMonitorInventoryAge = jest.fn();
 const mockGetExpiringInventory = jest.fn();
+const mockGetLatestWeeklyReport = jest.fn();
 
 jest.mock('@/server/auth/auth', () => ({
   requireUser: mockRequireUser,
@@ -37,6 +38,10 @@ jest.mock('@/server/services/alleaves/inventory-intelligence', () => ({
   getExpiringInventory: mockGetExpiringInventory,
 }));
 
+jest.mock('@/server/services/ezal/weekly-intel-report', () => ({
+  getLatestWeeklyReport: mockGetLatestWeeklyReport,
+}));
+
 let getInsightsForOrg: typeof import('../insights').getInsightsForOrg;
 let getInsights: typeof import('../insights').getInsights;
 
@@ -63,10 +68,17 @@ function createInsightsDb() {
               return {
                 where: jest.fn(() => ({
                   limit: jest.fn(() => ({
-                    get: jest.fn().mockResolvedValue(tenantInsightsSnapshot),
+                    get: jest.fn().mockResolvedValue(
+                      subcollection === 'insights'
+                        ? tenantInsightsSnapshot
+                        : { empty: true, docs: [] }
+                    ),
                   })),
                 })),
               };
+            }),
+            get: jest.fn().mockResolvedValue({
+              data: () => ({}),
             }),
           };
         }),
@@ -92,6 +104,7 @@ describe('insights actions', () => {
     mockGetOrderStats.mockResolvedValue({ pending: 3, ready: 2 });
     mockGetExpiringInventory.mockResolvedValue([]);
     mockMonitorInventoryAge.mockResolvedValue({ slowMoving: 0 });
+    mockGetLatestWeeklyReport.mockResolvedValue(null);
   });
 
   it('normalizes proactive insight docs before returning them to the client boundary', async () => {

@@ -1,10 +1,13 @@
-
 import { supportService } from '@/server/services/support/tickets';
 import { createServerClient } from '@/firebase/server-client';
 
 // Mock Firebase
 jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn()
+}));
+
+jest.mock('uuid', () => ({
+    v4: jest.fn(() => 'mock-uuid-123')
 }));
 
 describe('Support Service', () => {
@@ -44,16 +47,18 @@ describe('Support Service', () => {
 
         expect(createServerClient).toHaveBeenCalled();
         expect(mockFirestore.collection).toHaveBeenCalledWith('tickets');
+        expect(mockCollection.doc).toHaveBeenCalledWith('mock-uuid-123');
         expect(mockDoc.set).toHaveBeenCalledWith(expect.objectContaining({
+            id: 'mock-uuid-123',
             description: 'Test issue',
             source: 'felisha',
             status: 'open',
             metadata: { severity: 'high' }
         }));
         expect(ticket.id).toBeDefined();
-        // Since we are mocking uuid globally, expected ID is 'mock-uuid-123'
         expect(ticket.id).toBe('mock-uuid-123');
         expect(ticket.status).toBe('open');
+        expect(ticket.createdAt).toBeInstanceOf(Date);
     });
 
     it('should retrieve open support tickets', async () => {
@@ -75,7 +80,10 @@ describe('Support Service', () => {
 
         expect(mockFirestore.collection).toHaveBeenCalledWith('tickets');
         expect(mockCollection.where).toHaveBeenCalledWith('status', 'in', ['new', 'open', 'investigating']);
+        expect(mockCollection.orderBy).toHaveBeenCalledWith('createdAt', 'desc');
+        expect(mockCollection.limit).toHaveBeenCalledWith(10);
         expect(tickets.length).toBe(1);
         expect(tickets[0].id).toBe('ticket-123');
+        expect(tickets[0].createdAt).toBeInstanceOf(Date);
     });
 });

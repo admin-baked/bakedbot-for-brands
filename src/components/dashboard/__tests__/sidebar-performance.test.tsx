@@ -2,12 +2,13 @@
  * Tests for sidebar performance optimizations
  */
 
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { BrandSidebar } from '../brand-sidebar';
 import { DispensarySidebar } from '../dispensary-sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { usePathname } from 'next/navigation';
 import { useUserRole } from '@/hooks/use-user-role';
+import { usePlanInfo } from '@/hooks/use-plan-info';
 import React from 'react';
 
 // Mock Next.js navigation
@@ -18,6 +19,10 @@ jest.mock('next/navigation', () => ({
 // Mock user role hook
 jest.mock('@/hooks/use-user-role', () => ({
   useUserRole: jest.fn(),
+}));
+
+jest.mock('@/hooks/use-plan-info', () => ({
+  usePlanInfo: jest.fn(),
 }));
 
 // Mock agentic dashboard hook for agent squad
@@ -60,7 +65,8 @@ const renderWithProvider = (component: React.ReactElement) => {
 describe('Sidebar Performance Optimizations', () => {
   beforeEach(() => {
     (usePathname as jest.Mock).mockReturnValue('/dashboard');
-    (useUserRole as jest.Mock).mockReturnValue({ orgId: 'org_123' });
+    (useUserRole as jest.Mock).mockReturnValue({ orgId: 'org_123', isSuperUser: true });
+    (usePlanInfo as jest.Mock).mockReturnValue({ isFree: false });
   });
 
   describe('BrandSidebar', () => {
@@ -107,7 +113,7 @@ describe('Sidebar Performance Optimizations', () => {
       expect(container.querySelector('a[href="/dashboard/inbox"]')).toBeInTheDocument();
       expect(container.querySelector('a[href="/dashboard/projects"]')).toBeInTheDocument();
       expect(container.querySelector('a[href="/dashboard/playbooks"]')).toBeInTheDocument();
-      expect(container.querySelector('a[href="/dashboard/academy"]')).toBeInTheDocument();
+      expect(container.querySelector('a[href="/dashboard/drive"]')).toBeInTheDocument();
     });
 
     it('has marketing navigation links', () => {
@@ -178,9 +184,11 @@ describe('Sidebar Performance Optimizations', () => {
     });
 
     it('has profitability link in intelligence section', () => {
-      const { container } = renderWithProvider(<DispensarySidebar />);
+      renderWithProvider(<DispensarySidebar />);
 
-      expect(container.querySelector('a[href="/dashboard/profitability"]')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /intelligence/i }));
+
+      expect(screen.getByRole('link', { name: /profitability/i })).toHaveAttribute('href', '/dashboard/profitability');
     });
   });
 

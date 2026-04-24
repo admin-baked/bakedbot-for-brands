@@ -8,7 +8,7 @@ import { getMenuData } from '@/app/dashboard/menu/actions';
 import { getBrandKitImages } from '@/server/actions/brand-images';
 import { getMyAIStudioUsageSummary } from '@/server/actions/ai-studio';
 import { sendCreativeToInbox } from '@/server/actions/creative-inbox';
-import { useBrandGuide, useBrandVoice, useBrandColors } from '@/hooks/use-brand-guide';
+import { useBrandGuide, useBrandVoice, useBrandColors, useBrandCompliance } from '@/hooks/use-brand-guide';
 
 jest.mock('@/hooks/use-creative-content');
 jest.mock('@/firebase/auth/use-user');
@@ -194,6 +194,18 @@ describe('CreativeCommandCenter regressions', () => {
         messaging: {
           tagline: 'Your daily dose of sunshine',
         },
+        compliance: {
+          primaryState: 'NY',
+          operatingStates: ['NY'],
+          requiredDisclaimers: {
+            age: 'For adults 21+ only. Keep out of reach of children.',
+          },
+          ageGateLanguage: 'Must be 21+ to enter',
+          stateSpecificRules: [],
+          medicalClaims: 'none',
+          contentRestrictions: [],
+          restrictions: [],
+        },
         visualIdentity: {
           logo: {
             primary: 'https://example.com/thrive-logo.png',
@@ -214,6 +226,11 @@ describe('CreativeCommandCenter regressions', () => {
       primary: '#2E7D32',
       secondary: '#14532d',
       accent: '#F59E0B',
+    });
+    (useBrandCompliance as jest.Mock).mockReturnValue({
+      state: 'NY',
+      disclaimers: ['For adults 21+ only. Keep out of reach of children.'],
+      restrictions: [],
     });
 
     (getBrandKitImages as jest.Mock).mockResolvedValue([]);
@@ -266,6 +283,7 @@ describe('CreativeCommandCenter regressions', () => {
         bgColor: '#2E7D32',
         accentColor: '#F59E0B',
         brandName: 'Thrive Syracuse',
+        complianceDisclaimer: 'For adults 21+ only. Keep out of reach of children.',
       }),
     );
   });
@@ -395,5 +413,21 @@ describe('CreativeCommandCenter regressions', () => {
     await waitFor(() => expect(mockGenerate).toHaveBeenCalled());
     expect(await screen.findByText(/Generation failed/i)).toBeInTheDocument();
     expect(screen.getByText(/Image generation timed out/i)).toBeInTheDocument();
+  });
+
+  it('humanizes raw network fetch errors for the canvas state', async () => {
+    mockGenerate.mockRejectedValueOnce(new Error('Failed to fetch'));
+
+    renderCreativeCenter();
+
+    fireEvent.change(screen.getByPlaceholderText(/Describe the post/i), {
+      target: { value: 'Create a fresh educational post for today.' },
+    });
+    const generateButtons = screen.getAllByRole('button', { name: /Generate Story/i });
+    fireEvent.click(generateButtons[generateButtons.length - 1]);
+
+    await waitFor(() => expect(mockGenerate).toHaveBeenCalled());
+    expect(await screen.findByText(/Generation failed/i)).toBeInTheDocument();
+    expect(screen.getByText(/could not reach the generator/i)).toBeInTheDocument();
   });
 });

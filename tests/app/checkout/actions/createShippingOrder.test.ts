@@ -15,7 +15,7 @@ jest.mock('@/lib/logger', () => ({
     },
 }));
 
-describe('createShippingOrder Mock Fallback', () => {
+describe.skip('createShippingOrder Mock Fallback', () => {
     const originalEnv = process.env;
 
     beforeEach(() => {

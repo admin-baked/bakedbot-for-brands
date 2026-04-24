@@ -1,6 +1,6 @@
 import { searchDemoRetailers } from '@/app/dashboard/intelligence/actions/demo-setup';
 import { discovery } from '@/server/services/firecrawl';
-import { getZipCodeCoordinates } from '@/server/services/geo-discovery';
+import { geocodeLocation } from '@/server/services/geo-discovery';
 
 // Mock dependencies
 jest.mock('@/server/services/firecrawl', () => ({
@@ -12,13 +12,13 @@ jest.mock('@/server/services/firecrawl', () => ({
 }));
 
 jest.mock('@/server/services/geo-discovery', () => ({
-    getZipCodeCoordinates: jest.fn(),
+    geocodeLocation: jest.fn(),
 }));
 
 describe('searchDemoRetailers', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        (getZipCodeCoordinates as jest.Mock).mockResolvedValue({ city: 'Test City', state: 'TS' });
+        (geocodeLocation as jest.Mock).mockResolvedValue({ city: 'Test City', state: 'TS' });
     });
 
     it('should return search results and filter out directories AND duplicates', async () => {

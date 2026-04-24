@@ -2,17 +2,18 @@ import fs from 'fs';
 import path from 'path';
 
 describe('AuthNet credential hygiene regression guards', () => {
-    it('keeps apphosting AuthNet secret references on @latest', () => {
+    it('keeps apphosting AuthNet secret references pinned to numeric secret versions', () => {
         const source = fs.readFileSync(path.join(process.cwd(), 'apphosting.yaml'), 'utf-8');
 
         expect(source).toContain('- variable: AUTHNET_API_LOGIN_ID');
-        expect(source).toContain('secret: AUTHNET_API_LOGIN_ID@latest');
+        expect(source).toMatch(/secret:\s+AUTHNET_API_LOGIN_ID@\d+/);
         expect(source).toContain('- variable: AUTHNET_TRANSACTION_KEY');
-        expect(source).toContain('secret: AUTHNET_TRANSACTION_KEY@latest');
+        expect(source).toMatch(/secret:\s+AUTHNET_TRANSACTION_KEY@\d+/);
         expect(source).toContain('- variable: AUTHNET_SIGNATURE_KEY');
-        expect(source).toContain('secret: AUTHNET_SIGNATURE_KEY@latest');
+        expect(source).toMatch(/secret:\s+AUTHNET_SIGNATURE_KEY@\d+/);
         expect(source).toContain('- variable: NEXT_PUBLIC_AUTHNET_API_LOGIN_ID');
-        expect(source).toContain('secret: AUTHNET_API_LOGIN_ID@latest');
+        expect(source).toMatch(/secret:\s+AUTHNET_API_LOGIN_ID@\d+/);
+        expect(source).toContain('numeric secret versions (not @latest)');
     });
 
     it('does not hardcode AuthNet credential values in setup scripts', () => {
@@ -35,4 +36,3 @@ describe('AuthNet credential hygiene regression guards', () => {
         expect(setupScript).not.toMatch(/\$(?:apiLoginId|transactionKey)\s*=\s*['"][^'"]+['"]/);
     });
 });
-

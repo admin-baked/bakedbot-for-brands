@@ -13,7 +13,14 @@ import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 
 jest.mock('@/firebase/server-client');
-jest.mock('@/lib/logger');
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
+}));
 
 describe('Ecommerce Customer Mapper', () => {
   const mockFirestore = {
@@ -26,7 +33,7 @@ describe('Ecommerce Customer Mapper', () => {
       orgId: 'org-test',
       email: 'existing@example.com',
       ecommerceIds: {
-        ecommerce: 'shop-cust-1',
+        external: 'shop-cust-1',
       },
     })),
     ref: {
@@ -84,10 +91,8 @@ describe('Ecommerce Customer Mapper', () => {
           email: 'new@example.com',
           source: 'ecommerce',
           ecommerceIds: {
-            ecommerce: 'shop-456',
+            external: 'shop-456',
           },
-          loyaltyPoints: 0,
-          tierLevel: 'standard',
         })
       );
     });
@@ -112,7 +117,7 @@ describe('Ecommerce Customer Mapper', () => {
         orgId: 'org-test',
         email: 'existing@example.com',
         ecommerceIds: {
-          ecommerce: 'old-id',
+          external: 'old-id',
         },
       });
 
@@ -120,7 +125,7 @@ describe('Ecommerce Customer Mapper', () => {
 
       expect(mockDocRef.ref.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          'ecommerceIds.ecommerce': 'new-shop-id',
+          'ecommerceIds.external': 'new-shop-id',
         })
       );
     });
@@ -130,7 +135,7 @@ describe('Ecommerce Customer Mapper', () => {
         orgId: 'org-test',
         email: 'existing@example.com',
         ecommerceIds: {
-          ecommerce: 'shop-123',
+          external: 'shop-123',
         },
       });
 
@@ -146,11 +151,11 @@ describe('Ecommerce Customer Mapper', () => {
       expect(result.bakedBotCustomerId).toBeDefined();
     });
 
-    it('should log customer resolution at info level', async () => {
+    it('should log customer resolution at debug level', async () => {
       await resolveEcommerceCustomer('org-test', 'existing@example.com');
 
-      expect(logger.info).toHaveBeenCalledWith(
-        '[EcommerceMapper] Found existing customer',
+      expect(logger.debug).toHaveBeenCalledWith(
+        '[EcommerceMapper] Customer found by email',
         expect.any(Object)
       );
     });
@@ -164,7 +169,7 @@ describe('Ecommerce Customer Mapper', () => {
       await resolveEcommerceCustomer('org-test', 'new@example.com');
 
       expect(logger.info).toHaveBeenCalledWith(
-        '[EcommerceMapper] Created new ecommerce customer',
+        '[EcommerceMapper] New customer created',
         expect.any(Object)
       );
     });
@@ -176,7 +181,7 @@ describe('Ecommerce Customer Mapper', () => {
 
       expect(result.bakedBotCustomerId).toBeNull();
       expect(logger.error).toHaveBeenCalledWith(
-        '[EcommerceMapper] Failed to resolve customer',
+        '[EcommerceMapper] Error resolving customer',
         expect.any(Object)
       );
     });
@@ -186,7 +191,10 @@ describe('Ecommerce Customer Mapper', () => {
     it('should find customer by platform ID', async () => {
       const result = await resolveEcommerceCustomerByPlatformId('org-test', 'shop-cust-1');
 
-      expect(result).toBe('cust-existing-123');
+      expect(result).toEqual({
+        bakedBotCustomerId: 'cust-existing-123',
+        isNew: false,
+      });
     });
 
     it('should return null when not found', async () => {
@@ -197,7 +205,10 @@ describe('Ecommerce Customer Mapper', () => {
 
       const result = await resolveEcommerceCustomerByPlatformId('org-test', 'unknown-id');
 
-      expect(result).toBeNull();
+      expect(result).toEqual({
+        bakedBotCustomerId: null,
+        isNew: false,
+      });
     });
 
     it('should query with correct fields', async () => {
@@ -209,7 +220,7 @@ describe('Ecommerce Customer Mapper', () => {
         'org-test'
       );
       expect(mockFirestore.collection().where).toHaveBeenCalledWith(
-        'ecommerceIds.ecommerce',
+        'ecommerceIds.external',
         '==',
         'shop-123'
       );
@@ -220,9 +231,12 @@ describe('Ecommerce Customer Mapper', () => {
 
       const result = await resolveEcommerceCustomerByPlatformId('org-test', 'shop-123');
 
-      expect(result).toBeNull();
-      expect(logger.warn).toHaveBeenCalledWith(
-        '[EcommerceMapper] Failed to lookup by platform ID',
+      expect(result).toEqual({
+        bakedBotCustomerId: null,
+        isNew: false,
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        '[EcommerceMapper] Error resolving by platform ID',
         expect.any(Object)
       );
     });

@@ -238,6 +238,23 @@ describe('Creative Content Server Actions', () => {
                 })
             );
         });
+
+        it('appends the required compliance disclaimer to generated captions when provided', async () => {
+            mockDoc.set.mockResolvedValue(undefined);
+
+            const result = await generateContent({
+                ...mockRequest,
+                brandName: 'Thrive Syracuse',
+                complianceDisclaimer: 'For adults 21+ only. Keep out of reach of children.',
+            });
+
+            expect(result.content.caption).toContain('For adults 21+ only. Keep out of reach of children.');
+            expect(mockDoc.set).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    caption: expect.stringContaining('For adults 21+ only. Keep out of reach of children.'),
+                })
+            );
+        });
     });
 
     describe('approveContent', () => {
@@ -418,21 +435,38 @@ describe('Creative Content Server Actions', () => {
     });
 
     describe('updateCaption', () => {
-        it('updates caption directly for inline editing', async () => {
-            mockDoc.get.mockResolvedValue({ exists: true });
+        it('updates caption directly for inline editing and re-checks compliance', async () => {
+            mockDoc.get.mockResolvedValue({
+                exists: true,
+                data: () => ({
+                    platform: 'instagram',
+                    approvalState: null,
+                    status: 'approved',
+                    caption: 'Original caption',
+                }),
+            });
             mockDoc.update.mockResolvedValue(undefined);
 
-            await updateCaption('tenant-123', 'content-1', 'New edited caption');
+            const result = await updateCaption(
+                'tenant-123',
+                'content-1',
+                'New edited caption',
+                { complianceDisclaimer: 'For adults 21+ only. Keep out of reach of children.' },
+            );
 
             expect(mockFirestore.doc).toHaveBeenCalledWith(
                 'tenants/tenant-123/creative_content/content-1'
             );
             expect(mockDoc.update).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    caption: 'New edited caption',
+                    caption: expect.stringContaining('New edited caption'),
+                    status: 'pending',
+                    complianceStatus: 'active',
+                    complianceChecks: expect.any(Array),
                     updatedAt: expect.any(Number)
                 })
             );
+            expect(result.caption).toContain('For adults 21+ only. Keep out of reach of children.');
         });
 
         it('throws error when content not found', async () => {
@@ -444,14 +478,29 @@ describe('Creative Content Server Actions', () => {
         });
 
         it('preserves other fields when updating caption', async () => {
-            mockDoc.get.mockResolvedValue({ exists: true });
+            mockDoc.get.mockResolvedValue({
+                exists: true,
+                data: () => ({
+                    platform: 'instagram',
+                    approvalState: null,
+                    status: 'pending',
+                    caption: 'Original caption',
+                }),
+            });
             mockDoc.update.mockResolvedValue(undefined);
 
             await updateCaption('tenant-123', 'content-1', 'Updated caption text');
 
             const updateCall = mockDoc.update.mock.calls[0][0];
-            // Should only update caption and updatedAt
-            expect(Object.keys(updateCall)).toEqual(['caption', 'updatedAt']);
+            expect(updateCall.caption).toBe('Updated caption text');
+            expect(updateCall.updatedAt).toEqual(expect.any(Number));
+            expect(updateCall.status).toBe('pending');
+            expect(updateCall.complianceStatus).toBe('active');
+            expect(updateCall.complianceChecks).toEqual(expect.any(Array));
+            expect(updateCall.approvalState).toEqual(expect.objectContaining({
+                status: 'pending_approval',
+                currentLevel: 1,
+            }));
         });
     });
 

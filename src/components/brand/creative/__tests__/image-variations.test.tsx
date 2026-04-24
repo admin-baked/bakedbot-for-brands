@@ -2,7 +2,7 @@
  * Tests for Image Variations Component
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { ImageVariations } from '../image-variations';
 import type { CreativeContent } from '@/types/creative-content';
 
@@ -189,7 +189,7 @@ describe('ImageVariations', () => {
             fireEvent.mouseEnter(firstCard);
 
             await waitFor(() => {
-                expect(screen.getByText('Download')).toBeInTheDocument();
+                expect(within(firstCard).getByText('Download')).toBeInTheDocument();
             });
         }
     });
@@ -216,7 +216,12 @@ describe('ImageVariations', () => {
 
         render(<ImageVariations content={mockContent} variations={mockVariations} />);
 
-        const downloadButton = screen.getByText('Download');
+        const firstCard = screen.getByText('Variation 1').closest('div')?.parentElement;
+        if (!firstCard) {
+            throw new Error('Missing first variation card');
+        }
+
+        const downloadButton = within(firstCard).getByText('Download');
         fireEvent.click(downloadButton);
 
         await waitFor(() => {
@@ -258,16 +263,29 @@ describe('ImageVariations', () => {
 
     it('should show loading spinner for images without URL', () => {
         const contentWithoutImage = { ...mockContent, thumbnailUrl: undefined, mediaUrls: [] };
+        const variationWithImage = {
+            ...mockContent,
+            id: 'variation-with-image',
+            thumbnailUrl: 'https://example.com/thumb-loaded.jpg',
+        };
 
-        render(<ImageVariations content={contentWithoutImage} variations={[]} />);
+        render(<ImageVariations content={contentWithoutImage} variations={[variationWithImage]} />);
 
-        // Should show loading spinner
-        const spinner = screen.getByRole('img', { hidden: true });
+        const firstCard = screen.getByText('Variation 1').closest('div')?.parentElement;
+        const spinner = firstCard?.querySelector('[data-lucide="RefreshCw"]');
         expect(spinner).toBeInTheDocument();
     });
 
     it('should prevent selection when clicking download button', async () => {
         const onSelectVariation = jest.fn();
+        const mockBlob = new Blob(['image data'], { type: 'image/png' });
+
+        (global.fetch as jest.Mock).mockResolvedValue({
+            blob: () => Promise.resolve(mockBlob),
+        });
+
+        global.URL.createObjectURL = jest.fn(() => 'blob:test-url');
+        global.URL.revokeObjectURL = jest.fn();
 
         render(
             <ImageVariations
@@ -277,7 +295,12 @@ describe('ImageVariations', () => {
             />
         );
 
-        const downloadButton = screen.getByText('Download');
+        const firstCard = screen.getByText('Variation 1').closest('div')?.parentElement;
+        if (!firstCard) {
+            throw new Error('Missing first variation card');
+        }
+
+        const downloadButton = within(firstCard).getByText('Download');
         fireEvent.click(downloadButton);
 
         // onSelectVariation should not be called when clicking download

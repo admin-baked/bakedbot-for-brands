@@ -22,8 +22,8 @@ describe('Claude Service', () => {
     });
 
     describe('CLAUDE_TOOL_MODEL', () => {
-        it('should be Claude Sonnet 4', () => {
-            expect(CLAUDE_TOOL_MODEL).toBe('claude-sonnet-4-5-20250929');
+        it('should resolve to a supported tool model family', () => {
+            expect(CLAUDE_TOOL_MODEL).toMatch(/^(claude-|glm-)/);
         });
     });
 

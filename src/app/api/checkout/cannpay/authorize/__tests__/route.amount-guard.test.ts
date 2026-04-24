@@ -82,7 +82,7 @@ describe('POST /api/checkout/cannpay/authorize amount guard', () => {
     const response = await POST({
       json: async () => ({
         orderId: 'order-1',
-        amount: 410,
+        amount: 4999, // must match server total (49.99 * 100); server validates and uses DB total
       }),
     } as any);
     const body = await response.json();

@@ -32,6 +32,7 @@ import type {
     GenerateContentResponse,
     ApproveContentRequest,
     ReviseContentRequest,
+    UpdateCaptionOptions,
     SocialContentGoal,
     SocialPlatform,
     SocialSafetyMode,
@@ -249,7 +250,7 @@ export async function generateContent(
             : request.backgroundImageUrl;
 
         // Run image generation + caption generation in parallel to save time
-        const [imageUrl, caption] = await Promise.all([
+        const [imageUrl, generatedCaption] = await Promise.all([
             request.imageMode === 'branded'
                 // Branded mode: server-side OG renderer (next/og) — instant, free, supports text overlays
                 ? Promise.resolve(buildOgImageUrl({
@@ -306,49 +307,11 @@ export async function generateContent(
             }),
         ]);
 
-        // Run Deebo compliance check on the generated caption (with fallback)
-        let complianceStatus: ComplianceStatus = 'active';
-        let complianceChecks: { checkType: string; passed: boolean; message: string; checkedAt: number }[] = [];
-        try {
-            const { deebo } = await import('@/server/agents/deebo');
-            const complianceResult = await deebo.checkContent(
-                'US', // Default jurisdiction - could be dynamic based on tenant
-                mapPlatformToChannel(request.platform),
-                caption
-            );
-
-            complianceStatus =
-                complianceResult.status === 'pass' ? 'active' :
-                    complianceResult.status === 'warning' ? 'warning' : 'review_needed';
-
-            complianceChecks = complianceResult.violations.map(violation => ({
-                checkType: 'deebo_content_scan',
-                passed: false,
-                message: violation,
-                checkedAt: Date.now()
-            }));
-
-            if (complianceResult.status === 'pass') {
-                complianceChecks.push({
-                    checkType: 'deebo_content_scan',
-                    passed: true,
-                    message: 'Content passed all compliance checks',
-                    checkedAt: Date.now()
-                });
-            }
-        } catch (deeboErr) {
-            // Deebo unavailable — default to pending review, don't block content creation
-            logger.warn('[creative-content] Deebo compliance check failed, defaulting to warning', {
-                error: String(deeboErr)
-            });
-            complianceStatus = 'warning';
-            complianceChecks = [{
-                checkType: 'deebo_content_scan',
-                passed: false,
-                message: 'Compliance check unavailable — manual review required',
-                checkedAt: Date.now()
-            }];
-        }
+        const caption = ensureComplianceDisclaimer(generatedCaption, request.complianceDisclaimer);
+        const { complianceStatus, complianceChecks } = await evaluateCreativeCompliance(
+            request.platform,
+            caption,
+        );
 
         // Create content record
         const contentId = uuidv4();
@@ -628,9 +591,10 @@ Please rewrite the caption incorporating the requested changes while maintaining
 export async function updateCaption(
     tenantId: string,
     contentId: string,
-    newCaption: string
-): Promise<void> {
-    await requireUser();
+    newCaption: string,
+    options: UpdateCaptionOptions = {},
+): Promise<CreativeContent> {
+    const user = await requireUser();
     const { firestore } = await createServerClient();
 
     try {
@@ -641,15 +605,42 @@ export async function updateCaption(
             throw new Error('Content not found');
         }
 
+        const existing = doc.data() as CreativeContent;
+        const caption = ensureComplianceDisclaimer(newCaption, options.complianceDisclaimer);
+        const { complianceStatus, complianceChecks } = await evaluateCreativeCompliance(
+            existing.platform,
+            caption,
+        );
+        const approvalState = resetCreativeApprovalState(
+            existing.approvalState,
+            (user as { role?: string } | null)?.role,
+        );
+        const updatedAt = Date.now();
+
         await ref.update({
-            caption: newCaption,
-            updatedAt: Date.now()
+            caption,
+            status: 'pending',
+            complianceStatus,
+            complianceChecks,
+            approvalState,
+            updatedAt,
         });
 
         logger.info('[creative-content] Caption updated', {
             contentId,
-            captionLength: newCaption.length
+            captionLength: caption.length,
+            complianceStatus,
         });
+
+        return {
+            ...existing,
+            caption,
+            status: 'pending',
+            complianceStatus,
+            complianceChecks,
+            approvalState,
+            updatedAt,
+        };
     } catch (error) {
         logger.error('[creative-content] Failed to update caption', { error });
         throw error;
@@ -879,6 +870,92 @@ export async function getContentByPlatform(
 
 // --- Helper Functions ---
 
+function normalizeComparableText(value: string): string {
+    return value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+}
+
+function ensureComplianceDisclaimer(
+    caption: string,
+    complianceDisclaimer?: string,
+): string {
+    const normalizedCaption = caption.trim();
+    const normalizedDisclaimer = (complianceDisclaimer || '').trim();
+
+    if (!normalizedDisclaimer) {
+        return normalizedCaption;
+    }
+
+    if (
+        normalizeComparableText(normalizedCaption)
+            .includes(normalizeComparableText(normalizedDisclaimer))
+    ) {
+        return normalizedCaption;
+    }
+
+    return normalizedCaption
+        ? `${normalizedCaption}\n\n${normalizedDisclaimer}`
+        : normalizedDisclaimer;
+}
+
+async function evaluateCreativeCompliance(
+    platform: SocialPlatform,
+    caption: string,
+): Promise<{
+    complianceStatus: ComplianceStatus;
+    complianceChecks: { checkType: string; passed: boolean; message: string; checkedAt: number }[];
+}> {
+    try {
+        const { deebo } = await import('@/server/agents/deebo');
+        const complianceResult = await deebo.checkContent(
+            'US',
+            mapPlatformToChannel(platform),
+            caption,
+        );
+
+        const complianceStatus =
+            complianceResult.status === 'pass' ? 'active' :
+                complianceResult.status === 'warning' ? 'warning' : 'review_needed';
+
+        const complianceChecks = complianceResult.violations.map((violation) => ({
+            checkType: 'deebo_content_scan',
+            passed: false,
+            message: violation,
+            checkedAt: Date.now(),
+        }));
+
+        if (complianceResult.status === 'pass') {
+            complianceChecks.push({
+                checkType: 'deebo_content_scan',
+                passed: true,
+                message: 'Content passed all compliance checks',
+                checkedAt: Date.now(),
+            });
+        }
+
+        return {
+            complianceStatus,
+            complianceChecks,
+        };
+    } catch (deeboErr) {
+        logger.warn('[creative-content] Deebo compliance check failed, defaulting to warning', {
+            error: String(deeboErr),
+        });
+
+        return {
+            complianceStatus: 'warning',
+            complianceChecks: [{
+                checkType: 'deebo_content_scan',
+                passed: false,
+                message: 'Compliance check unavailable — manual review required',
+                checkedAt: Date.now(),
+            }],
+        };
+    }
+}
+
 /**
  * Build a visual-first image prompt for FLUX.1.
  *
@@ -1029,6 +1106,7 @@ async function generateCaption(request: GenerateContentRequest): Promise<string>
             brandVoice: request.brandVoice,
             productName: request.productName,
             targetAudience: request.targetAudience,
+            complianceDisclaimer: request.complianceDisclaimer,
             includeHashtags: false, // We handle hashtags separately
             includeEmojis: true,
         });
@@ -1037,7 +1115,7 @@ async function generateCaption(request: GenerateContentRequest): Promise<string>
         );
 
         const result = await Promise.race([captionPromise, timeoutPromise]);
-        return result.primaryCaption;
+        return ensureComplianceDisclaimer(result.primaryCaption, request.complianceDisclaimer);
     } catch (error) {
         // Fallback to simple templates if AI generation fails or times out
         logger.warn('[creative-content] AI caption generation failed, using fallback', { error });
@@ -1171,7 +1249,10 @@ function generateFallbackCaption(request: GenerateContentRequest): string {
         };
 
         const options = safeTemplates[goal][style] || safeTemplates[goal].professional;
-        return options[Math.floor(Math.random() * options.length)];
+        return ensureComplianceDisclaimer(
+            options[Math.floor(Math.random() * options.length)],
+            request.complianceDisclaimer,
+        );
     }
 
     const templates: Record<string, string[]> = {
@@ -1194,7 +1275,10 @@ function generateFallbackCaption(request: GenerateContentRequest): string {
     };
 
     const options = templates[style] || templates.professional;
-    return options[Math.floor(Math.random() * options.length)];
+    return ensureComplianceDisclaimer(
+        options[Math.floor(Math.random() * options.length)],
+        request.complianceDisclaimer,
+    );
 }
 
 /**

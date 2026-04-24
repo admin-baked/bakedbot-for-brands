@@ -37,6 +37,7 @@ describe('Bundle Actions', () => {
         mockGet = jest.fn();
         mockWhere = jest.fn().mockReturnThis();
         mockOrderBy = jest.fn().mockReturnThis();
+        const mockLimit = jest.fn().mockReturnThis();
 
         mockDoc = jest.fn((id) => ({
             set: mockSet,
@@ -49,6 +50,7 @@ describe('Bundle Actions', () => {
             doc: mockDoc,
             where: mockWhere,
             orderBy: mockOrderBy,
+            limit: mockLimit,
             get: mockGet,
             add: jest.fn(),
         }));

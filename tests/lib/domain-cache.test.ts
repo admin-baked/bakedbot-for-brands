@@ -2,6 +2,15 @@
  * Tests for domain cache utilities
  */
 
+// Mock Redis layer so tests run without a Redis connection
+jest.mock('@/lib/cache', () => ({
+    getCached: jest.fn().mockResolvedValue(null),
+    setCached: jest.fn().mockResolvedValue(undefined),
+    invalidateCache: jest.fn().mockResolvedValue(undefined),
+    CachePrefix: { DOMAIN: 'domain' },
+    CacheTTL: { DOMAIN: 300 },
+}));
+
 import {
     getCachedTenant,
     setCachedTenant,
@@ -11,111 +20,101 @@ import {
 } from '@/lib/domain-cache';
 
 describe('domain-cache', () => {
-    // Clear cache before each test
     beforeEach(() => {
         clearDomainCache();
     });
 
     describe('setCachedTenant and getCachedTenant', () => {
-        it('should store and retrieve tenant ID', () => {
-            setCachedTenant('shop.example.com', 'tenant-123');
-            expect(getCachedTenant('shop.example.com')).toBe('tenant-123');
+        it('should store and retrieve tenant ID', async () => {
+            await setCachedTenant('shop.example.com', 'tenant-123');
+            expect(await getCachedTenant('shop.example.com')).toBe('tenant-123');
         });
 
-        it('should normalize domain to lowercase', () => {
-            setCachedTenant('SHOP.EXAMPLE.COM', 'tenant-123');
-            expect(getCachedTenant('shop.example.com')).toBe('tenant-123');
-            expect(getCachedTenant('Shop.Example.COM')).toBe('tenant-123');
+        it('should normalize domain to lowercase', async () => {
+            await setCachedTenant('SHOP.EXAMPLE.COM', 'tenant-123');
+            expect(await getCachedTenant('shop.example.com')).toBe('tenant-123');
+            expect(await getCachedTenant('Shop.Example.COM')).toBe('tenant-123');
         });
 
-        it('should return undefined for uncached domains', () => {
-            expect(getCachedTenant('uncached.com')).toBeUndefined();
+        it('should return undefined for uncached domains', async () => {
+            expect(await getCachedTenant('uncached.com')).toBeUndefined();
         });
 
-        it('should cache null values (domain not found)', () => {
-            setCachedTenant('notfound.com', null);
-            expect(getCachedTenant('notfound.com')).toBeNull();
+        it('should cache null values (domain not found)', async () => {
+            await setCachedTenant('notfound.com', null);
+            expect(await getCachedTenant('notfound.com')).toBeNull();
         });
 
-        it('should distinguish between null and undefined', () => {
-            setCachedTenant('exists-but-null.com', null);
-
-            // Cached null value returns null
-            expect(getCachedTenant('exists-but-null.com')).toBeNull();
-
-            // Uncached returns undefined
-            expect(getCachedTenant('never-cached.com')).toBeUndefined();
+        it('should distinguish between null and undefined', async () => {
+            await setCachedTenant('exists-but-null.com', null);
+            expect(await getCachedTenant('exists-but-null.com')).toBeNull();
+            expect(await getCachedTenant('never-cached.com')).toBeUndefined();
         });
     });
 
     describe('invalidateDomainCache', () => {
-        it('should remove specific domain from cache', () => {
-            setCachedTenant('domain1.com', 'tenant-1');
-            setCachedTenant('domain2.com', 'tenant-2');
+        it('should remove specific domain from cache', async () => {
+            await setCachedTenant('domain1.com', 'tenant-1');
+            await setCachedTenant('domain2.com', 'tenant-2');
 
-            invalidateDomainCache('domain1.com');
+            await invalidateDomainCache('domain1.com');
 
-            expect(getCachedTenant('domain1.com')).toBeUndefined();
-            expect(getCachedTenant('domain2.com')).toBe('tenant-2');
+            expect(await getCachedTenant('domain1.com')).toBeUndefined();
+            expect(await getCachedTenant('domain2.com')).toBe('tenant-2');
         });
 
-        it('should normalize domain when invalidating', () => {
-            setCachedTenant('MIXED.CASE.com', 'tenant-1');
-            invalidateDomainCache('mixed.case.COM');
-            expect(getCachedTenant('mixed.case.com')).toBeUndefined();
+        it('should normalize domain when invalidating', async () => {
+            await setCachedTenant('MIXED.CASE.com', 'tenant-1');
+            await invalidateDomainCache('mixed.case.COM');
+            expect(await getCachedTenant('mixed.case.com')).toBeUndefined();
         });
 
-        it('should not throw for non-existent domains', () => {
-            expect(() => invalidateDomainCache('nonexistent.com')).not.toThrow();
+        it('should not throw for non-existent domains', async () => {
+            await expect(invalidateDomainCache('nonexistent.com')).resolves.not.toThrow();
         });
     });
 
     describe('clearDomainCache', () => {
-        it('should remove all cached entries', () => {
-            setCachedTenant('domain1.com', 'tenant-1');
-            setCachedTenant('domain2.com', 'tenant-2');
-            setCachedTenant('domain3.com', 'tenant-3');
+        it('should remove all cached entries', async () => {
+            await setCachedTenant('domain1.com', 'tenant-1');
+            await setCachedTenant('domain2.com', 'tenant-2');
 
             clearDomainCache();
 
-            expect(getCachedTenant('domain1.com')).toBeUndefined();
-            expect(getCachedTenant('domain2.com')).toBeUndefined();
-            expect(getCachedTenant('domain3.com')).toBeUndefined();
+            expect(await getCachedTenant('domain1.com')).toBeUndefined();
+            expect(await getCachedTenant('domain2.com')).toBeUndefined();
         });
 
-        it('should reset cache size to zero', () => {
-            setCachedTenant('domain1.com', 'tenant-1');
-            setCachedTenant('domain2.com', 'tenant-2');
-
+        it('should reset L1 cache size to zero', async () => {
+            await setCachedTenant('domain1.com', 'tenant-1');
             clearDomainCache();
-
             const stats = getDomainCacheStats();
-            expect(stats.size).toBe(0);
+            expect(stats.l1Size).toBe(0);
         });
     });
 
     describe('getDomainCacheStats', () => {
-        it('should return correct size and maxSize', () => {
+        it('should return correct l1Size and maxL1Size', () => {
             const stats = getDomainCacheStats();
-            expect(stats.size).toBe(0);
-            expect(stats.maxSize).toBe(1000);
+            expect(stats.l1Size).toBe(0);
+            expect(stats.maxL1Size).toBeGreaterThan(0);
         });
 
-        it('should track cache size accurately', () => {
-            setCachedTenant('domain1.com', 'tenant-1');
-            setCachedTenant('domain2.com', 'tenant-2');
-            setCachedTenant('domain3.com', 'tenant-3');
+        it('should track L1 cache size accurately', async () => {
+            await setCachedTenant('domain1.com', 'tenant-1');
+            await setCachedTenant('domain2.com', 'tenant-2');
+            await setCachedTenant('domain3.com', 'tenant-3');
 
             const stats = getDomainCacheStats();
-            expect(stats.size).toBe(3);
+            expect(stats.l1Size).toBe(3);
         });
 
-        it('should not double-count overwrites', () => {
-            setCachedTenant('domain1.com', 'tenant-1');
-            setCachedTenant('domain1.com', 'tenant-updated');
+        it('should not double-count overwrites', async () => {
+            await setCachedTenant('domain1.com', 'tenant-1');
+            await setCachedTenant('domain1.com', 'tenant-updated');
 
             const stats = getDomainCacheStats();
-            expect(stats.size).toBe(1);
+            expect(stats.l1Size).toBe(1);
         });
     });
 
@@ -128,49 +127,20 @@ describe('domain-cache', () => {
             jest.useRealTimers();
         });
 
-        it('should expire entries after TTL', () => {
-            setCachedTenant('expiring.com', 'tenant-123');
-            expect(getCachedTenant('expiring.com')).toBe('tenant-123');
+        it('should expire L1 entries after 30s TTL', async () => {
+            await setCachedTenant('expiring.com', 'tenant-123');
+            expect(await getCachedTenant('expiring.com')).toBe('tenant-123');
 
-            // Advance time past the 1-minute TTL
-            jest.advanceTimersByTime(61 * 1000);
+            jest.advanceTimersByTime(31 * 1000);
 
-            expect(getCachedTenant('expiring.com')).toBeUndefined();
+            // After L1 expiry, falls through to Redis mock (returns null → undefined)
+            expect(await getCachedTenant('expiring.com')).toBeUndefined();
         });
 
-        it('should return valid entry before TTL expires', () => {
-            setCachedTenant('valid.com', 'tenant-123');
-
-            // Advance time but stay within TTL
-            jest.advanceTimersByTime(30 * 1000);
-
-            expect(getCachedTenant('valid.com')).toBe('tenant-123');
-        });
-
-        it('should remove expired entry from cache on access', () => {
-            setCachedTenant('toexpire.com', 'tenant-123');
-
-            jest.advanceTimersByTime(61 * 1000);
-
-            // Access triggers cleanup
-            getCachedTenant('toexpire.com');
-
-            // Verify it was removed (stats should reflect this)
-            const stats = getDomainCacheStats();
-            expect(stats.size).toBe(0);
-        });
-    });
-
-    describe('cache size limits', () => {
-        it('should prune old entries when max size is reached', () => {
-            // Add 1001 entries to exceed the limit of 1000
-            for (let i = 0; i < 1001; i++) {
-                setCachedTenant(`domain${i}.com`, `tenant-${i}`);
-            }
-
-            const stats = getDomainCacheStats();
-            // After pruning 100 entries and adding 1 more, should have 901
-            expect(stats.size).toBeLessThanOrEqual(1000);
+        it('should return valid entry before L1 TTL expires', async () => {
+            await setCachedTenant('valid.com', 'tenant-123');
+            jest.advanceTimersByTime(15 * 1000);
+            expect(await getCachedTenant('valid.com')).toBe('tenant-123');
         });
     });
 });

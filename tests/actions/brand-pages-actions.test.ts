@@ -273,7 +273,7 @@ describe('updateBrandPage', () => {
 
         await updateBrandPage(ORG_ID, 'about', {});
 
-        expect(requireUser).toHaveBeenCalledWith(['brand', 'dispensary', 'super_user', 'super_admin']);
+        expect(requireUser).toHaveBeenCalledWith(['brand', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'super_user', 'super_admin']);
     });
 
     it('throws on Firestore error after auth succeeds', async () => {

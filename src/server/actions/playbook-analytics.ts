@@ -47,6 +47,27 @@ export interface PlaybookAnalyticsData {
   eventDistribution: EventDistribution[];
 }
 
+function getExecutionCustomerId(exec: Record<string, unknown>): string | null {
+  if (typeof exec.customerId === 'string' && exec.customerId.trim().length > 0) {
+    return exec.customerId;
+  }
+
+  const eventData =
+    exec.eventData && typeof exec.eventData === 'object'
+      ? (exec.eventData as Record<string, unknown>)
+      : null;
+
+  if (
+    eventData &&
+    typeof eventData.customerId === 'string' &&
+    eventData.customerId.trim().length > 0
+  ) {
+    return eventData.customerId;
+  }
+
+  return null;
+}
+
 export async function getPlaybookAnalytics(
   orgId: string,
   days: number = 30
@@ -73,6 +94,7 @@ export async function getPlaybookAnalytics(
       .get();
 
     const playbooks = new Map<string, PlaybookMetric>();
+    const playbookCustomers = new Map<string, Set<string>>();
     const eventCounts = new Map<string, number>();
     const dailyTrends = new Map<string, { count: number; revenue: number }>();
     let totalRevenue = 0;
@@ -95,6 +117,7 @@ export async function getPlaybookAnalytics(
           revenueAttributed: 0,
           roi: 0,
         });
+        playbookCustomers.set(pbId, new Set<string>());
       }
 
       const metric = playbooks.get(pbId)!;
@@ -106,8 +129,11 @@ export async function getPlaybookAnalytics(
         metric.failedExecutions++;
       }
 
-      if (exec.customerId) {
-        metric.customersReached = Math.max(metric.customersReached, 1);
+      const customerId = getExecutionCustomerId(exec);
+      if (customerId) {
+        const customerSet = playbookCustomers.get(pbId)!;
+        customerSet.add(customerId);
+        metric.customersReached = customerSet.size;
       }
 
       const revenue = exec.revenueAttributed || 0;
@@ -164,7 +190,8 @@ export async function getPlaybookAnalytics(
     return {
       period: { startDate, endDate },
       totalPlaybooks: playbooks.size,
-      totalExecutions: execSnap.size,
+      totalExecutions:
+        typeof execSnap.size === 'number' ? execSnap.size : execSnap.docs.length,
       totalRevenue,
       averageRoi,
       playbookMetrics: metricsArray,

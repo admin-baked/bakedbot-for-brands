@@ -100,6 +100,7 @@ function renderPanel(props: Partial<React.ComponentProps<typeof DeeboComplianceP
       content={null}
       currentUserRole="brand_admin"
       currentUserId="user_123"
+      safeVersionPreview={undefined}
       date={undefined}
       isApproving={null}
       gauntletEnabled={true}
@@ -238,9 +239,11 @@ describe('DeeboCompliancePanel', () => {
     });
 
     it('shows the safe version quote', () => {
-      renderPanel({ content: warningContent });
-      // Component uses &ldquo;/&rdquo; which render as curly quotes (\u201C / \u201D)
-      expect(screen.getByText('\u201cMay help with relaxation.\u201d')).toBeInTheDocument();
+      renderPanel({
+        content: warningContent,
+        safeVersionPreview: 'A quick educational look at terpene profiles. For adults 21+ only.',
+      });
+      expect(screen.getByText(/educational look at terpene profiles/i)).toBeInTheDocument();
     });
 
     it('calls onAcceptSafeVersion when Accept Safe Version is clicked', () => {

@@ -24,6 +24,8 @@ describe('Webhook Retry Processor', () => {
   let mockFirestore: any;
   let mockQuerySnap: any;
   let mockDoc: any;
+  let mockRetryQuery: any;
+  let mockDlqQuery: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -48,30 +50,36 @@ describe('Webhook Retry Processor', () => {
     mockQuerySnap = {
       docs: [mockDoc],
       size: 1,
-      get: jest.fn().mockResolvedValue(mockQuerySnap),
     };
 
+    mockRetryQuery = {
+      where: jest.fn(),
+      limit: jest.fn(),
+      get: jest.fn().mockResolvedValue(mockQuerySnap),
+    };
+    mockRetryQuery.where.mockReturnValue(mockRetryQuery);
+    mockRetryQuery.limit.mockReturnValue(mockRetryQuery);
+
+    mockDlqQuery = {
+      limit: jest.fn(),
+      get: jest.fn().mockResolvedValue(mockQuerySnap),
+    };
+    mockDlqQuery.limit.mockReturnValue(mockDlqQuery);
+
     mockFirestore = {
-      collection: jest.fn().mockReturnValue({
-        where: jest.fn().mockReturnValue({
-          where: jest.fn().mockReturnValue({
-            where: jest.fn().mockReturnValue({
-              limit: jest.fn().mockReturnValue({
-                get: jest.fn().mockResolvedValue(mockQuerySnap),
-              }),
-            }),
-          }),
-          limit: jest.fn().mockReturnValue({
+      collection: jest.fn().mockImplementation((name: string) => {
+        if (name === 'playbook_dead_letter_queue') {
+          return {
+            add: jest.fn().mockResolvedValue({ id: 'dlq_123' }),
             get: jest.fn().mockResolvedValue(mockQuerySnap),
-          }),
+            orderBy: jest.fn().mockReturnValue(mockDlqQuery),
+          };
+        }
+
+        return {
+          where: jest.fn().mockReturnValue(mockRetryQuery),
           get: jest.fn().mockResolvedValue(mockQuerySnap),
-        }),
-        add: jest.fn().mockResolvedValue({ id: 'dlq_123' }),
-        orderBy: jest.fn().mockReturnValue({
-          limit: jest.fn().mockReturnValue({
-            get: jest.fn().mockResolvedValue(mockQuerySnap),
-          }),
-        }),
+        };
       }),
     };
 
@@ -192,17 +200,25 @@ describe('Webhook Retry Processor', () => {
 
   describe('getRetryStats', () => {
     it('should return retry statistics', async () => {
-      mockFirestore.collection().where().get.mockResolvedValueOnce({
-        size: 5, // pending
-      });
-      mockFirestore.collection().where().get.mockResolvedValueOnce({
-        size: 10, // retrying
-      });
-      mockFirestore.collection().where().get.mockResolvedValueOnce({
-        size: 3, // failed
-      });
-      mockFirestore.collection().get.mockResolvedValueOnce({
-        size: 2, // dlq
+      const playbookRetriesCollection = {
+        where: jest.fn()
+          .mockReturnValueOnce({
+            get: jest.fn().mockResolvedValue({ size: 5 }),
+          })
+          .mockReturnValueOnce({
+            get: jest.fn().mockResolvedValue({ size: 10 }),
+          })
+          .mockReturnValueOnce({
+            get: jest.fn().mockResolvedValue({ size: 3 }),
+          }),
+      };
+      const dlqCollection = {
+        get: jest.fn().mockResolvedValue({ size: 2 }),
+      };
+
+      mockFirestore.collection.mockImplementation((name: string) => {
+        if (name === 'playbook_dead_letter_queue') return dlqCollection;
+        return playbookRetriesCollection;
       });
 
       const stats = await getRetryStats();
@@ -239,7 +255,7 @@ describe('Webhook Retry Processor', () => {
         }),
       }));
 
-      mockFirestore.collection().orderBy().limit().get.mockResolvedValue({
+      mockDlqQuery.get.mockResolvedValue({
         docs: dlqDocs,
       });
 
@@ -251,13 +267,9 @@ describe('Webhook Retry Processor', () => {
     });
 
     it('should respect limit parameter', async () => {
-      const limitSpy = jest.fn().mockReturnValue({
-        get: jest.fn().mockResolvedValue({
-          docs: [],
-        }),
-      });
-
-      mockFirestore.collection().orderBy().limit = limitSpy;
+      const limitSpy = jest.fn().mockReturnValue(mockDlqQuery);
+      mockDlqQuery.limit = limitSpy;
+      mockDlqQuery.get.mockResolvedValue({ docs: [] });
 
       await getDLQEvents(50);
 

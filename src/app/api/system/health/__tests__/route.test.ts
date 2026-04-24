@@ -100,7 +100,7 @@ describe('GET /api/system/health', () => {
             expect(data.pulse).toBe('error');
             expect(data.healthy).toBe(false);
             expect(data.errors).toBe(15);
-            expect(data.uptime).toBe('98.0%');
+            expect(data.uptime).toBe('99.5%'); // 15 errors: threshold is <20 for 99.5%, >=20 for 98.0%
         });
 
         it('returns unknown pulse when heartbeat not initialized', async () => {

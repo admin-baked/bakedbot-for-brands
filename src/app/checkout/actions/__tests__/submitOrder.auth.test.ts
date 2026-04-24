@@ -6,6 +6,8 @@ const mockApplyCoupon = jest.fn();
 const mockCookies = jest.fn();
 const mockCouponUpdate = jest.fn();
 const mockProductGet = jest.fn();
+const mockOrdersAdd = jest.fn();
+const mockChargeCreditCard = jest.fn();
 
 const originalFetch = global.fetch;
 
@@ -19,6 +21,12 @@ jest.mock('@/firebase/server-client', () => ({
 
 jest.mock('../applyCoupon', () => ({
   applyCoupon: (...args: unknown[]) => mockApplyCoupon(...args),
+}));
+
+jest.mock('@/server/services/finance/authorize-net', () => ({
+  authorizeNetService: {
+    chargeCreditCard: (...args: unknown[]) => mockChargeCreditCard(...args),
+  },
 }));
 
 jest.mock('next/headers', () => ({
@@ -54,6 +62,9 @@ describe('submitOrder auth hardening', () => {
       toString: () => '__session=test-cookie',
     });
 
+    mockOrdersAdd.mockResolvedValue({ id: 'order-123' });
+    mockChargeCreditCard.mockResolvedValue({ success: true, transactionId: 'tx_test_123' });
+
     mockCreateServerClient.mockResolvedValue({
       firestore: {
         collection: jest.fn((name: string) => {
@@ -70,6 +81,12 @@ describe('submitOrder auth hardening', () => {
               doc: jest.fn(() => ({
                 update: mockCouponUpdate,
               })),
+            };
+          }
+
+          if (name === 'orders') {
+            return {
+              add: mockOrdersAdd,
             };
           }
 
@@ -92,15 +109,6 @@ describe('submitOrder auth hardening', () => {
       }),
     });
     mockCouponUpdate.mockResolvedValue(undefined);
-
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        success: true,
-        orderId: 'order-1',
-        checkoutUrl: '/order-confirmation/order-1',
-      }),
-    });
 
     ({ submitOrder } = await import('../submitOrder'));
   });
@@ -161,12 +169,16 @@ describe('submitOrder auth hardening', () => {
 
     expect(result.ok).toBe(true);
     expect(result.userId).toBe('user-1');
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(result.orderId).toBe('order-123');
+    expect(mockChargeCreditCard).toHaveBeenCalledTimes(1);
 
-    const fetchArgs = (global.fetch as jest.Mock).mock.calls[0];
-    const body = JSON.parse(fetchArgs[1].body);
-    expect(body.customer.uid).toBe('user-1');
-    expect(body.customer.email).toBe('owner@example.com');
+    // Verify order was saved with correct customer identity
+    expect(mockOrdersAdd).toHaveBeenCalledWith(expect.objectContaining({
+      customer: expect.objectContaining({
+        uid: 'user-1',
+        email: 'owner@example.com',
+      }),
+    }));
   });
 
   it('uses server catalog pricing when posting checkout payload', async () => {
@@ -181,20 +193,19 @@ describe('submitOrder auth hardening', () => {
     } as any);
 
     expect(result.ok).toBe(true);
-    const fetchArgs = (global.fetch as jest.Mock).mock.calls[0];
-    const body = JSON.parse(fetchArgs[1].body);
 
-    expect(body.items).toEqual([
-      expect.objectContaining({
+    // Verify server-side pricing was used in the Firestore order (not client price: 1)
+    expect(mockOrdersAdd).toHaveBeenCalledWith(expect.objectContaining({
+      items: [expect.objectContaining({
         productId: 'prod-1',
         name: 'Server Product',
         unitPrice: 20,
         quantity: 1,
-      }),
-    ]);
-    expect(body.subtotal).toBe(20);
-    expect(body.tax).toBe(3);
-    expect(body.total).toBe(23);
+      })],
+      subtotal: 20,
+      tax: 3,
+      total: 23,
+    }));
   });
 
   it('rejects cart items outside checkout context', async () => {

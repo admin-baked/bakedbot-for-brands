@@ -41,6 +41,15 @@ jest.mock('@/server/agents/harness', () => ({
   runMultiStepTask: jest.fn(),
 }));
 
+jest.mock('@/server/services/org-profile', () => ({
+  getOrgProfileWithFallback: jest.fn().mockResolvedValue(null),
+  buildMrsParkerContextBlock: jest.fn().mockReturnValue(''),
+}));
+
+jest.mock('@/server/services/org-integration-status', () => ({
+  buildIntegrationStatusSummaryForOrg: jest.fn().mockResolvedValue(''),
+}));
+
 describe('Mrs. Parker Agent (Harness)', () => {
   const brandMemory = {
     brand_profile: { name: 'Test Brand', id: 'brand_123' },

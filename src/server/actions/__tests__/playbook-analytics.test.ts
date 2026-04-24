@@ -330,30 +330,63 @@ describe('Playbook Analytics', () => {
 
   describe('getPlaybookSummary', () => {
     it('should return metrics for specific playbook', async () => {
-      const mockMetric: PlaybookMetric = {
-        playbookId: 'playbook-1',
-        playbookName: 'Campaign 1',
-        totalExecutions: 10,
-        successfulExecutions: 8,
-        failedExecutions: 2,
-        successRate: 80,
-        customersReached: 5,
-        revenueAttributed: 500,
-        roi: 4900,
-      };
+      const executions = [
+        {
+          id: 'exec-1',
+          playbookId: 'playbook-1',
+          playbookName: 'Campaign 1',
+          status: 'completed',
+          startedAt: new Date(),
+          revenueAttributed: 500,
+          eventData: { customerId: 'cust-1' },
+        },
+        {
+          id: 'exec-2',
+          playbookId: 'playbook-2',
+          playbookName: 'Campaign 2',
+          status: 'failed',
+          startedAt: new Date(),
+          revenueAttributed: 50,
+          eventData: { customerId: 'cust-2' },
+        },
+      ];
 
-      (getPlaybookAnalytics as jest.Mock) = jest.fn().mockResolvedValueOnce({
-        playbookMetrics: [mockMetric],
+      mockFirestore.collection().get.mockResolvedValueOnce({
+        docs: executions.map((execution) => ({ data: () => execution })),
       });
 
       const result = await getPlaybookSummary('org-test', 'playbook-1', 30);
 
-      expect(result).toEqual(mockMetric);
+      const expectedMetric: PlaybookMetric = {
+        playbookId: 'playbook-1',
+        playbookName: 'Campaign 1',
+        totalExecutions: 1,
+        successfulExecutions: 1,
+        failedExecutions: 0,
+        successRate: 100,
+        customersReached: 1,
+        revenueAttributed: 500,
+        roi: 9900,
+      };
+
+      expect(result).toEqual(expectedMetric);
     });
 
     it('should return error when playbook not found', async () => {
-      (getPlaybookAnalytics as jest.Mock) = jest.fn().mockResolvedValueOnce({
-        playbookMetrics: [],
+      mockFirestore.collection().get.mockResolvedValueOnce({
+        docs: [
+          {
+            data: () => ({
+              id: 'exec-2',
+              playbookId: 'playbook-2',
+              playbookName: 'Campaign 2',
+              status: 'completed',
+              startedAt: new Date(),
+              revenueAttributed: 75,
+              eventData: { customerId: 'cust-2' },
+            }),
+          },
+        ],
       });
 
       const result = await getPlaybookSummary('org-test', 'playbook-1', 30);

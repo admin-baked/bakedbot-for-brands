@@ -153,8 +153,8 @@ describe('Invitation Server Actions', () => {
             invitedBy: 'admin-1',
             status: 'pending',
             token: 'valid-token',
-            createdAt: { toDate: () => new Date('2026-03-10T00:00:00.000Z') },
-            expiresAt: { toDate: () => new Date('2026-03-20T00:00:00.000Z') },
+            createdAt: { toDate: () => new Date('2026-04-01T00:00:00.000Z') },
+            expiresAt: { toDate: () => new Date('2027-01-01T00:00:00.000Z') },
         };
 
         const inviteQuery = {

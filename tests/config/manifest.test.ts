@@ -23,14 +23,27 @@ describe('PWA Manifest', () => {
         expect(manifest.short_name).toBe('BakedBot');
     });
     
-    it('should have icon configuration pointing to SVG', () => {
+    it('should include PNG and SVG icon entries', () => {
         expect(manifest.icons).toBeDefined();
         expect(Array.isArray(manifest.icons)).toBe(true);
         expect(manifest.icons.length).toBeGreaterThan(0);
-        
-        const iconConfig = manifest.icons[0];
-        expect(iconConfig.src).toBe('/icon.svg');
-        expect(iconConfig.type).toBe('image/svg+xml');
+
+        expect(
+            manifest.icons,
+        ).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    src: '/icon-192.png',
+                    sizes: '192x192',
+                    type: 'image/png',
+                }),
+                expect.objectContaining({
+                    src: '/icon.svg',
+                    sizes: 'any',
+                    type: 'image/svg+xml',
+                }),
+            ]),
+        );
     });
     
     it('should have icon file that is a valid SVG (not a URL placeholder)', () => {
@@ -45,9 +58,16 @@ describe('PWA Manifest', () => {
         expect(iconContent).toContain('</svg>');
     });
     
-    it('should have icon with proper purpose for PWA compatibility', () => {
-        const iconConfig = manifest.icons[0];
-        expect(iconConfig.purpose).toBeDefined();
-        expect(iconConfig.purpose).toContain('maskable');
+    it('should include a dedicated maskable icon for PWA compatibility', () => {
+        const maskableIcon = manifest.icons.find((icon: any) => icon.purpose?.includes('maskable'));
+
+        expect(maskableIcon).toBeDefined();
+        expect(maskableIcon).toEqual(
+            expect.objectContaining({
+                src: '/icon-512.png',
+                sizes: '512x512',
+                type: 'image/png',
+            }),
+        );
     });
 });

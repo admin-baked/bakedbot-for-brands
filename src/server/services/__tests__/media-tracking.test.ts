@@ -93,8 +93,8 @@ describe('Media Tracking Service', () => {
                 const estimate = estimateMediaCost('video', 'veo');
                 expect(estimate.provider).toBe('veo');
                 expect(estimate.model).toBe('veo-3.1-generate-preview');
-                expect(estimate.estimatedCostUsd).toBe(0.50); // Default 4s
-                expect(estimate.breakdown.videoCost).toBe(0.50);
+                expect(estimate.estimatedCostUsd).toBe(0.625); // Default 5s rounds up to 6s tier
+                expect(estimate.breakdown.videoCost).toBe(0.625);
             });
 
             it('should estimate cost for veo video with 8s duration', () => {
@@ -107,7 +107,7 @@ describe('Media Tracking Service', () => {
                 const estimate = estimateMediaCost('video', 'sora');
                 expect(estimate.provider).toBe('sora');
                 expect(estimate.model).toBe('sora-2');
-                expect(estimate.estimatedCostUsd).toBe(0.50); // Default 4s
+                expect(estimate.estimatedCostUsd).toBe(1.00); // Default 5s rounds up to 8s tier
             });
 
             it('should estimate cost for sora video with 8s duration', () => {

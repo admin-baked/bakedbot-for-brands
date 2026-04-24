@@ -57,6 +57,23 @@ jest.mock('@/components/ui/label', () => ({
   Label: (props: any) => <label {...props} />
 }));
 
+jest.mock('@/components/ui/radio-group', () => ({
+  RadioGroup: ({ children, value, onValueChange }: any) => (
+    <div data-testid="radio-group" data-value={value} onChange={(e: any) => onValueChange?.(e.target.value)}>{children}</div>
+  ),
+  RadioGroupItem: ({ value, id }: any) => <input type="radio" id={id} value={value} data-testid={`radio-${value}`} />,
+}));
+
+jest.mock('@/components/ui/checkbox', () => ({
+  Checkbox: ({ checked, onCheckedChange, id }: any) => (
+    <input type="checkbox" id={id} checked={checked} onChange={(e) => onCheckedChange?.(e.target.checked)} />
+  ),
+}));
+
+jest.mock('@/lib/feature-flags', () => ({
+  isCompanyPlanCheckoutEnabled: () => true,
+}));
+
 jest.mock('lucide-react', () => ({
     AlertCircle: () => <span>AlertIcon</span>,
     CreditCard: () => <span>CreditCardIcon</span>,
@@ -132,6 +149,7 @@ describe('BillingForm', () => {
 
     render(<BillingForm organizationId="org1" locationCount={1} />);
 
-    expect(screen.getByText('Payment System Error: Invalid Credentials')).toBeInTheDocument();
+    expect(screen.getByText('Payment System Error')).toBeInTheDocument();
+    expect(screen.getByText('Invalid Credentials')).toBeInTheDocument();
   });
 });

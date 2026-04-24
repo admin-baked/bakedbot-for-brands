@@ -35,6 +35,7 @@ const GenerateSocialCaptionInputSchema = z.object({
     brandVoice: z.string().optional().describe('Brand personality description'),
     productName: z.string().optional().describe('Product being featured'),
     targetAudience: z.string().optional().describe('Target demographic'),
+    complianceDisclaimer: z.string().optional().describe('Exact disclaimer text that must appear in the caption if provided'),
     includeHashtags: z.boolean().default(true).describe('Whether to include hashtags'),
     includeEmojis: z.boolean().default(true).describe('Whether to include emojis'),
     maxLength: z.number().optional().describe('Maximum character count'),
@@ -126,6 +127,7 @@ The difference: specificity, sensory language, confidence, restraint.
 3. Adult audience assumed for cannabis content
 4. socialSafetyMode "social-safe": NO purchase language (buy, order, shop, discount, price, DM to purchase). Use: "learn more", "explore", "follow for updates", "link in bio"
 5. Lead with education, story, POV, or community — not product pushing
+6. If a compliance disclaimer is provided, include that exact disclaimer once, naturally, near the end of the caption
 
 ## YOUR BRIEF
 
@@ -153,6 +155,9 @@ Brand Voice: {{{brandVoice}}}
 {{/if}}
 {{#if targetAudience}}
 Audience: {{{targetAudience}}}
+{{/if}}
+{{#if complianceDisclaimer}}
+Required Disclaimer: {{{complianceDisclaimer}}}
 {{/if}}
 {{#if maxLength}}
 Max Length: {{{maxLength}}} characters

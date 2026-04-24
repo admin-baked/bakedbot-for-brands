@@ -48,6 +48,7 @@ interface DeeboCompliancePanelProps {
   content: CreativeContent | null;
   currentUserRole?: string;
   currentUserId?: string;
+  safeVersionPreview?: string | null;
   onAcceptSafeVersion: () => void;
   onApprove: (notes: string) => Promise<void>;
   onReject: (notes: string) => Promise<void>;
@@ -78,6 +79,7 @@ export function DeeboCompliancePanel({
   content,
   currentUserRole,
   currentUserId,
+  safeVersionPreview,
   onAcceptSafeVersion,
   onApprove,
   onReject,
@@ -216,7 +218,7 @@ export function DeeboCompliancePanel({
                         <p className="text-[10px] font-medium text-primary">Deebo&apos;s Safe Version</p>
                       </div>
                       <p className="text-[11px] text-muted-foreground italic pl-4">
-                        &ldquo;May help with relaxation.&rdquo;
+                        &ldquo;{safeVersionPreview || 'For adults 21+ only.'}&rdquo;
                       </p>
                       <Button
                         size="sm"

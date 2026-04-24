@@ -9,7 +9,7 @@ describe('formatSmartTime', () => {
 
     beforeEach(() => {
         jest.useFakeTimers();
-        jest.setSystemTime(now);
+        jest.setSystemTime(now.getTime());
     });
 
     afterEach(() => {

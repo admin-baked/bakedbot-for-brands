@@ -4,10 +4,7 @@
  * Tests the demo agent responses to ensure no hallucinated data.
  */
 
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
 // Import the demo responses directly for testing
 const DEMO_RESPONSES = {
     smokey: {

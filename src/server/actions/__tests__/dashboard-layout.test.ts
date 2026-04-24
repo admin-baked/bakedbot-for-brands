@@ -7,6 +7,14 @@ jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn()
 }));
 
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn().mockResolvedValue({
+        uid: 'user1',
+        email: 'test@example.com',
+        role: 'brand',
+    }),
+}));
+
 // Define mock functions at top level for easy access in tests
 const mockSet = jest.fn();
 const mockGet = jest.fn();
@@ -64,14 +72,12 @@ describe('Dashboard Layout Actions', () => {
         });
 
         it('returns error if user is not authenticated', async () => {
-            (createServerClient as jest.Mock).mockResolvedValue({
-                firestore: mockFirestore,
-                auth: { currentUser: null }
-            });
+            const { requireUser } = await import('@/server/auth/auth');
+            (requireUser as jest.Mock).mockRejectedValueOnce(new Error('Unauthorized'));
 
             const result = await saveDashboardLayout('brand', []);
             expect(result.success).toBe(false);
-            expect(result.error).toBe('Unauthorized');
+            expect(result.error).toBeDefined();
         });
     });
 

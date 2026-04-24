@@ -299,7 +299,10 @@ describe('useCreativeContent', () => {
 
     describe('editCaption action', () => {
         it('calls updateCaption server action', async () => {
-            mockUpdateCaption.mockResolvedValue(undefined);
+            mockUpdateCaption.mockResolvedValue({
+                ...mockContent[0],
+                caption: 'Updated caption text',
+            });
 
             const { result } = renderHook(() => useCreativeContent({ realtime: false }));
 
@@ -312,12 +315,18 @@ describe('useCreativeContent', () => {
             expect(mockUpdateCaption).toHaveBeenCalledWith(
                 'tenant-123',
                 'content-1',
-                'Updated caption text'
+                'Updated caption text',
+                {}
             );
         });
 
         it('updates local state when not using realtime', async () => {
-            mockUpdateCaption.mockResolvedValue(undefined);
+            mockUpdateCaption.mockResolvedValue({
+                ...mockContent[0],
+                caption: 'Edited caption',
+                complianceStatus: 'active',
+                status: 'pending',
+            });
 
             const { result } = renderHook(() => useCreativeContent({ realtime: false }));
 

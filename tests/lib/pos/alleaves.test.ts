@@ -71,6 +71,8 @@ describe('ALLeavesClient', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockFetch.mockReset();
+        // Default fallback for any extra fetch calls (e.g. parallel fetchAreas in fetchMenu)
+        mockFetch.mockResolvedValue(makeJsonOk([]));
         client = new ALLeavesClient(mockConfig);
     });
 
@@ -210,8 +212,9 @@ describe('ALLeavesClient', () => {
             ];
 
             mockFetch
-                .mockResolvedValueOnce(makeAuthOk(token))
-                .mockResolvedValueOnce(makeJsonOk(items));
+                .mockResolvedValueOnce(makeAuthOk(token))   // auth for inventory request
+                .mockResolvedValueOnce(makeAuthOk(token))   // auth for parallel fetchAreas request
+                .mockResolvedValueOnce(makeJsonOk(items));  // inventory data
 
             const result = await client.fetchMenu();
 
@@ -230,11 +233,11 @@ describe('ALLeavesClient', () => {
             });
 
             expect(mockFetch).toHaveBeenNthCalledWith(
-                2,
+                3,
                 'https://app.alleaves.com/api/inventory/search',
                 expect.objectContaining({
                     method: 'POST',
-                    body: JSON.stringify({ query: '' }),
+                    body: JSON.stringify({ query: '', id_location: 789 }),
                     headers: expect.objectContaining({
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json',
@@ -279,8 +282,9 @@ describe('ALLeavesClient', () => {
             ];
 
             mockFetch
-                .mockResolvedValueOnce(makeAuthOk())
-                .mockResolvedValueOnce(makeJsonOk(items));
+                .mockResolvedValueOnce(makeAuthOk())   // auth for inventory request
+                .mockResolvedValueOnce(makeAuthOk())   // auth for parallel fetchAreas
+                .mockResolvedValueOnce(makeJsonOk(items)); // inventory data
 
             const result = await client.fetchMenu();
 
@@ -289,8 +293,9 @@ describe('ALLeavesClient', () => {
 
         it('should throw a wrapped error on API failure', async () => {
             mockFetch
-                .mockResolvedValueOnce(makeAuthOk())
-                .mockResolvedValueOnce(makeTextError(500, 'Internal Server Error'));
+                .mockResolvedValueOnce(makeAuthOk())    // auth for inventory
+                .mockResolvedValueOnce(makeAuthOk())    // auth for parallel fetchAreas
+                .mockResolvedValueOnce(makeTextError(500, 'Internal Server Error')); // inventory fails
 
             await expect(client.fetchMenu()).rejects.toThrow('ALLeaves menu fetch failed');
         });
@@ -358,13 +363,14 @@ describe('ALLeavesClient', () => {
                 .mockResolvedValueOnce(makeAuthOk(token))
                 .mockResolvedValueOnce(makeTextError(404, 'Not Found'))
                 .mockResolvedValueOnce(makeJsonOk(items));
+            // call 4: fetchAreas (parallel with inventory/search) uses default makeJsonOk([])
 
             const result = await client.getInventory(['1']);
 
             expect(result).toEqual({ '1': 30 });
 
-            // auth, inventory endpoint, then inventory/search (no second /auth due to cached token)
-            expect(mockFetch).toHaveBeenCalledTimes(3);
+            // auth, inventory endpoint (404), inventory/search + fetchAreas + fetchBatchDetails (parallel, token cached)
+            expect(mockFetch).toHaveBeenCalledTimes(5);
             expect(mockFetch.mock.calls[2]?.[0]).toBe('https://app.alleaves.com/api/inventory/search');
         });
     });

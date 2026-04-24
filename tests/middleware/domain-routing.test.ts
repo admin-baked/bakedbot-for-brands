@@ -36,14 +36,14 @@ function createMockRequest(
 ): NextRequest {
     const { host, method = 'GET', xForwardedHost, xForwardedProto } = options;
 
-    const headers = new Headers();
-    if (host) headers.set('host', host);
-    if (xForwardedHost) headers.set('x-forwarded-host', xForwardedHost);
-    if (xForwardedProto) headers.set('x-forwarded-proto', xForwardedProto);
+    const headersObj: Record<string, string> = {};
+    if (host) headersObj['host'] = host;
+    if (xForwardedHost) headersObj['x-forwarded-host'] = xForwardedHost;
+    if (xForwardedProto) headersObj['x-forwarded-proto'] = xForwardedProto;
 
     return new NextRequest(url, {
         method,
-        headers,
+        headers: headersObj,
     });
 }
 

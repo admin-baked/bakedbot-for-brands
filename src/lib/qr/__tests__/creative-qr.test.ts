@@ -103,18 +103,9 @@ describe('generateCreativeQR', () => {
     });
 
     it('should use browser window origin when available', async () => {
-        const originalWindow = global.window;
-        Object.defineProperty(global, 'window', {
-            value: { location: { origin: 'https://bakedbot.ai' } },
-            writable: true,
-        });
-
         const result = await generateCreativeQR({ contentId: validContentId });
 
-        expect(result.contentUrl).toBe(`https://bakedbot.ai/creative/${validContentId}`);
-
-        // Restore
-        global.window = originalWindow;
+        expect(result.contentUrl).toBe(`${window.location.origin}/creative/${validContentId}`);
     });
 });
 
@@ -156,7 +147,7 @@ describe('isValidContentId', () => {
     it('should validate correct UUID v4', () => {
         const validIds = [
             '550e8400-e29b-41d4-a716-446655440000',
-            '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
+            '123e4567-e89b-42d3-a456-426614174000',
             'f47ac10b-58cc-4372-a567-0e02b2c3d479',
         ];
 

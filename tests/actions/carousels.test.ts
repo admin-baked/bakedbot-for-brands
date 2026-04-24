@@ -26,6 +26,7 @@ describe('Carousel Actions', () => {
     let mockGet: jest.Mock;
     let mockWhere: jest.Mock;
     let mockOrderBy: jest.Mock;
+    let mockLimit: jest.Mock;
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -34,6 +35,7 @@ describe('Carousel Actions', () => {
         mockUpdate = jest.fn().mockResolvedValue({});
         mockDelete = jest.fn().mockResolvedValue({});
         mockGet = jest.fn();
+        mockLimit = jest.fn().mockReturnThis();
         mockWhere = jest.fn().mockReturnThis();
         mockOrderBy = jest.fn().mockReturnThis();
 
@@ -48,6 +50,7 @@ describe('Carousel Actions', () => {
             doc: mockDoc,
             where: mockWhere,
             orderBy: mockOrderBy,
+            limit: mockLimit,
             get: mockGet,
         }));
 

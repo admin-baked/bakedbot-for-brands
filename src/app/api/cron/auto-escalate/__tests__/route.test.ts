@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 
 const mockEscalateHeartbeatFailure = jest.fn();
 const mockEscalateLatencyBreach = jest.fn();
-const mockDispatchPlaybookEvent = jest.fn();
+const mockQueueFirebaseDeploymentPlaybookEvent = jest.fn();
 
 jest.mock('@/lib/logger', () => ({
     logger: {
@@ -17,8 +17,8 @@ jest.mock('@/server/services/auto-escalator', () => ({
     escalateLatencyBreach: mockEscalateLatencyBreach,
 }));
 
-jest.mock('@/server/services/playbook-event-dispatcher', () => ({
-    dispatchPlaybookEvent: mockDispatchPlaybookEvent,
+jest.mock('@/server/services/firebase-deployment-incident', () => ({
+    queueFirebaseDeploymentPlaybookEvent: mockQueueFirebaseDeploymentPlaybookEvent,
 }));
 
 describe('POST /api/cron/auto-escalate', () => {
@@ -46,7 +46,7 @@ describe('POST /api/cron/auto-escalate', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         process.env.CRON_SECRET = 'test-secret';
-        mockDispatchPlaybookEvent.mockResolvedValue(undefined);
+        mockQueueFirebaseDeploymentPlaybookEvent.mockResolvedValue(undefined);
         global.setImmediate = ((fn: (...args: any[]) => void, ...args: any[]) => {
             fn(...args);
             return 0 as any;
@@ -76,15 +76,16 @@ describe('POST /api/cron/auto-escalate', () => {
         expect(body).toEqual({
             accepted: true,
             type: 'deployment_failure',
-            message: 'Deployment failure playbook queued',
+            message: 'Deployment failure queued',
         });
-        expect(mockDispatchPlaybookEvent).toHaveBeenCalledWith(
-            'bakedbot-internal',
-            'deployment.firebase.failed',
+        expect(mockQueueFirebaseDeploymentPlaybookEvent).toHaveBeenCalledWith(
             expect.objectContaining({
-                eventName: 'deployment.firebase.failed',
-                workflowName: 'Deploy to Firebase App Hosting',
-                runId: '12345',
+                orgId: 'bakedbot-internal',
+                eventData: expect.objectContaining({
+                    eventName: 'deployment.firebase.failed',
+                    workflowName: 'Deploy to Firebase App Hosting',
+                    runId: '12345',
+                }),
             }),
         );
     });
@@ -102,14 +103,15 @@ describe('POST /api/cron/auto-escalate', () => {
         const response = await POST(request);
 
         expect(response.status).toBe(202);
-        expect(mockDispatchPlaybookEvent).toHaveBeenCalledWith(
-            'bakedbot-internal',
-            'deployment.firebase.succeeded',
+        expect(mockQueueFirebaseDeploymentPlaybookEvent).toHaveBeenCalledWith(
             expect.objectContaining({
-                eventName: 'deployment.firebase.succeeded',
-                workflowName: 'Production Deploy',
-                runId: '67890',
-                deployedUrl: 'https://bakedbot.ai',
+                orgId: 'bakedbot-internal',
+                eventData: expect.objectContaining({
+                    eventName: 'deployment.firebase.succeeded',
+                    workflowName: 'Production Deploy',
+                    runId: '67890',
+                    deployedUrl: 'https://bakedbot.ai',
+                }),
             }),
         );
     });

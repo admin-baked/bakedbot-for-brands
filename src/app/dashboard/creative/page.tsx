@@ -51,6 +51,7 @@ import { useCreativeContent } from "@/hooks/use-creative-content";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import type {
+  CreativeContent,
   CreativeBusinessContext,
   GenerateContentRequest,
   SocialContentGoal,
@@ -68,7 +69,7 @@ import { EngagementAnalytics } from "@/components/creative/engagement-analytics"
 import { useUser } from "@/firebase/auth/use-user";
 import { DeeboCompliancePanel } from "./components/deebo-compliance-panel";
 import { VideoGenerator } from "./components/video-generator";
-import { useBrandGuide, useBrandVoice, useBrandColors } from "@/hooks/use-brand-guide";
+import { useBrandGuide, useBrandVoice, useBrandColors, useBrandCompliance } from "@/hooks/use-brand-guide";
 import { sendCreativeToInbox } from "@/server/actions/creative-inbox";
 import { getBrandKitImages } from "@/server/actions/brand-images";
 import { getMyAIStudioUsageSummary } from "@/server/actions/ai-studio";
@@ -104,6 +105,71 @@ function formatMenuProductLabel(product: MenuProduct): string {
   }
 
   return `${name} · ${brandName}`;
+}
+
+function appendCreativeDisclaimer(copy: string, disclaimer?: string | null): string {
+  const normalizedCopy = copy.trim();
+  const normalizedDisclaimer = (disclaimer || "").trim();
+
+  if (!normalizedDisclaimer) {
+    return normalizedCopy;
+  }
+
+  const comparableCopy = normalizedCopy.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const comparableDisclaimer = normalizedDisclaimer.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+  if (comparableDisclaimer && comparableCopy.includes(comparableDisclaimer)) {
+    return normalizedCopy;
+  }
+
+  return normalizedCopy
+    ? `${normalizedCopy}\n\n${normalizedDisclaimer}`
+    : normalizedDisclaimer;
+}
+
+function humanizeCreativeError(message: string): string {
+  const normalized = message.trim();
+
+  if (!normalized) {
+    return "Creative Studio hit a snag. Try again in a moment.";
+  }
+
+  if (/failed to fetch|network/i.test(normalized)) {
+    return "Creative Studio could not reach the generator. Check your connection and try again.";
+  }
+
+  return normalized;
+}
+
+function buildSafeCreativeCaption(
+  content: CreativeContent | null,
+  complianceDisclaimer?: string | null,
+): string | null {
+  if (!content) {
+    return null;
+  }
+
+  const source = (content.generationPrompt || content.caption || "")
+    .replace(/#\w+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const firstSentence = source
+    .split(/[.!?]/)
+    .map((sentence) => sentence.trim())
+    .find(Boolean);
+
+  const cleanedTopic = (firstSentence || "")
+    .replace(/\b(may help|helps?|helped|relaxation|relaxed|sleep|sleepy|pain|anxiety|stress relief|heals?|treats?|cures?|feel(?:ing)?|makes? you|results?)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[,:;-]+$/, "");
+
+  const safeBase = cleanedTopic
+    ? `A quick educational look at ${cleanedTopic}.`
+    : "A quick educational update for our adult audience.";
+
+  return appendCreativeDisclaimer(safeBase, complianceDisclaimer);
 }
 
 // Valid creative style types
@@ -694,6 +760,11 @@ export default function CreativeCommandCenter() {
   const { brandGuide, loading: brandGuideLoading } = useBrandGuide(brandId);
   const brandVoiceData = useBrandVoice(brandGuide);
   const brandColors = useBrandColors(brandGuide);
+  const brandCompliance = useBrandCompliance(brandGuide);
+  const complianceDisclaimer = brandGuide?.compliance?.requiredDisclaimers?.age
+    || brandGuide?.compliance?.ageGateLanguage
+    || brandCompliance.disclaimers[0]
+    || undefined;
 
   // Serialised brand voice string for Craig
   const brandVoiceString = brandVoiceData
@@ -715,7 +786,7 @@ export default function CreativeCommandCenter() {
 
   // Optimistic local content — shown immediately after generate() returns, even if the
   // Firestore real-time listener hasn't fired yet (handles permission/index edge cases).
-  const [localContent, setLocalContent] = useState<import('@/types/creative-content').CreativeContent | null>(null);
+  const [localContent, setLocalContent] = useState<CreativeContent | null>(null);
 
   // Left panel state
   const [activeLeftPanel, setActiveLeftPanel] = useState<LeftPanel | null>(null);
@@ -1264,6 +1335,7 @@ export default function CreativeCommandCenter() {
       tier: 'free',
       brandName: brandName || undefined,
       brandVoice: brandVoiceString || undefined,
+      complianceDisclaimer,
     }).then(result => {
       if (result) setLocalContent(result);
     }).catch(() => {
@@ -1280,7 +1352,12 @@ export default function CreativeCommandCenter() {
   const recentFirestoreContent = content[0]?.createdAt && (Date.now() - content[0].createdAt < TWO_HOURS)
     ? content[0]
     : null;
-  const currentContent = localContent || recentFirestoreContent || null;
+  const currentContent = localContent
+    && recentFirestoreContent?.id === localContent.id
+    && (recentFirestoreContent.updatedAt ?? 0) > (localContent.updatedAt ?? 0)
+      ? recentFirestoreContent
+      : localContent || recentFirestoreContent || null;
+  const safeVersionCaption = buildSafeCreativeCaption(currentContent, complianceDisclaimer);
   const currentPlan = usageSummary ? findPricingPlan(usageSummary.planId) : null;
   const totalCreditsRemaining = usageSummary
     ? Math.max(0, usageSummary.totalCreditsAvailable - usageSummary.totalCreditsUsed)
@@ -1511,7 +1588,7 @@ export default function CreativeCommandCenter() {
         setDeckResultSlideCount(data.slideCount);
         toast.success(`Deck ready! ${data.slideCount} slides · ${data.fileName}`);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Deck generation failed';
+        const msg = humanizeCreativeError(err instanceof Error ? err.message : 'Deck generation failed');
         setGenerationError(msg);
         toast.error(msg);
       } finally {
@@ -1555,7 +1632,7 @@ export default function CreativeCommandCenter() {
           'Remix generation failed',
         );
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Remix generation failed';
+        const msg = humanizeCreativeError(err instanceof Error ? err.message : 'Remix generation failed');
         setGenerationError(msg);
         toast.error(msg);
       } finally {
@@ -1607,7 +1684,7 @@ export default function CreativeCommandCenter() {
         setLocalVideoUrl(result.videoUrl);
         toast.success(`Long video ready! (${result.duration}s · ${result.clipCount} scenes)`);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Long video generation failed';
+        const msg = humanizeCreativeError(err instanceof Error ? err.message : 'Long video generation failed');
         setGenerationError(msg);
         toast.error(msg);
       } finally {
@@ -1711,7 +1788,7 @@ export default function CreativeCommandCenter() {
           toast.success(`Video ready! (${result.duration}s clip)`);
         }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Video generation failed';
+        const msg = humanizeCreativeError(err instanceof Error ? err.message : 'Video generation failed');
         setGenerationError(msg);
         toast.error(msg);
       } finally {
@@ -1749,6 +1826,7 @@ export default function CreativeCommandCenter() {
         tier: "free",
         brandName: brandGuide?.brandName || undefined,
         brandVoice: brandVoiceString,
+        complianceDisclaimer,
         logoUrl: brandGuide?.visualIdentity?.logo?.primary,
         imageMode,
         bgColor: imageMode === 'branded' ? brandColors?.primary : undefined,
@@ -1764,7 +1842,7 @@ export default function CreativeCommandCenter() {
           .catch(() => {});
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "An error occurred while generating content";
+      const msg = humanizeCreativeError(err instanceof Error ? err.message : "An error occurred while generating content");
       setGenerationError(msg);
       toast.error(msg);
     }
@@ -1811,11 +1889,10 @@ export default function CreativeCommandCenter() {
   };
 
   const handleAcceptSafeVersion = async () => {
-    if (!currentContent) return;
+    if (!currentContent || !safeVersionCaption) return;
     try {
-      const safeCaption = "May help with relaxation.";
-      await editCaption(currentContent.id, safeCaption);
-      toast.success("Safe version accepted! Caption updated.");
+      await editCaption(currentContent.id, safeVersionCaption, { complianceDisclaimer });
+      toast.success("Safe version accepted. Deebo is re-checking the updated caption.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to accept safe version");
     }
@@ -1827,9 +1904,13 @@ export default function CreativeCommandCenter() {
 
   const handleSaveCaption = async () => {
     if (!currentContent || !editedCaption.trim()) return;
-    await editCaption(currentContent.id, editedCaption);
-    setIsEditingCaption(false);
-    toast.success("Caption updated!");
+    try {
+      await editCaption(currentContent.id, editedCaption, { complianceDisclaimer });
+      setIsEditingCaption(false);
+      toast.success("Caption updated! Deebo re-checked the latest version.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update caption");
+    }
   };
 
   const handleCancelEditCaption = () => { setIsEditingCaption(false); setEditedCaption(""); };
@@ -1916,6 +1997,7 @@ export default function CreativeCommandCenter() {
           tier: "free",
           brandName: brandGuide?.brandName || undefined,
           brandVoice: brandVoiceString,
+          complianceDisclaimer,
           logoUrl: brandGuide?.visualIdentity?.logo?.primary,
         }))
       );
@@ -3785,6 +3867,7 @@ export default function CreativeCommandCenter() {
           content={currentContent}
           currentUserRole={(user as any)?.role}
           currentUserId={user?.uid}
+          safeVersionPreview={safeVersionCaption}
           onAcceptSafeVersion={handleAcceptSafeVersion}
           onApprove={handleApprovalChainApprove}
           onReject={handleApprovalChainReject}

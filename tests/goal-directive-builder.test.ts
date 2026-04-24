@@ -169,10 +169,10 @@ describe('Goal Directive Builder', () => {
    Status: at_risk
    Guidance: Focus on customer acquisition`;
 
-      expect(directive).toContain('Craig');
-      // In actual system, Craig prompt would be:
-      // initialize() loads active goals → calls loadAndBuildGoalDirective()
-      // → injects directives into system_instructions
+      // Verify the directive has the correct format for injection into any agent's system prompt
+      expect(directive).toContain('URGENT');
+      expect(directive).toContain('foot_traffic');
+      expect(directive).toContain('at_risk');
     });
 
     it('should inject directives into Smokey system prompt', () => {

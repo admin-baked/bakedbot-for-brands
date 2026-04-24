@@ -16,12 +16,15 @@ jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn()
 }));
 jest.mock('@/server/auth/auth', () => ({
-    requireUser: jest.fn().mockResolvedValue({ 
-        uid: 'user1', 
+    requireUser: jest.fn().mockResolvedValue({
+        uid: 'user1',
         name: 'Test User',
         email: 'test@example.com',
-        role: 'user'
+        role: 'super_user'
     })
+}));
+jest.mock('firebase-admin/firestore', () => ({
+    FieldValue: { increment: jest.fn((n: number) => ({ _increment: n })), serverTimestamp: jest.fn(() => ({ _serverTimestamp: true })) },
 }));
 
 const mockFirestore = {
@@ -36,40 +39,40 @@ describe('Playbook Actions', () => {
     });
 
     describe('detectApprovalRequired', () => {
-        it('returns true for customer email steps', () => {
+        it('returns true for customer email steps', async () => {
             const steps: PlaybookStep[] = [
                 { id: '1', action: 'gmail.send', params: { to: 'customer@example.com' } }
             ];
-            expect(detectApprovalRequired(steps)).toBe(true);
+            expect(await detectApprovalRequired(steps)).toBe(true);
         });
 
-        it('returns false for user email steps', () => {
+        it('returns false for user email steps', async () => {
             const steps: PlaybookStep[] = [
                 { id: '1', action: 'gmail.send', params: { to: '{{current_user.email}}' } }
             ];
-            expect(detectApprovalRequired(steps)).toBe(false);
+            expect(await detectApprovalRequired(steps)).toBe(false);
         });
 
-        it('returns false for user.email variable', () => {
+        it('returns false for user.email variable', async () => {
             const steps: PlaybookStep[] = [
                 { id: '1', action: 'gmail.send', params: { to: '{{user.email}}' } }
             ];
-            expect(detectApprovalRequired(steps)).toBe(false);
+            expect(await detectApprovalRequired(steps)).toBe(false);
         });
 
-        it('returns false for non-email steps', () => {
+        it('returns false for non-email steps', async () => {
             const steps: PlaybookStep[] = [
                 { id: '1', action: 'delegate', params: { agent: 'craig' } }
             ];
-            expect(detectApprovalRequired(steps)).toBe(false);
+            expect(await detectApprovalRequired(steps)).toBe(false);
         });
 
-        it('returns true if any step has customer email', () => {
+        it('returns true if any step has customer email', async () => {
             const steps: PlaybookStep[] = [
                 { id: '1', action: 'delegate', params: {} },
                 { id: '2', action: 'gmail.send', params: { to: 'external@test.com' } }
             ];
-            expect(detectApprovalRequired(steps)).toBe(true);
+            expect(await detectApprovalRequired(steps)).toBe(true);
         });
     });
 
@@ -166,10 +169,10 @@ describe('Playbook Actions', () => {
 // Tests for natural language parsing patterns (pure logic, no AI mock needed)
 describe('Playbook Creation Detection Patterns', () => {
     const playbookCreationPatterns = [
-        /create\s+(?:a\s+)?playbook/i,
-        /build\s+(?:a\s+)?(?:playbook|automation|workflow)/i,
-        /set\s+up\s+(?:a\s+)?(?:playbook|automation|workflow)/i,
-        /make\s+(?:a\s+)?playbook/i,
+        /create\s+(?:an?\s+)?playbook/i,
+        /build\s+(?:an?\s+)?(?:playbook|automation|workflow)/i,
+        /set\s+up\s+(?:an?\s+)?(?:playbook|automation|workflow)/i,
+        /make\s+(?:an?\s+)?playbook/i,
         /new\s+playbook\s+(?:that|to|for)/i,
     ];
 

@@ -71,7 +71,7 @@ describe('delete-organization actions', () => {
         it('should successfully delete a brand', async () => {
             const result = await deleteBrand('brand123');
 
-            expect(isSuperUser).toHaveBeenCalledWith('superuser123');
+            expect(isSuperUser).toHaveBeenCalledWith('superuser123', undefined);
             expect(mockBatch.delete).toHaveBeenCalled();
             expect(mockBatch.commit).toHaveBeenCalled();
             expect(result).toEqual({ success: true });

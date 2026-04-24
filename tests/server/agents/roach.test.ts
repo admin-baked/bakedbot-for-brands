@@ -24,6 +24,14 @@ jest.mock('@/server/agents/harness', () => ({
     })
 }));
 
+jest.mock('@/server/agents/patterns', () => ({
+    runResearchElaboration: jest.fn().mockResolvedValue({
+        researchOutput: { steps: [{ tool: 'archival.search', result: 'found' }] },
+        elaboratedOutput: 'Research Complete',
+        metadata: { totalDurationMs: 100, researchDurationMs: 80, elaborationDurationMs: 20, totalSteps: 1 }
+    })
+}));
+
 describe('Roach Agent', () => {
     const mockBrandMemory = { brandId: 'test-brand' };
     const mockAgentMemory: AgentMemory = {

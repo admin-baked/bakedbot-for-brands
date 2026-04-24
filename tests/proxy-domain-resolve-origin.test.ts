@@ -7,10 +7,7 @@ import { getDomainResolveOrigin, shouldBypassMappedDomainRewrite } from '@/proxy
 
 function createRequest(host: string, protocol: string = 'https') {
   return new NextRequest(`https://${host}/`, {
-    headers: new Headers({
-      host,
-      'x-forwarded-proto': protocol,
-    }),
+    headers: { host, 'x-forwarded-proto': protocol },
   });
 }
 

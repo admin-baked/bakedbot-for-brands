@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TIERS, type TierId } from '@/config/tiers';
 import { upgradeSubscription } from '@/server/actions/subscription';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,20 @@ export function UpgradeModal({ isOpen, onClose, orgId, currentTierId }: UpgradeM
   const newTierConfig = selectedTier ? TIERS[selectedTier] : null;
   const currentTierConfig = TIERS[currentTierId];
 
+  const resetState = () => {
+    setStep('select');
+    setSelectedTier(null);
+    setLoading(false);
+    setError('');
+    setSuccessData(null);
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      resetState();
+    }
+  }, [isOpen]);
+
   // Handle tier selection
   const handleSelectTier = () => {
     if (!selectedTier) {
@@ -74,8 +88,7 @@ export function UpgradeModal({ isOpen, onClose, orgId, currentTierId }: UpgradeM
         // Auto-close after 4 seconds
         setTimeout(() => {
           onClose();
-          setStep('select');
-          setSelectedTier(null);
+          resetState();
         }, 4000);
       } else {
         setError(result.error || 'Upgrade failed');
@@ -93,12 +106,7 @@ export function UpgradeModal({ isOpen, onClose, orgId, currentTierId }: UpgradeM
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       onClose();
-      setTimeout(() => {
-        setStep('select');
-        setSelectedTier(null);
-        setError('');
-        setSuccessData(null);
-      }, 200);
+      resetState();
     }
   };
 

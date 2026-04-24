@@ -130,7 +130,7 @@ describe('detectTaskComplexity', () => {
 
     describe('Prompt length heuristics', () => {
         it('should detect very long prompts as complex', () => {
-            const longPrompt = 'word '.repeat(600); // 600 words
+            const longPrompt = 'word '.repeat(2100); // 2100 words > 2000 threshold
             const result = detectTaskComplexity(longPrompt);
             expect(result.complexity).toBe('complex');
             expect(result.suggestedModel).toBe(CLAUDE_REASONING_MODEL);
@@ -230,10 +230,14 @@ describe('selectModel', () => {
         expect(result.model).toBe(CLAUDE_TOOL_MODEL);
     });
 
-    it('should default to auto-routing enabled', () => {
+    it('should default to auto-routing disabled (uses CLAUDE_TOOL_MODEL)', () => {
+        // autoRoute defaults to false; pass true to enable strategic routing
         const result = selectModel('Develop a business strategy plan');
-        expect(result.model).toBe(CLAUDE_REASONING_MODEL);
-        expect(result.complexity.complexity).toBe('strategic');
+        expect(result.model).toBe(CLAUDE_TOOL_MODEL);
+        // With explicit autoRoute: true, strategic tasks reach CLAUDE_REASONING_MODEL
+        const routedResult = selectModel('Develop a business strategy plan', { autoRoute: true });
+        expect(routedResult.model).toBe(CLAUDE_REASONING_MODEL);
+        expect(routedResult.complexity.complexity).toBe('strategic');
     });
 
     it('should prefer explicit model over auto-routing', () => {

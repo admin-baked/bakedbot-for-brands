@@ -228,12 +228,14 @@ describe('Firestore Write Efficiency', () => {
     (require('@/firebase/server-client').createServerClient as jest.Mock)
       .mockResolvedValue({ firestore: mockDb });
 
+    // upgradeSubscription checks org ownership, then calls getSubscription (which also checks org ownership + gets subscription)
     mockCollectionRef.doc().get
-      .mockResolvedValueOnce({ exists: true, data: () => ({ ownerId: 'user123' }) })
+      .mockResolvedValueOnce({ exists: true, data: () => ({ ownerId: 'user123' }) })   // outer org check
+      .mockResolvedValueOnce({ exists: true, data: () => ({ ownerId: 'user123' }) })   // getSubscription org check
       .mockResolvedValueOnce({
         exists: true,
         data: () => ({ tierId: 'pro', status: 'active', amount: 99, authorizeNetSubscriptionId: 'arb_sub_123' }),
-      });
+      });  // getSubscription subscription doc
 
     const sets: unknown[] = [];
     const adds: unknown[] = [];
@@ -251,11 +253,13 @@ describe('Firestore Write Efficiency', () => {
     (require('@/firebase/server-client').createServerClient as jest.Mock)
       .mockResolvedValue({ firestore: mockDb });
 
+    // cancelSubscription checks org ownership, then calls getSubscription (which also checks org ownership + gets subscription)
     mockCollectionRef.doc().get
-      .mockResolvedValueOnce({ exists: true, data: () => ({ ownerId: 'user123' }) })
+      .mockResolvedValueOnce({ exists: true, data: () => ({ ownerId: 'user123' }) })   // outer org check
+      .mockResolvedValueOnce({ exists: true, data: () => ({ ownerId: 'user123' }) })   // getSubscription org check
       .mockResolvedValueOnce({
         exists: true, data: () => ({ tierId: 'pro', authorizeNetSubscriptionId: 'arb_sub_123' }),
-      });
+      });  // getSubscription subscription doc
 
     const sets: unknown[] = [];
     const adds: unknown[] = [];
@@ -294,8 +298,9 @@ describe('Concurrent Operation Performance', () => {
     const { mockDb, mockCollectionRef } = buildMocks();
     (require('@/firebase/server-client').createServerClient as jest.Mock)
       .mockResolvedValue({ firestore: mockDb });
+    // getSubscription checks ownerId on org doc — must include ownerId so auth check passes
     mockCollectionRef.doc().get.mockResolvedValue({
-      exists: true, data: () => ({ tierId: 'pro', status: 'active', amount: 99 }),
+      exists: true, data: () => ({ ownerId: 'user123', tierId: 'pro', status: 'active', amount: 99 }),
     });
 
     const t = performance.now();

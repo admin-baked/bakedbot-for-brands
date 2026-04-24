@@ -457,6 +457,8 @@ export interface GenerateContentRequest {
     brandName?: string;
     brandVoice?: string;
     logoUrl?: string;
+    /** Exact disclaimer text that should appear in generated copy when required */
+    complianceDisclaimer?: string;
     /** Tier for image generation */
     tier?: 'free' | 'paid' | 'super';
     /** Visual style hint for FLUX.1 image generation (e.g. "dark moody studio, spotlight lighting").
@@ -507,6 +509,10 @@ export interface ReviseContentRequest {
     tenantId: string;
     requesterId: string;
     note: string;
+}
+
+export interface UpdateCaptionOptions {
+    complianceDisclaimer?: string;
 }
 
 /**

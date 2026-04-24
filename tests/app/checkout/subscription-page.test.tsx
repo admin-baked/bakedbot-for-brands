@@ -101,13 +101,13 @@ describe('Subscription Checkout - Plan Resolution', () => {
             expect(plan?.id).toBe('pro');
         });
 
-        it('resolves free URL param to scout plan', () => {
+        it('resolves free URL param to free plan', () => {
             mockSearchParams.set('plan', 'free');
             const planId = mockSearchParams.get('plan') || 'growth';
             const plan = findPricingPlan(planId);
 
             expect(plan).toBeDefined();
-            expect(plan?.id).toBe('scout');
+            expect(plan?.id).toBe('free');
             expect(plan?.price).toBe(0);
         });
 
@@ -158,15 +158,15 @@ describe('Plan Display Data', () => {
 
         expect(plan?.priceDisplay).toBe('$99');
         expect(plan?.period).toBe('/ mo');
-        expect(plan?.features).toContain('Unlimited AI Budtender Messages');
+        expect(plan?.features).toContain('Historic compatibility plan');
     });
 
-    it('scout plan is free forever', () => {
+    it('scout plan is free', () => {
         const plan = findPricingPlan('scout');
 
         expect(plan?.price).toBe(0);
         expect(plan?.priceDisplay).toBe('$0');
-        expect(plan?.period).toBe('forever');
+        expect(plan?.period).toBe('/ mo');
     });
 
     it('empire plan has custom pricing', () => {

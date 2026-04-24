@@ -8,7 +8,13 @@ describe('punycode deprecation patching', () => {
       scripts?: Record<string, string>;
     };
 
-    expect(packageJson.scripts?.postinstall).toBe('node scripts/patch-punycode-deprecation.mjs');
+    const postinstall = packageJson.scripts?.postinstall;
+
+    expect(postinstall).toContain('node scripts/patch-punycode-deprecation.mjs');
+    expect(postinstall).toContain('node scripts/install-git-hooks.mjs');
+    expect(postinstall?.indexOf('patch-punycode-deprecation')).toBeLessThan(
+      postinstall?.indexOf('install-git-hooks'),
+    );
   });
 
   it('patch script targets the known deprecated punycode imports', () => {

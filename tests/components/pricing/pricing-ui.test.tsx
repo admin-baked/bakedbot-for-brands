@@ -112,10 +112,11 @@ describe('PricingUI', () => {
 
     it('renders the first 4 public plans', () => {
         render(<PricingUI />);
-        expect(screen.getByText('Free Check-In')).toBeInTheDocument();
-        expect(screen.getByText('Access Intel')).toBeInTheDocument();
-        expect(screen.getByText('Access Retention')).toBeInTheDocument();
-        expect(screen.getByText('Operator Core')).toBeInTheDocument();
+        // Plan names appear in both heading and pill/badge — use getAllByText
+        expect(screen.getAllByText('Free Check-In').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Access Intel').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Access Retention').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Operator Core').length).toBeGreaterThan(0);
     });
 
     it('renders plan CTA buttons', () => {

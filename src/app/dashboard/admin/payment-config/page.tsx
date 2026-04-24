@@ -16,7 +16,7 @@
 
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,9 +30,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getPaymentConfig, updatePaymentMethod, getCurrentUserLocationId, PaymentConfig } from '@/server/actions/payment-config';
 import { useToast } from '@/hooks/use-toast';
 
+type PaymentTabValue = 'overview' | 'smokey-pay' | 'aeropay' | 'transactions';
+
 export default function PaymentConfigPage() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const method = searchParams?.get('method') || 'overview';
+  const requestedMethod = (searchParams?.get('method') as PaymentTabValue | null) || 'overview';
   const { toast } = useToast();
 
   // State
@@ -41,11 +45,16 @@ export default function PaymentConfigPage() {
   const [paymentConfig, setPaymentConfig] = useState<PaymentConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<PaymentTabValue>(requestedMethod);
 
   // Load initial data
   useEffect(() => {
     loadPaymentConfig();
   }, []);
+
+  useEffect(() => {
+    setActiveTab(requestedMethod);
+  }, [requestedMethod]);
 
   const loadPaymentConfig = async () => {
     try {
@@ -142,6 +151,17 @@ export default function PaymentConfigPage() {
     setTimeout(() => setCopiedWebhook(null), 2000);
   };
 
+  const handleTabChange = (value: string) => {
+    const nextTab = value as PaymentTabValue;
+    setActiveTab(nextTab);
+
+    if (!pathname) {
+      return;
+    }
+
+    router.replace(`${pathname}?method=${nextTab}`, { scroll: false });
+  };
+
   // Helper to check if payment method is enabled
   const isMethodEnabled = (method: string) => {
     return paymentConfig?.enabledMethods?.includes(method) || false;
@@ -174,7 +194,7 @@ export default function PaymentConfigPage() {
         </AlertDescription>
       </Alert>
 
-      <Tabs value={method} className="space-y-4">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="smokey-pay">Smokey Pay</TabsTrigger>

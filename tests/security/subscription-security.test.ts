@@ -133,12 +133,15 @@ describe('Authorization — IDOR Prevention', () => {
 
   it('ownerUid fallback field is also honoured for ownership check', async () => {
     setupAuth('user123');
-    const { mockCollectionRef } = setupDb({ ownerUid: 'user123' });
+    const orgData = { ownerUid: 'user123' };
+    const { mockCollectionRef } = setupDb(orgData);
+    // cancelSubscription org check → getSubscription org check → getSubscription sub doc
     mockCollectionRef.doc().get
-      .mockResolvedValueOnce({ exists: true, data: () => ({ ownerUid: 'user123' }) })
+      .mockResolvedValueOnce({ exists: true, data: () => orgData })
+      .mockResolvedValueOnce({ exists: true, data: () => orgData })
       .mockResolvedValueOnce({
         exists: true,
-        data: () => ({ tierId: 'pro', authorizeNetSubscriptionId: 'arb_sub_123' }),
+        data: () => ({ tierId: 'pro', authorizeNetSubscriptionId: 'arb_sub_123', status: 'active' }),
       });
 
     const result = await cancelSubscription('org1');
@@ -220,9 +223,12 @@ describe('Input Validation — Zod Schema Enforcement', () => {
   });
 
   it('upgradeSubscription rejects downgrade attempts (empire → pro)', async () => {
-    const { mockCollectionRef } = setupDb({ ownerId: 'user123' });
+    const orgData = { ownerId: 'user123' };
+    const { mockCollectionRef } = setupDb(orgData);
+    // upgradeSubscription org check → getSubscription org check → getSubscription sub doc
     mockCollectionRef.doc().get
-      .mockResolvedValueOnce({ exists: true, data: () => ({ ownerId: 'user123' }) })
+      .mockResolvedValueOnce({ exists: true, data: () => orgData })
+      .mockResolvedValueOnce({ exists: true, data: () => orgData })
       .mockResolvedValueOnce({
         exists: true,
         data: () => ({ tierId: 'empire', status: 'active', amount: 999, authorizeNetSubscriptionId: 'arb_123' }),
@@ -234,9 +240,12 @@ describe('Input Validation — Zod Schema Enforcement', () => {
   });
 
   it('upgradeSubscription rejects same-tier selection', async () => {
-    const { mockCollectionRef } = setupDb({ ownerId: 'user123' });
+    const orgData = { ownerId: 'user123' };
+    const { mockCollectionRef } = setupDb(orgData);
+    // upgradeSubscription org check → getSubscription org check → getSubscription sub doc
     mockCollectionRef.doc().get
-      .mockResolvedValueOnce({ exists: true, data: () => ({ ownerId: 'user123' }) })
+      .mockResolvedValueOnce({ exists: true, data: () => orgData })
+      .mockResolvedValueOnce({ exists: true, data: () => orgData })
       .mockResolvedValueOnce({
         exists: true,
         data: () => ({ tierId: 'pro', status: 'active', amount: 99, authorizeNetSubscriptionId: 'arb_123' }),

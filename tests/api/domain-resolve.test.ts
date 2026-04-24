@@ -52,14 +52,13 @@ function createMockRequest(
     if (hostname) url.searchParams.set('hostname', hostname);
     if (originalPath) url.searchParams.set('originalPath', originalPath);
 
-    const headers = new Headers();
-    if (headerHostname) headers.set('x-resolve-hostname', headerHostname);
-    if (headerPath) headers.set('x-resolve-path', headerPath);
-    headers.set('x-forwarded-proto', 'https');
+    const headersObj: Record<string, string> = { 'x-forwarded-proto': 'https' };
+    if (headerHostname) headersObj['x-resolve-hostname'] = headerHostname;
+    if (headerPath) headersObj['x-resolve-path'] = headerPath;
 
     return new NextRequest(url.toString(), {
         method: 'GET',
-        headers,
+        headers: headersObj,
     });
 }
 

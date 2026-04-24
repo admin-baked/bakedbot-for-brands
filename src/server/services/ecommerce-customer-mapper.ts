@@ -34,7 +34,34 @@ export async function resolveEcommerceCustomer(
       .get();
 
     if (!customerSnap.empty) {
-      const customerId = customerSnap.docs[0].id;
+      const customerDoc = customerSnap.docs[0];
+      const customerId = customerDoc.id;
+      const customerData = customerDoc.data() as {
+        ecommerceIds?: Record<string, unknown>;
+      };
+      const existingExternalId =
+        customerData.ecommerceIds && typeof customerData.ecommerceIds === 'object'
+          ? customerData.ecommerceIds.external
+          : undefined;
+
+      if (
+        typeof platformCustomerId === 'string' &&
+        platformCustomerId.trim().length > 0 &&
+        existingExternalId !== platformCustomerId
+      ) {
+        await customerDoc.ref.update({
+          'ecommerceIds.external': platformCustomerId,
+          updatedAt: new Date(),
+        });
+
+        logger.debug('[EcommerceMapper] Linked ecommerce ID to existing customer', {
+          orgId,
+          customerId,
+          email: normalizedEmail,
+          platformCustomerId,
+        });
+      }
+
       logger.debug('[EcommerceMapper] Customer found by email', {
         orgId,
         customerId,
@@ -73,7 +100,7 @@ export async function resolveEcommerceCustomer(
 export async function resolveEcommerceCustomerByPlatformId(
   orgId: string,
   platformId: string,
-  platform: string = 'shopify'
+  platform: string = 'external'
 ): Promise<ResolvedCustomer> {
   try {
     const { firestore } = await createServerClient();

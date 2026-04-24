@@ -5,6 +5,7 @@ describe('QueryAnalysisSchema', () => {
     it('should validate checkout intent with product', () => {
         const input = {
             searchType: 'checkout',
+            filters: {},
             checkoutParams: {
                 action: 'create_order',
                 productName: 'Blue Dream',
@@ -26,6 +27,7 @@ describe('QueryAnalysisSchema', () => {
     it('should validate checkout intent for viewing cart', () => {
         const input = {
             searchType: 'checkout',
+            filters: {},
             checkoutParams: {
                 action: 'view_cart'
             },

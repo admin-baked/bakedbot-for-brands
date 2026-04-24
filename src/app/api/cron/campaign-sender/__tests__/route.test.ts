@@ -55,12 +55,19 @@ describe('GET /api/cron/campaign-sender', () => {
             where: jest.fn().mockReturnThis(),
             limit: jest.fn().mockReturnThis(),
             get: jest.fn(),
+            doc: jest.fn().mockReturnValue({ update: jest.fn() }),
         };
 
         mockDb = {
             collection: jest.fn((name: string) => {
                 if (name === 'campaigns') return mockCampaignsQuery;
-                return { get: jest.fn() };
+                return { get: jest.fn(), doc: jest.fn().mockReturnValue({ update: jest.fn() }) };
+            }),
+            runTransaction: jest.fn(async (fn: any) => {
+                await fn({
+                    get: jest.fn().mockResolvedValue({ data: () => ({ status: 'scheduled' }) }),
+                    update: jest.fn(),
+                });
             }),
         };
 

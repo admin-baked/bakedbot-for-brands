@@ -142,7 +142,7 @@ describe('POST /api/cron/meeting-followup', () => {
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual({ success: true, processed: 0 });
+        expect(body).toMatchObject({ success: true, processed: 0 });
         expect(mockMarkFollowUpSent).not.toHaveBeenCalled();
     });
 
@@ -158,7 +158,7 @@ describe('POST /api/cron/meeting-followup', () => {
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual({ success: true, processed: 1 });
+        expect(body).toMatchObject({ success: true, processed: 1 });
         expect(mockMarkFollowUpSent).toHaveBeenCalledWith('booking-123');
     });
 
@@ -179,7 +179,7 @@ describe('POST /api/cron/meeting-followup', () => {
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual({ success: true, processed: 1 });
+        expect(body).toMatchObject({ success: true, processed: 1 });
         expect(mockMarkFollowUpSent).toHaveBeenCalledWith('booking-123');
     });
 });

@@ -1,47 +1,63 @@
-// Unit tests for UpgradeModal component
-// Tests the 3-step upgrade flow: select tier → confirm → success
-
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+
 import { UpgradeModal } from '@/components/billing/upgrade-modal';
-import { TIERS } from '@/config/tiers';
+import { upgradeSubscription } from '@/server/actions/subscription';
 
 jest.mock('@/server/actions/subscription', () => ({
   upgradeSubscription: jest.fn(),
 }));
 
 jest.mock('lucide-react', () => ({
-  CheckCircle: () => <span data-testid="check-circle">✓</span>,
-  AlertCircle: () => <span data-testid="alert-circle">!</span>,
-  Loader2: () => <span data-testid="loader">⏳</span>,
+  CheckCircle: () => <span data-testid="check-circle">ok</span>,
+  AlertCircle: () => <span data-testid="alert-circle">warn</span>,
+  Loader2: () => <span data-testid="loader">loading</span>,
 }));
 
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  children: React.ReactNode;
+};
+
+type DivProps = React.HTMLAttributes<HTMLDivElement> & {
+  children: React.ReactNode;
+};
+
+type TextProps = {
+  children: React.ReactNode;
+};
+
+type DialogProps = {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  children: React.ReactNode;
+};
+
 jest.mock('@/components/ui/button', () => ({
-  Button: ({ onClick, children, disabled, ...props }: any) => (
-    <button onClick={onClick} disabled={disabled} {...props}>
-      {children}
-    </button>
-  ),
+  Button: ({ children, ...props }: ButtonProps) => <button {...props}>{children}</button>,
 }));
 
 jest.mock('@/components/ui/card', () => ({
-  Card: ({ children, ...props }: any) => <div data-testid="card" {...props}>{children}</div>,
-  CardContent: ({ children }: any) => <div>{children}</div>,
-  CardDescription: ({ children }: any) => <p>{children}</p>,
-  CardHeader: ({ children }: any) => <div>{children}</div>,
-  CardTitle: ({ children }: any) => <h3>{children}</h3>,
+  Card: ({ children, ...props }: DivProps) => (
+    <div data-testid="card" {...props}>
+      {children}
+    </div>
+  ),
+  CardContent: ({ children, ...props }: DivProps) => <div {...props}>{children}</div>,
+  CardDescription: ({ children }: TextProps) => <p>{children}</p>,
+  CardHeader: ({ children, ...props }: DivProps) => <div {...props}>{children}</div>,
+  CardTitle: ({ children }: TextProps) => <h3>{children}</h3>,
 }));
 
 jest.mock('@/components/ui/dialog', () => ({
-  Dialog: ({ open, onOpenChange, children }: any) => (
-    open ? <div data-testid="dialog">{children}</div> : null
-  ),
-  DialogContent: ({ children }: any) => <div>{children}</div>,
-  DialogDescription: ({ children }: any) => <p>{children}</p>,
-  DialogHeader: ({ children }: any) => <div>{children}</div>,
-  DialogTitle: ({ children }: any) => <h2>{children}</h2>,
+  Dialog: ({ open, children }: DialogProps) => (open ? <div data-testid="dialog">{children}</div> : null),
+  DialogContent: ({ children, ...props }: DivProps) => <div {...props}>{children}</div>,
+  DialogDescription: ({ children }: TextProps) => <p>{children}</p>,
+  DialogHeader: ({ children, ...props }: DivProps) => <div {...props}>{children}</div>,
+  DialogTitle: ({ children }: TextProps) => <h2>{children}</h2>,
 }));
+
+const mockedUpgradeSubscription = upgradeSubscription as jest.MockedFunction<typeof upgradeSubscription>;
 
 describe('UpgradeModal', () => {
   const mockOnClose = jest.fn();
@@ -54,375 +70,111 @@ describe('UpgradeModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useRealTimers();
   });
 
-  // ============================================================================
-  // Rendering and State Management
-  // ============================================================================
+  it('renders nothing when the modal is closed', () => {
+    const { queryByTestId } = render(<UpgradeModal {...defaultProps} isOpen={false} />);
 
-  it('renders nothing when modal is closed', () => {
-    const { container } = render(
-      <UpgradeModal {...defaultProps} isOpen={false} />
-    );
-    expect(container.querySelector('[data-testid="dialog"]')).not.toBeInTheDocument();
+    expect(queryByTestId('dialog')).not.toBeInTheDocument();
   });
 
-  it('renders dialog when modal is open', () => {
-    render(<UpgradeModal {...defaultProps} />);
-    expect(screen.getByTestId('dialog')).toBeInTheDocument();
-  });
-
-  // ============================================================================
-  // Step 1: Plan Selection
-  // ============================================================================
-
-  it('shows select step initially with current plan info', () => {
+  it('shows the current plan and available upgrades for a pro user', () => {
     render(<UpgradeModal {...defaultProps} />);
 
     expect(screen.getByText('Upgrade Your Plan')).toBeInTheDocument();
-    expect(screen.getByText('Pro')).toBeInTheDocument(); // Current plan
-    expect(screen.getByText('$99/month')).toBeInTheDocument(); // Current plan price
-  });
-
-  it('shows only higher-tier options for pro tier user', () => {
-    render(<UpgradeModal {...defaultProps} currentTierId="pro" />);
-
-    // Should show growth and empire
+    expect(screen.getByText('Current Plan')).toBeInTheDocument();
+    expect(screen.getByText('Pro')).toBeInTheDocument();
     expect(screen.getByText('Growth')).toBeInTheDocument();
     expect(screen.getByText('Empire')).toBeInTheDocument();
-
-    // Should not show scout or pro
-    const allText = screen.getByTestId('dialog').textContent;
-    const proCount = (allText?.match(/Pro/g) || []).length;
-    expect(proCount).toBe(1); // Only the current plan card
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
   });
 
-  it('shows message when user is on highest tier', () => {
+  it('shows a highest-tier notice for empire users', () => {
     render(<UpgradeModal {...defaultProps} currentTierId="empire" />);
 
-    expect(screen.getByText(/already on the highest tier/i)).toBeInTheDocument();
+    expect(screen.getByText(/already on the highest tier available/i)).toBeInTheDocument();
   });
 
-  it('shows error when Continue clicked without selection', () => {
+  it('moves to the confirmation step after selecting a tier', async () => {
     render(<UpgradeModal {...defaultProps} />);
 
-    const continueButton = screen.getAllByText(/Continue|Upgrade/)[0];
-    fireEvent.click(continueButton);
+    fireEvent.click(screen.getByText('Growth'));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
-    expect(screen.getByText(/Please select a tier/i)).toBeInTheDocument();
+    expect(await screen.findByText('Confirm Upgrade')).toBeInTheDocument();
+    expect(screen.getByText(/Billing Note:/i)).toBeInTheDocument();
+    expect(screen.getByText('New Monthly Amount')).toBeInTheDocument();
+    expect(screen.getAllByText('$349/month')).toHaveLength(2);
   });
 
-  it('selects a tier when clicking a tier card', () => {
-    render(<UpgradeModal {...defaultProps} />);
-
-    const growthCard = screen.getByText('Growth').closest('[data-testid="card"]');
-    if (growthCard) {
-      fireEvent.click(growthCard);
-    }
-
-    // Selected tier should be highlighted (in a real test we'd check CSS or data attributes)
-    // For now, we verify it doesn't show the select error anymore
-    expect(screen.getByText('Growth')).toBeInTheDocument();
-  });
-
-  // ============================================================================
-  // Step 2: Confirmation
-  // ============================================================================
-
-  it('advances to confirm step when tier selected and Continue clicked', async () => {
-    render(<UpgradeModal {...defaultProps} />);
-
-    // Click on Growth tier
-    const growthCard = screen.getByText('Growth').closest('[data-testid="card"]');
-    if (growthCard) {
-      fireEvent.click(growthCard);
-    }
-
-    // Click Continue button
-    const continueBtn = screen.getByText('Continue');
-    fireEvent.click(continueBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Confirm Upgrade')).toBeInTheDocument();
-    });
-  });
-
-  it('shows confirm step with upgrade arrow and billing note', async () => {
-    render(<UpgradeModal {...defaultProps} />);
-
-    // Select growth tier
-    const growthCard = screen.getByText('Growth').closest('[data-testid="card"]');
-    if (growthCard) {
-      fireEvent.click(growthCard);
-    }
-
-    // Advance to confirm
-    const continueBtn = screen.getByText('Continue');
-    fireEvent.click(continueBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Confirm Upgrade/)).toBeInTheDocument();
-      expect(screen.getByText(/Billing Note:/)).toBeInTheDocument();
-      expect(screen.getByText(/\$349\/month/)).toBeInTheDocument();
-    });
-  });
-
-  it('Back button returns to select step', async () => {
-    render(<UpgradeModal {...defaultProps} />);
-
-    // Navigate to confirm step
-    const growthCard = screen.getByText('Growth').closest('[data-testid="card"]');
-    if (growthCard) {
-      fireEvent.click(growthCard);
-    }
-    let continueBtn = screen.getByText('Continue');
-    fireEvent.click(continueBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Confirm Upgrade')).toBeInTheDocument();
-    });
-
-    // Click Back
-    const backBtn = screen.getByText('Back');
-    fireEvent.click(backBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Upgrade Your Plan')).toBeInTheDocument();
-    });
-  });
-
-  // ============================================================================
-  // Step 3: Success
-  // ============================================================================
-
-  it('transitions to success step on successful upgrade', async () => {
-    const { upgradeSubscription } = require('@/server/actions/subscription');
-    upgradeSubscription.mockResolvedValueOnce({
-      success: true,
-      newAmount: 349,
-    });
-
-    render(<UpgradeModal {...defaultProps} />);
-
-    // Select and proceed through steps
-    const growthCard = screen.getByText('Growth').closest('[data-testid="card"]');
-    if (growthCard) {
-      fireEvent.click(growthCard);
-    }
-
-    let continueBtn = screen.getByText('Continue');
-    fireEvent.click(continueBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Confirm Upgrade')).toBeInTheDocument();
-    });
-
-    // Click upgrade button
-    const upgradeBtn = screen.getByRole('button', { name: /Upgrade to Growth/ });
-    fireEvent.click(upgradeBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Upgrade Successful')).toBeInTheDocument();
-      expect(screen.getByTestId('check-circle')).toBeInTheDocument();
-    });
-  });
-
-  it('shows success step with new tier and amount', async () => {
-    const { upgradeSubscription } = require('@/server/actions/subscription');
-    upgradeSubscription.mockResolvedValueOnce({
-      success: true,
-      newAmount: 349,
-    });
-
-    render(<UpgradeModal {...defaultProps} />);
-
-    const growthCard = screen.getByText('Growth').closest('[data-testid="card"]');
-    if (growthCard) {
-      fireEvent.click(growthCard);
-    }
-
-    let continueBtn = screen.getByText('Continue');
-    fireEvent.click(continueBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Confirm Upgrade')).toBeInTheDocument();
-    });
-
-    const upgradeBtn = screen.getByRole('button', { name: /Upgrade to Growth/ });
-    fireEvent.click(upgradeBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Growth/)).toBeInTheDocument();
-      expect(screen.getByText(/349/)).toBeInTheDocument();
-    });
-  });
-
-  // ============================================================================
-  // Error Handling
-  // ============================================================================
-
-  it('displays error message when upgrade fails', async () => {
-    const { upgradeSubscription } = require('@/server/actions/subscription');
-    upgradeSubscription.mockResolvedValueOnce({
+  it('shows an error and stays on confirm when the upgrade action fails', async () => {
+    mockedUpgradeSubscription.mockResolvedValueOnce({
       success: false,
       error: 'Payment processing failed',
     });
 
     render(<UpgradeModal {...defaultProps} />);
 
-    const growthCard = screen.getByText('Growth').closest('[data-testid="card"]');
-    if (growthCard) {
-      fireEvent.click(growthCard);
-    }
+    fireEvent.click(screen.getByText('Growth'));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
-    let continueBtn = screen.getByText('Continue');
-    fireEvent.click(continueBtn);
+    expect(await screen.findByText('Confirm Upgrade')).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(screen.getByText('Confirm Upgrade')).toBeInTheDocument();
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'Upgrade to Growth' }));
 
-    const upgradeBtn = screen.getByRole('button', { name: /Upgrade to Growth/ });
-    fireEvent.click(upgradeBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Payment processing failed')).toBeInTheDocument();
-      // Should still be on confirm step
-      expect(screen.getByText('Confirm Upgrade')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Payment processing failed')).toBeInTheDocument();
+    expect(screen.getByText('Confirm Upgrade')).toBeInTheDocument();
   });
 
-  it('stays on confirm step when error occurs', async () => {
-    const { upgradeSubscription } = require('@/server/actions/subscription');
-    upgradeSubscription.mockResolvedValueOnce({
-      success: false,
-      error: 'Insufficient permissions',
-    });
-
-    render(<UpgradeModal {...defaultProps} />);
-
-    const growthCard = screen.getByText('Growth').closest('[data-testid="card"]');
-    if (growthCard) {
-      fireEvent.click(growthCard);
-    }
-
-    let continueBtn = screen.getByText('Continue');
-    fireEvent.click(continueBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Confirm Upgrade')).toBeInTheDocument();
-    });
-
-    const upgradeBtn = screen.getByRole('button', { name: /Upgrade to Growth/ });
-    fireEvent.click(upgradeBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Insufficient permissions/)).toBeInTheDocument();
-      expect(screen.getByText('Confirm Upgrade')).toBeInTheDocument();
-    });
-  });
-
-  // ============================================================================
-  // Modal State and Lifecycle
-  // ============================================================================
-
-  it('calls onClose when modal is closed via onOpenChange', async () => {
-    // The Dialog mock renders null when open=false, but onClose is called
-    // by handleOpenChange when the dialog closes
-    render(<UpgradeModal {...defaultProps} />);
-
-    // Verify dialog is visible
-    expect(screen.getByTestId('dialog')).toBeInTheDocument();
-
-    // The modal component calls onClose in handleOpenChange(false)
-    // Since our mock dialog doesn't call onOpenChange, we just verify
-    // that the modal renders and closes via isOpen prop
-  });
-
-  it('auto-closes after success (4 second timeout)', async () => {
+  it('shows success details and auto-closes after a successful upgrade', async () => {
     jest.useFakeTimers();
 
-    const { upgradeSubscription } = require('@/server/actions/subscription');
-    upgradeSubscription.mockResolvedValueOnce({
+    mockedUpgradeSubscription.mockResolvedValueOnce({
       success: true,
       newAmount: 349,
     });
 
     render(<UpgradeModal {...defaultProps} />);
 
-    const growthCard = screen.getByText('Growth').closest('[data-testid="card"]');
-    if (growthCard) {
-      fireEvent.click(growthCard);
-    }
+    fireEvent.click(screen.getByText('Growth'));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
-    let continueBtn = screen.getByText('Continue');
-    fireEvent.click(continueBtn);
+    expect(await screen.findByText('Confirm Upgrade')).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(screen.getByText('Confirm Upgrade')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Upgrade to Growth' }));
+
+    expect(await screen.findByText('Upgrade Successful!')).toBeInTheDocument();
+    expect(screen.getByTestId('check-circle')).toBeInTheDocument();
+    expect(screen.getByText('New Plan')).toBeInTheDocument();
+    expect(screen.getByText('Growth')).toBeInTheDocument();
+
+    act(() => {
+      jest.advanceTimersByTime(4000);
     });
 
-    const upgradeBtn = screen.getByRole('button', { name: /Upgrade to Growth/ });
-    fireEvent.click(upgradeBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Upgrade Successful')).toBeInTheDocument();
-    });
-
-    // Fast-forward time
-    jest.advanceTimersByTime(4000);
-
-    // onClose should have been called
-    expect(mockOnClose).toHaveBeenCalled();
-
-    jest.useRealTimers();
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
-  it('resets state when modal reopens', async () => {
+  it('resets selection state after the modal is closed and reopened', async () => {
     const { rerender } = render(<UpgradeModal {...defaultProps} />);
 
-    // Make a selection
-    const growthCard = screen.getByText('Growth').closest('[data-testid="card"]');
-    if (growthCard) {
-      fireEvent.click(growthCard);
-    }
+    fireEvent.click(screen.getByText('Growth'));
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
 
-    // Close and reopen
     rerender(<UpgradeModal {...defaultProps} isOpen={false} />);
+    rerender(<UpgradeModal {...defaultProps} isOpen />);
 
-    // Wait a bit for state reset
     await waitFor(() => {
-      expect(screen.queryByTestId('dialog')).not.toBeInTheDocument();
-    }, { timeout: 300 });
-
-    rerender(<UpgradeModal {...defaultProps} isOpen={true} />);
-
-    // Should be back to select step with no selection
-    expect(screen.getByText('Upgrade Your Plan')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    });
   });
 
-  // ============================================================================
-  // Tier Selection Logic
-  // ============================================================================
+  it('calls onClose when the cancel button is clicked', () => {
+    render(<UpgradeModal {...defaultProps} />);
 
-  it('shows correct available tiers for growth user', () => {
-    render(<UpgradeModal {...defaultProps} currentTierId="growth" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    // Should only show empire (tier above growth)
-    expect(screen.getByText('Empire')).toBeInTheDocument();
-
-    // Current plan name should be shown
-    const allText = screen.getByTestId('dialog').textContent || '';
-    // Empire should appear as an upgrade option
-    expect(allText).toContain('Empire');
-  });
-
-  it('shows all tiers for scout user', () => {
-    render(<UpgradeModal {...defaultProps} currentTierId="scout" />);
-
-    // Should show pro, growth, and empire as upgrade options
-    expect(screen.getByText('Pro')).toBeInTheDocument();
-    expect(screen.getByText('Growth')).toBeInTheDocument();
-    expect(screen.getByText('Empire')).toBeInTheDocument();
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 });

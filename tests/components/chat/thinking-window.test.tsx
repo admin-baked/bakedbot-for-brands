@@ -49,7 +49,7 @@ describe('ThinkingWindow (Visual Browser)', () => {
         ];
         render(<ThinkingWindow isThinking={true} steps={simpleSteps} />);
         const urlElement = screen.getByTestId('browser-url');
-        expect(urlElement).toHaveTextContent(/agent:\/\/puff\/unknown-tool/);
+        expect(urlElement).toHaveTextContent(/agent:\/\/puff\//); // toolName becomes URL slug
     });
 
     it('should show the active tool name in the tab', () => {

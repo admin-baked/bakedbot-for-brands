@@ -24,8 +24,11 @@ const mockAdd = jest.fn();
 const mockDocFn = jest.fn();
 const mockCollectionFn = jest.fn();
 
+const mockSet = jest.fn();
+
 const mockDocRef = {
-    update: mockUpdate
+    update: mockUpdate,
+    set: mockSet,
 };
 
 const mockCollectionRef = {
@@ -45,6 +48,7 @@ describe('Brand Profile Actions', () => {
         mockDocFn.mockReturnValue(mockDocRef);
         mockCollectionFn.mockReturnValue(mockCollectionRef);
         mockUpdate.mockResolvedValue(undefined);
+        mockSet.mockResolvedValue(undefined);
         mockAdd.mockResolvedValue({ id: 'new-req-id' });
 
         (createServerClient as jest.Mock).mockResolvedValue({ firestore: mockFirestore });
@@ -62,10 +66,10 @@ describe('Brand Profile Actions', () => {
             expect(result.success).toBe(true);
             expect(mockCollectionFn).toHaveBeenCalledWith('brands');
             expect(mockDocFn).toHaveBeenCalledWith('brand1');
-            expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
                 description: 'Great brand',
                 websiteUrl: 'https://example.com'
-            }));
+            }), { merge: true });
             expect(revalidatePath).toHaveBeenCalled();
         });
 
@@ -82,7 +86,7 @@ describe('Brand Profile Actions', () => {
 
             expect(result.success).toBe(false);
             expect(result.error).toContain('prohibited terms');
-            expect(mockUpdate).not.toHaveBeenCalled();
+            expect(mockSet).not.toHaveBeenCalled();
         });
 
         it('allows setting name only if initial flag is true', async () => {
@@ -94,11 +98,11 @@ describe('Brand Profile Actions', () => {
 
             expect(result.success).toBe(true);
             expect(result.nameUpdated).toBe(true);
-            expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
                 name: 'New Name',
                 nameSetByUser: true,
                 slug: 'new-name'
-            }));
+            }), { merge: true });
         });
 
         it('ignores name update if flag is false', async () => {
@@ -110,9 +114,9 @@ describe('Brand Profile Actions', () => {
 
             expect(result.success).toBe(true);
             expect(result.nameUpdated).toBe(false);
-            // Should NOT have name in update payload
-            const updateCall = mockUpdate.mock.calls[0][0];
-            expect(updateCall.name).toBeUndefined();
+            // Should NOT have name in set payload
+            const setCall = mockSet.mock.calls[0][0];
+            expect(setCall.name).toBeUndefined();
         });
     });
 

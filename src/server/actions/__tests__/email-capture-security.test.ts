@@ -115,32 +115,24 @@ describe('email-capture security', () => {
     expect(result[0].id).toBe('lead-1');
   });
 
+  // Source now uses SHA256 deterministic doc IDs + runTransaction (atomic upsert).
+  // Different orgs always get different doc IDs for the same email/phone.
+
   it('does not overwrite another org lead when email matches', async () => {
-    const existingUpdate = jest.fn().mockResolvedValue(undefined);
-    const emailGet = jest.fn().mockResolvedValue({
-      empty: false,
-      docs: [
-        {
-          id: 'lead-org-a',
-          get: (field: string) => (field === 'brandId' ? 'org-a' : undefined),
-          ref: { update: existingUpdate },
-        },
-      ],
-    });
-    const phoneGet = jest.fn().mockResolvedValue({ empty: true, docs: [] });
-    const add = jest.fn().mockResolvedValue({ id: 'lead-org-b' });
+    const txSet = jest.fn();
+    const txUpdate = jest.fn();
+    const leadRef = { id: 'computed-hash-org-b' };
 
     (getAdminFirestore as jest.Mock).mockReturnValue({
-      collection: jest.fn().mockImplementation((name: string) => {
-        if (name !== 'email_leads') return { add: jest.fn(), where: jest.fn() };
-        return {
-          where: jest.fn().mockImplementation((field: string) => {
-            if (field === 'email') return { get: emailGet };
-            if (field === 'phone') return { get: phoneGet };
-            return { get: jest.fn().mockResolvedValue({ empty: true, docs: [] }) };
-          }),
-          add,
-        };
+      collection: jest.fn().mockReturnValue({
+        doc: jest.fn().mockReturnValue(leadRef),
+      }),
+      runTransaction: jest.fn(async (handler: any) => {
+        await handler({
+          get: jest.fn().mockResolvedValue({ exists: false, data: () => ({}) }),
+          set: txSet,
+          update: txUpdate,
+        });
       }),
     });
 
@@ -153,34 +145,29 @@ describe('email-capture security', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(add).toHaveBeenCalledTimes(1);
-    expect(existingUpdate).not.toHaveBeenCalled();
+    expect(result.isNewLead).toBe(true);
+    expect(txSet).toHaveBeenCalledTimes(1);
+    expect(txUpdate).not.toHaveBeenCalled();
   });
 
   it('updates existing lead when scope matches', async () => {
-    const existingUpdate = jest.fn().mockResolvedValue(undefined);
-    const emailGet = jest.fn().mockResolvedValue({
-      empty: false,
-      docs: [
-        {
-          id: 'lead-org-a',
-          get: (field: string) => (field === 'brandId' ? 'org-a' : undefined),
-          ref: { update: existingUpdate },
-        },
-      ],
-    });
-    const add = jest.fn().mockResolvedValue({ id: 'lead-new' });
+    const txSet = jest.fn();
+    const txUpdate = jest.fn();
+    const leadRef = { id: 'computed-hash-org-a' };
 
     (getAdminFirestore as jest.Mock).mockReturnValue({
-      collection: jest.fn().mockImplementation((name: string) => {
-        if (name !== 'email_leads') return { add: jest.fn(), where: jest.fn() };
-        return {
-          where: jest.fn().mockImplementation((field: string) => {
-            if (field === 'email') return { get: emailGet };
-            return { get: jest.fn().mockResolvedValue({ empty: true, docs: [] }) };
+      collection: jest.fn().mockReturnValue({
+        doc: jest.fn().mockReturnValue(leadRef),
+      }),
+      runTransaction: jest.fn(async (handler: any) => {
+        await handler({
+          get: jest.fn().mockResolvedValue({
+            exists: true,
+            data: () => ({ brandId: 'org-a', email: 'same@example.com' }),
           }),
-          add,
-        };
+          set: txSet,
+          update: txUpdate,
+        });
       }),
     });
 
@@ -193,24 +180,25 @@ describe('email-capture security', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(existingUpdate).toHaveBeenCalledTimes(1);
-    expect(add).not.toHaveBeenCalled();
+    expect(result.isNewLead).toBe(false);
+    expect(txUpdate).toHaveBeenCalledTimes(1);
+    expect(txSet).not.toHaveBeenCalled();
   });
 
   it('returns isNewLead=true when a new phone lead is created', async () => {
-    const phoneGet = jest.fn().mockResolvedValue({ empty: true, docs: [] });
-    const add = jest.fn().mockResolvedValue({ id: 'lead-phone-new' });
+    const txSet = jest.fn();
+    const leadRef = { id: 'computed-hash-phone-new' };
 
     (getAdminFirestore as jest.Mock).mockReturnValue({
-      collection: jest.fn().mockImplementation((name: string) => {
-        if (name !== 'email_leads') return { add: jest.fn(), where: jest.fn() };
-        return {
-          where: jest.fn().mockImplementation((field: string) => {
-            if (field === 'phone') return { get: phoneGet };
-            return { get: jest.fn().mockResolvedValue({ empty: true, docs: [] }) };
-          }),
-          add,
-        };
+      collection: jest.fn().mockReturnValue({
+        doc: jest.fn().mockReturnValue(leadRef),
+      }),
+      runTransaction: jest.fn(async (handler: any) => {
+        await handler({
+          get: jest.fn().mockResolvedValue({ exists: false, data: () => ({}) }),
+          set: txSet,
+          update: jest.fn(),
+        });
       }),
     });
 
@@ -222,82 +210,32 @@ describe('email-capture security', () => {
       source: 'menu',
     });
 
-    expect(result).toEqual({
-      success: true,
-      leadId: 'lead-phone-new',
-      isNewLead: true,
-    });
-    expect(add).toHaveBeenCalledWith(expect.objectContaining({
-      phone: '+13155551212',
-    }));
+    expect(result.success).toBe(true);
+    expect(result.isNewLead).toBe(true);
+    expect(result.leadId).toEqual(expect.any(String));
+    expect(txSet).toHaveBeenCalledWith(
+      leadRef,
+      expect.objectContaining({ phone: '+13155551212' }),
+    );
   });
 
   it('returns isNewLead=false when an existing phone lead is updated', async () => {
-    const existingUpdate = jest.fn().mockResolvedValue(undefined);
-    const phoneGet = jest.fn().mockResolvedValue({
-      empty: false,
-      docs: [
-        {
-          id: 'lead-existing-phone',
-          get: (field: string) => (field === 'brandId' ? 'org-a' : undefined),
-          ref: { update: existingUpdate },
-        },
-      ],
-    });
-
-    (getAdminFirestore as jest.Mock).mockReturnValue({
-      collection: jest.fn().mockImplementation((name: string) => {
-        if (name !== 'email_leads') return { add: jest.fn(), where: jest.fn() };
-        return {
-          where: jest.fn().mockImplementation((field: string) => {
-            if (field === 'phone') return { get: phoneGet };
-            return { get: jest.fn().mockResolvedValue({ empty: true, docs: [] }) };
-          }),
-          add: jest.fn(),
-        };
-      }),
-    });
-
-    const result = await captureEmailLead({
-      phone: '(315) 555-1212',
-      emailConsent: false,
-      smsConsent: false,
-      brandId: 'org-a',
-      source: 'menu',
-    });
-
-    expect(result).toEqual({
-      success: true,
-      leadId: 'lead-existing-phone',
-      isNewLead: false,
-    });
-    expect(existingUpdate).toHaveBeenCalledWith(expect.objectContaining({
-      phone: '+13155551212',
-    }));
-  });
-
-  it('normalizes phone numbers before deduping existing leads', async () => {
-    const existingUpdate = jest.fn().mockResolvedValue(undefined);
-    const phoneGet = jest.fn().mockResolvedValue({
-      empty: false,
-      docs: [
-        {
-          id: 'lead-normalized-phone',
-          get: (field: string) => (field === 'brandId' ? 'org-a' : undefined),
-          ref: { update: existingUpdate },
-        },
-      ],
-    });
-    const where = jest.fn().mockImplementation((field: string) => {
-      if (field === 'phone') return { get: phoneGet };
-      return { get: jest.fn().mockResolvedValue({ empty: true, docs: [] }) };
-    });
-    const add = jest.fn().mockResolvedValue({ id: 'lead-should-not-create' });
+    const txUpdate = jest.fn();
+    const leadRef = { id: 'computed-hash-phone-existing' };
 
     (getAdminFirestore as jest.Mock).mockReturnValue({
       collection: jest.fn().mockReturnValue({
-        where,
-        add,
+        doc: jest.fn().mockReturnValue(leadRef),
+      }),
+      runTransaction: jest.fn(async (handler: any) => {
+        await handler({
+          get: jest.fn().mockResolvedValue({
+            exists: true,
+            data: () => ({ phone: '+13155551212', brandId: 'org-a' }),
+          }),
+          set: jest.fn(),
+          update: txUpdate,
+        });
       }),
     });
 
@@ -309,8 +247,41 @@ describe('email-capture security', () => {
       source: 'menu',
     });
 
+    expect(result.success).toBe(true);
     expect(result.isNewLead).toBe(false);
-    expect(where).toHaveBeenCalledWith('phone', '==', '+13155551212');
-    expect(add).not.toHaveBeenCalled();
+    expect(txUpdate).toHaveBeenCalledWith(
+      leadRef,
+      expect.objectContaining({ phone: '+13155551212' }),
+    );
+  });
+
+  it('normalizes phone numbers before deduping existing leads', async () => {
+    const txSet = jest.fn();
+    const docFn = jest.fn().mockReturnValue({ id: 'normalized-hash' });
+
+    (getAdminFirestore as jest.Mock).mockReturnValue({
+      collection: jest.fn().mockReturnValue({ doc: docFn }),
+      runTransaction: jest.fn(async (handler: any) => {
+        await handler({
+          get: jest.fn().mockResolvedValue({ exists: false, data: () => ({}) }),
+          set: txSet,
+          update: jest.fn(),
+        });
+      }),
+    });
+
+    await captureEmailLead({
+      phone: '(315) 555-1212',
+      emailConsent: false,
+      smsConsent: false,
+      brandId: 'org-a',
+      source: 'menu',
+    });
+
+    // The normalized phone +13155551212 is baked into the doc ID hash and the lead data
+    expect(txSet).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ phone: '+13155551212' }),
+    );
   });
 });

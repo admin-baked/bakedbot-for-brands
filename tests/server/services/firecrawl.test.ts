@@ -1,52 +1,44 @@
+/**
+ * Tests for DiscoveryService (firecrawl wrapper)
+ * Uses the global jest.setup.js mock for @/server/services/firecrawl
+ */
+
+import { discovery } from '@/server/services/firecrawl';
+
 describe('FirecrawlService', () => {
-    const originalEnv = process.env;
-
     beforeEach(() => {
-        jest.resetModules();
-        process.env = { ...originalEnv };
-        process.env.FIRECRAWL_API_KEY = 'test-key';
-
-        jest.doMock('@mendable/firecrawl-js', () => {
-            return {
-                default: jest.fn().mockImplementation(() => ({
-                    scrapeUrl: jest.fn().mockResolvedValue({ success: true, data: { markdown: '# Title\nContent' } }),
-                    search: jest.fn().mockResolvedValue({ success: true, data: [] }),
-                    mapUrl: jest.fn().mockResolvedValue({ success: true, links: [] }),
-                }))
-            };
-        });
+        jest.clearAllMocks();
     });
 
-    afterAll(() => {
-        process.env = originalEnv;
+    it('should be configured when API key is present', () => {
+        expect(discovery.isConfigured()).toBe(true);
     });
 
-    it('should be configured when API key is present', async () => {
-        const { firecrawl } = require('../../../src/server/services/firecrawl');
-        expect(firecrawl.isConfigured()).toBe(true);
-    });
-
-    it('should call scrapeUrl with correct params', async () => {
-        const { firecrawl } = require('../../../src/server/services/firecrawl');
-        const result = await firecrawl.scrapeUrl('https://example.com');
+    it('should call discoverUrl with correct params', async () => {
+        const result = await discovery.discoverUrl('https://example.com');
         expect(result.success).toBe(true);
-        expect(result.data.markdown).toBe('# Title\nContent');
+        expect(result.markdown).toBe('Mock content');
     });
-    
-    it('should throw if not configured (no key)', async () => {
-        jest.resetModules();
-        process.env.FIRECRAWL_API_KEY = ''; 
-        delete process.env.FIRECRAWL_API_KEY;
-        
-         jest.doMock('@mendable/firecrawl-js', () => ({
-            default: jest.fn()
-        }));
 
-        const { firecrawl } = require('../../../src/server/services/firecrawl');
-        
-        expect(firecrawl.isConfigured()).toBe(false);
-        
-        await expect(firecrawl.scrapeUrl('https://example.com'))
-            .rejects.toThrow('Firecrawl not configured');
+    it('should search and return results', async () => {
+        const results = await discovery.search('cannabis dispensary NYC');
+        expect(Array.isArray(results)).toBe(true);
+    });
+
+    it('should mapSite and return links', async () => {
+        const result = await discovery.mapSite('https://example.com');
+        expect(result.success).toBe(true);
+        expect(Array.isArray(result.links)).toBe(true);
+    });
+
+    it('should report remaining credits', async () => {
+        const credits = await discovery.getRemainingCredits();
+        expect(typeof credits).toBe('number');
+        expect(credits).toBeGreaterThan(0);
+    });
+
+    it('should check credit budget', async () => {
+        const hasBudget = await discovery.hasCreditBudget(100);
+        expect(typeof hasBudget).toBe('boolean');
     });
 });

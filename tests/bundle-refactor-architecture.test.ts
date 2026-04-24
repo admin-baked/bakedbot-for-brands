@@ -152,7 +152,7 @@ describe('Bundle Refactor - Architecture Verification', () => {
 
             // Should handle suggestion acceptance
             expect(content).toContain('handleAcceptSuggestion');
-            expect(content).toContain('if (result.success)');
+            expect(content).toContain('result.success');
 
             // Should handle manual creation with createBundle
             expect(content).toContain('handleCreateManualBundle');

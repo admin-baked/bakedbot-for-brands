@@ -61,7 +61,7 @@ describe('useCreativeContent', () => {
                 expect(result.current.loading).toBe(false);
             });
 
-            expect(mockGetPendingContent).toHaveBeenCalledWith('tenant-123');
+            expect(mockGetPendingContent).toHaveBeenCalledWith('tenant-123', { limit: 50 });
         });
 
         it('should use brandId claim for brand role users', async () => {
@@ -76,7 +76,7 @@ describe('useCreativeContent', () => {
                 expect(result.current.loading).toBe(false);
             });
 
-            expect(mockGetPendingContent).toHaveBeenCalledWith('brand-456');
+            expect(mockGetPendingContent).toHaveBeenCalledWith('brand-456', { limit: 50 });
         });
 
         it('should use locationId claim for dispensary role users', async () => {
@@ -91,7 +91,7 @@ describe('useCreativeContent', () => {
                 expect(result.current.loading).toBe(false);
             });
 
-            expect(mockGetPendingContent).toHaveBeenCalledWith('loc-789');
+            expect(mockGetPendingContent).toHaveBeenCalledWith('loc-789', { limit: 50 });
         });
 
         it('should fallback to useBrandId hook when no claims available', async () => {
@@ -107,7 +107,7 @@ describe('useCreativeContent', () => {
                 expect(result.current.loading).toBe(false);
             });
 
-            expect(mockGetPendingContent).toHaveBeenCalledWith('fallback-brand');
+            expect(mockGetPendingContent).toHaveBeenCalledWith('fallback-brand', { limit: 50 });
         });
 
         it('should not fetch when no tenantId can be resolved', async () => {
@@ -147,7 +147,7 @@ describe('useCreativeContent', () => {
                 expect(result.current.loading).toBe(false);
             });
 
-            expect(mockGetPendingContent).toHaveBeenCalledWith('tenant-first');
+            expect(mockGetPendingContent).toHaveBeenCalledWith('tenant-first', { limit: 50 });
         });
 
         it('should use brandId when tenantId is missing', async () => {
@@ -166,7 +166,7 @@ describe('useCreativeContent', () => {
                 expect(result.current.loading).toBe(false);
             });
 
-            expect(mockGetPendingContent).toHaveBeenCalledWith('brand-second');
+            expect(mockGetPendingContent).toHaveBeenCalledWith('brand-second', { limit: 50 });
         });
 
         it('should use locationId when tenantId and brandId are missing', async () => {
@@ -184,7 +184,7 @@ describe('useCreativeContent', () => {
                 expect(result.current.loading).toBe(false);
             });
 
-            expect(mockGetPendingContent).toHaveBeenCalledWith('loc-only');
+            expect(mockGetPendingContent).toHaveBeenCalledWith('loc-only', { limit: 50 });
         });
     });
 });

@@ -1,75 +1,170 @@
 import { runAgentChat } from '@/app/dashboard/ceo/agents/actions';
-import { ai } from '@/ai/genkit';
+import { requireUser } from '@/server/auth/auth';
+import { getAdminFirestore } from '@/firebase/admin';
+import { dispatchAgentJob } from '@/server/jobs/dispatch';
+import { getAgentForIntent } from '@/lib/agents/intent-router';
+import { routeToAgent } from '@/server/agents/agent-router';
 
-// Mocks
-jest.mock('@/ai/genkit', () => ({
-    ai: {
-        generate: jest.fn()
-    }
+const mockJobSet = jest.fn().mockResolvedValue(undefined);
+const mockJobDoc = jest.fn(() => ({
+    set: mockJobSet,
+}));
+const mockCollection = jest.fn(() => ({
+    doc: mockJobDoc,
+}));
+const mockDb = {
+    collection: mockCollection,
+};
+
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn(),
+    requireSuperUser: jest.fn(),
+}));
+
+jest.mock('@/firebase/admin', () => ({
+    getAdminFirestore: jest.fn(() => mockDb),
+}));
+
+jest.mock('@/server/jobs/dispatch', () => ({
+    dispatchAgentJob: jest.fn(),
+}));
+
+jest.mock('@/lib/agents/intent-router', () => ({
+    getAgentForIntent: jest.fn(),
 }));
 
 jest.mock('@/server/agents/agent-router', () => ({
-    routeToAgent: jest.fn().mockResolvedValue({ primaryAgent: 'general', confidence: 0.9 })
+    routeToAgent: jest.fn(),
 }));
 
-jest.mock('@/server/agents/agent-definitions', () => ({
-    getDelegatableAgentIds: jest.fn(() => ['craig', 'leo', 'linus']),
-    canRoleAccessAgent: jest.fn().mockReturnValue(true),
-    buildSquadRoster: jest.fn().mockReturnValue('Squad: Craig'),
-    buildIntegrationStatusSummary: jest.fn().mockReturnValue('Integrations: OK'),
-    AGENT_LINUS: 'linus',
-    AGENT_LEO: 'leo',
-    AGENT_CRAIG: 'craig',
-    AGENT_CAPABILITIES: [
-        { id: 'general', name: 'General Assistant', specialty: 'General tasks' },
-        { id: 'craig', name: 'Craig', specialty: 'Marketing' }
-    ]
+jest.mock('@/server/security', () => ({
+    validateInput: jest.fn(() => ({
+        blocked: false,
+        riskScore: 0,
+    })),
+    getRiskLevel: jest.fn(() => 'low'),
 }));
 
-jest.mock('@/server/auth/auth', () => ({
-    requireUser: jest.fn().mockResolvedValue({ role: 'brand', brandId: 'test-brand' })
+jest.mock('firebase-admin/firestore', () => ({
+    FieldValue: {
+        serverTimestamp: jest.fn(() => 'server-timestamp'),
+    },
 }));
 
-jest.mock('@/server/algorithms/intuition-engine', () => ({
-    getIntuitionSummary: jest.fn().mockReturnValue({ stage: 'learning', confidence: 0.5, interactions: 10 })
-}));
-
-jest.mock('@/server/actions/knowledge-base', () => ({
-    getKnowledgeBasesAction: jest.fn().mockResolvedValue([]),
-    searchKnowledgeBaseAction: jest.fn().mockResolvedValue([])
-}));
-
-// Mock tools
-jest.mock('@/server/tools/web-search', () => ({
-    searchWeb: jest.fn().mockResolvedValue({ success: true, results: [{ title: 'Res', body: 'Content' }] }),
-    formatSearchResults: jest.fn().mockReturnValue('Formatted Results')
+jest.mock('@/lib/logger', () => ({
+    logger: {
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+    },
 }));
 
 describe('runAgentChat', () => {
+    const mockRequireUser = requireUser as jest.MockedFunction<typeof requireUser>;
+    const mockGetAdminFirestore = getAdminFirestore as jest.MockedFunction<typeof getAdminFirestore>;
+    const mockDispatchAgentJob = dispatchAgentJob as jest.MockedFunction<typeof dispatchAgentJob>;
+    const mockGetAgentForIntent = getAgentForIntent as jest.MockedFunction<typeof getAgentForIntent>;
+    const mockRouteToAgent = routeToAgent as jest.MockedFunction<typeof routeToAgent>;
+    let randomUuidSpy: jest.SpiedFunction<typeof crypto.randomUUID>;
+
     beforeEach(() => {
         jest.clearAllMocks();
+
+        mockGetAdminFirestore.mockReturnValue(mockDb as ReturnType<typeof getAdminFirestore>);
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-123',
+            role: 'brand_admin',
+            brandId: 'brand-456',
+        } as Awaited<ReturnType<typeof requireUser>>);
+        mockDispatchAgentJob.mockResolvedValue({
+            success: true,
+            taskId: 'task-123',
+        });
+        mockGetAgentForIntent.mockReturnValue(null);
+        mockRouteToAgent.mockResolvedValue({
+            primaryAgent: 'general',
+            confidence: 0.9,
+        });
+
+        randomUuidSpy = jest.spyOn(crypto, 'randomUUID').mockReturnValue('job-123');
     });
 
-    it('routes general chat to general agent', async () => {
-        // Mock AI response for general chat logic
-        (ai.generate as jest.Mock).mockResolvedValue({ text: 'Hello from AI' });
+    afterEach(() => {
+        randomUuidSpy.mockRestore();
+    });
 
+    it('creates a pending Puff job for general chat fallback', async () => {
         const result = await runAgentChat('Hello bot');
 
-        expect(result.content).toBeDefined();
-        // Intuition and Route tools should be present
-        expect(result.toolCalls?.some(t => t.id.startsWith('route-'))).toBe(true);
+        expect(mockJobDoc).toHaveBeenCalledWith('job-123');
+        expect(mockJobSet).toHaveBeenCalledWith(
+            expect.objectContaining({
+                status: 'pending',
+                userId: 'user-123',
+                userInput: 'Hello bot',
+                persona: 'puff',
+                brandId: 'brand-456',
+                thoughts: [],
+                createdAt: 'server-timestamp',
+                updatedAt: 'server-timestamp',
+                resumeOptions: expect.objectContaining({
+                    brandId: 'brand-456',
+                    modelLevel: 'standard',
+                }),
+            }),
+        );
+
+        expect(mockDispatchAgentJob).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: 'user-123',
+                userInput: 'Hello bot',
+                persona: 'puff',
+                jobId: 'job-123',
+                options: expect.objectContaining({
+                    brandId: 'brand-456',
+                    modelLevel: 'standard',
+                }),
+            }),
+        );
+
+        expect(result).toEqual({
+            content: '',
+            toolCalls: [],
+            metadata: {
+                jobId: 'job-123',
+                agentName: 'BakedBot',
+                type: 'session_context',
+                brandId: 'brand-456',
+            },
+        });
     });
 
-    it('handles search requests', async () => {
-        // Mock AI query conversion
-        (ai.generate as jest.Mock)
-            .mockResolvedValueOnce({ text: 'competitors' }) // Query conversion
-            .mockResolvedValueOnce({ text: 'Search Report' }); // Synthesis
+    it('routes competitor-search requests to Ezal before dispatching', async () => {
+        mockRouteToAgent.mockResolvedValue({
+            primaryAgent: 'ezal',
+            confidence: 0.95,
+            reasoning: 'Competitive intel intent detected',
+        });
 
         const result = await runAgentChat('Find competitors');
 
-        expect(result.toolCalls?.some(t => t.id.startsWith('search-'))).toBe(true);
-        expect(result.content).toBe('Search Report');
+        expect(mockDispatchAgentJob).toHaveBeenCalledWith(
+            expect.objectContaining({
+                persona: 'ezal',
+                jobId: 'job-123',
+                userInput: 'Find competitors',
+            }),
+        );
+        expect(mockJobSet).toHaveBeenCalledWith(
+            expect.objectContaining({
+                persona: 'ezal',
+            }),
+        );
+        expect(result.metadata).toEqual({
+            jobId: 'job-123',
+            agentName: 'ezal',
+            type: 'session_context',
+            brandId: 'brand-456',
+        });
     });
 });

@@ -844,9 +844,8 @@ describe('Inbox Store', () => {
 
     describe('Hydration', () => {
         describe('hydrateThreads', () => {
-            it('should replace threads with hydrated data', () => {
+            it('should include hydrated server threads (merges with local-only)', () => {
                 const store = useInboxStore.getState();
-                store.createThread('carousel');
 
                 const newThreads: InboxThread[] = [
                     {
@@ -870,8 +869,9 @@ describe('Inbox Store', () => {
                 store.hydrateThreads(newThreads);
 
                 const threads = useInboxStore.getState().threads;
-                expect(threads).toHaveLength(1);
-                expect(threads[0].id).toBe('hydrated-1');
+                const hydrated = threads.find(t => t.id === 'hydrated-1');
+                expect(hydrated).toBeDefined();
+                expect(hydrated?.id).toBe('hydrated-1');
             });
         });
 

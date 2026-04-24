@@ -85,7 +85,7 @@ describe('Role Chat Configuration', () => {
         it('should return configs for all roles', () => {
             const configs = getAllChatConfigs();
 
-            expect(Object.keys(configs)).toHaveLength(8);
+            expect(Object.keys(configs)).toHaveLength(9);
             expect(configs.owner).toBeDefined();
             expect(configs.admin).toBeDefined();
             expect(configs.brand).toBeDefined();

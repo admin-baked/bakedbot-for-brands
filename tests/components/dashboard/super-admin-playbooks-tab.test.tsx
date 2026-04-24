@@ -55,7 +55,7 @@ describe('SuperAdminPlaybooksTab', () => {
         render(<SuperAdminPlaybooksTab />);
 
         expect(screen.getByText('Active Playbooks')).toBeInTheDocument();
-        expect(screen.getByText('Ask Baked HQ')).toBeInTheDocument();
+        expect(screen.getByText('Smokey Chat')).toBeInTheDocument();
         expect(screen.getByTestId('puff-chat')).toBeInTheDocument();
     });
 });

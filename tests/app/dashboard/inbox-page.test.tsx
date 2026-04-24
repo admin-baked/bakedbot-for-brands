@@ -48,6 +48,15 @@ jest.mock('@/components/inbox/inbox-workspace-briefing', () => ({
         </div>
     ),
 }));
+jest.mock('@/components/dashboard/setup-checklist', () => ({
+    SetupChecklist: () => <div data-testid="setup-checklist">Setup Checklist</div>,
+}));
+jest.mock('@/components/onboarding/product-tour', () => ({
+    ProductTour: () => <div data-testid="product-tour">Product Tour</div>,
+}));
+jest.mock('@/server/actions/welcome-thread', () => ({
+    ensureWelcomeThread: jest.fn().mockResolvedValue(undefined),
+}));
 
 // Mock framer-motion to avoid animation issues in tests
 jest.mock('framer-motion', () => ({
@@ -116,7 +125,7 @@ describe('InboxPage', () => {
     });
 
     describe('Header Content', () => {
-        it('should display "Unified Inbox" title when in inbox mode', async () => {
+        it('should show the setup checklist for brand users in inbox mode', async () => {
             (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
                 const state = buildInboxState();
                 if (typeof selector === 'function') {
@@ -130,11 +139,11 @@ describe('InboxPage', () => {
             render(<InboxPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('Unified Inbox')).toBeInTheDocument();
+                expect(screen.getByTestId('setup-checklist')).toBeInTheDocument();
             });
         });
 
-        it('should display "Agent Chat" title when in chat mode', async () => {
+        it('should hide inbox-only header helpers when in chat mode', async () => {
             (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
                 const state = buildInboxState({ viewMode: 'chat' });
                 if (typeof selector === 'function') {
@@ -148,8 +157,11 @@ describe('InboxPage', () => {
             render(<InboxPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('Agent Chat')).toBeInTheDocument();
+                expect(screen.getByTestId('unified-agent-chat')).toBeInTheDocument();
             });
+
+            expect(screen.queryByTestId('inbox-workspace-briefing')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('setup-checklist')).not.toBeInTheDocument();
         });
 
         it('should render the view toggle component', async () => {

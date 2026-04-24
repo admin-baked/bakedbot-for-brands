@@ -92,19 +92,19 @@ describe('Goal Types & Utilities', () => {
       expect(status).toBe('at_risk');
     });
 
-    it('should return "behind" when progress < 50% and days remaining > 3', () => {
+    it('should return "active" when progressing within expected range', () => {
       const status = determineGoalStatus(40, 10);
-      expect(status).toBe('behind');
+      expect(status).toBe('active');
     });
 
-    it('should return "on_track" when progress >= 50% and days remaining > 0', () => {
+    it('should return "active" when ahead of expected progress', () => {
       const status = determineGoalStatus(75, 5);
-      expect(status).toBe('on_track');
+      expect(status).toBe('active');
     });
 
-    it('should return "deadline_passed" when days remaining < 0', () => {
-      const status = determineGoalStatus(50, -1);
-      expect(status).toBe('deadline_passed');
+    it('should return "behind" when days remaining <= 0', () => {
+      const status = determineGoalStatus(50, 0);
+      expect(status).toBe('behind');
     });
 
     it('should return "on_track" for 100% progress at any time', () => {
@@ -149,7 +149,7 @@ describe('Goal Types & Utilities', () => {
       expect(GOAL_CATEGORIES).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            value: expect.stringMatching(/foot_traffic|revenue|retention|loyalty|marketing|compliance|custom/),
+            id: expect.stringMatching(/foot_traffic|revenue|retention|loyalty|marketing|compliance|custom/),
             label: expect.any(String),
           }),
         ])
@@ -157,7 +157,7 @@ describe('Goal Types & Utilities', () => {
     });
 
     it('should have unique category values', () => {
-      const values = GOAL_CATEGORIES.map(cat => cat.value);
+      const values = GOAL_CATEGORIES.map(cat => cat.id);
       const uniqueValues = new Set(values);
       expect(uniqueValues.size).toBe(values.length);
     });
@@ -241,13 +241,13 @@ describe('Goal Calculations', () => {
     it('should handle 0 days remaining', () => {
       const status = determineGoalStatus(50, 0);
       expect(status).toBeDefined();
-      expect(['on_track', 'behind', 'at_risk', 'deadline_passed']).toContain(status);
+      expect(['active', 'achieved', 'at_risk', 'behind', 'paused', 'archived']).toContain(status);
     });
 
     it('should handle negative days (past deadline)', () => {
-      expect(determineGoalStatus(0, -1)).toBe('deadline_passed');
+      expect(determineGoalStatus(0, -1)).toBe('behind');
       expect(determineGoalStatus(100, -10)).toBe('achieved');
-      expect(determineGoalStatus(50, -5)).toBe('deadline_passed');
+      expect(determineGoalStatus(50, -5)).toBe('behind');
     });
 
     it('should handle boundary progress values', () => {

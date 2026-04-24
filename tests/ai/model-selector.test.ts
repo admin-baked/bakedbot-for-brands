@@ -44,9 +44,9 @@ describe('Model Selector', () => {
             expect(MODEL_CONFIGS.expert.thinkingLevel).toBe('high');
         });
 
-        it('should use Pro with max thinking for genius (maximum intelligence)', () => {
+        it('should use Pro with high thinking for genius (maximum intelligence)', () => {
             expect(MODEL_CONFIGS.genius.model).toBe('googleai/gemini-3-pro-preview');
-            expect(MODEL_CONFIGS.genius.thinkingLevel).toBe('max');
+            expect(MODEL_CONFIGS.genius.thinkingLevel).toBe('high');
         });
     });
 
@@ -55,7 +55,7 @@ describe('Model Selector', () => {
             expect(getModelConfig('standard').model).toContain('flash');
             expect(getModelConfig('advanced').model).toContain('pro');
             expect(getModelConfig('expert').thinkingLevel).toBe('high');
-            expect(getModelConfig('genius').thinkingLevel).toBe('max');
+            expect(getModelConfig('genius').thinkingLevel).toBe('high');
         });
 
         it('should fallback to lite for invalid level', () => {
@@ -79,19 +79,11 @@ describe('Model Selector', () => {
         it('should include thinkingConfig for expert/genius', () => {
             const expertOptions = getGenerateOptions('expert');
             expect(expertOptions.model).toBe('googleai/gemini-3-pro-preview');
-            expect(expertOptions.config).toEqual({
-                thinkingConfig: {
-                    thinkingLevel: 'high',
-                },
-            });
+            expect(expertOptions.config?.thinkingConfig?.thinkingLevel).toBe('high');
 
             const geniusOptions = getGenerateOptions('genius');
             expect(geniusOptions.model).toBe('googleai/gemini-3-pro-preview');
-            expect(geniusOptions.config).toEqual({
-                thinkingConfig: {
-                    thinkingLevel: 'max',
-                },
-            });
+            expect(geniusOptions.config?.thinkingConfig?.thinkingLevel).toBe('high');
         });
 
         it('should be spreadable into ai.generate options', () => {

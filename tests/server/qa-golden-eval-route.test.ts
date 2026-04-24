@@ -1,4 +1,4 @@
-import { parseEvalOutput } from '@/app/api/cron/qa-golden-eval/route';
+import { parseEvalOutput } from '@/app/api/cron/qa-golden-eval/parse-eval-output';
 
 describe('qa-golden-eval parseEvalOutput', () => {
     it('treats unknown non-zero exits as failures (fail-closed)', () => {

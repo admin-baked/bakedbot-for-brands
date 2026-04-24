@@ -24,7 +24,8 @@ import {
 import type {
     CreativeContent,
     SocialPlatform,
-    GenerateContentRequest
+    GenerateContentRequest,
+    UpdateCaptionOptions,
 } from '@/types/creative-content';
 import {
     getPendingContent,
@@ -51,7 +52,11 @@ interface UseCreativeContentReturn {
     generate: (request: Omit<GenerateContentRequest, 'tenantId' | 'brandId'>) => Promise<CreativeContent | null>;
     approve: (contentId: string, scheduledAt?: string) => Promise<void>;
     revise: (contentId: string, note: string) => Promise<void>;
-    editCaption: (contentId: string, newCaption: string) => Promise<void>;
+    editCaption: (
+        contentId: string,
+        newCaption: string,
+        options?: UpdateCaptionOptions,
+    ) => Promise<CreativeContent>;
     remove: (contentId: string) => Promise<void>;
     refresh: () => void;
     // State
@@ -292,7 +297,11 @@ export function useCreativeContent(
     }, [tenantId, user, realtime]);
 
     // Edit caption directly
-    const editCaption = useCallback(async (contentId: string, newCaption: string): Promise<void> => {
+    const editCaption = useCallback(async (
+        contentId: string,
+        newCaption: string,
+        options: UpdateCaptionOptions = {},
+    ): Promise<CreativeContent> => {
         if (!tenantId) {
             throw new Error('Missing tenant ID — cannot update caption');
         }
@@ -300,14 +309,15 @@ export function useCreativeContent(
         setError(null);
 
         try {
-            await updateCaption(tenantId, contentId, newCaption);
+            const updatedContent = await updateCaption(tenantId, contentId, newCaption, options);
 
             // If not using realtime, manually update state
             if (!realtime) {
                 setContent(prev => prev.map(item =>
-                    item.id === contentId ? { ...item, caption: newCaption } : item
+                    item.id === contentId ? updatedContent : item
                 ));
             }
+            return updatedContent;
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Failed to update caption';
             setError(msg);

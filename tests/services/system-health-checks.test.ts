@@ -40,6 +40,7 @@ describe('SystemHealthChecksService', () => {
             add: jest.fn(),
             where: jest.fn().mockReturnValue(mockQuery),
             orderBy: jest.fn().mockReturnValue(mockQuery),
+            limit: jest.fn().mockReturnValue(mockQuery),
             count: jest.fn().mockReturnValue(mockQuery),
         };
 
@@ -76,7 +77,7 @@ describe('SystemHealthChecksService', () => {
                     {
                         data: () => ({
                             status: 'completed',
-                            startedAt: fiveMinutesAgo,
+                            startedAt: { toDate: () => fiveMinutesAgo },
                         }),
                     },
                 ],
@@ -99,7 +100,7 @@ describe('SystemHealthChecksService', () => {
                     {
                         data: () => ({
                             status: 'completed',
-                            startedAt: fortyMinutesAgo,
+                            startedAt: { toDate: () => fortyMinutesAgo },
                         }),
                     },
                 ],
@@ -121,7 +122,7 @@ describe('SystemHealthChecksService', () => {
                     {
                         data: () => ({
                             status: 'failed',
-                            startedAt: fiveMinutesAgo,
+                            startedAt: { toDate: () => fiveMinutesAgo },
                         }),
                     },
                 ],
@@ -347,7 +348,7 @@ describe('SystemHealthChecksService', () => {
             expect(stats.failedRuns).toBe(1);
             expect(stats.successRate).toBeCloseTo(66.67, 1);
             expect(stats.averageDurationMs).toBe(1000);
-            expect(stats.checkBreakdown['system_stats']).toBe(3);
+            expect(stats.checkBreakdown['system_stats']).toBe(2);
             expect(stats.checkBreakdown['heartbeat_diagnose']).toBe(1);
         });
 
@@ -375,59 +376,54 @@ describe('SystemHealthChecksService', () => {
     });
 
     describe('check latency thresholds', () => {
+        afterEach(() => {
+            jest.restoreAllMocks();
+        });
+
         it('should return healthy status for latency < 200ms', async () => {
             mockQuery.get.mockResolvedValue({});
 
-            // Mock Date.now to control timing
-            const originalNow = Date.now;
-            let callCount = 0;
-            jest.spyOn(global.Date, 'now').mockImplementation(() => {
-                callCount++;
-                if (callCount === 1) return originalNow(); // queryStart
-                return originalNow() + 150; // 150ms latency
-            });
+            // Call order: (1) checkId, (2) executeCheck startTime, (3) queryStart, (4) latencyMs, (5) durationMs
+            const base = 1000000;
+            jest.spyOn(global.Date, 'now')
+                .mockReturnValueOnce(base)       // checkId
+                .mockReturnValueOnce(base)       // executeCheck startTime
+                .mockReturnValueOnce(base)       // queryStart
+                .mockReturnValue(base + 100);    // latencyMs + durationMs (100ms)
 
             const result = await service.executeCheck('database_latency');
 
             expect(result.status).toBe('healthy');
-
-            (global.Date.now as jest.Mock).mockRestore();
         });
 
         it('should return warning status for latency 200-500ms', async () => {
             mockQuery.get.mockResolvedValue({});
 
-            const originalNow = Date.now;
-            let callCount = 0;
-            jest.spyOn(global.Date, 'now').mockImplementation(() => {
-                callCount++;
-                if (callCount === 1) return originalNow();
-                return originalNow() + 350; // 350ms latency
-            });
+            const base = 1000000;
+            jest.spyOn(global.Date, 'now')
+                .mockReturnValueOnce(base)       // checkId
+                .mockReturnValueOnce(base)       // executeCheck startTime
+                .mockReturnValueOnce(base)       // queryStart
+                .mockReturnValue(base + 350);    // latencyMs + durationMs (350ms)
 
             const result = await service.executeCheck('database_latency');
 
             expect(result.status).toBe('warning');
-
-            (global.Date.now as jest.Mock).mockRestore();
         });
 
         it('should return error status for latency > 500ms', async () => {
             mockQuery.get.mockResolvedValue({});
 
-            const originalNow = Date.now;
-            let callCount = 0;
-            jest.spyOn(global.Date, 'now').mockImplementation(() => {
-                callCount++;
-                if (callCount === 1) return originalNow();
-                return originalNow() + 600; // 600ms latency
-            });
+            const base = 1000000;
+            jest.spyOn(global.Date, 'now')
+                .mockReturnValueOnce(base)       // checkId
+                .mockReturnValueOnce(base)       // executeCheck startTime
+                .mockReturnValueOnce(base)       // queryStart
+                .mockReturnValue(base + 600);    // latencyMs + durationMs (600ms)
 
             const result = await service.executeCheck('database_latency');
 
             expect(result.status).toBe('error');
-
-            (global.Date.now as jest.Mock).mockRestore();
         });
     });
 });

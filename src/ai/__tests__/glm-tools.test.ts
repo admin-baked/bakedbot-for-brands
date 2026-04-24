@@ -29,7 +29,7 @@ describe('executeGLMWithTools', () => {
   beforeEach(() => {
     jest.resetModules();
     jest.clearAllMocks();
-    process.env.ZAI_API_KEY = 'test-key';
+    process.env.GROQ_API_KEY = 'test-key';
   });
 
   it('executes OpenAI-style tool calls and returns the final GLM response', async () => {
@@ -93,14 +93,14 @@ describe('executeGLMWithTools', () => {
       executor,
       {
         maxIterations: 4,
-        model: 'glm-5',
+        model: 'llama-3.3-70b-versatile',
       }
     );
 
     expect(mockCreate).toHaveBeenCalledTimes(2);
     expect(executor).toHaveBeenCalledWith('search_codebase', { query: 'slack bridge' });
     expect(result.content).toBe('MISSION_READY: root cause found and next action is clear.');
-    expect(result.model).toBe('glm-5');
+    expect(result.model).toBe('llama-3.3-70b-versatile');
     expect(result.toolExecutions).toHaveLength(1);
     expect(result.toolExecutions[0]).toMatchObject({
       name: 'search_codebase',

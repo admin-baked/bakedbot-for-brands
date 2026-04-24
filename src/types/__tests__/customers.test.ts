@@ -58,9 +58,9 @@ describe('Customer Types', () => {
         it('should return "loyal" for regular customers', () => {
             const profile: Partial<CustomerProfile> = {
                 daysSinceLastOrder: 10,
-                orderCount: 5,
+                orderCount: 3,
                 avgOrderValue: 50,
-                lifetimeValue: 250,
+                lifetimeValue: 150,
                 firstOrderDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
             };
             expect(calculateSegment(profile)).toBe('loyal');

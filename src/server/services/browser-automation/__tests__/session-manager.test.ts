@@ -96,8 +96,12 @@ describe('BrowserSessionManager', () => {
 
   describe('createSession', () => {
     it('should create a new browser session', async () => {
-      // No existing active session
-      mockGet.mockResolvedValueOnce({ empty: true, docs: [] });
+      // No existing active session + no local extension devices (falls back to listDevices)
+      mockGet.mockResolvedValueOnce({ empty: true, docs: [] }); // getActiveSession
+      mockGet.mockResolvedValueOnce({ empty: true, docs: [] }); // getAvailableDevices extension check
+      (listDevices as jest.Mock).mockResolvedValueOnce({
+        success: true, data: { result: [{ id: 'device-1', name: 'Chrome', online: true }] },
+      });
       mockAdd.mockResolvedValueOnce({ id: 'session-123' });
 
       const result = await sessionManager.createSession('user-1', {
@@ -137,18 +141,20 @@ describe('BrowserSessionManager', () => {
     });
 
     it('should fail if RTRVR device not available', async () => {
-      mockGet.mockResolvedValueOnce({ empty: true, docs: [] });
+      mockGet.mockResolvedValueOnce({ empty: true, docs: [] }); // getActiveSession
+      mockGet.mockResolvedValueOnce({ empty: true, docs: [] }); // getAvailableDevices extension check
       (listDevices as jest.Mock).mockResolvedValueOnce({ success: false, error: 'No devices' });
 
       const result = await sessionManager.createSession('user-1');
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('RTRVR');
+      expect(result.error).toContain('available devices');
     });
 
     it('should navigate to initial URL if provided', async () => {
       mockGet
         .mockResolvedValueOnce({ empty: true, docs: [] }) // getActiveSession
+        .mockResolvedValueOnce({ empty: true, docs: [] }) // getAvailableDevices extension check
         .mockResolvedValueOnce({ // getSession for executeAction
           exists: true,
           id: 'session-123',
@@ -158,6 +164,9 @@ describe('BrowserSessionManager', () => {
             tabs: [],
           }),
         });
+      (listDevices as jest.Mock).mockResolvedValueOnce({
+        success: true, data: { result: [{ id: 'device-1', name: 'Chrome', online: true }] },
+      });
       mockAdd.mockResolvedValueOnce({ id: 'session-123' });
 
       const result = await sessionManager.createSession('user-1', {

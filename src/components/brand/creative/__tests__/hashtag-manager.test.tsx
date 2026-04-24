@@ -217,7 +217,7 @@ describe('HashtagManager', () => {
     });
 
     it('should warn about Instagram character limit', () => {
-        const longHashtags = Array.from({ length: 100 }, (_, i) => `#verylonghashtag${i}`);
+        const longHashtags = Array.from({ length: 140 }, (_, i) => `#verylonghashtag${i}`);
         render(<HashtagManager {...defaultProps} hashtags={longHashtags} platform="instagram" />);
 
         expect(screen.getByText(/Exceeds Instagram's 2,200 character limit/i)).toBeInTheDocument();
