@@ -21,7 +21,9 @@ import {
     Sparkles,
     Wallet,
     FileText,
+    TrendingUp,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useUserRole } from '@/hooks/use-user-role';
 import { EzalSnapshotCard } from '@/components/dashboard/ezal-snapshot-card';
 import { useToast } from '@/hooks/use-toast';
@@ -495,6 +497,14 @@ export default function CompetitiveIntelPage() {
                                 <Badge variant="outline" className="text-xs">
                                     Updated Today
                                 </Badge>
+                            )}
+                            {reportMarkdown && (
+                                <Button variant="outline" size="sm" asChild>
+                                    <Link href="/dashboard/pricing?from=competitive-intel">
+                                        <TrendingUp className="mr-1.5 h-3.5 w-3.5" />
+                                        Set Pricing Rules
+                                    </Link>
+                                </Button>
                             )}
                         </div>
                     </div>

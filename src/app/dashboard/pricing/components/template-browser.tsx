@@ -63,9 +63,10 @@ import { cn } from '@/lib/utils';
 interface TemplateBrowserProps {
   orgId: string;
   onRuleCreated?: () => void;
+  defaultCategory?: 'clearance' | 'competitive' | 'promotional' | 'advanced';
 }
 
-export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) {
+export function TemplateBrowser({ orgId, onRuleCreated, defaultCategory }: TemplateBrowserProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<PricingRuleTemplate | null>(null);
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -220,7 +221,7 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
         </div>
 
         {/* Category Tabs */}
-        <Tabs defaultValue="clearance" className="w-full">
+        <Tabs defaultValue={defaultCategory ?? 'clearance'} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             {TEMPLATE_CATEGORIES.map((category) => (
               <TabsTrigger key={category.id} value={category.id}>

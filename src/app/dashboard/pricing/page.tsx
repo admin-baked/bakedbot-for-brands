@@ -7,7 +7,8 @@
  * Create Rule opens an inline Sheet (no inbox redirect).
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -26,6 +27,14 @@ export default function PricingPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
   const { dispensaryId } = useDispensaryId();
+  const searchParams = useSearchParams();
+  const fromCompetitiveIntel = searchParams.get('from') === 'competitive-intel';
+
+  useEffect(() => {
+    if (fromCompetitiveIntel) {
+      setCreateSheetOpen(true);
+    }
+  }, [fromCompetitiveIntel]);
 
   const handleRuleCreated = () => {
     setRefreshKey((prev) => prev + 1);
@@ -101,12 +110,18 @@ export default function PricingPage() {
               Create Pricing Rule
             </SheetTitle>
             <SheetDescription>
-              Choose a template, set your discount, and pick which products it applies to.
+              {fromCompetitiveIntel
+                ? 'Ezal found competitor pricing data. Create a rule to respond automatically.'
+                : 'Choose a template, set your discount, and pick which products it applies to.'}
             </SheetDescription>
           </SheetHeader>
 
           {dispensaryId && (
-            <TemplateBrowser orgId={dispensaryId} onRuleCreated={handleRuleCreated} />
+            <TemplateBrowser
+              orgId={dispensaryId}
+              onRuleCreated={handleRuleCreated}
+              defaultCategory={fromCompetitiveIntel ? 'competitive' : undefined}
+            />
           )}
         </SheetContent>
       </Sheet>

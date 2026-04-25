@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { CampaignDetail } from '../components/campaign-detail';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,11 +12,20 @@ interface Props {
 }
 
 export default async function CampaignDetailPage({ params }: Props) {
-    let user;
+    let user: DecodedIdToken;
     try {
-        user = await requireUser(['dispensary', 'brand', 'super_user']);
-    } catch {
-        redirect('/dispensary-login');
+        user = await requireUser([
+            'dispensary',
+            'dispensary_admin',
+            'dispensary_staff',
+            'brand',
+            'brand_admin',
+            'brand_member',
+            'super_user',
+        ]);
+    } catch (err) {
+        if ((err as { digest?: string })?.digest?.startsWith('NEXT_REDIRECT')) throw err;
+        redirect('/dashboard');
     }
 
     const { id } = await params;

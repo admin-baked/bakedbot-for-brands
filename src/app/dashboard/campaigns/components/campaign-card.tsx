@@ -29,7 +29,7 @@ interface CampaignCardProps {
 export function CampaignCard({ campaign, onRefresh }: CampaignCardProps) {
     const router = useRouter();
     const [showPreview, setShowPreview] = useState(false);
-    const statusInfo = CAMPAIGN_STATUS_INFO[campaign.status];
+    const statusInfo = CAMPAIGN_STATUS_INFO[campaign.status] ?? { label: campaign.status, color: 'bg-gray-100 text-gray-800', description: '' };
     const goalInfo = CAMPAIGN_GOALS.find(g => g.id === campaign.goal);
     const emailContent = campaign.content?.email;
 
