@@ -3,8 +3,7 @@
 import { requireSuperUser } from '@/server/auth/auth';
 import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
-import { sendSesEmail } from '@/lib/email/ses';
-import { verifySesDomain, getSesDomainStatus, getSesDnsRecords } from '@/lib/email/ses';
+import { sendSesEmail, verifySesDomain, getSesDomainStatus, getSesDnsRecords } from '@/lib/email/ses';
 import { upsertDnsRecord } from '@/server/integrations/cloudflare/api';
 import {
     SESClient,
