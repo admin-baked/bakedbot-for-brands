@@ -7,6 +7,7 @@ import { provisionOrg, setOrgSubdomain, type ProvisionResult, type ProvisionStep
 import { setOrgPlan, type PlanId } from '@/server/actions/admin/set-org-plan';
 import { seedOrgCompetitors } from '@/server/actions/admin/seed-competitors';
 import { getCompetitorPreset } from '@/config/competitor-presets';
+import { createOrgOwner } from '@/server/actions/admin/create-org-owner';
 
 interface OrgRow {
     id: string;
@@ -155,6 +156,61 @@ function PlanEditor({ org, onSaved }: { org: OrgRow; onSaved: (planId: PlanId) =
     );
 }
 
+function OwnerEditor({ org }: { org: OrgRow }) {
+    const [editing, setEditing] = useState(false);
+    const [email, setEmail] = useState('');
+    const [saving, startSave] = useTransition();
+    const [result, setResult] = useState<{ uid: string; created: boolean } | null>(null);
+    const [error, setError] = useState('');
+
+    if (!editing) {
+        return (
+            <button
+                onClick={() => setEditing(true)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+                <span className="text-amber-500">No owner</span>
+                <Pencil className="h-3 w-3" />
+            </button>
+        );
+    }
+
+    if (result) {
+        return (
+            <span className="text-xs text-emerald-600 dark:text-emerald-400">
+                {result.created ? '✓ Owner created & linked' : '✓ Owner linked'}
+            </span>
+        );
+    }
+
+    return (
+        <div className="flex items-center gap-1 flex-wrap">
+            <input
+                autoFocus
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="owner@email.com"
+                className="text-xs border rounded px-2 py-0.5 w-44 bg-background"
+            />
+            <button
+                disabled={saving || !email.includes('@')}
+                onClick={() => startSave(async () => {
+                    setError('');
+                    const res = await createOrgOwner(org.id, email);
+                    if (res.success && res.uid) setResult({ uid: res.uid, created: res.created });
+                    else setError(res.error ?? 'Failed');
+                })}
+                className="text-xs px-2 py-0.5 bg-primary text-primary-foreground rounded disabled:opacity-50"
+            >
+                {saving ? '…' : 'Set Owner'}
+            </button>
+            <button onClick={() => setEditing(false)} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+            {error && <span className="text-xs text-red-500">{error}</span>}
+        </div>
+    );
+}
+
 function SeedCompetitorsButton({ orgId }: { orgId: string }) {
     const preset = getCompetitorPreset(orgId);
     const [seeding, startSeed] = useTransition();
@@ -236,6 +292,7 @@ function OrgCard({ org }: { org: OrgRow }) {
                             org={orgWithSub}
                             onSaved={id => setPlanId(id)}
                         />
+                        <OwnerEditor org={orgWithSub} />
                     </div>
                 </div>
 
