@@ -50,35 +50,15 @@ const DEFAULT_PLAN: PlanInfo = {
 };
 
 const PLAN_FEATURES: Record<PlanId, PlanInfo['features']> = {
+    // ── Free ─────────────────────────────────────────────────────────────────
     free: {
         maxZips: 1,
         advancedReporting: false,
         prioritySupport: false,
         coveragePacksEnabled: false,
-        maxPlaybooks: 1, // Welcome Playbook only
+        maxPlaybooks: 1,
     },
-    claim_pro: {
-        maxZips: 5,
-        advancedReporting: false,
-        prioritySupport: false,
-        coveragePacksEnabled: false,
-        maxPlaybooks: 3
-    },
-    founders_claim: {
-        maxZips: 5,
-        advancedReporting: false,
-        prioritySupport: false,
-        coveragePacksEnabled: false,
-        maxPlaybooks: 3
-    },
-    growth: {
-        maxZips: 50,
-        advancedReporting: true,
-        prioritySupport: false,
-        coveragePacksEnabled: true,
-        maxPlaybooks: 20
-    },
-    // Access track plans (2026 commercial lineup)
+    // ── Access track (current commercial lineup) ──────────────────────────
     access_intel: {
         maxZips: 10,
         advancedReporting: true,
@@ -100,6 +80,7 @@ const PLAN_FEATURES: Record<PlanId, PlanInfo['features']> = {
         coveragePacksEnabled: true,
         maxPlaybooks: 20
     },
+    // ── Operator track ────────────────────────────────────────────────────
     operator_core: {
         maxZips: 100,
         advancedReporting: true,
@@ -114,49 +95,21 @@ const PLAN_FEATURES: Record<PlanId, PlanInfo['features']> = {
         coveragePacksEnabled: true,
         maxPlaybooks: -1
     },
-    scale: {
-        maxZips: 500,
-        advancedReporting: true,
-        prioritySupport: true,
-        coveragePacksEnabled: true,
-        maxPlaybooks: 50
-    },
+    // ── Enterprise ────────────────────────────────────────────────────────
     enterprise: {
-        maxZips: -1, // unlimited
+        maxZips: -1,
         advancedReporting: true,
         prioritySupport: true,
         coveragePacksEnabled: true,
-        maxPlaybooks: -1 // unlimited
+        maxPlaybooks: -1
     },
-    // Current plans (2026)
-    signal: {
-        maxZips: 5,
-        advancedReporting: false,
-        prioritySupport: false,
-        coveragePacksEnabled: false,
-        maxPlaybooks: 5
-    },
-    convert: {
-        maxZips: 25,
-        advancedReporting: false,
-        prioritySupport: false,
-        coveragePacksEnabled: true,
-        maxPlaybooks: 10
-    },
-    retain: {
-        maxZips: 50,
-        advancedReporting: true,
-        prioritySupport: false,
-        coveragePacksEnabled: true,
-        maxPlaybooks: 25
-    },
-    optimize: {
-        maxZips: 200,
-        advancedReporting: true,
-        prioritySupport: true,
-        coveragePacksEnabled: true,
-        maxPlaybooks: -1 // unlimited
-    }
+    // ── Legacy plan aliases (active orgs — do not remove) ─────────────────
+    scout:   { maxZips: 5,   advancedReporting: false, prioritySupport: false, coveragePacksEnabled: false, maxPlaybooks: 3 },
+    grow:    { maxZips: 25,  advancedReporting: false, prioritySupport: false, coveragePacksEnabled: true,  maxPlaybooks: 10 },
+    growth:  { maxZips: 50,  advancedReporting: true,  prioritySupport: false, coveragePacksEnabled: true,  maxPlaybooks: 20 },
+    empire:  { maxZips: -1,  advancedReporting: true,  prioritySupport: true,  coveragePacksEnabled: true,  maxPlaybooks: -1 },
+    pilot:   { maxZips: 10,  advancedReporting: false, prioritySupport: false, coveragePacksEnabled: false, maxPlaybooks: 5 },
+    optimize:{ maxZips: 200, advancedReporting: true,  prioritySupport: true,  coveragePacksEnabled: true,  maxPlaybooks: -1 },
 };
 
 export function usePlanInfo() {

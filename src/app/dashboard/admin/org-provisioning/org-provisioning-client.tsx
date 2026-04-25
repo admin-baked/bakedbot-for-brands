@@ -87,13 +87,13 @@ function SubdomainEditor({ org, onSaved }: { org: OrgRow; onSaved: (sub: string)
 }
 
 const PLANS: { id: PlanId; label: string }[] = [
-    { id: 'free', label: 'Free Check-In ($0)' },
-    { id: 'access_intel', label: 'Access Intel ($149/mo)' },
-    { id: 'access_retention', label: 'Access Retention ($499/mo)' },
-    { id: 'access_complete', label: 'Access Complete ($750/mo)' },
-    { id: 'operator_core', label: 'Operator Core ($2,500/mo)' },
-    { id: 'operator_growth', label: 'Operator Growth ($3,500/mo)' },
-    { id: 'enterprise', label: 'Enterprise (Custom)' },
+    { id: 'free', label: 'Free ($0)' },
+    { id: 'access_intel', label: 'Access Intel — $149/mo' },
+    { id: 'access_retention', label: 'Access Retention — $499/mo' },
+    { id: 'access_complete', label: 'Access Complete — $750/mo' },
+    { id: 'operator_core', label: 'Operator Core — $2,500/mo' },
+    { id: 'operator_growth', label: 'Operator Growth — $3,500/mo' },
+    { id: 'enterprise', label: 'Enterprise — Custom' },
 ];
 
 function PlanEditor({ org, onSaved }: { org: OrgRow; onSaved: (planId: PlanId) => void }) {
