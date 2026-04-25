@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | CI unblocked: sync export in 'use server' fixed (`d10bfdaf2`); SMS/10DLC registration (`b1b0093ca`)
-**Recent work (2026-04-24):** CI build fix — parseDeckScriptResponse extracted from powerpoint.ts 'use server' to powerpoint-utils.ts (`d10bfdaf2`); SMS/10DLC registration form + admin view (`b1b0093ca`).
+**Current Status:** local verified | Provision org welcome email Step 7 + video thumbnail fix (`f314c466b`)
+**Recent work (2026-04-25):** provisionOrg Step 7 — SES welcome email to org owner after ezal seed, idempotent (`f314c466b`); video #t=0.001 thumbnail fix for VideoPlayer + coaching card (`bceb11cc2`).
 
 ---
 

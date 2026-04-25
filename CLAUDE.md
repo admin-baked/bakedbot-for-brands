@@ -19,7 +19,7 @@ npm run ci:health
 If `ci:health` shows red: **fix the CI failure before doing any new work.** Don't push on top of a broken build.
 If `check:types` fails: **fix type errors before any other work.**
 
-**Current Status:** local verified | CI build unblocked — sync export in 'use server' file fixed (`d10bfdaf2`); SMS/10DLC registration (`b1b0093ca`) | **Last update:** 2026-04-24
+**Current Status:** local verified | Provision org welcome email (Step 7) + video thumbnail fix (`f314c466b`) | **Last update:** 2026-04-25
 
 ---
 
