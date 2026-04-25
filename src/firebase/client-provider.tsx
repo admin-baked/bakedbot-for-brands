@@ -106,7 +106,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       if (!isDevelopment) {
         initializeAppCheck(firebaseServices.firebaseApp, {
           provider: new ReCaptchaEnterpriseProvider(recaptchaSiteKey),
-          isTokenAutoRefreshEnabled: false,
+          isTokenAutoRefreshEnabled: true,
         });
         logger.info('[FirebaseClientProvider] App Check initialized successfully');
       } else {
