@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { CheckCircle2, XCircle, SkipForward, Loader2, ChevronDown, ChevronRight, Zap, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { provisionOrg, setOrgSubdomain, type ProvisionResult, type ProvisionStep } from '@/server/actions/admin/provision-org';
+import { setOrgPlan, type PlanId } from '@/server/actions/admin/set-org-plan';
 
 interface OrgRow {
     id: string;
@@ -12,6 +13,7 @@ interface OrgRow {
     bakedBotSubdomain?: string;
     provisioning?: Record<string, unknown>;
     subscriptionStatus: string;
+    planId?: string;
 }
 
 interface Props {
@@ -81,14 +83,85 @@ function SubdomainEditor({ org, onSaved }: { org: OrgRow; onSaved: (sub: string)
     );
 }
 
+const PLANS: { id: PlanId; label: string }[] = [
+    { id: 'free', label: 'Free Check-In ($0)' },
+    { id: 'access_intel', label: 'Access Intel ($149/mo)' },
+    { id: 'access_retention', label: 'Access Retention ($499/mo)' },
+    { id: 'access_complete', label: 'Access Complete ($750/mo)' },
+    { id: 'operator_core', label: 'Operator Core ($2,500/mo)' },
+    { id: 'operator_growth', label: 'Operator Growth ($3,500/mo)' },
+    { id: 'enterprise', label: 'Enterprise (Custom)' },
+];
+
+function PlanEditor({ org, onSaved }: { org: OrgRow; onSaved: (planId: PlanId) => void }) {
+    const [editing, setEditing] = useState(false);
+    const [selected, setSelected] = useState<PlanId>((org.planId as PlanId) ?? 'free');
+    const [saving, startSave] = useTransition();
+    const [error, setError] = useState('');
+    const [savedPlan, setSavedPlan] = useState(org.planId);
+
+    const currentLabel = PLANS.find(p => p.id === (savedPlan ?? 'free'))?.label ?? savedPlan ?? 'none';
+
+    if (!editing) {
+        return (
+            <button
+                onClick={() => setEditing(true)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+                <span className={cn(
+                    'font-mono',
+                    savedPlan && savedPlan !== 'free' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500',
+                )}>
+                    {currentLabel}
+                </span>
+                <Pencil className="h-3 w-3" />
+            </button>
+        );
+    }
+
+    return (
+        <div className="flex items-center gap-1 flex-wrap">
+            <select
+                value={selected}
+                onChange={e => setSelected(e.target.value as PlanId)}
+                className="text-xs border rounded px-2 py-0.5 bg-background"
+            >
+                {PLANS.map(p => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                ))}
+            </select>
+            <button
+                disabled={saving}
+                onClick={() => startSave(async () => {
+                    setError('');
+                    const res = await setOrgPlan(org.id, selected);
+                    if (res.success) {
+                        setSavedPlan(selected);
+                        onSaved(selected);
+                        setEditing(false);
+                    } else {
+                        setError(res.error ?? 'Failed');
+                    }
+                })}
+                className="text-xs px-2 py-0.5 bg-primary text-primary-foreground rounded disabled:opacity-50"
+            >
+                {saving ? '…' : 'Set Plan'}
+            </button>
+            <button onClick={() => setEditing(false)} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+            {error && <span className="text-xs text-red-500">{error}</span>}
+        </div>
+    );
+}
+
 function OrgCard({ org }: { org: OrgRow }) {
     const [subdomain, setSubdomain] = useState(org.bakedBotSubdomain ?? '');
+    const [planId, setPlanId] = useState(org.planId);
     const [expanded, setExpanded] = useState(false);
     const [result, setResult] = useState<ProvisionResult | null>(null);
     const [running, startProvision] = useTransition();
 
     const isProvisioned = !!org.provisioning?.completedAt;
-    const orgWithSub = { ...org, bakedBotSubdomain: subdomain || org.bakedBotSubdomain };
+    const orgWithSub = { ...org, bakedBotSubdomain: subdomain || org.bakedBotSubdomain, planId };
 
     function run() {
         startProvision(async () => {
@@ -124,6 +197,10 @@ function OrgCard({ org }: { org: OrgRow }) {
                         <SubdomainEditor
                             org={orgWithSub}
                             onSaved={sub => setSubdomain(sub)}
+                        />
+                        <PlanEditor
+                            org={orgWithSub}
+                            onSaved={id => setPlanId(id)}
                         />
                     </div>
                 </div>
