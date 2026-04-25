@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | 1-click org provisioning complete 7 steps (`db0052991`); comp-intel → pricing deep-link; campaign access fixes
-**Recent work (2026-04-25):** org provisioning all 7 steps live + plan editor + login fix (`db0052991`); comp-intel "Set Pricing Rules" deep-link auto-opens pricing sheet (`db0052991`).
+**Current Status:** local verified | Simply Pure: Access Complete unlocked + 10 CI competitors seeded (`84efee6af`)
+**Recent work (2026-04-25):** setOrgPlan + PlanEditor (manual invoice flow); seedOrgCompetitors + competitor-presets.ts; Simply Pure 10 NJ competitors live (`84efee6af`).
 
 ---
 

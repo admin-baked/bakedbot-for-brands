@@ -19,7 +19,7 @@ npm run ci:health
 If `ci:health` shows red: **fix the CI failure before doing any new work.** Don't push on top of a broken build.
 If `check:types` fails: **fix type errors before any other work.**
 
-**Current Status:** local verified | 1-click org provisioning complete (7 steps); comp-intel → pricing deep-link; campaign access fixes (`db0052991`) | **Last update:** 2026-04-25
+**Current Status:** local verified | Simply Pure Trenton: Access Complete unlocked + 10 CI competitors seeded (`84efee6af`) | **Last update:** 2026-04-25
 
 ---
 
