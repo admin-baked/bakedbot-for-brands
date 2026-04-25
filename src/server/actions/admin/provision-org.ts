@@ -325,6 +325,7 @@ export async function getProvisionableOrgs(): Promise<Array<{
     bakedBotSubdomain?: string;
     provisioning?: Record<string, unknown>;
     subscriptionStatus: string;
+    planId?: string;
 }>> {
     await requireSuperUser();
     const db = getAdminFirestore();
@@ -338,6 +339,7 @@ export async function getProvisionableOrgs(): Promise<Array<{
             bakedBotSubdomain: data.bakedBotSubdomain,
             provisioning: data.provisioning,
             subscriptionStatus: data.billing?.subscriptionStatus ?? 'none',
+            planId: data.planId,
         };
     });
 }

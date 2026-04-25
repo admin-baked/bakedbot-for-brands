@@ -3,7 +3,8 @@
         {
             "id": "feat_one_click_org_provisioning",
             "title": "1-Click Org Provisioning — Full Stack Onboarding for Dispensaries & Brands",
-            "status": "pending",
+            "status": "completed",
+            "completed_at": "2026-04-25T00:00:00Z",
             "priority": "high",
             "description": "Single button in the super admin dashboard to fully wire up a new dispensary or brand pilot. Replaces scattered manual steps across AWS, Cloudflare, Firestore, and third-party integrations with one automated flow. Should complete in under 2 minutes with a live status log.",
             "acceptance_tests": [

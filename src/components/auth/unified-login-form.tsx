@@ -157,18 +157,9 @@ export function UnifiedLoginForm() {
             // Force refresh to ensure we have latest claims, with timeout protection
             let idTokenResult;
 
-            try {
-                // Use Promise.race to timeout if getIdTokenResult hangs
-                const refreshPromise = userCredential.user.getIdTokenResult(true);
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Token refresh timeout')), 5000)
-                );
-                idTokenResult = await Promise.race([refreshPromise, timeoutPromise]) as any;
-            } catch (refreshError: any) {
-                // If token refresh fails or times out, try without forcing refresh
-                logger.warn('Token refresh failed, using cached token:', refreshError?.message);
-                idTokenResult = await userCredential.user.getIdTokenResult(false);
-            }
+            // createSession already force-refreshed the token via getIdToken(true),
+            // so the cached result already has the latest claims — no second refresh needed.
+            idTokenResult = await userCredential.user.getIdTokenResult(false);
 
             const role = idTokenResult.claims.role as string | undefined;
             const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser;
