@@ -53,7 +53,9 @@ export type APIPermission =
     | 'workflows:run'
     | 'research:start'
     | 'research:status'
-    | 'read:customers';
+    | 'read:customers'
+    | 'write:members'
+    | 'write:transactions';
 
 export const ALL_API_PERMISSIONS: APIPermission[] = [
     'compliance:check',
@@ -62,6 +64,8 @@ export const ALL_API_PERMISSIONS: APIPermission[] = [
     'research:start',
     'research:status',
     'read:customers',
+    'write:members',
+    'write:transactions',
 ];
 
 // ---------------------------------------------------------------------------

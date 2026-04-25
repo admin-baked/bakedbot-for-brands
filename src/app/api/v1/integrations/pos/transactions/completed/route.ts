@@ -7,6 +7,7 @@ import { emitClubEvent } from '@/server/services/loyalty/event-processor';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import { requireAPIKey, APIKeyError } from '@/server/auth/api-key-auth';
 
 const posCompletedSchema = z.object({
     organizationId: z.string(),
@@ -28,8 +29,29 @@ const posCompletedSchema = z.object({
 
 export async function POST(req: NextRequest) {
     try {
-        const body = await req.json();
-        const data = posCompletedSchema.parse(body);
+        // Authenticate before parsing body
+        try {
+            const keyRecord = await requireAPIKey(req, 'write:transactions');
+            const body = await req.json();
+            const data = posCompletedSchema.parse(body);
+
+            if (keyRecord.orgId !== 'platform_admin' && keyRecord.orgId !== data.organizationId) {
+                return NextResponse.json({ success: false, error: 'Unauthorized: API key does not belong to this organization' }, { status: 403 });
+            }
+
+            return await handleTransaction(data);
+        } catch (e: any) {
+            if (e instanceof APIKeyError) return e.toResponse();
+            throw e;
+        }
+    } catch (error: any) {
+        logger.error(`[POSWebhook] Failed to process transaction: ${error.message}`);
+        return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
+}
+
+async function handleTransaction(data: ReturnType<typeof posCompletedSchema.parse>) {
+    try {
         const db = new Firestore();
 
         logger.info(`[POSWebhook] Transaction ${data.posTransactionRef} completed for Org: ${data.organizationId}`);

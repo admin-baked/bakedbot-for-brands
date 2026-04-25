@@ -1,0 +1,577 @@
+openapi: 3.0.3
+
+info:
+  title: BakedBot Partner API
+  description: |
+    The BakedBot Partner API lets cannabis POS systems and e-commerce platforms connect dispensary
+    transaction data to BakedBot's retention and loyalty engine.
+
+    Integrating takes four steps:
+    1. Request API access at **bakedbot.ai/developers**
+    2. Receive your org-scoped API key
+    3. Configure your POS to POST completed transactions to `/api/v1/integrations/pos/transactions/completed`
+    4. Optionally enroll customers and look up loyalty profiles at checkout
+
+    All endpoints require a Bearer token issued by BakedBot. Keys are scoped to permissions —
+    the required scope is noted per endpoint.
+
+    **Base URL:** `https://bakedbot.ai`
+  version: "1.0.0"
+  contact:
+    name: BakedBot Integration Support
+    email: martez@bakedbot.ai
+    url: https://bakedbot.ai/developers
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://bakedbot.ai
+    description: Production
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Transactions
+    description: Notify BakedBot when a sale is completed. Triggers loyalty point awards and retention campaigns.
+  - name: Loyalty
+    description: Enroll customers and look up loyalty profiles at the point of sale.
+  - name: Compliance
+    description: Run cannabis advertising compliance checks against any content before display.
+
+paths:
+  /api/v1/integrations/pos/transactions/completed:
+    post:
+      tags: [Transactions]
+      summary: Record a completed POS transaction
+      description: |
+        POST this endpoint when a Dutchie transaction is finalized. BakedBot will:
+        - Award loyalty points to the matched member (1 point per dollar spent)
+        - Mark the active visit session as completed
+        - Fire behavior-triggered retention campaigns (win-back, loyalty milestone, product replenishment)
+
+        BakedBot matches the transaction to an open loyalty session first by `posCartRef`, then
+        falls back to `customerPhone`. If no session matches, the transaction is recorded but
+        loyalty actions are skipped.
+      operationId: recordCompletedTransaction
+      security:
+        - BearerAuth: [write:transactions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionCompletedRequest'
+            example:
+              organizationId: "org_thrive_syracuse"
+              storeId: "store_main"
+              posCartRef: "cart_abc123"
+              posTransactionRef: "txn_dutchie_98765"
+              customerPhone: "+13155550100"
+              totalCents: 8500
+              subtotalCents: 8500
+              discountCents: 0
+              items:
+                - skuId: "sku_blue_dream_1g"
+                  name: "Blue Dream 1g"
+                  quantity: 2
+                  totalCents: 4000
+      responses:
+        '200':
+          description: Transaction recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionCompletedResponse'
+              examples:
+                matched:
+                  summary: Session matched — points awarded
+                  value:
+                    success: true
+                    sessionId: "vsess_abc123"
+                    pointsAwarded: 85
+                unmatched:
+                  summary: No loyalty session found
+                  value:
+                    success: true
+                    message: "Transaction processed (no loyalty session matched)"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/loyalty/members:
+    post:
+      tags: [Loyalty]
+      summary: Enroll a customer in loyalty
+      description: |
+        Enroll a new customer in BakedBot's loyalty program at checkout or kiosk signup.
+        Returns a loyalty pass with QR code and barcode for immediate use.
+
+        If the phone number already exists for this organization, returns `409 Conflict`
+        with the existing `memberId`.
+      operationId: enrollMember
+      security:
+        - BearerAuth: [write:members]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnrollMemberRequest'
+            example:
+              organizationId: "org_thrive_syracuse"
+              storeId: "store_main"
+              firstName: "Jasmine"
+              lastName: "Rivera"
+              phone: "+13155550100"
+              email: "jasmine@example.com"
+              dateOfBirth: "1990-06-15"
+              smsConsent: true
+              emailConsent: false
+              source: "tablet"
+      responses:
+        '200':
+          description: Member enrolled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollMemberResponse'
+              example:
+                success: true
+                memberId: "mbr_abc123"
+                membershipId: "mship_xyz789"
+                passId: "pass_def456"
+                welcomeRewardId: "rwd_ghi012"
+                pass:
+                  memberCode: "BB-12345678"
+                  qrValue: "bakedbot://member/mbr_abc123"
+                  barcodeValue: "BB12345678"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Member already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Member with this phone number already exists"
+
+  /api/v1/loyalty/members/lookup:
+    get:
+      tags: [Loyalty]
+      summary: Look up a member's loyalty profile
+      description: |
+        Retrieve a member's full loyalty profile at checkout — points balance, tier,
+        available rewards, and pass details. Call this when a customer provides their
+        phone number or scans their loyalty pass at the Dutchie checkout.
+
+        Provide either `phone` or `memberId`. Phone digits are normalized automatically.
+      operationId: lookupMember
+      security:
+        - BearerAuth: [read:customers]
+      parameters:
+        - name: phone
+          in: query
+          description: Customer phone number (E.164 or digits only)
+          schema:
+            type: string
+          example: "+13155550100"
+        - name: memberId
+          in: query
+          description: BakedBot member ID
+          schema:
+            type: string
+          example: "mbr_abc123"
+      responses:
+        '200':
+          description: Member profile found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LookupMemberResponse'
+              example:
+                success: true
+                member:
+                  id: "mbr_abc123"
+                  firstName: "Jasmine"
+                  lastName: "Rivera"
+                  phone: "3155550100"
+                  email: "jasmine@example.com"
+                  organizationId: "org_thrive_syracuse"
+                membership:
+                  id: "mship_xyz789"
+                  points: 340
+                  tier: "gold"
+                  totalSpend: 34000
+                  visitCount: 12
+                pass:
+                  memberCode: "BB-12345678"
+                  qrValue: "bakedbot://member/mbr_abc123"
+                  barcodeValue: "BB12345678"
+                rewards:
+                  - id: "rwd_ghi012"
+                    title: "$5 off your next purchase"
+                    discountCents: 500
+                    expiresAt: "2026-07-01T00:00:00Z"
+                    status: "available"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Member not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Member not found"
+
+  /api/v1/compliance/check:
+    post:
+      tags: [Compliance]
+      summary: Check content for cannabis compliance violations
+      description: |
+        Run BakedBot's cannabis advertising compliance engine (Deebo) against any
+        promotional content before displaying it to customers. Returns a list of
+        violations and a pass/fail result.
+
+        Covers state-level advertising rules for NY, CA, IL, and more.
+      operationId: checkCompliance
+      security:
+        - BearerAuth: [compliance:check]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceCheckRequest'
+            example:
+              content: "Try our new Blue Dream flower — 20% off this weekend!"
+              rulePack: "default"
+              context:
+                title: "Weekend Sale Banner"
+      responses:
+        '200':
+          description: Compliance check completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceCheckResponse'
+              examples:
+                passed:
+                  summary: Content passed compliance
+                  value:
+                    data:
+                      passed: true
+                      violations: []
+                      rulePack: "default"
+                      checkedAt: "2026-04-25T14:30:00Z"
+                    meta:
+                      requestId: "req_1745590200000"
+                      durationMs: 420
+                      version: "v1"
+                failed:
+                  summary: Content failed compliance
+                  value:
+                    data:
+                      passed: false
+                      violations:
+                        - "Health claims not permitted in cannabis advertising (NY reg. 1004.3)"
+                      rulePack: "default"
+                      checkedAt: "2026-04-25T14:30:00Z"
+                    meta:
+                      requestId: "req_1745590200001"
+                      durationMs: 380
+                      version: "v1"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        API key issued by BakedBot per organization. Pass as `Authorization: Bearer <key>`.
+        Keys are scoped to one or more permissions. Request access at bakedbot.ai/developers.
+
+  schemas:
+    TransactionCompletedRequest:
+      type: object
+      required: [organizationId, posTransactionRef, totalCents, subtotalCents]
+      properties:
+        organizationId:
+          type: string
+          description: BakedBot org identifier provided at onboarding
+        storeId:
+          type: string
+          description: Location identifier for multi-location dispensaries
+        posCartRef:
+          type: string
+          description: POS cart or order ID — used to match an open loyalty session
+        posTransactionRef:
+          type: string
+          description: Unique POS transaction ID
+        customerPhone:
+          type: string
+          description: Customer phone in E.164 format — fallback session match if posCartRef not found
+        customerId:
+          type: string
+          description: POS-native customer ID for future cross-reference
+        totalCents:
+          type: integer
+          minimum: 0
+          description: Transaction total in cents (drives loyalty point calculation)
+        subtotalCents:
+          type: integer
+          minimum: 0
+          description: Pre-discount subtotal in cents
+        discountCents:
+          type: integer
+          default: 0
+          description: Discount applied in cents
+        items:
+          type: array
+          description: Line items — used for product preference segmentation
+          items:
+            type: object
+            required: [skuId, name, quantity, totalCents]
+            properties:
+              skuId:
+                type: string
+              name:
+                type: string
+              quantity:
+                type: integer
+              totalCents:
+                type: integer
+
+    TransactionCompletedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        sessionId:
+          type: string
+          description: Matched loyalty session ID (null if no session found)
+        pointsAwarded:
+          type: integer
+          description: Loyalty points awarded (floor of totalCents / 100)
+        message:
+          type: string
+          description: Present when no loyalty session was matched
+
+    EnrollMemberRequest:
+      type: object
+      required: [organizationId, firstName, phone]
+      properties:
+        organizationId:
+          type: string
+        storeId:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+          description: E.164 phone number
+        email:
+          type: string
+          format: email
+        dateOfBirth:
+          type: string
+          format: date
+          description: ISO 8601 date (YYYY-MM-DD)
+        smsConsent:
+          type: boolean
+          default: false
+          description: Explicit SMS opt-in
+        emailConsent:
+          type: boolean
+          default: false
+          description: Explicit email opt-in
+        source:
+          type: string
+          enum: [tablet, customer_app]
+          default: tablet
+
+    EnrollMemberResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        memberId:
+          type: string
+        membershipId:
+          type: string
+        passId:
+          type: string
+        welcomeRewardId:
+          type: string
+        pass:
+          type: object
+          properties:
+            memberCode:
+              type: string
+            qrValue:
+              type: string
+            barcodeValue:
+              type: string
+
+    LookupMemberResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        member:
+          type: object
+          properties:
+            id:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+            phone:
+              type: string
+            email:
+              type: string
+            organizationId:
+              type: string
+        membership:
+          type: object
+          properties:
+            id:
+              type: string
+            points:
+              type: integer
+            tier:
+              type: string
+            totalSpend:
+              type: integer
+            visitCount:
+              type: integer
+        pass:
+          type: object
+          properties:
+            memberCode:
+              type: string
+            qrValue:
+              type: string
+            barcodeValue:
+              type: string
+        rewards:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              title:
+                type: string
+              discountCents:
+                type: integer
+              expiresAt:
+                type: string
+                format: date-time
+              status:
+                type: string
+                enum: [available, redeemed, expired]
+
+    ComplianceCheckRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          description: The promotional copy or content to check
+        rulePack:
+          type: string
+          default: default
+          description: Compliance rule set to apply
+        context:
+          type: object
+          description: Optional metadata (title, channel, state) for contextual rules
+
+    ComplianceCheckResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            passed:
+              type: boolean
+            violations:
+              type: array
+              items:
+                type: string
+            rulePack:
+              type: string
+            checkedAt:
+              type: string
+              format: date-time
+        meta:
+          type: object
+          properties:
+            requestId:
+              type: string
+            durationMs:
+              type: integer
+            version:
+              type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+
+  responses:
+    ValidationError:
+      description: Missing or invalid request fields
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "posTransactionRef is required"
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "Authorization header with Bearer token required"
+    Forbidden:
+      description: API key lacks required permission or belongs to a different organization
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "Unauthorized: API key does not belong to this organization"

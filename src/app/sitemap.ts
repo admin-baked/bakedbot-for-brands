@@ -50,6 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     // 2c. Bottom-funnel operator acquisition pages (exact-match B2B intent)
     const operatorLandingPages = [
+      '/developers',
       '/dispensary-crm',
       '/dispensary-software',
       '/dispensary-marketing-automation',

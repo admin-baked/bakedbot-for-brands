@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
         // 1. Require valid API key
         // 2. Ensure key belongs to the organization being modified
         try {
-            const keyRecord = await requireAPIKey(req, 'read:customers'); // Enrollment needs write, but using read:customers for now or matching contract
+            const keyRecord = await requireAPIKey(req, 'write:members');
             if (keyRecord.orgId !== 'platform_admin' && keyRecord.orgId !== params.organizationId) {
                 return NextResponse.json({
                     success: false,

@@ -12,10 +12,15 @@ import { PRICING_PLANS } from '@/lib/config/pricing';
 import { logger } from '@/lib/logger';
 
 export type PlanId =
-    // Current plans (2026)
-    | 'signal' | 'convert' | 'retain' | 'optimize' | 'enterprise'
-    // Legacy plans
-    | 'free' | 'claim_pro' | 'founders_claim' | 'growth' | 'scale';
+    // Access track (current)
+    | 'access_intel' | 'access_retention' | 'access_complete'
+    // Operator track (current)
+    | 'operator_core' | 'operator_growth'
+    // Enterprise
+    | 'enterprise'
+    // Legacy plans (active orgs — do not remove)
+    | 'free' | 'scout' | 'grow' | 'growth' | 'pilot' | 'empire' | 'optimize'
+    | 'signal' | 'convert' | 'retain' | 'claim_pro' | 'founders_claim' | 'scale';
 
 export type PlanTier = 'unclaimed' | 'claim' | 'subscription';
 
@@ -104,12 +109,18 @@ const PLAN_FEATURES: Record<PlanId, PlanInfo['features']> = {
         maxPlaybooks: -1
     },
     // ── Legacy plan aliases (active orgs — do not remove) ─────────────────
-    scout:   { maxZips: 5,   advancedReporting: false, prioritySupport: false, coveragePacksEnabled: false, maxPlaybooks: 3 },
-    grow:    { maxZips: 25,  advancedReporting: false, prioritySupport: false, coveragePacksEnabled: true,  maxPlaybooks: 10 },
-    growth:  { maxZips: 50,  advancedReporting: true,  prioritySupport: false, coveragePacksEnabled: true,  maxPlaybooks: 20 },
-    empire:  { maxZips: -1,  advancedReporting: true,  prioritySupport: true,  coveragePacksEnabled: true,  maxPlaybooks: -1 },
-    pilot:   { maxZips: 10,  advancedReporting: false, prioritySupport: false, coveragePacksEnabled: false, maxPlaybooks: 5 },
-    optimize:{ maxZips: 200, advancedReporting: true,  prioritySupport: true,  coveragePacksEnabled: true,  maxPlaybooks: -1 },
+    scout:         { maxZips: 5,   advancedReporting: false, prioritySupport: false, coveragePacksEnabled: false, maxPlaybooks: 3 },
+    grow:          { maxZips: 25,  advancedReporting: false, prioritySupport: false, coveragePacksEnabled: true,  maxPlaybooks: 10 },
+    growth:        { maxZips: 50,  advancedReporting: true,  prioritySupport: false, coveragePacksEnabled: true,  maxPlaybooks: 20 },
+    empire:        { maxZips: -1,  advancedReporting: true,  prioritySupport: true,  coveragePacksEnabled: true,  maxPlaybooks: -1 },
+    pilot:         { maxZips: 10,  advancedReporting: false, prioritySupport: false, coveragePacksEnabled: false, maxPlaybooks: 5 },
+    optimize:      { maxZips: 200, advancedReporting: true,  prioritySupport: true,  coveragePacksEnabled: true,  maxPlaybooks: -1 },
+    signal:        { maxZips: 5,   advancedReporting: false, prioritySupport: false, coveragePacksEnabled: false, maxPlaybooks: 3 },
+    convert:       { maxZips: 25,  advancedReporting: true,  prioritySupport: false, coveragePacksEnabled: true,  maxPlaybooks: 10 },
+    retain:        { maxZips: 50,  advancedReporting: true,  prioritySupport: false, coveragePacksEnabled: true,  maxPlaybooks: 20 },
+    claim_pro:     { maxZips: 5,   advancedReporting: false, prioritySupport: false, coveragePacksEnabled: false, maxPlaybooks: 3 },
+    founders_claim:{ maxZips: 25,  advancedReporting: false, prioritySupport: false, coveragePacksEnabled: false, maxPlaybooks: 5 },
+    scale:         { maxZips: 100, advancedReporting: true,  prioritySupport: true,  coveragePacksEnabled: true,  maxPlaybooks: -1 },
 };
 
 export function usePlanInfo() {
