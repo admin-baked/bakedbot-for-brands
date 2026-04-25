@@ -22,6 +22,7 @@ import {
     Wallet,
     FileText,
     TrendingUp,
+    Share2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUserRole } from '@/hooks/use-user-role';
@@ -296,6 +297,21 @@ export default function CompetitiveIntelPage() {
                         <Plus className="mr-2 h-4 w-4" />
                         Add Manual
                     </Button>
+                    {orgId && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                const url = `${window.location.origin}/share/ci/${orgId}`;
+                                navigator.clipboard.writeText(url).then(() => {
+                                    window.open(url, '_blank');
+                                });
+                            }}
+                        >
+                            <Share2 className="mr-2 h-4 w-4" />
+                            Share Report
+                        </Button>
+                    )}
                     <Button size="sm" onClick={handleRefresh} disabled={refreshing || !snapshot?.canRefresh}>
                         {refreshing ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
