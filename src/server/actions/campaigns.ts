@@ -37,6 +37,32 @@ const CAMPAIGN_ALLOWED_ROLES = [
     'super_admin',
 ] as const;
 
+// Detects Firestore Timestamp objects specifically (not plain strings/numbers).
+function isFirestoreTimestamp(v: unknown): v is { toDate(): Date } {
+    return (
+        typeof v === 'object' &&
+        v !== null &&
+        'toDate' in v &&
+        typeof (v as { toDate: unknown }).toDate === 'function'
+    );
+}
+
+// Recursively convert Firestore Timestamps to Date so the server action response
+// is always JSON-serializable. Handles any unknown Timestamp fields in documents.
+function sanitizeDoc(obj: Record<string, unknown>): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj)) {
+        if (isFirestoreTimestamp(v)) {
+            out[k] = v.toDate();
+        } else if (v && typeof v === 'object' && !Array.isArray(v)) {
+            out[k] = sanitizeDoc(v as Record<string, unknown>);
+        } else {
+            out[k] = v;
+        }
+    }
+    return out;
+}
+
 function getCampaignOrgId(user: CampaignActionUser): string | null {
     const orgId = getActorOrgId(user);
     if (!orgId && isSuperRole(user.role)) return PLATFORM_ORG_ID;
@@ -300,20 +326,12 @@ export async function getCampaigns(
         return snap.docs
             .map(doc => {
                 const data = doc.data();
+                // sanitizeDoc converts ALL Firestore Timestamps recursively, so
+                // ...safe is always JSON-serializable regardless of unknown fields.
+                const safe = sanitizeDoc(data);
                 return {
                     id: doc.id,
-                    ...data,
-                    scheduledAt: data.scheduledAt?.toDate?.() || undefined,
-                    sentAt: data.sentAt?.toDate?.() || undefined,
-                    completedAt: data.completedAt?.toDate?.() || undefined,
-                    complianceReviewedAt: data.complianceReviewedAt?.toDate?.() || undefined,
-                    approvedAt: data.approvedAt?.toDate?.() || undefined,
-                    createdAt: data.createdAt?.toDate?.() || new Date(),
-                    updatedAt: data.updatedAt?.toDate?.() || new Date(),
-                    performance: data.performance ? {
-                        ...data.performance,
-                        lastUpdated: data.performance.lastUpdated?.toDate?.() || new Date(),
-                    } : undefined,
+                    ...safe,
                 } as Campaign;
             })
             .filter(c => !options?.goal || c.goal === options.goal);
