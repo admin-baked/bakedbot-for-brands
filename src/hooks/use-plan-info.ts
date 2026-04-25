@@ -78,6 +78,42 @@ const PLAN_FEATURES: Record<PlanId, PlanInfo['features']> = {
         coveragePacksEnabled: true,
         maxPlaybooks: 20
     },
+    // Access track plans (2026 commercial lineup)
+    access_intel: {
+        maxZips: 10,
+        advancedReporting: true,
+        prioritySupport: false,
+        coveragePacksEnabled: false,
+        maxPlaybooks: 5
+    },
+    access_retention: {
+        maxZips: 25,
+        advancedReporting: true,
+        prioritySupport: false,
+        coveragePacksEnabled: true,
+        maxPlaybooks: 15
+    },
+    access_complete: {
+        maxZips: 50,
+        advancedReporting: true,
+        prioritySupport: true,
+        coveragePacksEnabled: true,
+        maxPlaybooks: 20
+    },
+    operator_core: {
+        maxZips: 100,
+        advancedReporting: true,
+        prioritySupport: true,
+        coveragePacksEnabled: true,
+        maxPlaybooks: 50
+    },
+    operator_growth: {
+        maxZips: 200,
+        advancedReporting: true,
+        prioritySupport: true,
+        coveragePacksEnabled: true,
+        maxPlaybooks: -1
+    },
     scale: {
         maxZips: 500,
         advancedReporting: true,
