@@ -19,7 +19,7 @@ npm run ci:health
 If `ci:health` shows red: **fix the CI failure before doing any new work.** Don't push on top of a broken build.
 If `check:types` fails: **fix type errors before any other work.**
 
-**Current Status:** local verified | Campaign Timestamp sanitization fix + allSettled resilience (`32f61ceb2`) | **Last update:** 2026-04-25
+**Current Status:** local verified | Campaign WizardContext + segment counts + Craig AI shortcut (`655b07078`) | **Last update:** 2026-04-25
 
 ---
 

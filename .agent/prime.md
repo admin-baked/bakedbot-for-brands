@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | Public developer API docs + Dutchie integration + POS auth hardening (`04b7a4e26`)
-**Recent work (2026-04-25):** /developers page + OpenAPI spec live; POS webhook auth hardened; PlanId type fixed (`04b7a4e26`).
+**Current Status:** local verified | Campaign WizardContext + segment counts + Craig AI shortcut (`655b07078`)
+**Recent work (2026-04-25):** WizardContext pre-seeds wizard from Slow Mover panel; getSegmentCounts live counts on segments; Craig AI shortcut on Content step (`655b07078`).
 
 ---
 
