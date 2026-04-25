@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
     Check, ChevronLeft, ChevronRight, Loader2,
-    Mail, MessageSquare, Users, Sparkles, PenLine,
+    Mail, MessageSquare, Users, Sparkles, PenLine, Package,
 } from 'lucide-react';
 import { createCampaign } from '@/server/actions/campaigns';
 import {
@@ -22,6 +22,19 @@ import {
 import type { CustomerSegment } from '@/types/customers';
 import { getSegmentInfo } from '@/types/customers';
 import { generateCampaignFromNL } from '@/server/actions/campaign-nlp';
+import type { SegmentCounts } from '@/server/actions/campaigns';
+
+// Context injected when launching from a specific surface (e.g. Slow Mover panel)
+export interface WizardContext {
+    mode: 'slow-mover' | 'general';
+    presetName?: string;
+    presetGoal?: CampaignGoal;
+    presetChannels?: CampaignChannel[];
+    /** Pre-written AI prompt — shown in the AI tab, ready to generate */
+    aiPrompt?: string;
+    /** Human-readable hint shown at the top of the wizard */
+    note?: string;
+}
 
 const SEGMENT_OPTIONS: CustomerSegment[] = [
     'vip', 'loyal', 'frequent', 'high_value', 'new', 'slipping', 'at_risk', 'churned',
@@ -33,29 +46,54 @@ interface CampaignWizardV2Props {
     open: boolean;
     onClose: () => void;
     onCreated: () => void;
+    context?: WizardContext;
+    segmentCounts?: SegmentCounts;
 }
 
-export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2Props) {
+export function CampaignWizardV2({ open, onClose, onCreated, context, segmentCounts }: CampaignWizardV2Props) {
     const [step, setStep] = useState(0);
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // AI mode state
-    const [wizardMode, setWizardMode] = useState<'manual' | 'ai'>('manual');
-    const [nlPrompt, setNlPrompt] = useState('');
+    // AI mode: default to AI when context has a pre-filled prompt
+    const [wizardMode, setWizardMode] = useState<'manual' | 'ai'>(
+        context?.aiPrompt ? 'ai' : 'manual'
+    );
+    const [nlPrompt, setNlPrompt] = useState(context?.aiPrompt ?? '');
     const [generating, setGenerating] = useState(false);
     const [nlError, setNlError] = useState<string | null>(null);
 
-    // Form state
-    const [goal, setGoal] = useState<CampaignGoal | null>(null);
-    const [name, setName] = useState('');
+    // Form state — seeded from context
+    const [goal, setGoal] = useState<CampaignGoal | null>(context?.presetGoal ?? null);
+    const [name, setName] = useState(context?.presetName ?? '');
     const [description, setDescription] = useState('');
-    const [channels, setChannels] = useState<CampaignChannel[]>(['email']);
+    const [channels, setChannels] = useState<CampaignChannel[]>(context?.presetChannels ?? ['email']);
     const [segments, setSegments] = useState<CustomerSegment[]>([]);
     const [audienceType, setAudienceType] = useState<'all' | 'segment'>('segment');
     const [emailSubject, setEmailSubject] = useState('');
     const [emailBody, setEmailBody] = useState('');
     const [smsBody, setSmsBody] = useState('');
+
+    // Re-seed when context changes (e.g. different "Move It" click)
+    useEffect(() => {
+        if (!open) return;
+        setStep(0);
+        setError(null);
+        setNlError(null);
+        setCreating(false);
+        setGenerating(false);
+        setWizardMode(context?.aiPrompt ? 'ai' : 'manual');
+        setNlPrompt(context?.aiPrompt ?? '');
+        setGoal(context?.presetGoal ?? null);
+        setName(context?.presetName ?? '');
+        setDescription('');
+        setChannels(context?.presetChannels ?? ['email']);
+        setSegments([]);
+        setAudienceType('segment');
+        setEmailSubject('');
+        setEmailBody('');
+        setSmsBody('');
+    }, [open, context]);
 
     const goalInfo = goal ? CAMPAIGN_GOALS.find(g => g.id === goal) : null;
 
@@ -64,8 +102,7 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
             case 0: return !!goal && !!name.trim();
             case 1: return audienceType === 'all' || segments.length > 0;
             case 2: {
-                if (channels.includes('email') && !emailSubject.trim()) return false;
-                if (channels.includes('email') && !emailBody.trim()) return false;
+                if (channels.includes('email') && (!emailSubject.trim() || !emailBody.trim())) return false;
                 if (channels.includes('sms') && !smsBody.trim()) return false;
                 return true;
             }
@@ -74,53 +111,59 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
         }
     };
 
-    const toggleChannel = (ch: CampaignChannel) => {
-        setChannels(prev =>
-            prev.includes(ch) ? prev.filter(c => c !== ch) : [...prev, ch]
-        );
-    };
+    const toggleChannel = (ch: CampaignChannel) =>
+        setChannels(prev => prev.includes(ch) ? prev.filter(c => c !== ch) : [...prev, ch]);
 
-    const toggleSegment = (seg: CustomerSegment) => {
-        setSegments(prev =>
-            prev.includes(seg) ? prev.filter(s => s !== seg) : [...prev, seg]
-        );
-    };
+    const toggleSegment = (seg: CustomerSegment) =>
+        setSegments(prev => prev.includes(seg) ? prev.filter(s => s !== seg) : [...prev, seg]);
 
-    const handleGenerate = async () => {
-        if (!nlPrompt.trim()) return;
+    // Shared: call Craig, apply result, jump to Review
+    const runGenerate = async (prompt: string, preserveExisting = false) => {
         setGenerating(true);
         setNlError(null);
         try {
-            const result = await generateCampaignFromNL(nlPrompt);
-            if (!result.success) {
-                setNlError(result.error);
-                return;
-            }
+            const result = await generateCampaignFromNL(prompt);
+            if (!result.success) { setNlError(result.error); return false; }
             const d = result.data;
-            setName(d.name);
+            setName(prev => (preserveExisting && prev) ? prev : d.name);
             setDescription(d.description);
-            setGoal(d.goal);
+            setGoal(prev => (preserveExisting && prev) ? prev : d.goal);
             setChannels(d.channels);
             setSegments(d.targetSegments);
             setAudienceType(d.audienceType);
             setEmailSubject(d.emailSubject);
             setEmailBody(d.emailBody);
             setSmsBody(d.smsBody);
-            // Jump to Review step
             setWizardMode('manual');
             setStep(3);
+            return true;
         } catch (err) {
             setNlError(err instanceof Error ? err.message : 'An error occurred');
+            return false;
         } finally {
             setGenerating(false);
         }
+    };
+
+    const handleGenerate = async () => {
+        if (!nlPrompt.trim()) return;
+        await runGenerate(nlPrompt);
+    };
+
+    // Content step shortcut — picks up the context prompt or whatever the user typed
+    const handleWriteWithCraig = async () => {
+        const prompt = nlPrompt.trim() || context?.aiPrompt?.trim() || '';
+        if (!prompt) return;
+        setNlPrompt(prompt);
+        setWizardMode('ai');
+        const ok = await runGenerate(prompt, true);
+        if (!ok) setWizardMode('manual');
     };
 
     const handleCreate = async () => {
         if (!goal) return;
         setCreating(true);
         setError(null);
-
         try {
             const content: Record<string, unknown> = {};
             if (channels.includes('email')) {
@@ -128,21 +171,15 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                     channel: 'email',
                     subject: emailSubject,
                     body: emailBody,
-                    htmlBody: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-<p>${emailBody.replace(/\n/g, '<br>')}</p>
-</div>`,
+                    htmlBody: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;"><p>${emailBody.replace(/\n/g, '<br>')}</p></div>`,
                 };
             }
             if (channels.includes('sms')) {
-                content.sms = {
-                    channel: 'sms',
-                    body: smsBody,
-                };
+                content.sms = { channel: 'sms', body: smsBody };
             }
-
             const campaign = await createCampaign({
-                orgId: '', // resolved server-side
-                createdBy: '', // resolved server-side
+                orgId: '',
+                createdBy: '',
                 name,
                 description,
                 goal,
@@ -154,7 +191,6 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                 },
                 content: content as Record<CampaignChannel, { channel: CampaignChannel; subject?: string; body: string; htmlBody?: string }>,
             });
-
             if (campaign) {
                 onCreated();
             } else {
@@ -174,6 +210,14 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                     <DialogTitle>New Campaign</DialogTitle>
                 </DialogHeader>
 
+                {/* Context note — shown when launched from a specific surface */}
+                {context?.note && (
+                    <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800 mb-2">
+                        <Package className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+                        <span>{context.note}</span>
+                    </div>
+                )}
+
                 {/* Mode switcher */}
                 <div className="flex items-center gap-2 mb-4 border rounded-lg p-1 bg-muted/40 w-fit">
                     <Button
@@ -190,7 +234,7 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                         className="h-7 gap-1.5"
                         onClick={() => setWizardMode('ai')}
                     >
-                        <Sparkles className="h-3.5 w-3.5" /> AI
+                        <Sparkles className="h-3.5 w-3.5" /> Craig AI
                     </Button>
                 </div>
 
@@ -198,15 +242,18 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                 {wizardMode === 'ai' && (
                     <div className="space-y-4 mb-4">
                         <div>
-                            <Label htmlFor="nl-prompt">Describe your campaign</Label>
+                            <Label htmlFor="nl-prompt">Tell Craig what to write</Label>
                             <Textarea
                                 id="nl-prompt"
-                                placeholder="e.g. Send a win-back email to churned customers with a 20% off coupon to bring them back"
+                                placeholder="e.g. Flash sale email to move slow inventory — 20% off this weekend only"
                                 value={nlPrompt}
                                 onChange={(e) => setNlPrompt(e.target.value)}
-                                rows={4}
-                                className="mt-1"
+                                rows={5}
+                                className="mt-1 font-mono text-sm"
                             />
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Craig will write the subject, body, and SMS — all cannabis-compliant.
+                            </p>
                         </div>
                         {nlError && (
                             <Alert variant="destructive">
@@ -217,43 +264,41 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                             onClick={handleGenerate}
                             disabled={generating || !nlPrompt.trim()}
                             className="w-full gap-2"
+                            size="lg"
                         >
                             {generating ? (
-                                <><Loader2 className="h-4 w-4 animate-spin" /> Generating campaign…</>
+                                <><Loader2 className="h-4 w-4 animate-spin" /> Craig is writing…</>
                             ) : (
                                 <><Sparkles className="h-4 w-4" /> Generate Campaign</>
                             )}
                         </Button>
-                        <p className="text-xs text-muted-foreground text-center">
-                            AI will fill out all the fields and take you straight to Review.
-                        </p>
                     </div>
                 )}
 
-                {/* Progress bar + step content — hidden in AI mode */}
+                {/* Step progress — manual mode only */}
                 {wizardMode === 'manual' && (
-                <div className="flex items-center gap-2 mb-4">
-                    {STEPS.map((s, i) => (
-                        <div key={s} className="flex items-center gap-2 flex-1">
-                            <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-medium ${
-                                i < step ? 'bg-green-500 text-white' :
-                                i === step ? 'bg-primary text-primary-foreground' :
-                                'bg-muted text-muted-foreground'
-                            }`}>
-                                {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                    <div className="flex items-center gap-2 mb-4">
+                        {STEPS.map((s, i) => (
+                            <div key={s} className="flex items-center gap-2 flex-1">
+                                <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-medium ${
+                                    i < step ? 'bg-green-500 text-white' :
+                                    i === step ? 'bg-primary text-primary-foreground' :
+                                    'bg-muted text-muted-foreground'
+                                }`}>
+                                    {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                                </div>
+                                <span className={`text-sm hidden sm:inline ${i === step ? 'font-medium' : 'text-muted-foreground'}`}>
+                                    {s}
+                                </span>
+                                {i < STEPS.length - 1 && (
+                                    <div className={`flex-1 h-0.5 ${i < step ? 'bg-green-500' : 'bg-muted'}`} />
+                                )}
                             </div>
-                            <span className={`text-sm hidden sm:inline ${i === step ? 'font-medium' : 'text-muted-foreground'}`}>
-                                {s}
-                            </span>
-                            {i < STEPS.length - 1 && (
-                                <div className={`flex-1 h-0.5 ${i < step ? 'bg-green-500' : 'bg-muted'}`} />
-                            )}
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
                 )}
 
-                {/* Step 0: Goal */}
+                {/* ── Step 0: Goal ─────────────────────────────────────────── */}
                 {wizardMode === 'manual' && step === 0 && (
                     <div className="space-y-4">
                         <div>
@@ -291,13 +336,15 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                                         }`}
                                         onClick={() => {
                                             setGoal(g.id);
-                                            // Auto-suggest channels and segments
                                             setChannels(g.suggestedChannels);
                                             setSegments(g.suggestedSegments);
                                         }}
                                     >
                                         <CardContent className="p-3">
-                                            <p className="font-medium text-sm">{g.label}</p>
+                                            <div className="flex items-center justify-between gap-1">
+                                                <p className="font-medium text-sm">{g.label}</p>
+                                                {goal === g.id && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                                            </div>
                                             <p className="text-xs text-muted-foreground">{g.description}</p>
                                         </CardContent>
                                     </Card>
@@ -327,7 +374,7 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                     </div>
                 )}
 
-                {/* Step 1: Audience */}
+                {/* ── Step 1: Audience ─────────────────────────────────────── */}
                 {wizardMode === 'manual' && step === 1 && (
                     <div className="space-y-4">
                         <div className="flex gap-2">
@@ -349,26 +396,43 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
 
                         {audienceType === 'segment' && (
                             <div>
-                                <Label>Select Segments</Label>
-                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                <div className="flex items-center justify-between mb-2">
+                                    <Label>Select Segments</Label>
+                                    {segments.length > 0 && (
+                                        <span className="text-xs text-muted-foreground">
+                                            {segments.reduce((sum, s) => sum + (segmentCounts?.[s] ?? 0), 0).toLocaleString()} customers selected
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
                                     {SEGMENT_OPTIONS.map(seg => {
                                         const info = getSegmentInfo(seg);
                                         const selected = segments.includes(seg);
+                                        const count = segmentCounts?.[seg];
                                         return (
                                             <Card
                                                 key={seg}
                                                 className={`cursor-pointer transition-colors ${
                                                     selected ? 'border-primary bg-primary/5' : 'hover:border-primary/30'
-                                                }`}
-                                                onClick={() => toggleSegment(seg)}
+                                                } ${count === 0 ? 'opacity-50' : ''}`}
+                                                onClick={() => count !== 0 && toggleSegment(seg)}
                                             >
-                                                <CardContent className="p-3 flex items-center gap-2">
-                                                    <div className={`w-3 h-3 rounded-full ${info.color}`} />
-                                                    <div>
-                                                        <p className="font-medium text-sm">{info.label}</p>
-                                                        <p className="text-xs text-muted-foreground">{info.description}</p>
+                                                <CardContent className="p-3">
+                                                    <div className="flex items-start gap-2">
+                                                        <div className={`w-2.5 h-2.5 rounded-full mt-1 shrink-0 ${info.color}`} />
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center justify-between gap-1">
+                                                                <p className="font-medium text-sm">{info.label}</p>
+                                                                {count !== undefined ? (
+                                                                    <span className={`text-xs font-medium shrink-0 ${selected ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                                        {count.toLocaleString()}
+                                                                    </span>
+                                                                ) : null}
+                                                            </div>
+                                                            <p className="text-xs text-muted-foreground truncate">{info.description}</p>
+                                                        </div>
+                                                        {selected && <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />}
                                                     </div>
-                                                    {selected && <Check className="h-4 w-4 text-primary ml-auto" />}
                                                 </CardContent>
                                             </Card>
                                         );
@@ -385,11 +449,34 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                     </div>
                 )}
 
-                {/* Step 2: Content */}
+                {/* ── Step 2: Content ──────────────────────────────────────── */}
                 {wizardMode === 'manual' && step === 2 && (
                     <div className="space-y-4">
-                        <p className="text-sm text-muted-foreground">
-                            Use variables like {'{{firstName}}'}, {'{{segment}}'}, {'{{totalSpent}}'} for personalization.
+                        {/* Craig shortcut — always visible at top of content step */}
+                        <button
+                            type="button"
+                            onClick={handleWriteWithCraig}
+                            disabled={generating}
+                            className="w-full flex items-center justify-center gap-2 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+                        >
+                            {generating ? (
+                                <><Loader2 className="h-4 w-4 animate-spin" /> Craig is writing…</>
+                            ) : (
+                                <><Sparkles className="h-4 w-4" /> Write with Craig — fills everything automatically</>
+                            )}
+                        </button>
+
+                        <div className="relative">
+                            <div className="absolute inset-x-0 top-1/2 flex items-center">
+                                <div className="w-full border-t" />
+                            </div>
+                            <div className="relative flex justify-center text-xs">
+                                <span className="bg-background px-2 text-muted-foreground">or write it yourself</span>
+                            </div>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground">
+                            Use <code className="bg-muted px-1 rounded">{'{{firstName}}'}</code>, <code className="bg-muted px-1 rounded">{'{{segment}}'}</code>, <code className="bg-muted px-1 rounded">{'{{totalSpent}}'}</code> for personalization.
                         </p>
 
                         {channels.includes('email') && (
@@ -422,15 +509,13 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                                     onChange={(e) => setSmsBody(e.target.value)}
                                     rows={3}
                                 />
-                                <p className="text-xs text-muted-foreground">
-                                    {smsBody.length}/160 characters
-                                </p>
+                                <p className="text-xs text-muted-foreground">{smsBody.length}/160 characters</p>
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* Step 3: Review */}
+                {/* ── Step 3: Review ───────────────────────────────────────── */}
                 {wizardMode === 'manual' && step === 3 && (
                     <div className="space-y-4">
                         <Card>
@@ -442,12 +527,17 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                                 {description && (
                                     <p className="text-sm text-muted-foreground">{description}</p>
                                 )}
-                                <div className="flex gap-4 text-sm text-muted-foreground">
+                                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                                     <span className="flex items-center gap-1">
                                         <Users className="h-3.5 w-3.5" />
                                         {audienceType === 'all'
                                             ? 'All customers'
-                                            : `${segments.map(s => getSegmentInfo(s).label).join(', ')}`
+                                            : segments.map(s => {
+                                                const c = segmentCounts?.[s];
+                                                return c !== undefined
+                                                    ? `${getSegmentInfo(s).label} (${c.toLocaleString()})`
+                                                    : getSegmentInfo(s).label;
+                                            }).join(', ')
                                         }
                                     </span>
                                     <span className="flex items-center gap-1">
@@ -461,16 +551,16 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                                 </div>
 
                                 {channels.includes('email') && (
-                                    <div className="border-t pt-2">
-                                        <p className="text-xs font-medium text-muted-foreground">EMAIL</p>
+                                    <div className="border-t pt-3">
+                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Email</p>
                                         <p className="text-sm font-medium">{emailSubject}</p>
-                                        <p className="text-sm text-muted-foreground whitespace-pre-line">{emailBody}</p>
+                                        <p className="text-sm text-muted-foreground whitespace-pre-line mt-1">{emailBody}</p>
                                     </div>
                                 )}
 
                                 {channels.includes('sms') && (
-                                    <div className="border-t pt-2">
-                                        <p className="text-xs font-medium text-muted-foreground">SMS</p>
+                                    <div className="border-t pt-3">
+                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">SMS</p>
                                         <p className="text-sm text-muted-foreground">{smsBody}</p>
                                     </div>
                                 )}
@@ -484,39 +574,38 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                         )}
 
                         <p className="text-sm text-muted-foreground">
-                            Campaign will be saved as a draft. You can submit it for compliance review and schedule it from the campaign detail page.
+                            Saved as a draft. Submit for compliance review and schedule it from the campaign detail page.
                         </p>
                     </div>
                 )}
 
                 {/* Navigation — manual mode only */}
-                {wizardMode === 'manual' && <div className="flex justify-between mt-4 pt-4 border-t">
-                    <Button
-                        variant="outline"
-                        onClick={() => step > 0 ? setStep(step - 1) : onClose()}
-                    >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        {step > 0 ? 'Back' : 'Cancel'}
-                    </Button>
+                {wizardMode === 'manual' && (
+                    <div className="flex justify-between mt-4 pt-4 border-t">
+                        <Button
+                            variant="outline"
+                            onClick={() => step > 0 ? setStep(step - 1) : onClose()}
+                        >
+                            <ChevronLeft className="h-4 w-4 mr-1" />
+                            {step > 0 ? 'Back' : 'Cancel'}
+                        </Button>
 
-                    {step < STEPS.length - 1 ? (
-                        <Button onClick={() => setStep(step + 1)} disabled={!canNext()}>
-                            Next
-                            <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                    ) : (
-                        <Button onClick={handleCreate} disabled={creating || !canNext()}>
-                            {creating ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Creating...
-                                </>
-                            ) : (
-                                'Create Campaign'
-                            )}
-                        </Button>
-                    )}
-                </div>}
+                        {step < STEPS.length - 1 ? (
+                            <Button onClick={() => setStep(step + 1)} disabled={!canNext()}>
+                                Next
+                                <ChevronRight className="h-4 w-4 ml-1" />
+                            </Button>
+                        ) : (
+                            <Button onClick={handleCreate} disabled={creating || !canNext()}>
+                                {creating ? (
+                                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating…</>
+                                ) : (
+                                    'Create Campaign'
+                                )}
+                            </Button>
+                        )}
+                    </div>
+                )}
             </DialogContent>
         </Dialog>
     );

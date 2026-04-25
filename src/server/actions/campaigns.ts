@@ -15,6 +15,7 @@ import type {
     CampaignRecipient,
 } from '@/types/campaign';
 import type { InboxAgentPersona } from '@/types/inbox';
+import type { CustomerSegment } from '@/types/customers';
 
 type CampaignActionUser = {
     uid: string;
@@ -812,5 +813,40 @@ export async function updateCampaignPerformance(
             campaignId,
         });
         return false;
+    }
+}
+
+// =============================================================================
+// SEGMENT COUNTS
+// =============================================================================
+
+export type SegmentCounts = Record<CustomerSegment, number>;
+
+const EMPTY_SEGMENT_COUNTS: SegmentCounts = {
+    vip: 0, loyal: 0, frequent: 0, high_value: 0,
+    new: 0, slipping: 0, at_risk: 0, churned: 0, regular: 0,
+};
+
+export async function getSegmentCounts(orgId: string): Promise<SegmentCounts> {
+    try {
+        if (!isValidOrgId(orgId)) return { ...EMPTY_SEGMENT_COUNTS };
+        const { firestore } = await createServerClient();
+        const user = await requireUser([...CAMPAIGN_ALLOWED_ROLES]);
+        if (!canAccessOrg(user, orgId)) return { ...EMPTY_SEGMENT_COUNTS };
+
+        const snap = await firestore.collection('customers')
+            .where('orgId', '==', orgId)
+            .select('segment')
+            .get();
+
+        const counts = { ...EMPTY_SEGMENT_COUNTS };
+        for (const doc of snap.docs) {
+            const seg = doc.data().segment as CustomerSegment | undefined;
+            if (seg && seg in counts) counts[seg]++;
+        }
+        return counts;
+    } catch (error) {
+        logger.error('[CAMPAIGNS] getSegmentCounts failed', { orgId, error: error instanceof Error ? error.message : String(error) });
+        return { ...EMPTY_SEGMENT_COUNTS };
     }
 }

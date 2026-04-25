@@ -10,10 +10,10 @@ import {
     Plus, Megaphone, Send, BarChart3,
     Loader2, TrendingUp, Building2, Package, AlertTriangle,
 } from 'lucide-react';
-import { getCampaigns, getCampaignStats, type CampaignStats } from '@/server/actions/campaigns';
+import { getCampaigns, getCampaignStats, getSegmentCounts, type CampaignStats, type SegmentCounts } from '@/server/actions/campaigns';
 import { getMenuAnalytics } from '@/server/actions/dispensary-analytics';
 import type { Campaign } from '@/types/campaign';
-import { CampaignWizardV2 } from './campaign-wizard-v2';
+import { CampaignWizardV2, type WizardContext } from './campaign-wizard-v2';
 import { CampaignCard } from './campaign-card';
 
 // Orgs super_user can switch between in the Campaigns view
@@ -43,6 +43,8 @@ export function CampaignsDashboard({ userId, orgId: defaultOrgId, isSuperUser }:
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [stats, setStats] = useState<CampaignStats | null>(null);
     const [slowMovers, setSlowMovers] = useState<SlowMover[]>([]);
+    const [segmentCounts, setSegmentCounts] = useState<SegmentCounts | undefined>(undefined);
+    const [wizardContext, setWizardContext] = useState<WizardContext | undefined>(undefined);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showWizard, setShowWizard] = useState(false);
@@ -71,10 +73,11 @@ export function CampaignsDashboard({ userId, orgId: defaultOrgId, isSuperUser }:
                 return;
             }
             // Use allSettled so a non-critical analytics failure doesn't block the campaigns list
-            const [campaignsSettled, statsSettled, menuSettled] = await Promise.allSettled([
+            const [campaignsSettled, statsSettled, menuSettled, countsSettled] = await Promise.allSettled([
                 getCampaigns(orgArg),
                 getCampaignStats(orgArg),
                 orgArg ? getMenuAnalytics(orgArg) : Promise.resolve({ success: false as const }),
+                getSegmentCounts(orgArg),
             ]);
             if (campaignsSettled.status === 'rejected' || statsSettled.status === 'rejected') {
                 setError('Failed to load campaigns. Please refresh the page.');
@@ -84,6 +87,9 @@ export function CampaignsDashboard({ userId, orgId: defaultOrgId, isSuperUser }:
             setStats(statsSettled.value);
             if (menuSettled.status === 'fulfilled' && menuSettled.value.success && menuSettled.value.data) {
                 setSlowMovers(menuSettled.value.data.skuRationalizationFlags);
+            }
+            if (countsSettled.status === 'fulfilled') {
+                setSegmentCounts(countsSettled.value);
             }
         } catch (err) {
             setError('Failed to load campaigns. Please refresh the page.');
@@ -160,7 +166,21 @@ export function CampaignsDashboard({ userId, orgId: defaultOrgId, isSuperUser }:
             {slowMovers.length > 0 && (
                 <SlowInventoryPanel
                     items={slowMovers}
-                    onCreateCampaign={() => setShowWizard(true)}
+                    onCreateCampaign={() => {
+                        const totalAtRisk = slowMovers.reduce((s, i) => s + i.estimatedAtRisk, 0);
+                        const topItems = slowMovers.slice(0, 5)
+                            .map(i => `- ${i.name} ($${i.estimatedAtRisk.toLocaleString()} at risk, ${i.daysSinceLastSale}d stale)`)
+                            .join('\n');
+                        setWizardContext({
+                            mode: 'slow-mover',
+                            presetGoal: 'drive_sales',
+                            presetName: `Slow Mover Flash Sale — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+                            presetChannels: ['email'],
+                            note: `${slowMovers.length} SKUs have $${totalAtRisk.toLocaleString()} at risk. Craig will write a flash sale campaign to clear this inventory.`,
+                            aiPrompt: `Write a flash sale email campaign to move slow-selling inventory. These products haven't sold in 60+ days:\n${topItems}\nTotal at risk: $${totalAtRisk.toLocaleString()} across ${slowMovers.length} SKUs.\n\nSuggest a 20-25% discount or "this weekend only" deal. Keep messaging urgent but compliant (no medical claims). Use {{firstName}} for personalization.`,
+                        });
+                        setShowWizard(true);
+                    }}
                 />
             )}
 
@@ -207,7 +227,7 @@ export function CampaignsDashboard({ userId, orgId: defaultOrgId, isSuperUser }:
                                 <option value="clickRate">Click Rate</option>
                                 <option value="revenue">Revenue</option>
                             </select>
-                            <Button onClick={() => setShowWizard(true)}>
+                            <Button onClick={() => { setWizardContext(undefined); setShowWizard(true); }}>
                                 <Plus className="h-4 w-4 mr-2" />
                                 New Campaign
                             </Button>
@@ -216,7 +236,7 @@ export function CampaignsDashboard({ userId, orgId: defaultOrgId, isSuperUser }:
 
                     <TabsContent value={activeTab} className="mt-4">
                         {filteredCampaigns.length === 0 ? (
-                            <EmptyState tab={activeTab} onNewCampaign={() => setShowWizard(true)} />
+                            <EmptyState tab={activeTab} onNewCampaign={() => { setWizardContext(undefined); setShowWizard(true); }} />
                         ) : (
                             <div className="space-y-3">
                                 {filteredCampaigns.map(campaign => (
@@ -236,11 +256,14 @@ export function CampaignsDashboard({ userId, orgId: defaultOrgId, isSuperUser }:
             {showWizard && (
                 <CampaignWizardV2
                     open={showWizard}
-                    onClose={() => setShowWizard(false)}
+                    onClose={() => { setShowWizard(false); setWizardContext(undefined); }}
                     onCreated={() => {
                         setShowWizard(false);
+                        setWizardContext(undefined);
                         fetchData();
                     }}
+                    context={wizardContext}
+                    segmentCounts={segmentCounts}
                 />
             )}
         </div>
