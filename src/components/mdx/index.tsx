@@ -104,9 +104,9 @@ export const components = {
 
   // Native video player for GCS/CDN MP4 files
   VideoPlayer: ({ src, title, poster }: { src: string; title: string; poster?: string }) => (
-    <div className="mb-6 rounded-lg overflow-hidden shadow-lg bg-black">
+    <div className="mb-6 rounded-lg overflow-hidden shadow-lg bg-zinc-900">
       <video
-        src={src}
+        src={`${src}#t=0.001`}
         title={title}
         poster={poster}
         controls

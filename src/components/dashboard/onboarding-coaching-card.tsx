@@ -206,10 +206,10 @@ export function OnboardingCoachingCard({
                   <div className="rounded-lg overflow-hidden border border-border/50">
                     <video
                       ref={videoRef}
-                      src={guidance.videoUrl}
+                      src={`${guidance.videoUrl}#t=0.001`}
                       controls
                       autoPlay
-                      className="w-full max-h-[280px] bg-black"
+                      className="w-full max-h-[280px] bg-zinc-900"
                       onEnded={() => setShowVideo(false)}
                     />
                   </div>
