@@ -66,7 +66,7 @@ function describeBlockedReason(reason: CompetitiveIntelActivationBlockedReason |
         case 'missing_admin_email':
             return 'An owner or admin email is missing, so the report has nowhere to land.';
         case 'slack_not_supported':
-            return 'Slack delivery is still limited to the Thrive Syracuse Uncle Elroy pilot.';
+            return 'Slack delivery is not enabled for this workspace yet.';
         case 'report_generation_failed':
             return 'The report run failed before delivery completed.';
         case 'email_delivery_failed':
@@ -620,7 +620,7 @@ export default function CompetitiveIntelPage() {
                         <CardHeader>
                             <CardTitle className="text-sm font-medium">Current Plan</CardTitle>
                             <CardDescription>
-                                Thrive Syracuse is using the Ezal workspace on {snapshot?.plan.name || 'Signal'}.
+                                Your competitive intelligence workspace on the {snapshot?.plan.name || 'Access Complete'} plan.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
