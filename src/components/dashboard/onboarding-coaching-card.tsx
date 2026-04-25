@@ -24,7 +24,8 @@ interface StepGuidance {
   description: string;
   tips: string[];
   ctaLabel?: string;
-  videoUrl?: string; // HeyGen walkthrough video URL
+  videoUrl?: string;
+  posterUrl?: string; // screenshot shown before video plays
 }
 
 const STEP_GUIDANCE: Record<OnboardingStepId, StepGuidance> = {
@@ -38,6 +39,7 @@ const STEP_GUIDANCE: Record<OnboardingStepId, StepGuidance> = {
     ],
     ctaLabel: 'Start building',
     videoUrl: 'https://storage.googleapis.com/bakedbot-global-assets/onboarding/videos/01-brand-guide.mp4',
+    posterUrl: 'https://storage.googleapis.com/bakedbot-global-assets/onboarding/screenshots/brand-guide.png',
   },
   'link-dispensary': {
     title: 'Link your dispensary',
@@ -203,13 +205,14 @@ export function OnboardingCoachingCard({
             {guidance.videoUrl && (
               <div className="pt-1">
                 {showVideo ? (
-                  <div className="rounded-lg overflow-hidden border border-border/50">
+                  <div className="rounded-lg overflow-hidden border border-border/50 max-w-xs">
                     <video
                       ref={videoRef}
                       src={`${guidance.videoUrl}#t=0.001`}
+                      poster={guidance.posterUrl}
                       controls
                       autoPlay
-                      className="w-full max-h-[280px] bg-zinc-900"
+                      className="w-full aspect-video bg-zinc-900"
                       onEnded={() => setShowVideo(false)}
                     />
                   </div>
