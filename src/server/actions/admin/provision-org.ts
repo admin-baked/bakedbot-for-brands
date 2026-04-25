@@ -1,8 +1,9 @@
 'use server';
 
 import { requireSuperUser } from '@/server/auth/auth';
-import { getAdminFirestore } from '@/firebase/admin';
+import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { sendSesEmail } from '@/lib/email/ses';
 import { verifySesDomain, getSesDomainStatus, getSesDnsRecords } from '@/lib/email/ses';
 import { upsertDnsRecord } from '@/server/integrations/cloudflare/api';
 import {
@@ -257,6 +258,52 @@ export async function provisionOrg(orgId: string): Promise<ProvisionResult> {
     } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         steps.push(step('ezal', 'Ezal competitive intel', 'error', msg));
+    }
+
+    // ── Step 7: Welcome email to org owner ───────────────────────────────────
+    try {
+        if (provisioning.welcomeEmailSent) {
+            steps.push(step('welcomeEmail', 'Welcome email', 'skipped', 'Already sent'));
+        } else {
+            const ownerId = org.ownerId as string | undefined;
+            if (!ownerId) {
+                steps.push(step('welcomeEmail', 'Welcome email', 'skipped', 'No ownerId on org'));
+            } else {
+                const ownerRecord = await getAdminAuth().getUser(ownerId).catch(() => null);
+                const ownerEmail = ownerRecord?.email;
+                if (!ownerEmail) {
+                    steps.push(step('welcomeEmail', 'Welcome email', 'skipped', 'Owner has no email in Auth'));
+                } else {
+                    await sendSesEmail({
+                        from: 'hello@bakedbot.ai',
+                        fromName: 'BakedBot AI',
+                        to: ownerEmail,
+                        subject: `Your BakedBot workspace is being set up — ${org.name as string}`,
+                        htmlBody: `
+<div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#111;">
+  <h2 style="margin-bottom:4px;">Your workspace is being activated 🌿</h2>
+  <p style="color:#555;margin-top:0;">Hi there,</p>
+  <p>We're wiring up your <strong>${org.name as string}</strong> workspace on BakedBot AI. Here's what's happening in the next 15 minutes:</p>
+  <ul style="padding-left:20px;line-height:1.8;color:#333;">
+    <li>Your custom email address <strong>${fromEmail}</strong> is being verified with Amazon SES</li>
+    <li>DNS records are being configured so customers can reply directly to you</li>
+    <li>Your competitive intelligence feed is being seeded for your market</li>
+  </ul>
+  <p>Once verification completes (~15 min), your agents will be able to send and receive email on your behalf.</p>
+  <p style="margin-bottom:4px;">Questions? Reply to this email or reach us at <a href="mailto:martez@bakedbot.ai">martez@bakedbot.ai</a>.</p>
+  <p style="color:#888;font-size:13px;margin-top:24px;">— The BakedBot Team</p>
+</div>`,
+                        textBody: `Your BakedBot workspace (${org.name as string}) is being activated.\n\nYour email address ${fromEmail} is being verified. This takes ~15 minutes.\n\nQuestions? Email martez@bakedbot.ai.`,
+                    });
+                    await orgRef.update({ 'provisioning.welcomeEmailSent': true });
+                    steps.push(step('welcomeEmail', 'Welcome email', 'ok', `Sent to ${ownerEmail}`));
+                }
+            }
+        }
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        steps.push(step('welcomeEmail', 'Welcome email', 'error', msg));
+        logger.error('[Provision] Welcome email failed', { orgId, error: msg });
     }
 
     // ── Done ──────────────────────────────────────────────────────────────────

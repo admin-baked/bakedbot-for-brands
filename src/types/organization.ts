@@ -30,6 +30,7 @@ export interface Organization {
         mxRecord?: boolean;
         posSync?: boolean;
         ezalSeeded?: boolean;
+        welcomeEmailSent?: boolean;
         completedAt?: any;
     };
 
