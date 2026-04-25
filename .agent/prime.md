@@ -65,8 +65,8 @@ Once BE says CONTRACT READY, spawn FE and UX in parallel:
 .\scripts\npm-safe.cmd run check:types
 ```
 
-**Current Status:** local verified | Campaign page: allSettled resilience + dispensary_admin access fix (`47234d66a`)
-**Recent work (2026-04-25):** Campaign fetchData → Promise.allSettled; detail page role whitelist expanded; Retry button on error state (`47234d66a`).
+**Current Status:** local verified | Public developer API docs + Dutchie integration + POS auth hardening (`04b7a4e26`)
+**Recent work (2026-04-25):** /developers page + OpenAPI spec live; POS webhook auth hardened; PlanId type fixed (`04b7a4e26`).
 
 ---
 
