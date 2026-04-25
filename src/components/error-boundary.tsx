@@ -11,6 +11,24 @@ import {
     shouldAttemptDeploymentReload,
     startDeploymentReload,
 } from '@/lib/deployment-mismatch';
+
+// Next.js uses thrown errors internally for redirect() and notFound() — they are not real errors
+function isNextRedirectError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    const e = error as Record<string, unknown>;
+    return e.digest === 'NEXT_REDIRECT' || (typeof e.digest === 'string' && e.digest.startsWith('NEXT_REDIRECT'));
+}
+
+function getNextRedirectUrl(error: unknown): string | null {
+    if (!error || typeof error !== 'object') return null;
+    const e = error as Record<string, unknown>;
+    // Next.js encodes redirect URL in the digest: "NEXT_REDIRECT;replace;/path" or similar
+    if (typeof e.digest === 'string' && e.digest.startsWith('NEXT_REDIRECT')) {
+        const parts = e.digest.split(';');
+        return parts[2] ?? '/';
+    }
+    return '/';
+}
 import { logger } from '@/lib/logger';
 
 interface ErrorBoundaryProps {
@@ -36,10 +54,21 @@ export class ErrorBoundary extends React.Component<
 
     static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
         const isDeploymentMismatch = isDeploymentMismatchError(error);
+        // NEXT_REDIRECT from server components — let Next.js handle it, don't show error UI
+        if (isNextRedirectError(error)) return { hasError: false, error: null, isDeploymentMismatch: false, reloadAttempted: false };
         return { hasError: true, error, isDeploymentMismatch };
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+        // NEXT_REDIRECT is not a real error — Next.js uses it for navigation control flow
+        if (isNextRedirectError(error)) {
+            const url = getNextRedirectUrl(error);
+            if (url && typeof window !== 'undefined') {
+                window.location.href = url;
+            }
+            return;
+        }
+
         const isDeploymentMismatch = isDeploymentMismatchError(error);
 
         // Log error to monitoring service
