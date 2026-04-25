@@ -5,6 +5,8 @@ import { CheckCircle2, XCircle, SkipForward, Loader2, ChevronDown, ChevronRight,
 import { cn } from '@/lib/utils';
 import { provisionOrg, setOrgSubdomain, type ProvisionResult, type ProvisionStep } from '@/server/actions/admin/provision-org';
 import { setOrgPlan, type PlanId } from '@/server/actions/admin/set-org-plan';
+import { seedOrgCompetitors } from '@/server/actions/admin/seed-competitors';
+import { getCompetitorPreset } from '@/config/competitor-presets';
 
 interface OrgRow {
     id: string;
@@ -153,6 +155,38 @@ function PlanEditor({ org, onSaved }: { org: OrgRow; onSaved: (planId: PlanId) =
     );
 }
 
+function SeedCompetitorsButton({ orgId }: { orgId: string }) {
+    const preset = getCompetitorPreset(orgId);
+    const [seeding, startSeed] = useTransition();
+    const [result, setResult] = useState<{ added: number; skipped: number } | null>(null);
+    const [error, setError] = useState('');
+
+    if (!preset.length) return null;
+
+    return (
+        <div className="flex items-center gap-2">
+            <button
+                disabled={seeding || !!result}
+                onClick={() => startSeed(async () => {
+                    setError('');
+                    const res = await seedOrgCompetitors(orgId, preset);
+                    if (res.success) setResult({ added: res.added, skipped: res.skipped });
+                    else setError(res.error ?? 'Failed');
+                })}
+                className="flex items-center gap-1 text-xs px-2 py-1 rounded border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-50 transition-colors"
+            >
+                {seeding
+                    ? <><Loader2 className="h-3 w-3 animate-spin" /> Seeding…</>
+                    : result
+                        ? <><CheckCircle2 className="h-3 w-3 text-emerald-500" /> {result.added} added, {result.skipped} skipped</>
+                        : <>+ {preset.length} competitors</>
+                }
+            </button>
+            {error && <span className="text-xs text-red-500">{error}</span>}
+        </div>
+    );
+}
+
 function OrgCard({ org }: { org: OrgRow }) {
     const [subdomain, setSubdomain] = useState(org.bakedBotSubdomain ?? '');
     const [planId, setPlanId] = useState(org.planId);
@@ -206,6 +240,7 @@ function OrgCard({ org }: { org: OrgRow }) {
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
+                    <SeedCompetitorsButton orgId={org.id} />
                     {isProvisioned && !running && !result && (
                         <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                             <CheckCircle2 className="h-3.5 w-3.5" /> Provisioned
