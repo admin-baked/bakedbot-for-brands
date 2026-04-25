@@ -7,6 +7,7 @@
  * Uses orgId-based queries (composite index on orgId + status).
  */
 
+import { createHash } from 'crypto';
 import { getAdminFirestore } from '@/firebase/admin';
 import { Timestamp, type DocumentData, type Firestore, type QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { requireUser } from '@/server/auth/auth';
@@ -548,5 +549,108 @@ export async function getPlaybookAudienceCounts(orgId: string): Promise<Playbook
             err: error instanceof Error ? error.message : String(error),
         });
         return { emailCustomers: 0, weeklySubscribers: 0, totalCustomers: 0 };
+    }
+}
+
+// =============================================================================
+// WEEKLY EMAIL SETUP
+// =============================================================================
+
+/**
+ * Backfill all existing org customers (who have emails) into weekly_campaign_subscribers,
+ * then configure the matching custom playbook assignment to use audienceType:
+ * 'all_email_customers' so the custom-report handler sends to all of them.
+ *
+ * Safe to run multiple times — all writes are idempotent.
+ */
+export async function setupWeeklyEmailForOrg(orgId: string): Promise<{
+    enrolled: number;
+    alreadyEnrolled: number;
+    playbookUpdated: boolean;
+    error?: string;
+}> {
+    try {
+        const user = await requireUser(['super_user', 'super_admin', 'dispensary', 'dispensary_admin']);
+        if (!isUserAuthorizedForOrg(user as unknown as Record<string, unknown>, orgId)) {
+            return { enrolled: 0, alreadyEnrolled: 0, playbookUpdated: false, error: 'Not authorized' };
+        }
+
+        const db = getAdminFirestore();
+
+        // 1. Fetch all customers with emails
+        const customersSnap = await db.collection('customers')
+            .where('orgId', '==', orgId)
+            .where('email', '>', '')
+            .select('email', 'firstName', 'id')
+            .get();
+
+        let enrolled = 0;
+        let alreadyEnrolled = 0;
+
+        const batch = db.batch();
+        let batchCount = 0;
+
+        for (const doc of customersSnap.docs) {
+            const data = doc.data();
+            const email = (data.email as string | undefined)?.trim().toLowerCase();
+            if (!email || !email.includes('@')) continue;
+
+            const subId = `wsub_${createHash('sha256').update(email + orgId).digest('hex').slice(0, 16)}`;
+            const subRef = db.collection('weekly_campaign_subscribers').doc(subId);
+            const existing = await subRef.get();
+
+            if (existing.exists) {
+                alreadyEnrolled++;
+            } else {
+                batch.set(subRef, {
+                    orgId,
+                    customerId: doc.id,
+                    email,
+                    firstName: (data.firstName as string | null) ?? null,
+                    enrolledAt: new Date(),
+                    lastSentAt: null,
+                    status: 'active',
+                    source: 'backfill',
+                });
+                enrolled++;
+                batchCount++;
+
+                // Firestore batch limit is 500
+                if (batchCount >= 490) {
+                    await batch.commit();
+                    batchCount = 0;
+                }
+            }
+        }
+
+        if (batchCount > 0) await batch.commit();
+
+        // 2. Find the weekly campaign playbook assignment and update audienceType
+        const assignmentsSnap = await db.collection('playbook_assignments')
+            .where('orgId', '==', orgId)
+            .where('status', '==', 'active')
+            .get();
+
+        let playbookUpdated = false;
+        for (const doc of assignmentsSnap.docs) {
+            const data = doc.data();
+            const name: string = ((data.config?.playbookName ?? data.name ?? '') as string).toLowerCase();
+            if (name.includes('weekly') && (name.includes('campaign') || name.includes('email'))) {
+                await doc.ref.update({ 'config.audienceType': 'all_email_customers' });
+                playbookUpdated = true;
+                logger.info('[WeeklyEmailSetup] Updated audienceType on assignment', {
+                    orgId,
+                    assignmentId: doc.id,
+                    playbookName: data.config?.playbookName,
+                });
+            }
+        }
+
+        logger.info('[WeeklyEmailSetup] Complete', { orgId, enrolled, alreadyEnrolled, playbookUpdated });
+        return { enrolled, alreadyEnrolled, playbookUpdated };
+    } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.error('[WeeklyEmailSetup] Failed', { orgId, error: msg });
+        return { enrolled: 0, alreadyEnrolled: 0, playbookUpdated: false, error: msg };
     }
 }

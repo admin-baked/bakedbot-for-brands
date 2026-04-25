@@ -38,6 +38,7 @@ import {
     activateAllTierPlaybooks,
     updatePlaybookAssignmentConfig,
     getPlaybookAudienceCounts,
+    setupWeeklyEmailForOrg,
 } from '@/server/actions/dispensary-playbooks';
 import type { PlaybookCustomConfig, PlaybookAudienceCounts } from '@/server/actions/dispensary-playbooks';
 import { PlaybookEditSheet } from '../../playbooks/components/playbook-edit-sheet';
@@ -49,6 +50,21 @@ import {
     toggleCustomPlaybookStatus,
 } from '@/server/actions/custom-playbooks';
 import type { Playbook } from '@/types/playbook';
+
+// Minimal human-readable cron description (no external deps needed)
+function describeCronSimple(cron: string): string {
+    const parts = cron.trim().split(/\s+/);
+    if (parts.length !== 5) return 'Scheduled';
+    const [, hour, , , dow] = parts;
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayName = dow === '*' ? null : days[parseInt(dow, 10)] ?? null;
+    const h = parseInt(hour, 10);
+    const suffix = h < 12 ? 'AM' : 'PM';
+    const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    const timeStr = `${displayHour} ${suffix}`;
+    if (dayName) return `Weekly ${dayName} · ${timeStr}`;
+    return `Daily · ${timeStr}`;
+}
 
 // ─── Agent Display Config ────────────────────────────────────────────────────
 
@@ -668,21 +684,51 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
                 transition={{ duration: 0.3, delay: 0.2 }}
             >
                 <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
                         <div>
                             <h2 className="text-sm font-semibold">Custom Playbooks</h2>
                             <p className="text-xs text-muted-foreground">
                                 Automations you've built from scratch
                             </p>
                         </div>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1.5"
-                            onClick={() => { setEditingCustomPlaybook(undefined); setEditorOpen(true); }}
-                        >
-                            <Plus className="h-3.5 w-3.5" /> New Playbook
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            {/* Show setup button when there's a weekly campaign playbook */}
+                            {customPlaybooks.some(pb =>
+                                pb.name.toLowerCase().includes('weekly') &&
+                                pb.triggers?.[0]?.type === 'schedule'
+                            ) && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1.5 text-xs"
+                                    onClick={async () => {
+                                        toast({ title: 'Setting up weekly email list…' });
+                                        const result = await setupWeeklyEmailForOrg(orgId);
+                                        if (result.error) {
+                                            toast({ title: 'Setup failed', description: result.error, variant: 'destructive' });
+                                        } else {
+                                            toast({
+                                                title: 'Weekly email ready',
+                                                description: `${result.enrolled} customers enrolled (${result.alreadyEnrolled} already active)${result.playbookUpdated ? ' · Playbook updated' : ''}.`,
+                                            });
+                                            // Refresh counts
+                                            const counts = await getPlaybookAudienceCounts(orgId);
+                                            setAudienceCounts(counts);
+                                        }
+                                    }}
+                                >
+                                    <Users className="h-3.5 w-3.5" /> Enroll All Email Customers
+                                </Button>
+                            )}
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5"
+                                onClick={() => { setEditingCustomPlaybook(undefined); setEditorOpen(true); }}
+                            >
+                                <Plus className="h-3.5 w-3.5" /> New Playbook
+                            </Button>
+                        </div>
                     </div>
 
                     {customPlaybooks.length === 0 ? (
@@ -756,17 +802,28 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
                                     </div>
                                     {/* Footer */}
                                     <div className="flex items-center justify-between mt-5 gap-2 flex-wrap">
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2 flex-wrap">
                                             <Switch
                                                 checked={pb.status === 'active'}
                                                 onCheckedChange={(checked) => handleToggleCustomPlaybook(pb, checked)}
                                                 className="scale-90"
                                             />
                                             <span className="text-sm font-medium text-foreground">
-                                                {pb.triggers?.[0]?.type === 'schedule' ? 'Scheduled' : 'Manual'}
+                                                {pb.triggers?.[0]?.type === 'schedule'
+                                                    ? (pb.triggers[0].cron
+                                                        ? describeCronSimple(pb.triggers[0].cron)
+                                                        : 'Scheduled')
+                                                    : 'Manual'}
                                             </span>
                                             {pb.agent && (
                                                 <span className="text-xs text-muted-foreground">{pb.agent}</span>
+                                            )}
+                                            {/* Audience count — email customers for email playbooks */}
+                                            {audienceCounts && audienceCounts.emailCustomers > 0 && (
+                                                <span className="text-xs text-muted-foreground tabular-nums">
+                                                    <Users className="inline h-3 w-3 mr-0.5 -mt-px" />
+                                                    {audienceCounts.emailCustomers.toLocaleString()}
+                                                </span>
                                             )}
                                         </div>
                                         <span className="text-xs font-bold px-2 py-1 rounded-md uppercase bg-slate-900/50 text-slate-300">
