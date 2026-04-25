@@ -85,6 +85,22 @@ Full workflow protocol: `.agent/refs/workflow-protocol.md`
 
 ---
 
+## Firestore → Client Serialization Rule (MANDATORY)
+
+**Any time you touch a function that returns Firestore data to a client component, review every field for non-serializable types before shipping.**
+
+Non-serializable types that WILL crash Next.js App Router server→client boundary:
+- `Timestamp` — has `.toDate()` method; convert to ISO string, number, or boolean
+- `GeoPoint` — convert to `{ lat, lng }`
+- `DocumentReference` — convert to id string or omit
+- `undefined` values — use `?? null`
+
+**The rule:** when adding or modifying fields returned from a server action/component to a client component, explicitly map each field. Never pass `data.someField` raw if it could be a Timestamp or complex Firestore object. The signal: if the field comes from `doc.data()` without explicit mapping, assume it may be non-serializable.
+
+**Incident (2026-04-25):** `provisioning.completedAt` was written as a Timestamp after a successful provisioning run. Crashed `/admin/org-provisioning` for 2+ hours while chasing App Check and session expiry as false root causes. Same class of bug as Brand Guide version history crash (`3d34e60c4`). The fix was a 3-line guard on the field — the investigation cost was entirely avoidable.
+
+---
+
 ## Workflow Runtime (V1 vs V2)
 
 **V2 stage-based is canonical. V1 step-based is legacy Ã¢â‚¬â€ maintenance only.**
