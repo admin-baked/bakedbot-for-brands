@@ -70,18 +70,23 @@ export function CampaignsDashboard({ userId, orgId: defaultOrgId, isSuperUser }:
                 setError('Missing organization context for Campaigns. Refresh the page or reselect your workspace.');
                 return;
             }
-            const [campaignsResult, statsResult, menuResult] = await Promise.all([
+            // Use allSettled so a non-critical analytics failure doesn't block the campaigns list
+            const [campaignsSettled, statsSettled, menuSettled] = await Promise.allSettled([
                 getCampaigns(orgArg),
                 getCampaignStats(orgArg),
                 orgArg ? getMenuAnalytics(orgArg) : Promise.resolve({ success: false as const }),
             ]);
-            setCampaigns(campaignsResult);
-            setStats(statsResult);
-            if (menuResult.success && menuResult.data) {
-                setSlowMovers(menuResult.data.skuRationalizationFlags);
+            if (campaignsSettled.status === 'rejected' || statsSettled.status === 'rejected') {
+                setError('Failed to load campaigns. Please refresh the page.');
+                return;
+            }
+            setCampaigns(campaignsSettled.value);
+            setStats(statsSettled.value);
+            if (menuSettled.status === 'fulfilled' && menuSettled.value.success && menuSettled.value.data) {
+                setSlowMovers(menuSettled.value.data.skuRationalizationFlags);
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to load campaigns');
+            setError('Failed to load campaigns. Please refresh the page.');
         } finally {
             setLoading(false);
         }
@@ -112,7 +117,12 @@ export function CampaignsDashboard({ userId, orgId: defaultOrgId, isSuperUser }:
     if (error) {
         return (
             <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription className="flex items-center justify-between gap-4">
+                    <span>Failed to load campaigns. Please refresh the page.</span>
+                    <Button size="sm" variant="outline" onClick={fetchData}>
+                        Retry
+                    </Button>
+                </AlertDescription>
             </Alert>
         );
     }
