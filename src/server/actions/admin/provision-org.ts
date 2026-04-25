@@ -332,12 +332,21 @@ export async function getProvisionableOrgs(): Promise<Array<{
     const snap = await db.collection('organizations').orderBy('name').get();
     return snap.docs.map(d => {
         const data = d.data();
+        // Serialize provisioning — strip Firestore Timestamps which can't pass the server→client boundary
+        const provisioning = data.provisioning
+            ? Object.fromEntries(
+                Object.entries(data.provisioning as Record<string, unknown>).map(([k, v]) => [
+                    k,
+                    v && typeof v === 'object' && 'toDate' in v ? true : v,
+                ])
+            )
+            : undefined;
         return {
             id: d.id,
             name: data.name ?? d.id,
             type: data.type ?? 'dispensary',
             bakedBotSubdomain: data.bakedBotSubdomain,
-            provisioning: data.provisioning,
+            provisioning,
             subscriptionStatus: data.billing?.subscriptionStatus ?? 'none',
             planId: data.planId,
         };

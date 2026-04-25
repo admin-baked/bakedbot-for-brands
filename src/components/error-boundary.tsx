@@ -54,21 +54,10 @@ export class ErrorBoundary extends React.Component<
 
     static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
         const isDeploymentMismatch = isDeploymentMismatchError(error);
-        // NEXT_REDIRECT from server components — let Next.js handle it, don't show error UI
-        if (isNextRedirectError(error)) return { hasError: false, error: null, isDeploymentMismatch: false, reloadAttempted: false };
         return { hasError: true, error, isDeploymentMismatch };
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        // NEXT_REDIRECT is not a real error — Next.js uses it for navigation control flow
-        if (isNextRedirectError(error)) {
-            const url = getNextRedirectUrl(error);
-            if (url && typeof window !== 'undefined') {
-                window.location.href = url;
-            }
-            return;
-        }
-
         const isDeploymentMismatch = isDeploymentMismatchError(error);
 
         // Log error to monitoring service
