@@ -692,34 +692,6 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
-                            {/* Show setup button when there's a weekly campaign playbook */}
-                            {customPlaybooks.some(pb =>
-                                pb.name.toLowerCase().includes('weekly') &&
-                                pb.triggers?.[0]?.type === 'schedule'
-                            ) && (
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-1.5 text-xs"
-                                    onClick={async () => {
-                                        toast({ title: 'Setting up weekly email list…' });
-                                        const result = await setupWeeklyEmailForOrg(orgId);
-                                        if (result.error) {
-                                            toast({ title: 'Setup failed', description: result.error, variant: 'destructive' });
-                                        } else {
-                                            toast({
-                                                title: 'Weekly email ready',
-                                                description: `${result.enrolled} customers enrolled (${result.alreadyEnrolled} already active)${result.playbookUpdated ? ' · Playbook updated' : ''}.`,
-                                            });
-                                            // Refresh counts
-                                            const counts = await getPlaybookAudienceCounts(orgId);
-                                            setAudienceCounts(counts);
-                                        }
-                                    }}
-                                >
-                                    <Users className="h-3.5 w-3.5" /> Enroll All Email Customers
-                                </Button>
-                            )}
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -826,9 +798,38 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
                                                 </span>
                                             )}
                                         </div>
-                                        <span className="text-xs font-bold px-2 py-1 rounded-md uppercase bg-slate-900/50 text-slate-300">
-                                            CUSTOM
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            {/* Enroll button — only on weekly scheduled email playbooks */}
+                                            {pb.triggers?.[0]?.type === 'schedule' &&
+                                             pb.name.toLowerCase().includes('weekly') && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-6 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                                                    title={`Send "${pb.name}" to all email customers`}
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        toast({ title: `Setting up "${pb.name}"…` });
+                                                        const result = await setupWeeklyEmailForOrg(orgId);
+                                                        if (result.error) {
+                                                            toast({ title: 'Setup failed', description: result.error, variant: 'destructive' });
+                                                        } else {
+                                                            toast({
+                                                                title: 'Audience set up',
+                                                                description: `${result.enrolled} new customers enrolled${result.alreadyEnrolled > 0 ? ` (${result.alreadyEnrolled} already active)` : ''}${result.playbookUpdated ? ' · Will now send to all email customers' : ''}.`,
+                                                            });
+                                                            const counts = await getPlaybookAudienceCounts(orgId);
+                                                            setAudienceCounts(counts);
+                                                        }
+                                                    }}
+                                                >
+                                                    <Users className="h-3 w-3" /> Set audience
+                                                </Button>
+                                            )}
+                                            <span className="text-xs font-bold px-2 py-1 rounded-md uppercase bg-slate-900/50 text-slate-300">
+                                                CUSTOM
+                                            </span>
+                                        </div>
                                     </div>
                                 </Card>
                             ))}

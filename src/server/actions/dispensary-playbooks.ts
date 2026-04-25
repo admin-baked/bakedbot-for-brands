@@ -577,11 +577,11 @@ export async function setupWeeklyEmailForOrg(orgId: string): Promise<{
 
         const db = getAdminFirestore();
 
-        // 1. Fetch all customers with emails
+        // 1. Fetch all customers — filter by email client-side to avoid needing
+        //    a composite index on (orgId, email).
         const customersSnap = await db.collection('customers')
             .where('orgId', '==', orgId)
-            .where('email', '>', '')
-            .select('email', 'firstName', 'id')
+            .select('email', 'firstName')
             .get();
 
         let enrolled = 0;
