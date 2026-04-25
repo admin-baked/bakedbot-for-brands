@@ -39,6 +39,7 @@ import {
     updatePlaybookAssignmentConfig,
     getPlaybookAudienceCounts,
     setupWeeklyEmailForOrg,
+    runPlaybookNow,
 } from '@/server/actions/dispensary-playbooks';
 import type { PlaybookCustomConfig, PlaybookAudienceCounts } from '@/server/actions/dispensary-playbooks';
 import { PlaybookEditSheet } from '../../playbooks/components/playbook-edit-sheet';
@@ -759,6 +760,19 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
                                                     <MoreHorizontal className="w-5 h-5" />
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem
+                                                        onClick={async () => {
+                                                            toast({ title: `Running "${pb.name}"…`, description: 'Craig is writing the email. Check Campaigns in a moment.' });
+                                                            const result = await runPlaybookNow(orgId, pb.id);
+                                                            if (result.error) {
+                                                                toast({ title: 'Run failed', description: result.error, variant: 'destructive' });
+                                                            } else {
+                                                                toast({ title: 'Done — check Campaigns', description: 'The draft is ready for your review and approval.' });
+                                                            }
+                                                        }}
+                                                    >
+                                                        ▶ Run Now
+                                                    </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => { setEditingCustomPlaybook(pb); setEditorOpen(true); }}>
                                                         Edit
                                                     </DropdownMenuItem>

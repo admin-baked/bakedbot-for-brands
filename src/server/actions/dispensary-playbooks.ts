@@ -553,6 +553,59 @@ export async function getPlaybookAudienceCounts(orgId: string): Promise<Playbook
 }
 
 // =============================================================================
+// MANUAL RUN
+// =============================================================================
+
+/**
+ * Immediately invoke a custom playbook's handler for this org, without
+ * waiting for the next scheduled dispatcher cycle.
+ *
+ * Accepts the playbook doc ID (from `playbooks` collection). Finds the
+ * matching assignment by querying all org assignments and filtering client-side
+ * to avoid needing a composite index.
+ */
+export async function runPlaybookNow(orgId: string, playbookId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const user = await requireUser(['super_user', 'super_admin', 'dispensary', 'dispensary_admin']);
+        if (!isUserAuthorizedForOrg(user as unknown as Record<string, unknown>, orgId)) {
+            return { success: false, error: 'Not authorized' };
+        }
+
+        const db = getAdminFirestore();
+
+        // Find the assignment for this playbook — filter client-side to avoid composite index
+        const allSnap = await db.collection('playbook_assignments')
+            .where('orgId', '==', orgId)
+            .get();
+
+        const assignmentDoc = allSnap.docs.find(d => {
+            const data = d.data();
+            return data.playbookId === playbookId || data.config?.customPlaybookId === playbookId;
+        });
+
+        if (!assignmentDoc) return { success: false, error: 'No active assignment found for this playbook' };
+
+        const data = assignmentDoc.data();
+        const { runHandler } = await import('@/server/playbooks/handler-registry');
+
+        await runHandler(data.handler as string, {
+            assignmentId: assignmentDoc.id,
+            orgId,
+            playbookId,
+            config: (data.config ?? {}) as Record<string, unknown>,
+            firestore: db,
+        });
+
+        logger.info('[PlaybookManualRun] Completed', { orgId, playbookId, handler: data.handler });
+        return { success: true };
+    } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.error('[PlaybookManualRun] Failed', { orgId, playbookId, error: msg });
+        return { success: false, error: msg };
+    }
+}
+
+// =============================================================================
 // WEEKLY EMAIL SETUP
 // =============================================================================
 
