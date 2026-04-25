@@ -217,6 +217,61 @@ Report requested: ${userPrompt}`;
     logger.info('[CustomReport] Delivered', { orgId, playbookId: ctx.playbookId, emails: deliverTo.length });
 }
 
+// ─── New customer welcome mode ───────────────────────────────────────────────
+
+async function handleNewCustomerWelcome(ctx: ScheduledPlaybookContext): Promise<void> {
+    const { orgId, config, firestore } = ctx;
+
+    const customerEmail = config.customerEmail as string | undefined;
+    const customerName = (config.customerName as string | undefined) || 'there';
+    if (!customerEmail) return;
+
+    const orgSnap = await firestore.collection('organizations').doc(orgId).get();
+    const orgName: string = (orgSnap.data()?.businessName ?? orgSnap.data()?.name ?? 'the dispensary') as string;
+
+    const userPrompt = (config.prompt as string | undefined) ?? '';
+
+    const emailRaw = await callGroqOrClaude({
+        systemPrompt: `You are Craig, the marketing AI for ${orgName} dispensary. Write a short, warm welcome email to a brand-new customer. Format exactly:
+
+SUBJECT LINE:
+[Subject under 50 chars — personal and welcoming]
+
+Hi ${customerName},
+
+[2-3 sentences: welcome them, make them feel part of the community. Be genuine, not corporate.]
+
+[1-2 sentences: what they can expect from your emails — weekly deals and cannabis education.]
+
+[1 sentence: genuine closing. Sign off as ${orgName} team.]
+
+Cannabis compliance: no medical claims, no guaranteed effects, keep it friendly.`,
+        userMessage: `Write the welcome email now for ${orgName}. Additional context: ${userPrompt || 'First-touch welcome for a new dispensary customer.'}`,
+        maxTokens: 350,
+        caller: 'playbook/welcome-email',
+    });
+
+    const { subject, body } = parseEmailParts(emailRaw);
+    const htmlBody = `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+<p>${body.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>
+<p style="font-size: 11px; color: #999; margin-top: 24px;">
+Reply STOP to unsubscribe · ${orgName}
+</p>
+</div>`;
+
+    await sendGenericEmail({
+        to: customerEmail,
+        subject,
+        htmlBody,
+        textBody: body,
+        orgId,
+        communicationType: 'transactional',
+        agentName: 'craig',
+    });
+
+    logger.info('[CustomReport] Welcome email sent', { orgId, playbookId: ctx.playbookId, customerEmail });
+}
+
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
 export async function handleCustomReport(ctx: ScheduledPlaybookContext): Promise<void> {
@@ -224,6 +279,8 @@ export async function handleCustomReport(ctx: ScheduledPlaybookContext): Promise
 
     if (audienceType === 'all_email_customers') {
         await handleAllEmailCustomers(ctx);
+    } else if (audienceType === 'new_customer_welcome') {
+        await handleNewCustomerWelcome(ctx);
     } else {
         await handleReportEmail(ctx);
     }
